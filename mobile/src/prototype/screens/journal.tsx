@@ -66,7 +66,15 @@ import {
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
-import { Button, DateField, PageScroll, Screen } from "../ui"
+import {
+  Button,
+  DateField,
+  groupBy,
+  MoreRows,
+  PageScroll,
+  Screen,
+  usePaged,
+} from "../ui"
 import { CaptureVoice } from "./capture-voice"
 import { MoodPicker, moodIcons } from "./mood-picker"
 
@@ -428,9 +436,9 @@ function JournalList() {
           e.body.toLowerCase().includes(q.toLowerCase()) ||
           e.tags.some((tag) => tag.includes(q.toLowerCase()))),
     ),
-    groups = [...new Set(shown.map((e) => e.day))].sort((a, b) =>
-      b.localeCompare(a),
-    ),
+    // One pass: each day's entries, newest day first.
+    byDay = groupBy(shown, (e) => e.day),
+    groups = [...byDay.keys()].sort((a, b) => b.localeCompare(a)),
     days = new Set(entries.map((e) => e.day)),
     lead = weekday(dayOffset(-27)),
     heat = [
@@ -440,9 +448,11 @@ function JournalList() {
       ),
     ]
   const streak = journalStreak(days)
+  const page = usePaged(groups, `${area}|${q}`)
   return (
     <Screen
       title="Journal"
+      onEndReached={page.more}
       actions={
         <Line style={{ gap: 0 }}>
           <IconTap
@@ -578,80 +588,75 @@ function JournalList() {
             </ScrollView>
           </>
         )}
-        {groups.map((day) => (
+        {page.rows.map((day) => (
           <View key={day}>
             <SectionHeading>{dayLabel(day)}</SectionHeading>
             <View style={{ gap: 8 }}>
-              {shown
-                .filter((e) => e.day === day)
-                .map((e) => {
-                  const S =
-                      e.source === "voice"
-                        ? Mic
-                        : e.source === "wrapup"
-                          ? Moon
-                          : PenLine,
-                    M = e.mood ? moodIcons[e.mood] : null
-                  return (
-                    <Tap key={e.id} onPress={() => go(`/journal/${e.id}`)}>
-                      <Frame style={{ padding: 14 }}>
-                        <Line style={{ gap: 8, marginBottom: 6 }}>
-                          <S size={14} color={t.muted} />
-                          <Copy size={12} muted style={{ flex: 1 }}>
-                            {timeLabel(e.createdAt)}
-                          </Copy>
-                          {M && (
-                            <Line
-                              style={{
-                                gap: 4,
-                                paddingHorizontal: 6,
-                                paddingVertical: 2,
-                                borderRadius: 6,
-                                backgroundColor: t.soft,
-                              }}
-                            >
-                              <M size={14} color={t.muted} />
-                              <Copy size={12} muted>
-                                {MOODS.find((m) => m.v === e.mood)?.label}
-                              </Copy>
-                            </Line>
-                          )}
-                          {!!e.area && (
-                            <View
-                              style={{
-                                paddingHorizontal: 6,
-                                paddingVertical: 2,
-                                borderRadius: 6,
-                                backgroundColor: border(t.life, 0.15),
-                              }}
-                            >
-                              <Copy size={12} style={{ color: t.life }}>
-                                {AREAS.find((a) => a.key === e.area)?.label ??
-                                  e.area}
-                              </Copy>
-                            </View>
-                          )}
-                        </Line>
-                        <Copy
-                          size={15}
-                          lines={3}
-                          style={{ lineHeight: 24.375 }}
-                        >
-                          {e.body}
+              {(byDay.get(day) ?? []).map((e) => {
+                const S =
+                    e.source === "voice"
+                      ? Mic
+                      : e.source === "wrapup"
+                        ? Moon
+                        : PenLine,
+                  M = e.mood ? moodIcons[e.mood] : null
+                return (
+                  <Tap key={e.id} onPress={() => go(`/journal/${e.id}`)}>
+                    <Frame style={{ padding: 14 }}>
+                      <Line style={{ gap: 8, marginBottom: 6 }}>
+                        <S size={14} color={t.muted} />
+                        <Copy size={12} muted style={{ flex: 1 }}>
+                          {timeLabel(e.createdAt)}
                         </Copy>
-                        <TranscriptionNote e={e} />
-                        {!!e.tags.length && (
-                          <Copy size={12} muted style={{ marginTop: 6 }}>
-                            {e.tags.map((tag) => `#${tag}`).join("  ")}
-                          </Copy>
+                        {M && (
+                          <Line
+                            style={{
+                              gap: 4,
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              borderRadius: 6,
+                              backgroundColor: t.soft,
+                            }}
+                          >
+                            <M size={14} color={t.muted} />
+                            <Copy size={12} muted>
+                              {MOODS.find((m) => m.v === e.mood)?.label}
+                            </Copy>
+                          </Line>
                         )}
-                      </Frame>
-                    </Tap>
-                  )
-                })}
+                        {!!e.area && (
+                          <View
+                            style={{
+                              paddingHorizontal: 6,
+                              paddingVertical: 2,
+                              borderRadius: 6,
+                              backgroundColor: border(t.life, 0.15),
+                            }}
+                          >
+                            <Copy size={12} style={{ color: t.life }}>
+                              {AREAS.find((a) => a.key === e.area)?.label ??
+                                e.area}
+                            </Copy>
+                          </View>
+                        )}
+                      </Line>
+                      <Copy size={15} lines={3} style={{ lineHeight: 24.375 }}>
+                        {e.body}
+                      </Copy>
+                      <TranscriptionNote e={e} />
+                      {!!e.tags.length && (
+                        <Copy size={12} muted style={{ marginTop: 6 }}>
+                          {e.tags.map((tag) => `#${tag}`).join("  ")}
+                        </Copy>
+                      )}
+                    </Frame>
+                  </Tap>
+                )
+              })}
             </View>
           </View>
         ))}
+        {page.hasMore && <MoreRows />}
         {!groups.length && (
           <View style={{ alignItems: "center", padding: 32, gap: 12 }}>
             <Copy weight="semibold">

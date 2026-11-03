@@ -35,7 +35,7 @@ import {
   Satellite,
   Trash2,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Pressable, Text, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { runRecord } from "../body-rewards"
@@ -53,7 +53,17 @@ import { go, replace } from "../navigation"
 import { RouteMap, Trace } from "../route-map"
 import { finishAndStop, startTracking, stopTracking } from "../run-tracker"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Empty, Screen, Sheet, undo, useNow } from "../ui"
+import {
+  Button,
+  confirm,
+  Empty,
+  MoreRows,
+  Screen,
+  Sheet,
+  undo,
+  useNow,
+  usePaged,
+} from "../ui"
 import { LockedPreview } from "./locked-preview"
 
 export const RUN_HREF = "/fitness/run"
@@ -964,9 +974,12 @@ export function RunHistory() {
   const s = fitStore.use((s) => s)
   const runs = R.runsOf(s)
   const all = R.runTotals(runs)
+  const newest = useMemo(() => [...runs].reverse(), [runs])
+  const { rows, more, hasMore } = usePaged(newest)
   return (
     <Screen
       title="Runs and walks"
+      onEndReached={more}
       actions={
         <IconTap
           size={40}
@@ -983,10 +996,11 @@ export function RunHistory() {
             {`All sessions · ${R.fmtKm(all.distanceM)} km`}
           </SectionHeading>
           <Frame>
-            {[...runs].reverse().map((r, i) => (
+            {rows.map((r, i) => (
               <RunRow key={r.id} run={r} divided={i > 0} />
             ))}
           </Frame>
+          {hasMore && <MoreRows />}
         </>
       )}
     </Screen>

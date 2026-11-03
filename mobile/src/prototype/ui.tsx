@@ -505,6 +505,65 @@ export const ScrollLock = createContext<(locked: boolean) => void>(() => {})
  * content) shows above its bottom edge; no-op when it already does. */
 export const PageScroll = createContext<(y: number) => void>(() => {})
 
+/** How close to the end of a page (pt) its next rows are added. */
+const END_DISTANCE = 600
+/** Rows a long list opens with: a little more than a screen of them. */
+const FIRST_PAGE = 15
+/** A long list's rows a page at a time: a screenful first, then `page`
+ * more each time `more` is called (pass it to Screen's onEndReached).
+ * Rendering every row of years of history at once is what made those
+ * screens slow to open; `resetKey` (a search, a filter) starts again from
+ * the first page. */
+export function usePaged<T>(rows: T[], resetKey: unknown = null, page = 30) {
+  const first = FIRST_PAGE
+  const [shown, setShown] = useState({ key: resetKey, n: first })
+  const fresh = !Object.is(shown.key, resetKey)
+  // A new search or filter: back to the first page (React's "adjust state
+  // while rendering" pattern, so no render shows the old count).
+  if (fresh) setShown({ key: resetKey, n: first })
+  const n = fresh ? first : shown.n
+  const hasMore = rows.length > n
+  const more = useCallback(() => {
+    if (hasMore) setShown((cur) => ({ ...cur, n: cur.n + page }))
+  }, [hasMore, page])
+  return { rows: hasMore ? rows.slice(0, n) : rows, more, hasMore }
+}
+/** Rows by key in one pass, in their order (a list grouped under day
+ * headings, without filtering the whole list again for every day). */
+export function groupBy<T, K>(rows: T[], key: (row: T) => K): Map<K, T[]> {
+  const out = new Map<K, T[]>()
+  for (const row of rows) {
+    const k = key(row)
+    const list = out.get(k)
+    if (list) list.push(row)
+    else out.set(k, [row])
+  }
+  return out
+}
+/** The end of a list with more rows to come: a dimmed row while the next
+ * page renders. */
+export function MoreRows() {
+  const t = useTheme()
+  return (
+    <View
+      accessibilityLabel="Loading more"
+      style={{ paddingVertical: 14, gap: 8, opacity: 0.6 }}
+    >
+      {[0.7, 0.45].map((w) => (
+        <View
+          key={w}
+          style={{
+            width: `${w * 100}%`,
+            height: 12,
+            borderRadius: 6,
+            backgroundColor: t.soft,
+          }}
+        />
+      ))}
+    </View>
+  )
+}
+
 export function Screen({
   title,
   onTitlePress,
@@ -518,6 +577,7 @@ export function Screen({
   prototypeLayout = true,
   scrollToEnd = false,
   onRefresh,
+  onEndReached,
 }: {
   titleContent?: ReactNode
   title: string
@@ -533,6 +593,9 @@ export function Screen({
   scrollToEnd?: boolean
   /** Enables pull-to-refresh; resolve when the refresh finishes. */
   onRefresh?: () => unknown
+  /** Called as the page scrolls near its end (and while the content is
+   * shorter than the screen): a long list shows its next page (usePaged). */
+  onEndReached?: () => void
 }) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
@@ -662,9 +725,17 @@ export function Screen({
           view.current.height = e.nativeEvent.layout.height
         }}
         onScroll={(e) => {
-          view.current.top = e.nativeEvent.contentOffset.y
-          const next = e.nativeEvent.contentOffset.y > 4
+          const { contentOffset, contentSize, layoutMeasurement } =
+            e.nativeEvent
+          view.current.top = contentOffset.y
+          const next = contentOffset.y > 4
           if (next !== scrolled) setScrolled(next)
+          if (
+            onEndReached &&
+            contentOffset.y + layoutMeasurement.height >
+              contentSize.height - END_DISTANCE
+          )
+            onEndReached()
         }}
         refreshControl={
           onRefresh ? (
@@ -676,8 +747,11 @@ export function Screen({
             />
           ) : undefined
         }
-        onContentSizeChange={() => {
+        onContentSizeChange={(_w, h) => {
           if (scrollToEnd) scroller.current?.scrollToEnd({ animated: false })
+          // Not enough rows to scroll yet: the next page fills the screen.
+          if (onEndReached && view.current.height && h < view.current.height)
+            onEndReached()
         }}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
