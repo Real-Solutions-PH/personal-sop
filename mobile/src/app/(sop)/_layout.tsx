@@ -1,6 +1,7 @@
 import { dashStore, setOnboarded } from "@domain/dash/store"
 import { captureUi, closeCapture, openCapture } from "@domain/lib/capture"
 import { useConnectivity } from "@domain/lib/platform"
+import { LaggingReads } from "@domain/lib/store"
 import * as Haptics from "expo-haptics"
 import { LinearGradient } from "expo-linear-gradient"
 import { Redirect, Stack, usePathname } from "expo-router"
@@ -34,7 +35,7 @@ import { startFocusLive } from "@/prototype/focus-live"
 import { LiveBar } from "@/prototype/live-bar"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
-import { replace } from "@/prototype/navigation"
+import { replace, switchTab } from "@/prototype/navigation"
 import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { FinishWatcher } from "@/prototype/routine-done"
@@ -342,11 +343,16 @@ export default function PrototypeLayout() {
           <>
             <CaptureOverlay bottom={focus ? 0 : bar} />
             <WakeWordListener onChatPage={path === "/capture"} />
-            <SurfacesBridge />
-            <TrophyWatcher hidden={focus} />
-            <FinishWatcher hidden={focus} />
-            <AtRiskWatcher />
-            <DayMomentWatcher hidden={focus} />
+            {/* Background watchers (widgets, trophies, streaks, moments)
+                follow a change just after it, never inside the tap that
+                made it: each recomputes summaries over all history. */}
+            <LaggingReads.Provider value>
+              <SurfacesBridge />
+              <TrophyWatcher hidden={focus} />
+              <FinishWatcher hidden={focus} />
+              <AtRiskWatcher />
+              <DayMomentWatcher hidden={focus} />
+            </LaggingReads.Provider>
           </>
         )}
         {!focus && (
@@ -395,7 +401,7 @@ export default function PrototypeLayout() {
                     else if (path !== tab.href) {
                       if (drawer) closeCapture()
                       tabDirection.setState({ dir: 0 })
-                      replace(tab.href)
+                      switchTab(tab.href)
                     }
                   }}
                   style={{

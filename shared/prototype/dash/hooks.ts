@@ -8,6 +8,7 @@ import type {
   ModuleKey,
 } from "../contract"
 import { dayKey, dayOffset } from "../lib/day"
+import { useSharedMemo } from "../lib/memo"
 import { modules } from "../modules"
 import {
   AREA,
@@ -73,7 +74,7 @@ function useLocalRates(days: number, offset: number) {
   const fo = FOC.useAreaRate(days, offset)
   const fi = FIN.useAreaRate(days, offset)
   const sc = SCR.useAreaRate(days, offset)
-  return useMemo(() => {
+  return useSharedMemo("dash.useLocalRates", () => {
     const raw: Record<ModuleKey, number | null> = {
       habits: h,
       tasks: t,
@@ -143,7 +144,7 @@ export function useLifeScore(days: number): LifeScore {
   const weights = useWeights()
   const enabled = useEnabled()
   const server = useServerStat<ServerOverview>(overviewKey(days))
-  return useMemo(() => {
+  return useSharedMemo("dash.useLifeScore", () => {
     const o = server.data
     if (o)
       return {
@@ -209,7 +210,7 @@ export function useDaySeries(days: number): DayResult[] {
   const enabled = useEnabled()
   const threshold = dashStore.use((s) => s.targetThreshold)
   const wrapups = dashStore.use((s) => s.wrapups)
-  return useMemo(() => {
+  return useSharedMemo("dash.useDaySeries", () => {
     const map = new Map<
       string,
       {
@@ -270,7 +271,7 @@ export function useOnTarget(days: number) {
   const len = Math.max(days * 2, 365)
   const local = useDaySeries(len)
   const server = useServerStat<ServerOverview>(overviewKey(days))
-  return useMemo(() => {
+  return useSharedMemo("dash.useOnTarget", () => {
     const o = server.data
     // Live mode: the server's days overwrite the local ones they cover, so
     // the long series (heatmaps, achievements) keeps its length.
@@ -327,7 +328,7 @@ export function useTodayRing() {
   const sc = SCR.useTodayProgress()
   const enabled = useEnabled()
   const server = useServerStat<ServerToday>(statKey.today())
-  return useMemo(() => {
+  return useSharedMemo("dash.useTodayRing", () => {
     if (server.data) return ringFrom(server.data.ring)
     const per = {
       habits: h,
@@ -357,7 +358,8 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const sc = SCR.useCalendar(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerCalendarItem[]>(statKey.calendar(from, to))
-  return useMemo(
+  return useSharedMemo(
+    "dash.useAllCalendar",
     () =>
       (server.data
         ? calendarFrom(server.data)
@@ -381,7 +383,8 @@ export function useLocalCalendar(from: string, to: string): CalendarItem[] {
   const c = FIT.useCalendar(from, to)
   const d = FIN.useCalendar(from, to)
   const enabled = useEnabled()
-  return useMemo(
+  return useSharedMemo(
+    "dash.useLocalCalendar",
     () =>
       [...a, ...b, ...c, ...d]
         .filter((i) => enabled[i.module])
@@ -403,7 +406,8 @@ export function useAllMisses(from: string, to: string): Miss[] {
   const sc = SCR.useMisses(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerMiss[]>(statKey.misses(from, to))
-  return useMemo(
+  return useSharedMemo(
+    "dash.useAllMisses",
     () =>
       (server.data
         ? missesFrom(server.data)
@@ -423,7 +427,8 @@ export function useAllMetrics(days: number): Record<ModuleKey, Metric[]> {
   const d = FIN.useMetrics(days)
   const sc = SCR.useMetrics(days)
   const server = useServerStat<ServerOverview>(overviewKey(days))
-  return useMemo(
+  return useSharedMemo(
+    "dash.useAllMetrics",
     () =>
       server.data
         ? metricsFrom(server.data)
@@ -542,7 +547,8 @@ export function useGoals() {
   const screenOn = dashStore.use((s) => s.enabled.screen)
   const b = useMetricBook()
   const all = useAllMetrics(30)
-  return useMemo(
+  return useSharedMemo(
+    "dash.useGoals",
     () =>
       goals
         .filter((g) => screenOn || !g.metric.startsWith("screen:"))
@@ -635,7 +641,7 @@ function useLocalAchievements(): Achievement[] {
   const goals = useGoals()
   const wrapups = dashStore.use((s) => s.wrapups)
   const enabled = useEnabled()
-  return useMemo(() => {
+  return useSharedMemo("dash.useLocalAchievements", () => {
     const out: Achievement[] = []
     const prog = (cur: number, max: number, unit: string) => ({
       pct: max ? Math.max(0, Math.min(1, cur / max)) : 0,

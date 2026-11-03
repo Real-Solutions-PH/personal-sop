@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
+import { useSharedMemo } from "../lib/memo"
 import { useStats, useTodayData } from "./hooks"
 import { addDays, diffDays, doneDay, isShopping, today } from "./logic"
 import { tasksStore } from "./store"
@@ -8,7 +9,7 @@ const round1 = (n: number) => Math.round(n * 10) / 10
 function useMetrics(days: number): Metric[] {
   const cur = useStats(days)
   const prev = useStats(days, days)
-  return useMemo(() => {
+  return useSharedMemo("tasks.useMetrics", () => {
     const pp = (v: number | null) => (v === null ? 0 : Math.round(v * 100))
     return [
       {
@@ -67,7 +68,8 @@ function useAreaRate(days: number, offset = 0): number {
 function useCalendar(from: string, to: string): CalendarItem[] {
   const tasks = tasksStore.use((s) => s.tasks)
   const lists = tasksStore.use((s) => s.lists)
-  return useMemo(
+  return useSharedMemo(
+    "tasks.useCalendar",
     () =>
       tasks
         .filter(
@@ -93,7 +95,7 @@ function useCalendar(from: string, to: string): CalendarItem[] {
 function useMisses(from: string, to: string): Miss[] {
   const tasks = tasksStore.use((s) => s.tasks)
   const lists = tasksStore.use((s) => s.lists)
-  return useMemo(() => {
+  return useSharedMemo("tasks.useMisses", () => {
     const tk = today()
     const out: Miss[] = []
     for (const t of tasks) {

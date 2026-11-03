@@ -22,6 +22,7 @@ import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey, dayOffset, fmtDuration, isEvening } from "@domain/lib/day"
+import { useSharedMemo } from "@domain/lib/memo"
 import { completeTask } from "@domain/tasks/actions"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
 import { fmtInstant, isDueNow } from "@domain/tasks/logic"
@@ -60,13 +61,14 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { type ComponentType, memo, useEffect, useMemo, useState } from "react"
+import { type ComponentType, memo, useEffect, useState } from "react"
 import { Platform, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { Sparkline } from "../chart"
 import { FirstWeekStrip, YesterdayStrip } from "../daily-strips"
+import { CardSkeleton, Deferred, FrameSkeleton } from "../deferred"
 import { extrasStore } from "../extras"
 import {
   AnimatedCheck,
@@ -99,7 +101,7 @@ import { PrivacyEye } from "../privacy-eye"
 import { streakLost } from "../rewards"
 import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
-import { fonts, radius, useTheme } from "../theme"
+import { type Accent, fonts, radius, useTheme } from "../theme"
 import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
 import { refreshWeather } from "../weather"
@@ -1373,7 +1375,7 @@ function FinanceCard() {
     // Projection, budgets and occurrences walk every record: worked out
     // once per change to the finance data (or day), never per render.
     { budget, due, pending, spentToday, lastMonth, reviewReady, last, alerts } =
-      useMemo(() => financeToday(s, today), [s, today])
+      useSharedMemo("today.finance", () => financeToday(s, today), [s, today])
   const info = (
     Icon: LucideIcon,
     title: string,
@@ -1735,6 +1737,42 @@ const MODULE_CARDS: Partial<Record<ModuleKey, ComponentType>> = {
   focus: memo(FocusCard),
   finance: memo(FinanceCard),
 }
+// Read-only summaries: they update just after a change instead of with it.
+// Habits, tasks and focus hold controls a person taps, so they stay in step.
+const LAGGING_CARDS = new Set<ModuleKey>(["finance", "fitness", "nutrition"])
+// What a module card shows while it renders (its own header, dimmed body).
+const CARD_SKELETON: Record<
+  ModuleKey,
+  { title: string; icon: LucideIcon; accent: Accent; href: string }
+> = {
+  habits: { title: "Habits", icon: Target, accent: "hab", href: "/habits" },
+  tasks: { title: "Tasks", icon: CheckSquare, accent: "tsk", href: "/tasks" },
+  fitness: {
+    title: "Fitness",
+    icon: Dumbbell,
+    accent: "fit",
+    href: "/fitness",
+  },
+  nutrition: {
+    title: "Nutrition",
+    icon: Utensils,
+    accent: "nut",
+    href: "/nutrition",
+  },
+  focus: { title: "Focus", icon: Timer, accent: "foc", href: "/focus" },
+  finance: {
+    title: "Finance",
+    icon: Wallet,
+    accent: "fin",
+    href: "/finance",
+  },
+  screen: {
+    title: "Screen time",
+    icon: Smartphone,
+    accent: "scr",
+    href: "/screen",
+  },
+}
 const WeeklyReview = memo(WeeklyReviewCard)
 const Yesterday = memo(YesterdayStrip)
 const FirstWeek = memo(FirstWeekStrip)
@@ -1836,7 +1874,9 @@ export function Today() {
         </Line>
       }
     >
-      <WeeklyReview now={now} />
+      <Deferred lag fallback={<FrameSkeleton height={150} />}>
+        <WeeklyReview now={now} />
+      </Deferred>
       <Yesterday />
       <FirstWeek />
       <Plan />
@@ -1917,10 +1957,20 @@ export function Today() {
         .filter((k) => s.enabled[k])
         .map((k) => {
           const Card = MODULE_CARDS[k]
-          return Card ? <Card key={k} /> : null
+          return Card ? (
+            <Deferred
+              key={k}
+              lag={LAGGING_CARDS.has(k)}
+              fallback={<CardSkeleton {...CARD_SKELETON[k]} />}
+            >
+              <Card />
+            </Deferred>
+          ) : null
         })}
       {shown.social && <Community />}
-      <Goals evening={evening} />
+      <Deferred lag fallback={<FrameSkeleton height={90} />}>
+        <Goals evening={evening} />
+      </Deferred>
     </Screen>
   )
 }

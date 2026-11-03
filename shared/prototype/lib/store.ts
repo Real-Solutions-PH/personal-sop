@@ -1,4 +1,11 @@
-import { useSyncExternalStore } from "react"
+import {
+  createContext,
+  startTransition,
+  useContext,
+  useEffect,
+  useReducer,
+  useSyncExternalStore,
+} from "react"
 export interface StorageAdapter {
   getItem(key: string): string | null
   setItem(key: string, value: string): void
@@ -47,6 +54,14 @@ const registry: Array<{
   reset(): void
   flush(): boolean
 }> = []
+/** Inside a provider set to true, `store.use` re-renders for a change in a
+ * transition instead of with it: for read-only summaries (a year of
+ * statistics) that must not hold up the tap that changed the store. The tap's
+ * own control re-renders first and is painted; the summary follows, and React
+ * sets its render aside for the next tap. */
+export const LaggingReads = createContext(false)
+const ignore = () => () => {}
+
 // Stores read while `trackReads` runs (null: not tracking).
 let reads: Set<string> | null = null
 /** Runs `fn` and returns the keys of every store it read. For work derived
@@ -143,12 +158,20 @@ export function createStore<T>(
       listeners.delete(listener)
     }
   }
-  const use = <S>(select: (value: T) => S) =>
-    useSyncExternalStore(
-      subscribe,
+  const use = <S>(select: (value: T) => S) => {
+    const lagging = useContext(LaggingReads)
+    const [, refresh] = useReducer((n: number) => n + 1, 0)
+    useEffect(
+      () =>
+        lagging ? subscribe(() => startTransition(() => refresh())) : undefined,
+      [lagging],
+    )
+    return useSyncExternalStore(
+      lagging ? ignore : subscribe,
       () => select(get()),
       () => select(server),
     )
+  }
   const flush = () => {
     if (!pending) return true
     if (!persist) {

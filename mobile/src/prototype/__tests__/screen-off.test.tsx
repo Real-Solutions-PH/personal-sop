@@ -366,7 +366,8 @@ describe("screen data while off", () => {
     setEnabled("screen", false)
     render(<StatsHome />, { wrapper })
     expect(
-      screen.getByLabelText(/^Area hexagon: /).props.accessibilityLabel,
+      (await screen.findByLabelText(/^Area hexagon: /)).props
+        .accessibilityLabel,
     ).not.toMatch(/Screen/)
     expect(screen.queryAllByText("Screen time")).toHaveLength(0)
   })

@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
 import { dayKey } from "../lib/day"
+import { useSharedMemo } from "../lib/memo"
 import {
   addDays,
   dailyWeights,
@@ -21,14 +22,15 @@ import { useFit } from "./store"
 // (ADR-0024), though they live in this store.
 function useAreaRate(days: number, offset = 0): number {
   const s = useFit()
-  return useMemo(
+  return useSharedMemo(
+    "fitness.useAreaRate",
     () => periodSummary(s, days, -offset).sessionRate,
     [s, days, offset],
   )
 }
 function useMetrics(days: number): Metric[] {
   const s = useFit()
-  return useMemo(() => {
+  return useSharedMemo("fitness.useMetrics", () => {
     const cur = periodSummary(s, days)
     const prev = periodSummary(s, days, -days)
     const rate = weeklyRate(s)
@@ -79,7 +81,8 @@ function useMetrics(days: number): Metric[] {
 }
 function useCalendar(from: string, to: string): CalendarItem[] {
   const s = useFit()
-  return useMemo(
+  return useSharedMemo(
+    "fitness.useCalendar",
     () =>
       s.workouts
         .filter((w) => w.status !== "discarded")
@@ -103,7 +106,7 @@ function useCalendar(from: string, to: string): CalendarItem[] {
 }
 function useMisses(from: string, to: string): Miss[] {
   const s = useFit()
-  return useMemo(() => {
+  return useSharedMemo("fitness.useMisses", () => {
     const out: Miss[] = []
     const thisWeek = weekStart(dayKey())
     const goal = weeklyGoal(s)

@@ -17,6 +17,7 @@ import {
 } from "@domain/dash/hooks"
 import { dashStore, markReviewOpened, saveReview } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
+import { useSharedMemo } from "@domain/lib/memo"
 import { absNum } from "@domain/lib/num"
 import {
   Check,
@@ -181,59 +182,64 @@ export function useReviewDigest(id: string) {
     misses = useAllMisses(p?.from ?? dayKey(), p?.to ?? dayKey()),
     trophies = useTrophies(),
     keys = useEnabledKeys()
-  if (!p) return null
-  const series = target.series.filter((d) => d.day >= p.from && d.day <= p.to),
-    cur = onTargetStats(series),
-    prev = onTargetStats(
-      target.series.filter(
-        (d) => d.day >= addDaysKey(p.from, -len) && d.day < p.from,
+  // Worked out once per change to its inputs, not on every render or mount.
+  return useSharedMemo("review.digest", () => {
+    if (!p) return null
+    const series = target.series.filter(
+        (d) => d.day >= p.from && d.day <= p.to,
       ),
-    ),
-    best = [...series]
-      .filter((d) => d.due)
-      .sort((a, b) => b.done / b.due - a.done / a.due || b.done - a.done)[0],
-    wins = trophies.filter((x) => x.day >= p.from && x.day <= p.to),
-    strongest = [...keys].sort((a, b) => ls.rates[b] - ls.rates[a])[0],
-    weakest = [...keys].sort((a, b) => ls.rates[a] - ls.rates[b])[0],
-    targetDelta =
-      cur.rate !== null && prev.rate !== null
-        ? Math.round((cur.rate - prev.rate) * 100)
-        : null
-  const summary = `You hit the target on ${cur.onTarget} of ${cur.scored} scored days (${pct(cur.rate)})${
-    targetDelta !== null
-      ? `, ${targetDelta >= 0 ? "up" : "down"} ${Math.abs(targetDelta)} points on the ${p.kind} before`
-      : ""
-  }. ${
-    strongest
-      ? `${AREA[strongest].label} carried it at ${Math.round(ls.rates[strongest] * 100)}%`
-      : ""
-  }${
-    weakest && weakest !== strongest
-      ? `, while ${AREA[weakest].label.toLowerCase()} lagged at ${Math.round(ls.rates[weakest] * 100)}%`
-      : ""
-  }.`
-  const tip =
-    weakest === "tasks"
-      ? "block 30 minutes on Saturday for anything pushed twice."
-      : weakest === "fitness"
-        ? "book your sessions on the calendar like meetings."
-        : weakest === "finance"
-          ? "set a no-spend day midweek to cool the leak."
-          : "stack your weakest habit onto the morning routine."
-  return {
-    p,
-    len,
-    ls,
-    misses,
-    cur,
-    best,
-    wins,
-    strongest,
-    weakest,
-    targetDelta,
-    summary,
-    tip,
-  }
+      cur = onTargetStats(series),
+      prev = onTargetStats(
+        target.series.filter(
+          (d) => d.day >= addDaysKey(p.from, -len) && d.day < p.from,
+        ),
+      ),
+      best = [...series]
+        .filter((d) => d.due)
+        .sort((a, b) => b.done / b.due - a.done / a.due || b.done - a.done)[0],
+      wins = trophies.filter((x) => x.day >= p.from && x.day <= p.to),
+      strongest = [...keys].sort((a, b) => ls.rates[b] - ls.rates[a])[0],
+      weakest = [...keys].sort((a, b) => ls.rates[a] - ls.rates[b])[0],
+      targetDelta =
+        cur.rate !== null && prev.rate !== null
+          ? Math.round((cur.rate - prev.rate) * 100)
+          : null
+    const summary = `You hit the target on ${cur.onTarget} of ${cur.scored} scored days (${pct(cur.rate)})${
+      targetDelta !== null
+        ? `, ${targetDelta >= 0 ? "up" : "down"} ${Math.abs(targetDelta)} points on the ${p.kind} before`
+        : ""
+    }. ${
+      strongest
+        ? `${AREA[strongest].label} carried it at ${Math.round(ls.rates[strongest] * 100)}%`
+        : ""
+    }${
+      weakest && weakest !== strongest
+        ? `, while ${AREA[weakest].label.toLowerCase()} lagged at ${Math.round(ls.rates[weakest] * 100)}%`
+        : ""
+    }.`
+    const tip =
+      weakest === "tasks"
+        ? "block 30 minutes on Saturday for anything pushed twice."
+        : weakest === "fitness"
+          ? "book your sessions on the calendar like meetings."
+          : weakest === "finance"
+            ? "set a no-spend day midweek to cool the leak."
+            : "stack your weakest habit onto the morning routine."
+    return {
+      p,
+      len,
+      ls,
+      misses,
+      cur,
+      best,
+      wins,
+      strongest,
+      weakest,
+      targetDelta,
+      summary,
+      tip,
+    }
+  }, [target, ls, misses, trophies, keys, id])
 }
 function Review({ id }: { id: string }) {
   const p = periodOf(id),

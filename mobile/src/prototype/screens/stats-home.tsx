@@ -26,6 +26,7 @@ import { Text, View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import Svg, { Circle, G, Polygon, Line as SvgLine } from "react-native-svg"
 import { BigMoment } from "../big-moment"
+import { Deferred, FrameSkeleton } from "../deferred"
 import { useNoteGoals } from "../goal-ledger"
 import { dismissDrop, momentsSeen, noteLevel } from "../moments-seen"
 import { ArcCircle, alpha, CountUp, GrowBar, SwipeSegments } from "../motion"
@@ -956,27 +957,7 @@ export function StatsHome() {
     p = dashStore.use((s) => s.profile),
     params = useLocalSearchParams<{ range?: string }>(),
     [range, setRange] = useState(params.range ?? "7d"),
-    days = range === "1y" ? 365 : Number.parseInt(range, 10) || 7,
-    target = D.useOnTarget(days),
-    trophies = D.useTrophies().slice(0, 3),
-    notes = dashStore.use((s) => s.missNotes),
-    enabled = D.useEnabled(),
-    screenOn = useScreenTimeShown(),
-    cur = D.useAllMisses(dayOffset(-(days - 1)), dayKey()),
-    prev = D.useAllMisses(dayOffset(-(days * 2 - 1)), dayOffset(-days)),
-    allGoals = D.useGoals(),
-    goals = allGoals.filter((g) => g.goal.status === "active").slice(0, 3),
-    weights = D.useWeights(),
-    [weightSheet, setWeightSheet] = useState(false),
-    score = D.useLifeScore(days),
-    locked = target.logged < 3
-  useNoteGoals(allGoals)
-  const count = (items: typeof cur, k?: string) =>
-      items.filter((m) => (!k || m.module === k) && !notes[m.id]).length,
-    delta =
-      target.rate !== null && target.prevRate !== null
-        ? Math.round((target.rate - target.prevRate) * 100)
-        : undefined
+    days = range === "1y" ? 365 : Number.parseInt(range, 10) || 7
   return (
     <Screen
       root
@@ -1033,265 +1014,311 @@ export function StatsHome() {
             }))}
           />
         </View>
-        <NowAndRange days={days} locked={locked} />
-        {!locked && <LevelWatch />}
-        <PatternsCard />
-        <LockedPreview
-          locked={locked}
-          title={`${target.logged}/3 logged days`}
-          progress={{ now: target.logged, max: 3 }}
-          detail="Your score, streaks and trends below unlock after 3 days of logging."
-          action={{ label: "Log today", href: "/today" }}
+        {/* The figures below summarise every module over the range: they
+            render after the page, behind a placeholder, and follow a change
+            just after it. */}
+        <Deferred
+          lag
+          fallback={
+            <>
+              <FrameSkeleton height={160} />
+              <FrameSkeleton height={220} />
+            </>
+          }
         >
-          <SwipeSegments
-            value={range}
-            options={["7d", "30d", "90d", "1y"]}
-            onChange={setRange}
-          >
-            <View style={{ marginTop: 12 }}>
-              <LifeHero days={days} onWeights={() => setWeightSheet(true)} />
-            </View>
-            <Line style={{ gap: 8, marginTop: 12, alignItems: "stretch" }}>
-              <Frame style={{ flex: 1, padding: 12 }}>
-                <Copy
-                  fit
-                  maxScale={NUMBER_SCALE}
-                  size={30}
-                  weight="display"
-                  style={{ lineHeight: 36 }}
-                >
-                  {target.rate === null
-                    ? "—"
-                    : `${Math.round(target.rate * 100)}%`}
+          <StatsBody days={days} range={range} setRange={setRange} />
+        </Deferred>
+      </View>
+    </Screen>
+  )
+}
+
+/** Everything on Stats below the range switch. */
+function StatsBody({
+  days,
+  range,
+  setRange,
+}: {
+  days: number
+  range: string
+  setRange: (range: string) => void
+}) {
+  const t = useTheme(),
+    target = D.useOnTarget(days),
+    trophies = D.useTrophies().slice(0, 3),
+    notes = dashStore.use((s) => s.missNotes),
+    enabled = D.useEnabled(),
+    screenOn = useScreenTimeShown(),
+    cur = D.useAllMisses(dayOffset(-(days - 1)), dayKey()),
+    prev = D.useAllMisses(dayOffset(-(days * 2 - 1)), dayOffset(-days)),
+    allGoals = D.useGoals(),
+    goals = allGoals.filter((g) => g.goal.status === "active").slice(0, 3),
+    weights = D.useWeights(),
+    [weightSheet, setWeightSheet] = useState(false),
+    score = D.useLifeScore(days),
+    locked = target.logged < 3
+  useNoteGoals(allGoals)
+  const count = (items: typeof cur, k?: string) =>
+      items.filter((m) => (!k || m.module === k) && !notes[m.id]).length,
+    delta =
+      target.rate !== null && target.prevRate !== null
+        ? Math.round((target.rate - target.prevRate) * 100)
+        : undefined
+  return (
+    <>
+      <NowAndRange days={days} locked={locked} />
+      {!locked && <LevelWatch />}
+      <PatternsCard />
+      <LockedPreview
+        locked={locked}
+        title={`${target.logged}/3 logged days`}
+        progress={{ now: target.logged, max: 3 }}
+        detail="Your score, streaks and trends below unlock after 3 days of logging."
+        action={{ label: "Log today", href: "/today" }}
+      >
+        <SwipeSegments
+          value={range}
+          options={["7d", "30d", "90d", "1y"]}
+          onChange={setRange}
+        >
+          <View style={{ marginTop: 12 }}>
+            <LifeHero days={days} onWeights={() => setWeightSheet(true)} />
+          </View>
+          <Line style={{ gap: 8, marginTop: 12, alignItems: "stretch" }}>
+            <Frame style={{ flex: 1, padding: 12 }}>
+              <Copy
+                fit
+                maxScale={NUMBER_SCALE}
+                size={30}
+                weight="display"
+                style={{ lineHeight: 36 }}
+              >
+                {target.rate === null
+                  ? "—"
+                  : `${Math.round(target.rate * 100)}%`}
+              </Copy>
+              <Line style={{ gap: 6, flexWrap: "wrap" }}>
+                <Copy maxScale={CELL_SCALE} size={12} muted>
+                  On target
                 </Copy>
-                <Line style={{ gap: 6, flexWrap: "wrap" }}>
-                  <Copy maxScale={CELL_SCALE} size={12} muted>
-                    On target
-                  </Copy>
-                  <Delta value={delta} />
-                </Line>
-              </Frame>
-              <Frame style={{ flex: 1, padding: 12 }}>
-                <Line style={{ gap: 2, height: 32 }}>
-                  <Flame size={20} color={t.life} fill={t.life} />
-                  <Copy
-                    maxScale={NUMBER_SCALE}
-                    size={24}
-                    weight="display"
-                    style={{ color: t.life }}
+                <Delta value={delta} />
+              </Line>
+            </Frame>
+            <Frame style={{ flex: 1, padding: 12 }}>
+              <Line style={{ gap: 2, height: 32 }}>
+                <Flame size={20} color={t.life} fill={t.life} />
+                <Copy
+                  maxScale={NUMBER_SCALE}
+                  size={24}
+                  weight="display"
+                  style={{ color: t.life }}
+                >
+                  {target.current}
+                </Copy>
+              </Line>
+              <Copy maxScale={CELL_SCALE} size={12} muted>
+                Streak · best {target.best}
+              </Copy>
+            </Frame>
+            <Frame style={{ flex: 1, padding: 12 }}>
+              <Copy
+                fit
+                maxScale={NUMBER_SCALE}
+                size={30}
+                weight="display"
+                style={{ lineHeight: 36 }}
+              >
+                {target.onTarget}
+                <Text style={{ fontSize: 16, color: t.muted }}>
+                  /{target.scored}
+                </Text>
+              </Copy>
+              <Copy maxScale={CELL_SCALE} size={12} muted>
+                On-target days
+              </Copy>
+            </Frame>
+          </Line>
+          <View style={{ marginTop: 12 }}>
+            <DailyForm days={days} />
+          </View>
+          {trophies.length > 0 && (
+            <>
+              <SectionHeading
+                action={
+                  <Tap onPress={() => go("/stats/trophies")}>
+                    <Copy size={12} style={{ color: t.primary }}>
+                      Trophy case
+                    </Copy>
+                  </Tap>
+                }
+              >
+                Personal bests
+              </SectionHeading>
+              <GHScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+              >
+                {trophies.map((tr) => (
+                  <Tap
+                    key={tr.id}
+                    onPress={() =>
+                      go(`/stats/trophies?open=${encodeURIComponent(tr.id)}`)
+                    }
+                    style={{ width: 144 }}
                   >
-                    {target.current}
-                  </Copy>
-                </Line>
-                <Copy maxScale={CELL_SCALE} size={12} muted>
-                  Streak · best {target.best}
+                    <Frame>
+                      <View style={{ padding: 12 }}>
+                        <Trophy size={16} color={t.life} />
+                        <Copy
+                          size={20}
+                          weight="display"
+                          style={{ marginTop: 4 }}
+                        >
+                          {tr.value}
+                        </Copy>
+                        <Copy size={12} lines={1}>
+                          {tr.title}
+                        </Copy>
+                        <Copy size={10} muted>
+                          {new Date(`${tr.day}T12:00:00`).toLocaleDateString(
+                            "en-PH",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
+                        </Copy>
+                      </View>
+                    </Frame>
+                  </Tap>
+                ))}
+              </GHScrollView>
+            </>
+          )}
+          <Areas days={days} />
+          {screenOn && <ScreenTimeCard />}
+          <SectionHeading
+            action={
+              <Tap onPress={() => go("/stats/misses")}>
+                <Copy size={12} style={{ color: t.primary }}>
+                  Misses & leaks
                 </Copy>
-              </Frame>
-              <Frame style={{ flex: 1, padding: 12 }}>
-                <Copy
-                  fit
-                  maxScale={NUMBER_SCALE}
-                  size={30}
-                  weight="display"
-                  style={{ lineHeight: 36 }}
-                >
-                  {target.onTarget}
-                  <Text style={{ fontSize: 16, color: t.muted }}>
-                    /{target.scored}
-                  </Text>
+              </Tap>
+            }
+          >
+            Misses & leaks
+          </SectionHeading>
+          <Frame style={{ padding: 16 }}>
+            <Tap onPress={() => go(`/stats/misses?range=${days}`)}>
+              <Line style={{ gap: 8 }}>
+                <Copy maxScale={CELL_SCALE} size={30} weight="display">
+                  {count(cur)}
                 </Copy>
-                <Copy maxScale={CELL_SCALE} size={12} muted>
-                  On-target days
+                <Copy maxScale={CELL_SCALE} size={14} muted style={{ flex: 1 }}>
+                  misses in {days}d
                 </Copy>
-              </Frame>
-            </Line>
-            <View style={{ marginTop: 12 }}>
-              <DailyForm days={days} />
-            </View>
-            {trophies.length > 0 && (
-              <>
-                <SectionHeading
-                  action={
-                    <Tap onPress={() => go("/stats/trophies")}>
-                      <Copy size={12} style={{ color: t.primary }}>
-                        Trophy case
-                      </Copy>
-                    </Tap>
-                  }
-                >
-                  Personal bests
-                </SectionHeading>
-                <GHScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
-                >
-                  {trophies.map((tr) => (
-                    <Tap
-                      key={tr.id}
-                      onPress={() =>
-                        go(`/stats/trophies?open=${encodeURIComponent(tr.id)}`)
-                      }
-                      style={{ width: 144 }}
-                    >
-                      <Frame>
-                        <View style={{ padding: 12 }}>
-                          <Trophy size={16} color={t.life} />
-                          <Copy
-                            size={20}
-                            weight="display"
-                            style={{ marginTop: 4 }}
-                          >
-                            {tr.value}
-                          </Copy>
-                          <Copy size={12} lines={1}>
-                            {tr.title}
-                          </Copy>
-                          <Copy size={10} muted>
-                            {new Date(`${tr.day}T12:00:00`).toLocaleDateString(
-                              "en-PH",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              },
-                            )}
-                          </Copy>
-                        </View>
-                      </Frame>
-                    </Tap>
-                  ))}
-                </GHScrollView>
-              </>
-            )}
-            <Areas days={days} />
-            {screenOn && <ScreenTimeCard />}
-            <SectionHeading
-              action={
-                <Tap onPress={() => go("/stats/misses")}>
-                  <Copy size={12} style={{ color: t.primary }}>
-                    Misses & leaks
-                  </Copy>
-                </Tap>
-              }
-            >
-              Misses & leaks
-            </SectionHeading>
-            <Frame style={{ padding: 16 }}>
-              <Tap onPress={() => go(`/stats/misses?range=${days}`)}>
-                <Line style={{ gap: 8 }}>
-                  <Copy maxScale={CELL_SCALE} size={30} weight="display">
-                    {count(cur)}
+                <Delta value={count(cur) - count(prev)} down />
+              </Line>
+              <MissTiles
+                tiles={MODULE_KEYS.filter((k) =>
+                  k === "screen" ? screenOn : enabled[k],
+                ).map((k) => ({
+                  key: k,
+                  count: count(cur, k),
+                }))}
+              />
+            </Tap>
+          </Frame>
+          <SectionHeading
+            action={
+              <Tap onPress={() => go("/stats/goals")}>
+                <Copy size={12} style={{ color: t.primary }}>
+                  All goals
+                </Copy>
+              </Tap>
+            }
+          >
+            Goals
+          </SectionHeading>
+          <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
+            {goals.map((g) => (
+              <Tap
+                key={g.goal.id}
+                onPress={() => go("/stats/goals")}
+                style={{ paddingVertical: 10 }}
+              >
+                <Line style={{ gap: 8, marginBottom: 6 }}>
+                  <Copy
+                    maxScale={CELL_SCALE}
+                    size={14}
+                    weight="medium"
+                    style={{ flex: 1 }}
+                  >
+                    {g.goal.label}
+                    <Copy size={12} muted>
+                      {" "}
+                      {D.fmtGoal(g.goal)}
+                    </Copy>
                   </Copy>
                   <Copy
                     maxScale={CELL_SCALE}
                     size={14}
-                    muted
-                    style={{ flex: 1 }}
+                    weight="semibold"
+                    style={{ color: g.hit ? t.good : t.text }}
                   >
-                    misses in {days}d
+                    {g.entry?.value ?? "—"}
+                    {g.hit ? " ✓" : ""}
                   </Copy>
-                  <Delta value={count(cur) - count(prev)} down />
                 </Line>
-                <MissTiles
-                  tiles={MODULE_KEYS.filter((k) =>
-                    k === "screen" ? screenOn : enabled[k],
-                  ).map((k) => ({
-                    key: k,
-                    count: count(cur, k),
-                  }))}
-                />
+                <Bar value={g.pct} color={g.hit ? t.life : t.primary} />
               </Tap>
-            </Frame>
-            <SectionHeading
-              action={
-                <Tap onPress={() => go("/stats/goals")}>
-                  <Copy size={12} style={{ color: t.primary }}>
-                    All goals
-                  </Copy>
-                </Tap>
-              }
+            ))}
+            <Tap
+              onPress={() => go("/stats/goals?new=1")}
+              style={{
+                borderTopWidth: 1,
+                borderColor: border(t.line, 0.5),
+                paddingVertical: 10,
+              }}
             >
-              Goals
-            </SectionHeading>
-            <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
-              {goals.map((g) => (
-                <Tap
-                  key={g.goal.id}
-                  onPress={() => go("/stats/goals")}
-                  style={{ paddingVertical: 10 }}
-                >
-                  <Line style={{ gap: 8, marginBottom: 6 }}>
+              <Line style={{ gap: 6, justifyContent: "center" }}>
+                <Target size={16} color={t.primary} />
+                <Copy size={14} weight="medium" style={{ color: t.primary }}>
+                  Set a goal
+                </Copy>
+              </Line>
+            </Tap>
+          </Frame>
+          <Line style={{ marginTop: 24, gap: 8 }}>
+            {[
+              {
+                title: "Reviews",
+                href: "/stats/reviews",
+                icon: CalendarRange,
+              },
+              { title: "Share card", href: "/stats/share", icon: Share2 },
+            ].map((item) => (
+              <Frame key={item.href} style={{ flex: 1, padding: 16 }}>
+                <Tap onPress={() => go(item.href)}>
+                  <Line style={{ gap: 8 }}>
+                    <item.icon size={20} color={t.primary} />
                     <Copy
                       maxScale={CELL_SCALE}
                       size={14}
                       weight="medium"
                       style={{ flex: 1 }}
                     >
-                      {g.goal.label}
-                      <Copy size={12} muted>
-                        {" "}
-                        {D.fmtGoal(g.goal)}
-                      </Copy>
+                      {item.title}
                     </Copy>
-                    <Copy
-                      maxScale={CELL_SCALE}
-                      size={14}
-                      weight="semibold"
-                      style={{ color: g.hit ? t.good : t.text }}
-                    >
-                      {g.entry?.value ?? "—"}
-                      {g.hit ? " ✓" : ""}
-                    </Copy>
+                    <ChevronRight size={16} color={t.muted} />
                   </Line>
-                  <Bar value={g.pct} color={g.hit ? t.life : t.primary} />
                 </Tap>
-              ))}
-              <Tap
-                onPress={() => go("/stats/goals?new=1")}
-                style={{
-                  borderTopWidth: 1,
-                  borderColor: border(t.line, 0.5),
-                  paddingVertical: 10,
-                }}
-              >
-                <Line style={{ gap: 6, justifyContent: "center" }}>
-                  <Target size={16} color={t.primary} />
-                  <Copy size={14} weight="medium" style={{ color: t.primary }}>
-                    Set a goal
-                  </Copy>
-                </Line>
-              </Tap>
-            </Frame>
-            <Line style={{ marginTop: 24, gap: 8 }}>
-              {[
-                {
-                  title: "Reviews",
-                  href: "/stats/reviews",
-                  icon: CalendarRange,
-                },
-                { title: "Share card", href: "/stats/share", icon: Share2 },
-              ].map((item) => (
-                <Frame key={item.href} style={{ flex: 1, padding: 16 }}>
-                  <Tap onPress={() => go(item.href)}>
-                    <Line style={{ gap: 8 }}>
-                      <item.icon size={20} color={t.primary} />
-                      <Copy
-                        maxScale={CELL_SCALE}
-                        size={14}
-                        weight="medium"
-                        style={{ flex: 1 }}
-                      >
-                        {item.title}
-                      </Copy>
-                      <ChevronRight size={16} color={t.muted} />
-                    </Line>
-                  </Tap>
-                </Frame>
-              ))}
-            </Line>
-          </SwipeSegments>
-        </LockedPreview>
-      </View>
+              </Frame>
+            ))}
+          </Line>
+        </SwipeSegments>
+      </LockedPreview>
       <Sheet
         title="Life Score weights"
         open={weightSheet}
@@ -1321,6 +1348,6 @@ export function StatsHome() {
           Reset weights
         </Button>
       </Sheet>
-    </Screen>
+    </>
   )
 }
