@@ -211,12 +211,11 @@ export function Section({
       <Text
         style={{
           fontFamily: fonts.medium,
-          fontSize: 12,
-          letterSpacing: 1,
+          fontSize: 13,
           color: t.muted,
         }}
       >
-        {title.toUpperCase()}
+        {title}
       </Text>
       {href && (
         <Pressable

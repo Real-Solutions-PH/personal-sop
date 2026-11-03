@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient"
 import {
   Check,
   ChevronDown,
@@ -31,6 +30,8 @@ import {
 } from "react-native"
 import Animated, { FadeInDown, useReducedMotion } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import Svg, { Path } from "react-native-svg"
+import { strokeAcross } from "../brand/scribble"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -56,7 +57,7 @@ import {
   refreshWeather,
   type Scored,
   searchCities,
-  skyGradient,
+  skyImage,
   staleLocation,
   type TempUnit,
   todayOf,
@@ -67,10 +68,7 @@ import {
   weatherStatus,
   weatherStore,
 } from "../weather"
-import { AdviceLine, askLocation } from "../weather-card"
-
-const white = "#ffffff",
-  whiteSoft = "#ffffffd9"
+import { AdviceLine, askLocation, SkyCard, type SkyInk } from "../weather-card"
 
 function Enter({ index, children }: { index: number; children: ReactNode }) {
   const reduced = useReducedMotion()
@@ -97,12 +95,7 @@ function CardTitle({
 }) {
   return (
     <Line style={{ justifyContent: "space-between", marginBottom: 8 }}>
-      <Copy
-        size={12}
-        weight="medium"
-        muted
-        style={{ letterSpacing: 0.6, textTransform: "uppercase" }}
-      >
+      <Copy size={13} weight="medium" muted>
         {children}
       </Copy>
       {right}
@@ -252,7 +245,7 @@ export function Weather() {
             {[240, 120, 180, 300].map((h) => (
               <View
                 key={h}
-                style={{ height: h, borderRadius: 20, backgroundColor: t.soft }}
+                style={{ height: h, borderRadius: 16, backgroundColor: t.soft }}
               />
             ))}
             <ActivityIndicator
@@ -330,97 +323,105 @@ function Loaded({
   return (
     <>
       <Enter index={0}>
-        <View style={{ borderRadius: 24, overflow: "hidden" }}>
-          <LinearGradient
-            colors={skyGradient(info.sky, cur.day)}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ padding: 20 }}
-          >
-            <Line style={{ gap: 8 }}>
-              <Tap
-                onPress={onPlace}
-                label={`Location ${f.place.name}. Change location`}
-                style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+        {/* The hero sits on the same hand-drawn sky as Today's card, with a
+            scrim in the drawing's own ground so the text stays readable. */}
+        <SkyCard sky={skyImage(info.sky, cur.day)} scrim>
+          {(ink) => (
+            <View style={{ padding: 16, paddingBottom: 18 }}>
+              <Line style={{ gap: 8 }}>
+                <Tap
+                  onPress={onPlace}
+                  label={`Location ${f.place.name}. Change location`}
+                  style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+                >
+                  <Line style={{ gap: 6 }}>
+                    <PlaceIcon size={14} color={ink.text} />
+                    <Copy
+                      weight="semibold"
+                      lines={1}
+                      style={{ color: ink.text, flexShrink: 1 }}
+                    >
+                      {f.place.name}
+                    </Copy>
+                    <ChevronDown size={16} color={ink.text} />
+                  </Line>
+                  {lastKnown || f.place.detail ? (
+                    <Copy size={13} lines={1} style={{ color: ink.muted }}>
+                      {lastKnown ?? f.place.detail}
+                    </Copy>
+                  ) : null}
+                </Tap>
+                <Tap
+                  onPress={() => askLocation()}
+                  label="Use current location"
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    borderWidth: 1,
+                    borderColor: `${ink.text}26`,
+                    backgroundColor: `${ink.ground}cc`,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {locating ? (
+                    <ActivityIndicator color={ink.text} />
+                  ) : (
+                    <LocateFixed size={18} color={ink.text} />
+                  )}
+                </Tap>
+              </Line>
+              <View
+                accessible
+                accessibilityLabel={`${fmtTemp(cur.temp, unit)}, ${info.label}, feels like ${fmtTemp(cur.feels, unit)}`}
+                style={{ marginTop: 12, maxWidth: "70%" }}
               >
-                <Line style={{ gap: 6 }}>
-                  <PlaceIcon size={14} color={white} />
-                  <Copy
-                    weight="semibold"
-                    lines={1}
-                    style={{ color: white, flexShrink: 1 }}
-                  >
-                    {f.place.name}
-                  </Copy>
-                  <ChevronDown size={16} color={white} />
-                </Line>
-                {lastKnown || f.place.detail ? (
-                  <Copy size={12} lines={1} style={{ color: whiteSoft }}>
-                    {lastKnown ?? f.place.detail}
-                  </Copy>
-                ) : null}
-              </Tap>
-              <Tap
-                onPress={() => askLocation()}
-                label="Use current location"
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: "#ffffff2e",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                {locating ? (
-                  <ActivityIndicator color={white} />
-                ) : (
-                  <LocateFixed size={20} color={white} />
-                )}
-              </Tap>
-            </Line>
-            <View
-              accessible
-              accessibilityLabel={`${fmtTemp(cur.temp, unit)}, ${info.label}, feels like ${fmtTemp(cur.feels, unit)}`}
-              style={{ marginTop: 8 }}
-            >
-              <Line style={{ gap: 12, alignItems: "center" }}>
                 <Text
                   style={{
                     fontFamily: fonts.mono,
-                    fontSize: 88,
-                    lineHeight: 92,
-                    color: white,
+                    fontSize: 72,
+                    lineHeight: 80,
+                    letterSpacing: -2,
+                    color: ink.text,
                     fontVariant: ["tabular-nums"],
                   }}
                 >
                   {fmtTemp(cur.temp, unit)}
                 </Text>
-                <info.icon size={56} color={white} strokeWidth={1.5} />
+                <Copy size={20} weight="semibold" style={{ color: ink.text }}>
+                  {info.label}
+                </Copy>
+                <Copy size={14} style={{ color: ink.muted }}>
+                  Feels {fmtTemp(cur.feels, unit)}
+                  {today
+                    ? ` · H ${fmtTemp(today.max, unit)} L ${fmtTemp(today.min, unit)}`
+                    : ""}
+                </Copy>
+              </View>
+              <Line style={{ gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+                <HeroChip
+                  ink={ink}
+                  icon={Umbrella}
+                  text={`${Math.round(rainSoon(f, now))}% rain next 12h`}
+                />
+                <HeroChip
+                  ink={ink}
+                  icon={Wind}
+                  text={`${Math.round(cur.wind)} km/h`}
+                />
+                <HeroChip
+                  ink={ink}
+                  icon={Sun}
+                  text={`UV ${Math.round(cur.uv)} now`}
+                />
               </Line>
-              <Copy size={20} weight="semibold" style={{ color: white }}>
-                {info.label}
-              </Copy>
-              <Copy size={14} style={{ color: whiteSoft }}>
-                Feels {fmtTemp(cur.feels, unit)}
-                {today
-                  ? ` · H ${fmtTemp(today.max, unit)} L ${fmtTemp(today.min, unit)}`
-                  : ""}
+              <Copy size={12} style={{ color: ink.muted, marginTop: 12 }}>
+                {loading ? "Updating…" : `Updated ${ago(f.fetchedAt, now)}`}
               </Copy>
             </View>
-            <Line style={{ gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-              <HeroChip
-                icon={Umbrella}
-                text={`${Math.round(rainSoon(f, now))}% rain next 12h`}
-              />
-              <HeroChip icon={Wind} text={`${Math.round(cur.wind)} km/h`} />
-              <HeroChip icon={Sun} text={`UV ${Math.round(cur.uv)} now`} />
-            </Line>
-            <Copy size={12} style={{ color: whiteSoft, marginTop: 10 }}>
-              {loading ? "Updating…" : `Updated ${ago(f.fetchedAt, now)}`}
-            </Copy>
-          </LinearGradient>
-        </View>
+          )}
+        </SkyCard>
       </Enter>
       <Enter index={1}>
         <Frame style={{ paddingVertical: 14 }}>
@@ -458,7 +459,7 @@ function Loaded({
                     <Copy
                       size={11}
                       weight="medium"
-                      style={{ color: h.pop >= 20 ? t.tsk : "transparent" }}
+                      style={{ color: h.pop >= 20 ? t.muted : "transparent" }}
                     >
                       {Math.round(h.pop)}%
                     </Copy>
@@ -545,7 +546,15 @@ function Loaded({
   )
 }
 
-function HeroChip({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
+function HeroChip({
+  icon: Icon,
+  text,
+  ink,
+}: {
+  icon: LucideIcon
+  text: string
+  ink: SkyInk
+}) {
   return (
     <Line
       style={{
@@ -553,11 +562,13 @@ function HeroChip({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
         paddingHorizontal: 10,
         height: 30,
         borderRadius: 15,
-        backgroundColor: "#ffffff26",
+        borderWidth: 1,
+        borderColor: `${ink.text}1f`,
+        backgroundColor: `${ink.ground}d9`,
       }}
     >
-      <Icon size={14} color={white} />
-      <Copy size={12} weight="medium" style={{ color: white }}>
+      <Icon size={14} color={ink.text} />
+      <Copy size={12} weight="medium" style={{ color: ink.text }}>
         {text}
       </Copy>
     </Line>
@@ -740,7 +751,8 @@ function Week({
                 <Copy
                   size={11}
                   weight="medium"
-                  style={{ color: t.tsk, lineHeight: 14 }}
+                  muted
+                  style={{ lineHeight: 14 }}
                 >
                   {Math.round(d.pop)}%
                 </Copy>
@@ -749,32 +761,59 @@ function Week({
             <Copy muted style={{ width: 32, textAlign: "right" }}>
               {fmtTemp(d.min, unit)}
             </Copy>
-            <View
-              style={{
-                flex: 1,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: t.soft,
-              }}
-            >
-              <LinearGradient
-                colors={[t.tsk, t.fit]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  position: "absolute",
-                  left: `${left * 100}%`,
-                  width: `${Math.max(width, 0.04) * 100}%`,
-                  height: 6,
-                  borderRadius: 3,
-                }}
-              />
+            {/* The day's range as the brand's hand-drawn stroke over a
+                dotted track (ADR-0032); today's temperature is the dot. */}
+            <View style={{ flex: 1, height: 12, justifyContent: "center" }}>
+              <Svg
+                width="100%"
+                height={12}
+                viewBox="0 0 200 12"
+                preserveAspectRatio="none"
+              >
+                <Path
+                  d="M3 6 H197"
+                  stroke={t.muted}
+                  strokeWidth={1.4}
+                  strokeDasharray="1 4"
+                  strokeLinecap="round"
+                  opacity={0.5}
+                  vectorEffect="non-scaling-stroke"
+                />
+                <Path
+                  d={strokeAcross(
+                    3 + left * 194,
+                    3 + Math.min(1, left + Math.max(width, 0.04)) * 194,
+                    6,
+                    i + 5,
+                  )}
+                  stroke={t.life}
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                  fill="none"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <Path
+                  d={strokeAcross(
+                    3 + left * 194,
+                    3 + Math.min(1, left + Math.max(width, 0.04)) * 194,
+                    6,
+                    i + 17,
+                  )}
+                  stroke={t.life}
+                  strokeWidth={2.4}
+                  strokeLinecap="round"
+                  fill="none"
+                  opacity={0.5}
+                  transform="translate(0.6 -1)"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </Svg>
               {d.date === date && (
                 <View
                   style={{
                     position: "absolute",
                     left: `${Math.max(0, Math.min(1, (current - lo) / span)) * 100}%`,
-                    top: -2,
+                    top: 1,
                     width: 10,
                     height: 10,
                     borderRadius: 5,
@@ -812,16 +851,18 @@ function Tile({
     <Frame style={{ flexGrow: 1, flexBasis: "40%", padding: 14, gap: 4 }}>
       <Line style={{ gap: 6 }}>
         <Icon size={14} color={t.muted} />
-        <Copy
-          size={11}
-          weight="medium"
-          muted
-          style={{ letterSpacing: 0.6, textTransform: "uppercase" }}
-        >
+        <Copy size={13} weight="medium" muted>
           {label}
         </Copy>
       </Line>
-      <Copy weight="display" size={24} style={{ lineHeight: 30 }}>
+      <Copy
+        size={24}
+        style={{
+          lineHeight: 30,
+          fontFamily: fonts.mono,
+          fontVariant: ["tabular-nums"],
+        }}
+      >
         {value}
       </Copy>
       <Copy size={12} muted>

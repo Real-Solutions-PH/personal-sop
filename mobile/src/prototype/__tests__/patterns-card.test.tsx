@@ -112,7 +112,7 @@ test("card: shows the sleep and mood pattern", async () => {
       "After 7h+ of sleep, your mood averages 5.0/5, vs 3.0 after shorter nights.",
     ),
   ).toBeTruthy()
-  expect(screen.getByText("PATTERNS")).toBeTruthy()
+  expect(screen.getByText("Patterns")).toBeTruthy()
 })
 
 test("card: nothing qualifies, nothing shown", async () => {

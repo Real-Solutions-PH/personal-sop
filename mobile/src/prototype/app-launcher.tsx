@@ -109,17 +109,12 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
   return (
     <View>
       <Copy
-        size={12}
+        size={13}
         weight="medium"
         muted
-        style={{
-          letterSpacing: 0.6,
-          marginTop: 12,
-          marginBottom: 8,
-          paddingHorizontal: 4,
-        }}
+        style={{ marginTop: 12, marginBottom: 8, paddingHorizontal: 4 }}
       >
-        {title.toUpperCase()}
+        {title}
       </Copy>
       <View
         testID="app-launcher-row"
@@ -143,8 +138,12 @@ export function AppLauncher({ title = "Your apps" }: { title?: string }) {
                 style={{
                   height: box,
                   width: box,
+                  // A card-coloured tile on a hairline; the area colour
+                  // stays on the icon (AppLauncher, ADR-0019).
                   borderRadius: 16,
-                  backgroundColor: `${t[a.accent]}26`,
+                  borderWidth: 1,
+                  borderColor: t.line,
+                  backgroundColor: t.card,
                   alignItems: "center",
                   justifyContent: "center",
                 }}

@@ -1905,13 +1905,11 @@ export function Today() {
       prototypeLayout
       onRefresh={() => refreshWeather(true)}
       title={`${greeting}, ${s.profile.name.split(" ")[0]}`}
-      eyebrow={date
-        .toLocaleDateString("en-PH", {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        })
-        .toUpperCase()}
+      eyebrow={date.toLocaleDateString("en-GB", {
+        weekday: "long",
+        day: "numeric",
+        month: "short",
+      })}
       actions={
         <Line style={{ gap: 4 }}>
           <PrivacyEye />
@@ -1960,7 +1958,9 @@ export function Today() {
       {shown.calendar && <Calendar />}
       {!s.setupHidden && pending.length > 0 && (
         <Frame style={{ padding: 16 }}>
-          <Line>
+          <CornerMotif kind="sprig" seed={4} size={110} />
+          <Line style={{ gap: 12 }}>
+            <Sparkles size={20} color={t.primary} />
             <Tap onPress={() => go("/setup")} style={{ flex: 1 }}>
               <Copy weight="semibold">Finish setting up</Copy>
               <Copy size={14} muted>
@@ -1980,9 +1980,10 @@ export function Today() {
       <Launcher />
       {evening ? (
         <Frame style={{ padding: 16 }}>
+          <CornerMotif kind="sprig" seed={11} size={110} />
           <Tap onPress={() => go("/today/wrap-up")}>
-            <Line>
-              <Moon color={t.hab} size={20} />
+            <Line style={{ gap: 12 }}>
+              <Moon color={t.life} size={20} />
               <View style={{ flex: 1 }}>
                 <Copy weight="semibold">
                   {s.wrapups[dayKey()]

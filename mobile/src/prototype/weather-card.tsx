@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient"
 import {
   CircleCheck,
   CloudLightning,
@@ -254,12 +255,16 @@ const SKY_INK = {
 export type SkyInk = (typeof SKY_INK)[keyof typeof SKY_INK]
 
 /** A card on a sky drawing, fitted to the card's height and anchored right,
- * so the art never sits under the text on the left. */
+ * so the art never sits under the text on the left. A `scrim` card (the
+ * Weather screen's tall hero, where the art spans the whole card) fades the
+ * drawing's own ground in from the left so the text stays readable. */
 export function SkyCard({
   sky,
+  scrim = false,
   children,
 }: {
   sky: SkyImage
+  scrim?: boolean
   children: (ink: SkyInk) => ReactNode
 }) {
   const ink = SKY_INK[skyImageIsDark(sky) ? "night" : "day"],
@@ -289,6 +294,17 @@ export function SkyCard({
             height: h,
             width: h * 1.5,
           }}
+        />
+      )}
+      {h > 0 && scrim && (
+        <LinearGradient
+          testID="sky-scrim"
+          pointerEvents="none"
+          colors={[`${ink.ground}f2`, `${ink.ground}b3`, `${ink.ground}00`]}
+          locations={[0, 0.5, 0.95]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0.3 }}
+          style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: 0 }}
         />
       )}
       {children(ink)}

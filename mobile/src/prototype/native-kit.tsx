@@ -14,6 +14,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated"
+import { CornerMotif } from "./brand/corner"
 import { LineTrack } from "./brand/line"
 import { go } from "./navigation"
 import { type Accent, fonts, useTheme } from "./theme"
@@ -449,6 +450,8 @@ export function Group({
   const t = useTheme()
   return (
     <Frame>
+      {/* The library's vine in the top-right corner of every area card. */}
+      <CornerMotif kind="vine" seed={title.length} size={120} />
       <Tap
         onPress={() => go(href)}
         style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10 }}
@@ -561,13 +564,9 @@ export function SectionHeading({
         paddingHorizontal: 4,
       }}
     >
-      <Copy
-        size={12}
-        weight="medium"
-        muted
-        style={{ letterSpacing: 0.6, textTransform: "uppercase" }}
-      >
-        {typeof children === "string" ? children.toUpperCase() : children}
+      {/* Sentence case, like every heading in the brand (ADR-0019). */}
+      <Copy size={13} weight="medium" muted>
+        {children}
       </Copy>
       {action}
     </Line>

@@ -53,6 +53,8 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg"
 import { toast } from "sonner-native"
+import { CornerMotif } from "../brand/corner"
+import { leaf } from "../brand/scribble"
 import { feel, StreakChip } from "../motion"
 import {
   border,
@@ -311,16 +313,29 @@ function MoodTrend({ entries }: { entries: JournalEntry[] }) {
             </G>
           )
         })}
+        {/* The brand's hand-drawn line (ADR-0032): the stroke, and a
+            thinner echo just off it. */}
         {segs.map((d) => (
-          <Path
-            key={d}
-            d={d}
-            fill="none"
-            stroke={t.life}
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          <G key={d}>
+            <Path
+              d={d}
+              fill="none"
+              stroke={t.life}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <Path
+              d={d}
+              fill="none"
+              stroke={t.life}
+              strokeWidth={1.1}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.5}
+              transform="translate(0.8 -1.2)"
+            />
+          </G>
         ))}
         {weeks.map((w, i) => (
           <Circle
@@ -474,6 +489,7 @@ function JournalList() {
     >
       <View>
         <Frame style={{ padding: 16 }}>
+          <CornerMotif kind="vine" seed={7} />
           <Line style={{ gap: 8 }}>
             {[
               { label: "Streak", value: `${streak}d` },
@@ -483,7 +499,15 @@ function JournalList() {
               },
               { label: "Entries", value: entries.length },
             ].map((x, i) => (
-              <View key={x.label} style={{ flex: 1 }}>
+              <View
+                key={x.label}
+                style={{
+                  flex: 1,
+                  paddingLeft: i ? 12 : 0,
+                  borderLeftWidth: i ? 1 : 0,
+                  borderColor: t.line,
+                }}
+              >
                 <Bump on={i === 0 ? streak : 0}>
                   <Copy
                     size={28}
@@ -517,18 +541,21 @@ function JournalList() {
             </View>
             {Array.from({ length: Math.ceil(heat.length / 7) }, (_, col) => (
               <View key={col} style={{ gap: 4 }}>
-                {heat.slice(col * 7, col * 7 + 7).map((v, i) => (
-                  <View
-                    key={i}
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: 3,
-                      backgroundColor:
-                        v === null ? "transparent" : v ? t.life : t.soft,
-                    }}
-                  />
-                ))}
+                {heat
+                  .slice(col * 7, col * 7 + 7)
+                  .map((v, i) =>
+                    v === null ? (
+                      <View key={i} style={{ width: 14, height: 14 }} />
+                    ) : (
+                      <DayLeaf
+                        key={i}
+                        on={v === 1}
+                        seed={col * 7 + i}
+                        color={t.life}
+                        faint={t.muted}
+                      />
+                    ),
+                  )}
               </View>
             ))}
           </Line>
@@ -539,12 +566,12 @@ function JournalList() {
         </Frame>
         <Line style={{ gap: 8, marginTop: 12 }}>
           <View style={{ flex: 1 }}>
-            <Button icon={Mic} onPress={() => setTalk(true)}>
+            <Button tone="quiet" icon={Mic} onPress={() => setTalk(true)}>
               Talk it out
             </Button>
           </View>
           <View style={{ flex: 1 }}>
-            <Button tone="quiet" icon={PenLine} href="/journal/new">
+            <Button icon={PenLine} href="/journal/new">
               Write
             </Button>
           </View>
@@ -630,10 +657,10 @@ function JournalList() {
                               paddingHorizontal: 6,
                               paddingVertical: 2,
                               borderRadius: 6,
-                              backgroundColor: border(t.life, 0.15),
+                              backgroundColor: t.soft,
                             }}
                           >
-                            <Copy size={12} style={{ color: t.life }}>
+                            <Copy size={12} muted>
                               {AREAS.find((a) => a.key === e.area)?.label ??
                                 e.area}
                             </Copy>
@@ -1091,5 +1118,33 @@ function JournalEditor({ id }: { id?: string }) {
         />
       )}
     </Screen>
+  )
+}
+
+/** One day of the Journal heatmap as a leaf: filled when written, a faint
+ * outline when not (card library, Journal). Leaves lean a little each way so
+ * the grid reads hand-drawn. */
+function DayLeaf({
+  on,
+  seed,
+  color,
+  faint,
+}: {
+  on: boolean
+  seed: number
+  color: string
+  faint: string
+}) {
+  const ang = -Math.PI * (0.62 + ((seed * 37) % 7) * 0.02)
+  return (
+    <Svg width={14} height={14} viewBox="0 0 14 14">
+      <Path
+        d={leaf(4, 12, 11, ang, 0.42)}
+        fill={on ? color : "none"}
+        stroke={on ? color : faint}
+        strokeWidth={on ? 0.8 : 0.9}
+        opacity={on ? 1 : 0.45}
+      />
+    </Svg>
   )
 }
