@@ -324,10 +324,10 @@ export function TaskReminders() {
                     justifyContent: "space-between",
                   }}
                 >
-                  <Copy size={14} style={{ color: t.tsk }}>
+                  <Copy size={14} style={{ color: t.primary }}>
                     Add to Home Screen
                   </Copy>
-                  <SquarePlus size={16} color={t.tsk} />
+                  <SquarePlus size={16} color={t.primary} />
                 </Line>
                 <Copy size={14} muted>
                   Add Bookmark
@@ -362,7 +362,7 @@ export function TaskReminders() {
                     >
                       <Copy size={12}>{name === "Unfurl" ? "Unfurl" : ""}</Copy>
                     </View>
-                    <Copy size={10} muted>
+                    <Copy size={12} muted>
                       {name}
                     </Copy>
                   </View>
@@ -577,7 +577,7 @@ export function TaskNotifications() {
               alignItems: "center",
             }}
           >
-            <Copy size={10} weight="semibold" style={{ color: "#fff" }}>
+            <Copy size={12} weight="semibold" style={{ color: "#fff" }}>
               Unfurl
             </Copy>
           </LinearGradient>
@@ -591,7 +591,7 @@ export function TaskNotifications() {
               >
                 {title}
               </Copy>
-              <Copy size={11} style={{ color: "#ffffffb3" }}>
+              <Copy size={12} style={{ color: "#ffffffb3" }}>
                 {time}
               </Copy>
             </Line>
@@ -672,7 +672,7 @@ export function TaskNotifications() {
       <Tap onPress={() => go("/tasks/reminders")}>
         <Copy size={12} muted style={{ textAlign: "center" }}>
           Simulating {s.notif.platform}. Change it under{" "}
-          <Copy size={12} style={{ color: t.tsk }}>
+          <Copy size={12} style={{ color: t.primary }}>
             Reminders
           </Copy>
           .

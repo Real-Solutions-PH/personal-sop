@@ -22,6 +22,7 @@ import {
   Bar,
   border,
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -166,7 +167,7 @@ function RoutineProgress({
                   backgroundColor: g.color,
                 }}
               />
-              <Copy size={11} muted>
+              <Copy size={12} muted>
                 <Text style={{ color: t.text, fontFamily: fonts.medium }}>
                   {g.n}
                 </Text>{" "}
@@ -175,12 +176,8 @@ function RoutineProgress({
             </Line>
           ))}
         </Line>
-        <Copy
-          size={10}
-          muted
-          style={{ marginTop: 12, marginBottom: 4, letterSpacing: 0.5 }}
-        >
-          LAST 2 WEEKS
+        <Copy size={12} muted style={{ marginTop: 12, marginBottom: 4 }}>
+          Last 2 weeks
         </Copy>
         <Line style={{ gap: 4 }}>
           {H.daysBetween(dayOffset(-13), today).map((day) => {
@@ -368,7 +365,7 @@ export function HabitsHome() {
                   <Copy size={24} weight="semibold">
                     {Math.round(cur.rate * 100)}%
                   </Copy>
-                  <Copy size={10} muted>
+                  <Copy size={12} muted>
                     completion
                   </Copy>
                 </Ring>
@@ -579,10 +576,10 @@ export function HabitsHome() {
                   gap: 4,
                 }}
               >
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   each column = a week, oldest left
                 </Copy>
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   brighter = more done
                 </Copy>
               </Line>
@@ -598,13 +595,12 @@ export function HabitsHome() {
                         borderRadius: 16,
                         paddingHorizontal: 8,
                         paddingVertical: 2,
-                        backgroundColor:
-                          sort === k ? `${t.hab}26` : "transparent",
+                        ...chosen(t, sort === k),
                       }}
                     >
                       <Copy
-                        size={11}
-                        style={{ color: sort === k ? t.hab : t.muted }}
+                        size={12}
+                        style={{ color: sort === k ? t.text : t.muted }}
                       >
                         {k}
                       </Copy>
@@ -669,7 +665,7 @@ export function HabitsHome() {
                             }}
                           >
                             <Flame size={12} color={t.warn} />
-                            <Copy size={11} style={{ color: t.warn }}>
+                            <Copy size={12} style={{ color: t.warn }}>
                               {st.current}
                             </Copy>
                           </Line>
@@ -686,7 +682,7 @@ export function HabitsHome() {
                       <Copy size={14} weight="semibold">
                         {H.pct(s.rate)}
                       </Copy>
-                      <Copy size={10} muted>
+                      <Copy size={12} muted>
                         {s.skipped
                           ? `${H.pct(s.skipRate)} skip`
                           : `best ${st.best}`}

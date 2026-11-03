@@ -25,6 +25,7 @@ import { Celebration, useCelebrate } from "../celebration"
 import {
   border,
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -217,7 +218,7 @@ export function RoutineDetail({ id }: { id: string }) {
             >
               <Copy size={14} muted>
                 {L.scheduleLabel(r.schedule) || "Set days and a time"} ·{" "}
-                <Copy size={14} weight="medium" style={{ color: t.hab }}>
+                <Copy size={14} weight="medium" style={{ color: t.primary }}>
                   Change
                 </Copy>
               </Copy>
@@ -317,7 +318,7 @@ export function RoutineDetail({ id }: { id: string }) {
                 setPicker(true)
               }}
             >
-              <Copy size={12} style={{ color: t.hab }}>
+              <Copy size={12} style={{ color: t.primary }}>
                 + Add step
               </Copy>
             </Tap>
@@ -564,8 +565,8 @@ export function RoutineDetail({ id }: { id: string }) {
           style={{ padding: 10 }}
         >
           <Line>
-            <Plus size={18} color={t.hab} />
-            <Copy size={14} weight="medium" style={{ color: t.hab }}>
+            <Plus size={18} color={t.primary} />
+            <Copy size={14} weight="medium" style={{ color: t.primary }}>
               New habit{query ? ` “${query}”` : ""}
             </Copy>
           </Line>
@@ -664,8 +665,8 @@ export function Routines() {
           size={40}
           icon={Plus}
           label="New routine"
-          color={t.bg}
-          background={t.hab}
+          color={t.onPrimary}
+          background={t.primary}
           onPress={() => go("/habits/routines/new")}
         />
       }
@@ -680,13 +681,13 @@ export function Routines() {
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 999,
-                backgroundColor: archived === v ? `${t.hab}26` : t.soft,
+                ...chosen(t, archived === v),
               }}
             >
               <Copy
                 size={12}
                 weight="medium"
-                style={{ color: archived === v ? t.hab : t.muted }}
+                style={{ color: archived === v ? t.text : t.muted }}
               >
                 {v ? `Archived · ${count}` : "Active"}
               </Copy>
@@ -764,13 +765,17 @@ export function Routines() {
                       height: 36,
                       borderRadius: 99,
                       paddingHorizontal: 12,
-                      backgroundColor: t.hab,
+                      backgroundColor: t.primary,
                       justifyContent: "center",
                     }}
                   >
                     <Line style={{ gap: 6 }}>
-                      <Play size={14} fill={t.bg} color={t.bg} />
-                      <Copy size={14} weight="medium" style={{ color: t.bg }}>
+                      <Play size={14} fill={t.onPrimary} color={t.onPrimary} />
+                      <Copy
+                        size={14}
+                        weight="medium"
+                        style={{ color: t.onPrimary }}
+                      >
                         Start
                       </Copy>
                     </Line>
@@ -778,7 +783,7 @@ export function Routines() {
                 )}
                 {archived && (
                   <Tap onPress={() => A.restoreRoutine(r.id)}>
-                    <Copy size={12} style={{ color: t.hab }}>
+                    <Copy size={12} style={{ color: t.primary }}>
                       Restore
                     </Copy>
                   </Tap>

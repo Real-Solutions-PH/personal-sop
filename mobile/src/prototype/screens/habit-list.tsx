@@ -16,6 +16,7 @@ import { View } from "react-native"
 import { feel, StreakChip } from "../motion"
 import {
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -105,7 +106,7 @@ const AllRow = memo(function AllRow({
                 {h.name}
               </Copy>
               {st === "paused" && (
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   PAUSED
                 </Copy>
               )}
@@ -138,7 +139,7 @@ const AllRow = memo(function AllRow({
                   )
                 })}
               </Line>
-              <Copy size={11} muted>
+              <Copy size={12} muted>
                 {Math.round(rate * 100)}%
               </Copy>
               <StreakChip streak={streak} lost={lost} />
@@ -233,11 +234,11 @@ export function HabitsList() {
         height: 32,
         paddingHorizontal: 12,
         borderRadius: 99,
-        backgroundColor: on ? `${t.hab}26` : t.soft,
+        ...chosen(t, on),
         justifyContent: "center",
       }}
     >
-      <Copy size={12} weight="medium" style={{ color: on ? t.hab : t.muted }}>
+      <Copy size={12} weight="medium" style={{ color: on ? t.text : t.muted }}>
         {label}
       </Copy>
     </Tap>
@@ -259,8 +260,8 @@ export function HabitsList() {
             size={40}
             icon={Plus}
             label="New habit"
-            background={t.hab}
-            color={t.bg}
+            background={t.primary}
+            color={t.onPrimary}
             onPress={() => go("/habits/new")}
           />
         </Line>

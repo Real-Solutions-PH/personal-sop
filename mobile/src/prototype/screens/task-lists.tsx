@@ -555,7 +555,7 @@ export function TaskListPage({ id }: { id: string }) {
         />
         {!!text && (
           <Tap onPress={add}>
-            <Copy size={14} weight="semibold" style={{ color: t.tsk }}>
+            <Copy size={14} weight="semibold" style={{ color: t.primary }}>
               Add
             </Copy>
           </Tap>
@@ -652,7 +652,7 @@ export function TaskListPage({ id }: { id: string }) {
                   )
                 }}
               >
-                <Copy size={12} weight="medium" style={{ color: t.tsk }}>
+                <Copy size={12} weight="medium" style={{ color: t.primary }}>
                   Clear checked
                 </Copy>
               </Tap>
@@ -684,13 +684,8 @@ export function TaskListPage({ id }: { id: string }) {
                 color={t.muted}
                 style={{ transform: [{ rotate: showDone ? "90deg" : "0deg" }] }}
               />
-              <Copy
-                size={12}
-                muted
-                weight="medium"
-                style={{ letterSpacing: 0.6 }}
-              >
-                COMPLETED · {done.length}
+              <Copy size={12} muted weight="medium">
+                Completed · {done.length}
               </Copy>
             </Line>
           </Tap>
@@ -706,7 +701,7 @@ export function TaskListPage({ id }: { id: string }) {
                     showList={false}
                   />
                 </View>
-                <Copy size={11} muted style={{ width: 56, textAlign: "right" }}>
+                <Copy size={12} muted style={{ width: 56, textAlign: "right" }}>
                   {L.doneDay(task)?.slice(5)}
                 </Copy>
               </Line>

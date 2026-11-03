@@ -18,7 +18,15 @@ import { useState } from "react"
 import { View } from "react-native"
 import { FocusTimeCard } from "../focus-kit"
 import { Cheer, feel, markCompletion, StreakChip } from "../motion"
-import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
+import {
+  border,
+  Copy,
+  Frame,
+  IconTap,
+  Line,
+  SectionHeading,
+  Tap,
+} from "../native-kit"
 import { go } from "../navigation"
 import { streakLost } from "../rewards"
 import { useTheme } from "../theme"
@@ -84,7 +92,7 @@ function Month({ habit }: { habit: Habit }) {
         {Array.from({ length: 7 }, (_, i) => (
           <Copy
             key={`h${i}`}
-            size={10}
+            size={12}
             muted
             style={{ width: 244 / 7, textAlign: "center" }}
           >
@@ -139,7 +147,7 @@ function Month({ habit }: { habit: Habit }) {
                 opacity: d > today ? 0.6 : 1,
               }}
             >
-              <Copy size={11} style={{ color: c === "done" ? t.bg : t.text }}>
+              <Copy size={12} style={{ color: c === "done" ? t.bg : t.text }}>
                 {i + 1}
               </Copy>
             </Tap>
@@ -166,7 +174,7 @@ function Month({ habit }: { habit: Habit }) {
                 borderColor: t.hab,
               }}
             />
-            <Copy size={11} muted>
+            <Copy size={12} muted>
               {label}
             </Copy>
           </Line>
@@ -322,7 +330,7 @@ export function HabitDetail({ id }: { id: string }) {
             )}
             {h.rule && !auto && <ScreenOffMark />}
             {h.linkWorkout && (
-              <Copy size={12} style={{ color: t.fit }}>
+              <Copy size={12} muted>
                 Auto-checks when a workout is logged
               </Copy>
             )}
@@ -419,8 +427,8 @@ export function HabitDetail({ id }: { id: string }) {
           <Copy
             size={14}
             style={{
-              color: t.hab,
-              backgroundColor: `${t.hab}1a`,
+              color: t.good,
+              backgroundColor: border(t.good, 0.12),
               padding: 12,
               borderRadius: 12,
             }}
@@ -473,10 +481,10 @@ export function HabitDetail({ id }: { id: string }) {
             ))}
           </Line>
           <Line style={{ justifyContent: "space-between", marginTop: 4 }}>
-            <Copy size={10} muted>
+            <Copy size={12} muted>
               12w ago
             </Copy>
-            <Copy size={10} muted>
+            <Copy size={12} muted>
               this week
             </Copy>
           </Line>
@@ -634,7 +642,7 @@ export function HabitDetail({ id }: { id: string }) {
               key={label}
               onPress={() => setUntil(n ? dayOffset(Number(n)) : "")}
             >
-              <Copy size={14} style={{ color: t.hab }}>
+              <Copy size={14} style={{ color: t.primary }}>
                 {label}
               </Copy>
             </Tap>

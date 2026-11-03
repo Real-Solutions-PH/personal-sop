@@ -74,7 +74,7 @@ export function TagChips({ tags }: { tags?: string[] }) {
           }}
         >
           <Text
-            style={{ fontFamily: fonts.medium, fontSize: 11, color: t.muted }}
+            style={{ fontFamily: fonts.medium, fontSize: 12, color: t.muted }}
           >
             #{tag}
           </Text>
@@ -307,12 +307,12 @@ export function TaskRow({
                           alignItems: "center",
                         }}
                       >
-                        <Check size={12} color={t.tsk} />
+                        <Check size={12} color={t.good} />
                         <Text
                           style={{
                             fontFamily: fonts.medium,
                             fontSize: 12,
-                            color: t.tsk,
+                            color: t.good,
                           }}
                         >
                           {doneLabel(doneAt, showDay)}
@@ -341,7 +341,7 @@ export function TaskRow({
                             ? fonts.medium
                             : fonts.body,
                           fontSize: 12,
-                          color: L.isDueNow(task) ? t.tsk : t.muted,
+                          color: L.isDueNow(task) ? t.text : t.muted,
                         }}
                       >
                         {L.fmtTime(task.dueTime)}
@@ -536,9 +536,9 @@ export function TaskRow({
                     justifyContent: "center",
                   }}
                 >
-                  <Plus size={16} color={t.tsk} />
+                  <Plus size={16} color={t.primary} />
                 </View>
-                <Copy weight="medium" style={{ flex: 1, color: t.tsk }}>
+                <Copy weight="medium" style={{ flex: 1, color: t.primary }}>
                   New list…
                 </Copy>
               </Line>
@@ -895,18 +895,17 @@ export function Tasks({
               <Text
                 style={{
                   fontFamily: fonts.medium,
-                  fontSize: 12,
-                  letterSpacing: 0.8,
+                  fontSize: 13,
                   color: L.isOverdue(task) ? t.bad : t.muted,
                   marginTop: 16,
                   marginBottom: 4,
                 }}
               >
                 {L.isOverdue(task)
-                  ? "OVERDUE"
+                  ? "Overdue"
                   : task.dueDate === dayKey()
-                    ? "DUE TODAY"
-                    : "UPCOMING & ANYTIME"}
+                    ? "Due today"
+                    : "Upcoming and anytime"}
               </Text>
             )}
           <TaskRow task={task} />

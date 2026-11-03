@@ -61,7 +61,7 @@ export function TaskBars({
             />
           </View>
           {labels && (
-            <Copy size={10} muted style={{ textAlign: "center" }}>
+            <Copy size={12} muted style={{ textAlign: "center" }}>
               {labels[i]}
             </Copy>
           )}
@@ -140,16 +140,16 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
       <Frame style={{ padding: 16 }}>
         <Line style={{ gap: 16 }}>
           <View style={{ flex: 1, gap: 8 }}>
-            <Copy size={12} muted style={{ letterSpacing: 1 }}>
-              FOLLOW-THROUGH RATIO
+            <Copy size={13} weight="medium" muted>
+              Follow-through ratio
             </Copy>
-            <Copy size={48} weight="display" style={{ color: t.tsk }}>
+            <Copy size={48} weight="display">
               {s.followThrough.toFixed(1)}
             </Copy>
             <Copy size={12} muted>
               Tasks finished per task that slipped (late counts half)
             </Copy>
-            <Copy size={11} muted style={{ marginTop: 2 }}>
+            <Copy size={12} muted style={{ marginTop: 2 }}>
               ({s.onTime} on-time + ½×{s.late} late) ÷ ({s.overdueNow} overdue +{" "}
               {s.reschedules} pushed)
             </Copy>
@@ -167,7 +167,7 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
             >
               {L.pct(s.onTimeRate)}
             </Copy>
-            <Copy size={10} muted>
+            <Copy size={12} muted>
               on time
             </Copy>
           </Ring>
@@ -178,7 +178,6 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
           {
             label: "Tasks done",
             value: s.done,
-            color: t.tsk,
             delta: s.done - prev.done,
           },
           {
@@ -195,7 +194,7 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
           { label: "Clear days", value: `${s.clearDays}/${s.dueDays}` },
         ].map((x) => (
           <Frame key={x.label} style={{ width: "48%", padding: 12 }}>
-            {stat(x.label, x.value, x.color ?? t.text, x.delta)}
+            {stat(x.label, x.value, t.text, x.delta)}
             {x.label === "Clear days" && (
               <View style={{ marginTop: 8 }}>
                 <Bar
@@ -263,13 +262,8 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
           </Copy>
           {s.topPushed.length > 0 && (
             <View style={{ marginTop: 12, gap: 6 }}>
-              <Copy
-                size={12}
-                weight="medium"
-                muted
-                style={{ letterSpacing: 1 }}
-              >
-                MOST PUSHED
+              <Copy size={12} weight="medium" muted>
+                Most pushed
               </Copy>
               {s.topPushed.map((task) => (
                 <Tap key={task.id} onPress={() => go(`/tasks/task/${task.id}`)}>
@@ -292,7 +286,7 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
           <Line style={{ gap: 4, alignItems: "stretch" }}>
             <View style={{ justifyContent: "space-around", width: 10 }}>
               {["S", "M", "T", "W", "T", "F", "S"].map((v, i) => (
-                <Copy key={`${v}-${i}`} size={10} muted>
+                <Copy key={`${v}-${i}`} size={12} muted>
                   {v}
                 </Copy>
               ))}
@@ -324,10 +318,10 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
             )}
           </Line>
           <Line style={{ marginTop: 8, justifyContent: "space-between" }}>
-            <Copy size={10} muted>
+            <Copy size={12} muted>
               {L.fmtDate(L.addDays(L.today(), -83))}
             </Copy>
-            <Copy size={10} muted>
+            <Copy size={12} muted>
               Today
             </Copy>
           </Line>
@@ -362,7 +356,7 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
           Captured by AI: {L.pct(s.captureShare)} of {s.created} new tasks
         </Copy>
         <Tap onPress={() => go("/tasks/settings")}>
-          <Copy size={12} style={{ color: t.tsk }}>
+          <Copy size={12} style={{ color: t.primary }}>
             Groceries in stats?
           </Copy>
         </Tap>

@@ -181,8 +181,8 @@ export function FinanceAdvisor() {
           icon={Send}
           label="Send"
           size={44}
-          background={t.fin}
-          color={t.bg}
+          background={t.primary}
+          color={t.onPrimary}
           onPress={() => ask(text.trim())}
         />
       </Line>

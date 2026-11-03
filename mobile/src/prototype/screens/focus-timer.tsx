@@ -140,7 +140,7 @@ export function FocusTimer() {
     })
   }
   const item = p?.item ?? session?.item ?? null
-  const accent = p?.kind === "break" ? t.good : t.foc
+  const accent = p?.kind === "break" ? t.good : t.primary
   const progress = p?.plannedSec
     ? p.elapsed / p.plannedSec
     : p
@@ -294,8 +294,8 @@ export function FocusTimer() {
           )}
         </TimerRing>
         {!session ? (
-          <Tap label="Start focus" onPress={start} style={round(88, t.foc)}>
-            <Play size={36} color={t.bg} fill={t.bg} />
+          <Tap label="Start focus" onPress={start} style={round(88, t.primary)}>
+            <Play size={36} color={t.onPrimary} fill={t.onPrimary} />
           </Tap>
         ) : p?.status === "waiting" ? (
           <Line style={{ gap: 16 }}>
@@ -676,7 +676,7 @@ function ItemChip({
           size={12}
           weight={done ? "semibold" : "body"}
           muted={!done}
-          style={done ? { color: t.foc } : undefined}
+          style={done ? { color: t.primary } : undefined}
         >
           {done ? "Next" : switching ? "Switch" : "Pick"}
         </Copy>
@@ -821,12 +821,14 @@ function HabitCheck({
             height: 32,
             paddingHorizontal: 8,
             borderRadius: 16,
-            backgroundColor: `${t.hab}26`,
+            borderWidth: 1,
+            borderColor: t.input,
+            backgroundColor: t.card,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Copy size={12} weight="semibold" style={{ color: t.hab }}>
+          <Copy size={12} weight="semibold">
             +{habit.step ?? 1}
           </Copy>
         </Tap>

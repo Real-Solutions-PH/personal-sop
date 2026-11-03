@@ -590,8 +590,8 @@ export function HabitsList({
                     <NativeText
                       style={{
                         fontFamily: fonts.medium,
-                        fontSize: 11,
-                        color: t.life,
+                        fontSize: 12,
+                        color: t.muted,
                         marginLeft: 8,
                       }}
                     >

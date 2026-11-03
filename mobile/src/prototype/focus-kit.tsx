@@ -26,7 +26,7 @@ import Svg, {
   Rect,
   Line as SvgLine,
 } from "react-native-svg"
-import { Copy, Frame, Line, Tap } from "./native-kit"
+import { Copy, chosen, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
 import { Sheet } from "./ui"
@@ -169,7 +169,7 @@ export function FocusTimeline({
                   borderColor: t.line,
                 }}
               />
-              <Copy size={11} muted>
+              <Copy size={12} muted>
                 No focus {clockOf(at(runs[i - 1][1] + 1))}–{clockOf(at(from))}
               </Copy>
               <View
@@ -221,7 +221,7 @@ function HourRun({
         {Array.from({ length: hours }, (_, i) => (
           <Copy
             key={i}
-            size={11}
+            size={12}
             muted
             style={{
               position: "absolute",
@@ -295,7 +295,7 @@ function HourRun({
                   </Copy>
                   {b.kind === "focus" && (
                     <Copy
-                      size={11}
+                      size={12}
                       style={{
                         fontFamily: fonts.mono,
                         color: onAccent ? t["on-accent"] : t.muted,
@@ -452,7 +452,7 @@ export function ItemPicker({
           paddingVertical: 10,
           paddingHorizontal: 12,
           borderRadius: 12,
-          backgroundColor: picked ? `${t.foc}1f` : "transparent",
+          ...chosen(t, !!picked),
         }}
       >
         <Line>
@@ -557,11 +557,13 @@ export function FocusTimeCard({
             paddingHorizontal: 12,
             height: 36,
             borderRadius: 18,
-            backgroundColor: `${t.foc}1f`,
+            borderWidth: 1,
+            borderColor: t.input,
+            backgroundColor: t.card,
           }}
         >
-          <Play size={14} color={t.foc} fill={t.foc} />
-          <Copy size={14} weight="medium" style={{ color: t.foc }}>
+          <Play size={14} color={t.text} fill={t.text} />
+          <Copy size={14} weight="medium">
             Focus
           </Copy>
         </Tap>

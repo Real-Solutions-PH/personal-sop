@@ -224,7 +224,7 @@ export function Section({
           style={{ minHeight: 44, justifyContent: "center" }}
         >
           <Text
-            style={{ fontFamily: fonts.medium, color: t.accent, fontSize: 13 }}
+            style={{ fontFamily: fonts.medium, color: t.primary, fontSize: 13 }}
           >
             {link ?? "All"}
           </Text>
@@ -296,10 +296,12 @@ export function Tiles({
               style={{
                 width: 52,
                 height: 52,
-                borderRadius: 17,
+                borderRadius: 16,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: `${t[item.accent]}22`,
+                borderWidth: 1,
+                borderColor: t.line,
+                backgroundColor: t.card,
               }}
             >
               <Icon size={23} color={t[item.accent]} />

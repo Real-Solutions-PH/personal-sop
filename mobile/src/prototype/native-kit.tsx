@@ -359,14 +359,14 @@ export function Measure({
 export function SmallButton({
   children,
   onPress,
-  accent,
   quiet,
   icon: Icon,
   small = false,
 }: {
   children: ReactNode
   onPress: () => void
-  accent: Accent
+  /** Kept for callers; the filled button is moss on every screen. */
+  accent?: Accent
   quiet?: boolean
   icon?: LucideIcon
   small?: boolean
@@ -379,7 +379,10 @@ export function SmallButton({
         height: small ? 32 : 36,
         paddingHorizontal: small ? 10 : 12,
         borderRadius: 12,
-        backgroundColor: quiet ? t.soft : t[accent],
+        // Filled is moss on every screen; area colours stay on data.
+        backgroundColor: quiet ? t.card : t.primary,
+        borderWidth: quiet ? 1 : 0,
+        borderColor: t.input,
         justifyContent: "center",
       }}
     >
@@ -426,6 +429,15 @@ export function Frame({
       {children}
     </View>
   )
+}
+/** A selectable chip's frame: a 2 pt ink outline when chosen, a hairline
+ * otherwise, never colour alone (ADR-0019). */
+export function chosen(t: ReturnType<typeof useTheme>, on: boolean) {
+  return {
+    backgroundColor: t.card,
+    borderWidth: on ? 2 : 1,
+    borderColor: on ? t.text : t.line,
+  }
 }
 export function border(color: string, opacity: number) {
   const alpha =

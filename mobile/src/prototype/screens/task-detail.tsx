@@ -22,7 +22,7 @@ import { ScrollView, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { FocusTimeCard } from "../focus-kit"
 import { AnimatedCheck, TickRow } from "../motion"
-import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
+import { border, Copy, chosen, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import {
@@ -479,9 +479,7 @@ export function TaskDetail({ id }: { id: string }) {
                 height: 40,
                 borderRadius: 20,
                 justifyContent: "center",
-                borderWidth: 1,
-                borderColor: task.estimateMin === m ? t.foc : t.line,
-                backgroundColor: task.estimateMin === m ? `${t.foc}1f` : t.card,
+                ...chosen(t, task.estimateMin === m),
               }}
             >
               <Copy size={14} style={{ fontFamily: fonts.mono }}>
