@@ -89,3 +89,37 @@ it("a treadmill walk shows the motion distance and its average pace", () => {
   expect(s.step).toBe("1.50 km")
   expect(s.detail).toBe("avg 13:20 /km")
 })
+
+it("the walk's steps so far reach the lock screen, grouped beside a workout", () => {
+  const t0 = Date.now() - 600_000
+  RL.startRun("walk", t0)
+  RL.setRunHealth({ steps: 12345 })
+  expect(all(t0 + 600_000)?.steps).toBe(12345)
+  // Listed under a workout: one line, steps grouped.
+  expect(A.startWorkout({ from: "empty" }).ok).toBe(true)
+  const s = all(t0 + 600_000)!
+  expect(s.others?.[0].line).toMatch(/12,345 steps$/)
+})
+
+it("no steps read yet: the field is left out", () => {
+  RL.startRun("walk")
+  expect(all()?.steps).toBeUndefined()
+})
+
+it("with no recent GPS movement the pace says only the average", () => {
+  // Standing still: the last fix is long past, so there is no pace now.
+  const t0 = Date.now() - 600_000
+  RL.startRun("walk", t0)
+  RL.addFixes(
+    [0, 1, 2].map((i) => ({
+      lat: 14 + i * 0.0005,
+      lng: 121,
+      alt: 10,
+      accuracy: 5,
+      at: t0 + i * 30_000,
+    })),
+  )
+  const s = all(t0 + 600_000)!
+  expect(s.detail).toMatch(/^avg \d+:\d\d \/km$/)
+  expect(s.detail).not.toContain("–:––")
+})

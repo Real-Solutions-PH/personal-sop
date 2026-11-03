@@ -161,6 +161,28 @@ struct LiveButton: View {
   }
 }
 
+/** A run's or walk's steps so far, grouped ("12,345"), with its glyph:
+ * the number speaks for itself beside the shoeprints. */
+struct StepsLabel: View {
+  var steps: Int
+  var size: CGFloat
+  var color: Color
+  var body: some View {
+    let n = steps.formatted(.number.grouping(.automatic))
+    Label {
+      Text(n)
+    } icon: {
+      Image(systemName: "shoeprints.fill")
+    }
+    .labelStyle(.titleAndIcon)
+    .font(.system(size: size).monospacedDigit())
+    .foregroundStyle(color)
+    .fixedSize()
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("\(n) steps")
+  }
+}
+
 /** Lock screen. The clock that matters now is the largest thing, on the
  * right: rest while resting (in the accent, with a bar draining under it),
  * else the step's countdown or the time since the start. Left of it, what
@@ -192,6 +214,9 @@ struct LiveLockScreen: View {
           .font(.system(size: 13).monospacedDigit())
           .foregroundStyle(Tone.muted)
           .accessibilityLabel("Workout time")
+        }
+        if state.kind == "run", let steps = state.steps {
+          StepsLabel(steps: steps, size: 13, color: Tone.muted)
         }
       }
       HStack(alignment: .center, spacing: 10) {
@@ -298,7 +323,13 @@ struct IslandBottom: View {
     VStack(alignment: .leading, spacing: 7) {
       VStack(alignment: .leading, spacing: 1) {
         Text(state.step).font(.system(size: 17, weight: .semibold)).lineLimit(2).minimumScaleFactor(0.85)
-        Text(state.detail).font(.system(size: 13)).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
+        HStack(spacing: 8) {
+          Text(state.detail).font(.system(size: 13)).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
+          if state.kind == "run", let steps = state.steps {
+            Spacer(minLength: 4)
+            StepsLabel(steps: steps, size: 13, color: .white.opacity(0.8))
+          }
+        }
       }
       LiveProgress(state: state)
       if let upNext = state.upNext {

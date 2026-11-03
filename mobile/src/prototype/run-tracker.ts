@@ -24,6 +24,7 @@ import {
 import { fitStore } from "@domain/fitness/store"
 import { AppState, Platform } from "react-native"
 import { connectHealth, healthAvailable, readWindow } from "./health"
+import { readSteps } from "./pedometer"
 
 type Location = typeof import("expo-location")
 type TaskManager = typeof import("expo-task-manager")
@@ -67,7 +68,7 @@ export function registerRunTask() {
   const TM = load<TaskManager>("expo-task-manager")
   if (!TM || TM.isTaskDefined(RUN_TASK)) return
   TM.defineTask<{ locations: RawLocation[] }>(RUN_TASK, async ({ data }) => {
-    if (data?.locations?.length) addFixes(data.locations.map(toFix))
+    if (data?.locations?.length) onFixes(data.locations.map(toFix))
   })
 }
 
@@ -121,7 +122,7 @@ export async function startTracking(kind: "run" | "walk"): Promise<TrackStart> {
       distanceInterval: 3,
       timeInterval: 2000,
     },
-    (l) => addFixes([toFix(l as RawLocation)]),
+    (l) => onFixes([toFix(l as RawLocation)]),
   ).catch(() => null)
   return watch
     ? { ok: true, background: false }
@@ -137,13 +138,50 @@ export async function stopTracking() {
     await L.stopLocationUpdatesAsync(RUN_TASK).catch(() => {})
 }
 
+/** Steps are read at most this often from a GPS fix. */
+const STEPS_EVERY_MS = 30_000
+let stepsReadAt = 0
+
+/** New fixes, from the background task or the foreground watch: the
+ * route grows, and the steps so far are read again (throttled), so the
+ * lock screen's count moves with the distance even while locked. */
+export function onFixes(fixes: Fix[]) {
+  addFixes(fixes)
+  void refreshSteps()
+}
+
+async function refreshSteps() {
+  const r = runLiveStore.get().active
+  if (!r) return
+  const now = Date.now()
+  if (now - stepsReadAt < STEPS_EVERY_MS) return
+  stepsReadAt = now
+  const steps = await readSteps(new Date(r.startedAt), new Date(now))
+  if (steps === null || runLiveStore.get().active?.id !== r.id) return
+  setRunHealth({ steps })
+}
+
 async function refreshHealth() {
   const r = runLiveStore.get().active
-  if (!r || !healthAvailable()) return
-  const h = await readWindow(new Date(r.startedAt), new Date())
+  if (!r) return
+  const now = Date.now()
+  stepsReadAt = now
+  // The step counter first: it is the iPhone's own count and answers while
+  // locked; Health (a watch's steps, heart rate, distance) when it can.
+  const [counted, h] = await Promise.all([
+    readSteps(new Date(r.startedAt), new Date(now)),
+    healthAvailable()
+      ? readWindow(new Date(r.startedAt), new Date(now))
+      : Promise.resolve(null),
+  ])
   if (runLiveStore.get().active?.id !== r.id) return
+  const steps = counted ?? h?.steps ?? null
+  if (!h) {
+    if (steps !== null) setRunHealth({ steps })
+    return
+  }
   setRunHealth({
-    ...(h.steps !== null ? { steps: h.steps } : {}),
+    ...(steps !== null ? { steps } : {}),
     ...(h.hr ? { hr: h.hr } : {}),
     // On a treadmill the motion distance is the session's distance.
     ...(r.indoor && h.distanceM !== null ? { distanceM: h.distanceM } : {}),
