@@ -10,9 +10,15 @@ import {
   Umbrella,
   Wind,
 } from "lucide-react-native"
-import { useEffect } from "react"
-import { ActivityIndicator, View } from "react-native"
+import { type ReactNode, useEffect, useState } from "react"
+import {
+  ActivityIndicator,
+  Image,
+  type ImageSourcePropType,
+  View,
+} from "react-native"
 import { toast } from "sonner-native"
+import { CornerMotif } from "./brand/corner"
 import { Copy, Frame, IconTap, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
@@ -27,6 +33,9 @@ import {
   outdoorAdvice,
   rainSoon,
   refreshWeather,
+  type SkyImage,
+  skyImage,
+  skyImageIsDark,
   staleLocation,
   todayOf,
   useMinuteTick,
@@ -109,6 +118,7 @@ export function WeatherCard() {
   if (!f || !cur)
     return (
       <Frame style={{ padding: 16 }}>
+        <CornerMotif kind="sprig" seed={5} />
         <Line>
           <Tap
             onPress={() => go("/weather")}
@@ -154,70 +164,134 @@ export function WeatherCard() {
     lastKnown = staleLocation(s, fixFailed, now),
     info = describeCode(cur.code, cur.day),
     advice = outdoorAdvice(f, unit, now),
-    Icon = info.icon
+    AdviceIcon = adviceIcon[advice.kind]
   return (
-    <Frame>
-      <Tap
-        onPress={() => go("/weather")}
-        label={`Weather in ${f.place.name}${lastKnown ? ` (${lastKnown})` : ""}: ${fmtTemp(cur.temp, unit)}, ${info.label}, feels like ${fmtTemp(cur.feels, unit)}, ${rain}% chance of rain in the next 12 hours. ${advice.text}. Opens forecast.`}
-        style={{ padding: 16, gap: 12 }}
-      >
-        <Line style={{ gap: 8 }}>
-          <View
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: 12,
-              backgroundColor: `${t.tsk}1f`,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Icon size={22} color={t.tsk} />
-          </View>
-          <Copy
-            style={{
-              fontFamily: fonts.mono,
-              fontSize: 36,
-              lineHeight: 40,
-            }}
-          >
-            {fmtTemp(cur.temp, unit)}
-          </Copy>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Copy size={14} weight="semibold" lines={1}>
-              {info.label}
+    <SkyCard sky={skyImage(info.sky, cur.day)}>
+      {(ink) => (
+        <Tap
+          onPress={() => go("/weather")}
+          label={`Weather in ${f.place.name}${lastKnown ? ` (${lastKnown})` : ""}: ${fmtTemp(cur.temp, unit)}, ${info.label}, feels like ${fmtTemp(cur.feels, unit)}, ${rain}% chance of rain in the next 12 hours. ${advice.text}. Opens forecast.`}
+          style={{ padding: 16, gap: 10, minHeight: 150 }}
+        >
+          <Line style={{ gap: 8, alignItems: "flex-start", maxWidth: "64%" }}>
+            <Copy
+              style={{
+                fontFamily: fonts.mono,
+                fontSize: 40,
+                lineHeight: 44,
+                color: ink.text,
+              }}
+            >
+              {fmtTemp(cur.temp, unit)}
             </Copy>
-            <Copy size={12} muted lines={1}>
-              {f.place.name} · feels {fmtTemp(cur.feels, unit)}
-            </Copy>
-          </View>
-          <View style={{ alignItems: "flex-end" }}>
-            {today && (
-              <Copy size={12} weight="medium">
-                H {fmtTemp(today.max, unit)} L {fmtTemp(today.min, unit)}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Copy
+                size={14}
+                weight="semibold"
+                lines={1}
+                style={{ color: ink.text }}
+              >
+                {info.label}
               </Copy>
-            )}
-            {today && (
-              <Line style={{ gap: 3 }}>
-                <Umbrella size={12} color={t.tsk} />
-                <Copy size={12} muted>
-                  {rain}% next 12h
+              <Copy size={12} lines={1} style={{ color: ink.muted }}>
+                {f.place.name} · feels {fmtTemp(cur.feels, unit)}
+              </Copy>
+              {today && (
+                <Copy size={12} weight="medium" style={{ color: ink.text }}>
+                  H {fmtTemp(today.max, unit)} L {fmtTemp(today.min, unit)}
                 </Copy>
-              </Line>
-            )}
-          </View>
-        </Line>
-        <AdviceLine advice={advice} />
-        <Copy size={12} muted>
-          {lastKnown ? `${lastKnown} · ` : ""}
-          {error && !loading
-            ? `Offline · showing weather from ${ago(f.fetchedAt, now)}`
-            : loading
-              ? "Updating…"
-              : `Updated ${ago(f.fetchedAt, now)}`}
-        </Copy>
-      </Tap>
-    </Frame>
+              )}
+              {today && (
+                <Line style={{ gap: 3 }}>
+                  <Umbrella size={12} color={ink.muted} />
+                  <Copy size={12} style={{ color: ink.muted }}>
+                    {rain}% next 12h
+                  </Copy>
+                </Line>
+              )}
+            </View>
+          </Line>
+          <Line style={{ gap: 6, alignItems: "flex-start", maxWidth: "60%" }}>
+            <AdviceIcon size={14} color={ink.text} style={{ marginTop: 2 }} />
+            <Copy size={14} style={{ flex: 1, color: ink.text }}>
+              {advice.text}
+            </Copy>
+          </Line>
+          <Copy size={12} style={{ color: ink.muted, maxWidth: "64%" }}>
+            {lastKnown ? `${lastKnown} · ` : ""}
+            {error && !loading
+              ? `Offline · showing weather from ${ago(f.fetchedAt, now)}`
+              : loading
+                ? "Updating…"
+                : `Updated ${ago(f.fetchedAt, now)}`}
+          </Copy>
+        </Tap>
+      )}
+    </SkyCard>
+  )
+}
+
+/** The agy drawings, one per sky (assets/weather). The art sits on the
+ * right; the text keeps to the quiet left side. */
+const SKY_ART: Record<SkyImage, ImageSourcePropType> = {
+  "clear-day": require("../../assets/weather/wx-clear-day.jpg"),
+  "clear-night": require("../../assets/weather/wx-clear-night.jpg"),
+  "partly-day": require("../../assets/weather/wx-partly-day.jpg"),
+  "partly-night": require("../../assets/weather/wx-partly-night.jpg"),
+  cloudy: require("../../assets/weather/wx-cloudy.jpg"),
+  fog: require("../../assets/weather/wx-fog.jpg"),
+  drizzle: require("../../assets/weather/wx-drizzle.jpg"),
+  rain: require("../../assets/weather/wx-rain.jpg"),
+  snow: require("../../assets/weather/wx-snow.jpg"),
+  storm: require("../../assets/weather/wx-storm.jpg"),
+}
+/** The drawings' own grounds and inks: fixed, since the art does not follow
+ * the app theme. Day art takes ink text, night art light text. */
+const SKY_INK = {
+  day: { ground: "#f6f5f1", text: "#1b1f1c", muted: "#4d544e" },
+  night: { ground: "#131714", text: "#ecebe6", muted: "#b5bab4" },
+} as const
+export type SkyInk = (typeof SKY_INK)[keyof typeof SKY_INK]
+
+/** A card on a sky drawing, fitted to the card's height and anchored right,
+ * so the art never sits under the text on the left. */
+export function SkyCard({
+  sky,
+  children,
+}: {
+  sky: SkyImage
+  children: (ink: SkyInk) => ReactNode
+}) {
+  const ink = SKY_INK[skyImageIsDark(sky) ? "night" : "day"],
+    [h, setH] = useState(0)
+  return (
+    <View
+      testID={`sky-card-${sky}`}
+      onLayout={(e) => setH(Math.round(e.nativeEvent.layout.height))}
+      style={{
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: `${ink.text}17`,
+        backgroundColor: ink.ground,
+        overflow: "hidden",
+      }}
+    >
+      {h > 0 && (
+        <Image
+          testID="sky-art"
+          source={SKY_ART[sky]}
+          accessibilityIgnoresInvertColors
+          resizeMode="cover"
+          style={{
+            position: "absolute",
+            top: 0,
+            right: 0,
+            height: h,
+            width: h * 1.5,
+          }}
+        />
+      )}
+      {children(ink)}
+    </View>
   )
 }

@@ -62,17 +62,22 @@ import { PeriodBar } from "./nutrition-period-bar"
 /** Ring sizes for the width the rings get: the full size on a wide card,
  * smaller on a narrow one (Fern's card sits inside a message), and the three
  * macro rings on a row of their own when even the small sizes don't fit. */
-export function ringLayout(width: number) {
+export function ringLayout(width: number, rings = 3) {
   const GAP = 16,
-    SMALL_GAP = 8
+    SMALL_GAP = 8,
+    gaps = (rings - 1) * SMALL_GAP
   if (!width) return { stacked: false, big: 112, small: 60 }
-  const big = Math.max(80, Math.min(112, Math.round(width * 0.34)))
-  const small = Math.floor((width - big - GAP - 2 * SMALL_GAP) / 3)
+  // Four small rings (fiber beside the macros) leave the big ring less room.
+  const big = Math.max(
+    80,
+    Math.min(112, Math.round(width * (rings > 3 ? 0.28 : 0.34))),
+  )
+  const small = Math.floor((width - big - GAP - gaps) / rings)
   if (small >= 44) return { stacked: false, big, small: Math.min(60, small) }
   return {
     stacked: true,
     big: 112,
-    small: Math.max(44, Math.min(60, Math.floor((width - 2 * SMALL_GAP) / 3))),
+    small: Math.max(44, Math.min(60, Math.floor((width - gaps) / rings))),
   }
 }
 const num = (v: number) => Math.round(v).toLocaleString("en-US")
@@ -87,6 +92,7 @@ export function MacroRings({
   cheer = 0,
   average = false,
   onOpen,
+  fiber,
 }: {
   totals: Macros
   target?: Macros
@@ -96,10 +102,12 @@ export function MacroRings({
   average?: boolean
   /** Each ring opens that nutrient's breakdown. */
   onOpen?: (key: "kcal" | "protein" | "carbs" | "fat") => void
+  /** Fiber as a fourth small ring, against its daily goal. */
+  fiber?: { value: number; goal: number }
 }) {
   const t = useTheme(),
     [width, setWidth] = useState(0),
-    { stacked, big, small } = ringLayout(width),
+    { stacked, big, small } = ringLayout(width, fiber ? 4 : 3),
     left = target && !average ? target.kcal - totals.kcal : undefined
   const open = (key: "kcal" | "protein" | "carbs" | "fat", label: string) =>
     onOpen ? { onPress: () => onOpen(key), label } : null
@@ -110,12 +118,15 @@ export function MacroRings({
     style?: object,
   ) => {
     const o = open(key, label)
+    // Keyed by nutrient: the macro rings are drawn from a list.
     return o ? (
-      <Tap label={o.label} onPress={o.onPress} style={style}>
+      <Tap key={key} label={o.label} onPress={o.onPress} style={style}>
         {child}
       </Tap>
     ) : (
-      <View style={style}>{child}</View>
+      <View key={key} style={style}>
+        {child}
+      </View>
     )
   }
   const kcal = tappable(
@@ -213,6 +224,49 @@ export function MacroRings({
           </>,
           { flex: 1, minWidth: 0, alignItems: "center", gap: 4 },
         ),
+      )}
+      {fiber && (
+        <View
+          testID="fiber-ring"
+          accessible
+          accessibilityLabel={`Fiber: ${num(fiber.value)} of ${num(fiber.goal)} g`}
+          style={{ flex: 1, minWidth: 0, alignItems: "center", gap: 4 }}
+        >
+          <Ring
+            size={small}
+            strokeWidth={small >= 56 ? 5 : 4}
+            color={t.hab}
+            value={fiber.goal ? fiber.value / fiber.goal : 0}
+          >
+            <Copy
+              size={small >= 52 ? 12 : 11}
+              weight="semibold"
+              maxScale={1.15}
+            >
+              {num(fiber.value)}
+            </Copy>
+          </Ring>
+          <View>
+            <Copy
+              size={10}
+              muted
+              maxScale={1.3}
+              style={{ textAlign: "center", lineHeight: 12.5 }}
+            >
+              Fiber
+            </Copy>
+            <Copy
+              size={10}
+              muted
+              maxScale={1.3}
+              style={{ textAlign: "center", lineHeight: 12.5 }}
+            >
+              {fiber.value >= fiber.goal
+                ? "goal met"
+                : `${num(fiber.goal - fiber.value)} g left`}
+            </Copy>
+          </View>
+        </View>
       )}
     </Line>
   )
