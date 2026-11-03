@@ -369,7 +369,15 @@ describe("Today strips", () => {
     expect(
       screen.getByText("Yesterday: off target · 3-day streak ended"),
     ).toBeTruthy()
-    expect(screen.getByText("4 missed · see what slipped")).toBeTruthy()
+    expect(
+      screen.getByText(
+        /^4 missed\. The 3 days still count; the next one starts today\./,
+      ),
+    ).toBeTruthy()
+    // Fern consoles beside the cost, in place of the trend-down icon.
+    expect(
+      screen.getByTestId("fern-consoling", { includeHiddenElements: true }),
+    ).toBeTruthy()
     fireEvent.press(screen.getByLabelText("Dismiss"))
     expect(screen.queryByTestId("yesterday-strip")).toBeNull()
   })

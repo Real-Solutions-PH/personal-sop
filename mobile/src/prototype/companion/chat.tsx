@@ -516,7 +516,7 @@ function Welcome({
         paddingTop: compact ? 0 : 16,
       }}
     >
-      {!compact && <Orb size={72} />}
+      {!compact && <Orb size={72} state="arriving" />}
       <Text
         style={{
           color: t.text,
