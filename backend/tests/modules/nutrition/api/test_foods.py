@@ -13,6 +13,9 @@ from app.modules.iam.users.models import User
 from app.modules.media.models import MediaObject
 from app.shared import owned_repo
 from tests.utils.mobile import ctx_for, signed_in
+from tests.utils.tenant import fresh_tenant
+from tests.utils.user import create_auth_user
+from tests.utils.utils import auth_headers
 
 API = "/api/v1/nutrition/foods"
 
@@ -169,3 +172,75 @@ def test_picking_a_food_counts_a_use(client: TestClient, db: Session) -> None:
 
 def test_needs_sign_in(client: TestClient) -> None:
     assert client.get(API).status_code in (401, 403)
+
+
+# The Log meal sheet reads the first page (``limit=100``): these pin what it
+# gets back for a large library, a search, an empty one, and another tenant's.
+
+
+def test_a_large_library_pages_by_the_limit_with_the_whole_count(
+    client: TestClient, db: Session
+) -> None:
+    me, headers = signed_in(db)
+    t = _tag()
+    with ctx_for(me) as ctx:
+        for i in range(130):
+            _food(ctx, f"food {i:03d} {t}", i)
+    first = client.get(f"{API}?limit=100", headers=headers)
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["count"] == 130 and len(body["data"]) == 100
+    # Most used first: the busiest food leads the first page.
+    assert body["data"][0]["name"] == f"food 129 {t}"
+    rest = client.get(f"{API}?limit=100&skip=100", headers=headers).json()
+    assert len(rest["data"]) == 30 and rest["data"][-1]["name"] == f"food 000 {t}"
+    names = {f["name"] for f in body["data"]} | {f["name"] for f in rest["data"]}
+    assert len(names) == 130
+    # A limit past the cap is refused at the edge, never a full-table read.
+    assert client.get(f"{API}?limit=101", headers=headers).status_code == 422
+
+
+def test_search_ignores_case_and_matches_part_of_a_name(
+    client: TestClient, db: Session
+) -> None:
+    me, headers = signed_in(db)
+    t = _tag()
+    with ctx_for(me) as ctx:
+        _food(ctx, f"Chicken Adobo {t}", 1)
+        _food(ctx, f"chicken breast {t}", 5)
+        _food(ctx, f"rice {t}", 9)
+    body = client.get(f"{API}?q=CHICKEN", headers=headers).json()
+    assert [f["name"] for f in body["data"]] == [
+        f"chicken breast {t}",
+        f"Chicken Adobo {t}",
+    ]
+    assert body["count"] == 2
+    none = client.get(f"{API}?q=zzz-{t}", headers=headers).json()
+    assert none == {"data": [], "count": 0}
+
+
+def test_an_empty_library_is_an_empty_page_not_an_error(
+    client: TestClient, db: Session
+) -> None:
+    _, headers = signed_in(db)
+    r = client.get(f"{API}?limit=100", headers=headers)
+    assert r.status_code == 200, r.text
+    assert r.json() == {"data": [], "count": 0}
+
+
+def test_another_tenants_foods_never_show(client: TestClient, db: Session) -> None:
+    me, headers = signed_in(db)
+    stranger, password = create_auth_user(db, tenant_id=fresh_tenant(db))
+    t = _tag()
+    with ctx_for(me) as ctx:
+        _food(ctx, f"mine {t}", 1)
+    with ctx_for(stranger) as ctx:
+        theirs = _food(ctx, f"theirs {t}", 99)
+    mine = client.get(f"{API}?q={t}", headers=headers).json()
+    assert [f["name"] for f in mine["data"]] == [f"mine {t}"]
+    assert mine["count"] == 1
+    assert client.get(f"{API}/{theirs}", headers=headers).status_code == 404
+    other = client.get(
+        f"{API}?q={t}", headers=auth_headers(stranger.email, password)
+    ).json()
+    assert [f["name"] for f in other["data"]] == [f"theirs {t}"]

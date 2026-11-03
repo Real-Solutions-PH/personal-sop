@@ -1,7 +1,7 @@
-// "Pick from library" while logging a meal by hand: search the shared food
-// library, pick a food, say how much, and it joins the meal as one item
-// with the food's own numbers scaled to that amount (the same sum the
-// server does). Logging it counts one use of the food.
+// A library food's amount while logging a meal by hand: Log meal's Eat
+// again card opens this on a food (or its search), say how much, and it
+// joins the meal as one item with the food's own numbers scaled to that
+// amount (the same sum the server does). Logging it counts one use.
 import type { MealItem } from "@domain/fitness/data"
 import { uid } from "@domain/lib/store"
 import { CloudOff, Plus } from "lucide-react-native"
@@ -30,6 +30,23 @@ export function unitsFor(food: LibraryFood): string[] {
   return food.basis === "100g"
     ? ["g", ...(food.unit_grams ? [own] : [])]
     : [own, ...(food.unit_grams ? ["g"] : [])]
+}
+
+/** The amount a food starts at, and the one tap on Eat again adds: 100 g
+ * of a per-100 g food, else one of its piece or serving. */
+export function defaultAmount(food: LibraryFood): {
+  qty: number
+  unit: string
+} {
+  const unit = unitsFor(food)[0]
+  return { qty: unit === "g" ? 100 : 1, unit }
+}
+
+/** "100 g", "1 piece", "2 servings": an amount as people say it. */
+export function amountLabel(qty: number, unit: string): string {
+  return unit === "g"
+    ? `${fmt(qty)} g`
+    : `${fmt(qty)} ${unit}${qty === 1 ? "" : "s"}`
 }
 
 /** The meal item for ``qty`` ``unit`` of ``food``; null when it cannot be
@@ -61,13 +78,16 @@ export function libraryItem(
 }
 
 export function LibraryPickSheet({
+  initial = null,
   onAdd,
   onClose,
 }: {
+  /** Opens straight on this food's amount. */
+  initial?: LibraryFood | null
   onAdd: (item: MealItem, food: LibraryFood) => void
   onClose: () => void
 }) {
-  const [food, setFood] = useState<LibraryFood | null>(null)
+  const [food, setFood] = useState<LibraryFood | null>(initial)
   return (
     <Sheet
       title={food ? food.name : "Pick from library"}
@@ -210,8 +230,9 @@ function Amount({
 }) {
   const t = useTheme(),
     units = unitsFor(food),
-    [unit, setUnit] = useState(units[0]),
-    [qty, setQty] = useState(unit === "g" ? "100" : "1")
+    start = defaultAmount(food),
+    [unit, setUnit] = useState(start.unit),
+    [qty, setQty] = useState(String(start.qty))
   const amount = Number(qty.replace(/,/g, "")),
     item = libraryItem(food, amount, unit)
   return (

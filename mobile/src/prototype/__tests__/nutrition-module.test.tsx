@@ -59,8 +59,13 @@ const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 }
+// The app's providers hold a QueryClient: Log meal's Eat again card reads
+// the food library through it (off outside live mode, so never fetched).
+const queries = new QueryClient()
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <SafeAreaProvider initialMetrics={metrics}>{children}</SafeAreaProvider>
+  <SafeAreaProvider initialMetrics={metrics}>
+    <QueryClientProvider client={queries}>{children}</QueryClientProvider>
+  </SafeAreaProvider>
 )
 
 const target = {
