@@ -31,12 +31,7 @@ import {
 } from "lucide-react-native"
 import { type ReactNode, useRef, useState } from "react"
 import { Image, View } from "react-native"
-import Svg, {
-  Polygon,
-  Line as SvgLine,
-  Text as SvgText,
-  TSpan,
-} from "react-native-svg"
+import { petalsOf, Rosette } from "../brand/rosette"
 import { useShown } from "../extras"
 import {
   border,
@@ -49,7 +44,6 @@ import {
 } from "../native-kit"
 import { fmt, pct } from "../share-format"
 import {
-  alpha,
   CardFrame,
   type CardLook,
   CardRing,
@@ -66,7 +60,7 @@ import {
   useCard,
   Words,
 } from "../share-kit"
-import { fonts, useTheme } from "../theme"
+import { useTheme } from "../theme"
 import { Button, Screen, Sheet, shareText, Toggle } from "../ui"
 
 const areaColors = {
@@ -131,117 +125,25 @@ const dayDots = (range: CardData["w30"]["range"]): Dot[] =>
   range.map((x) =>
     x.onTarget === true ? "on" : x.onTarget === false ? "off" : "none",
   )
-/** The six area facets as a hexagon: this period solid, the last dashed. */
-function Hexagon({
-  facets,
-  size,
-  days,
-  legend = true,
-}: {
-  facets: Facet[]
-  size: number
-  days: number
-  /** Off where the card is too narrow for the two legend entries. */
-  legend?: boolean
-}) {
-  const { q, c } = useCard(),
-    life = c.area("life"),
-    point = (i: number, r: number) => [
-      160 + r * Math.cos(((-90 + i * 60) * Math.PI) / 180),
-      160 + r * Math.sin(((-90 + i * 60) * Math.PI) / 180),
-    ],
-    poly = (v: number[]) =>
-      v
-        .map((v, i) => point(i, 100 * Math.max(0.04, Math.min(1, v))).join(","))
-        .join(" ")
+/** The area facets as the leaf flower: a petal per area, its tip carrying
+ * the value and the change against the period before. */
+function Flower({ facets, size }: { facets: Facet[]; size: number }) {
+  const { q, c } = useCard()
   return (
-    <View style={{ alignItems: "center", gap: q }}>
-      <Svg width={size * q * 1.04} height={size * q} viewBox="-12 -6 344 332">
-        {[0.25, 0.5, 0.75, 1].map((v) => (
-          <Polygon
-            key={v}
-            points={poly(Array(6).fill(v))}
-            fill="none"
-            stroke={c.track}
-            strokeWidth={1.5}
-          />
-        ))}
-        {facets.map((f, i) => {
-          const [x, y] = point(i, 100)
-          return (
-            <SvgLine
-              key={f.key}
-              x1={160}
-              y1={160}
-              x2={x}
-              y2={y}
-              stroke={c.track}
-              strokeWidth={1.5}
-            />
-          )
-        })}
-        <Polygon
-          points={poly(facets.map((f) => (f.off ? 0 : f.prev)))}
-          fill="none"
-          stroke={c.muted}
-          strokeDasharray="6 5"
-          strokeWidth={2}
-        />
-        <Polygon
-          points={poly(facets.map((f) => (f.off ? 0 : f.value)))}
-          fill={alpha(life, 0.28)}
-          stroke={life}
-          strokeWidth={3.5}
-          strokeLinejoin="round"
-        />
-        {facets.map((f, i) => {
-          const [x, y] = point(i, 136)
-          return (
-            <SvgText key={f.key} x={x} y={y} textAnchor="middle">
-              <TSpan
-                x={x}
-                dy="-.1em"
-                fontFamily={fonts.mono}
-                fontSize={28}
-                fill={c.ink}
-              >
-                {f.off ? "—" : Math.round(f.value * 100)}
-              </TSpan>
-              <TSpan
-                x={x}
-                dy="1.1em"
-                fontFamily={fonts.medium}
-                fontSize={18}
-                fill={c.muted}
-              >
-                {f.label}
-              </TSpan>
-            </SvgText>
-          )
-        })}
-      </Svg>
-      {legend && (
-        <Line style={{ gap: 3 * q }}>
-          <Line style={{ gap: q }}>
-            <View
-              style={{ width: 4 * q, height: 0.6 * q, backgroundColor: life }}
-            />
-            <Label>{`Last ${days} days`}</Label>
-          </Line>
-          <Line style={{ gap: q }}>
-            <View
-              style={{
-                width: 4 * q,
-                height: 0,
-                borderTopWidth: 0.6 * q,
-                borderStyle: "dashed",
-                borderColor: c.muted,
-              }}
-            />
-            <Label>{`Prior ${days} days`}</Label>
-          </Line>
-        </Line>
-      )}
+    <View style={{ width: Math.min(88, size * 1.8) * q, alignSelf: "center" }}>
+      <Rosette
+        petals={petalsOf(facets, c.area)}
+        height={220}
+        font={(size >= 38 ? 3 : 2.4) * q}
+        ink={{
+          ink: c.ink,
+          muted: c.muted,
+          good: c.good,
+          bad: c.bad,
+          mark: c.mark,
+          hub: c.bg,
+        }}
+      />
     </View>
   )
 }
@@ -354,12 +256,7 @@ export function Artwork({
       >
         {score}
         {on.hexagon && (
-          <Hexagon
-            facets={d.facets30}
-            days={30}
-            size={sq ? 40 : tall ? 46 : 28}
-            legend={!sq}
-          />
+          <Flower facets={d.facets30} size={sq ? 24 : tall ? 46 : 28} />
         )}
         {on.areas && (tall || !on.hexagon) && !sq && (
           <View style={{ alignSelf: "stretch" }}>
@@ -430,9 +327,7 @@ export function Artwork({
           <Dots cells={dayDots(d.w7.range)} cols={7} color={life} />
           <Weekdays range={d.w7.range} />
         </View>
-        {on.hexagon && tall && (
-          <Hexagon facets={d.facets7} days={7} size={38} />
-        )}
+        {on.hexagon && tall && <Flower facets={d.facets7} size={38} />}
         <Stats items={items} cols={3} size={tall ? 8 : 7} />
         {on.trophy && d.trophy && !sq && (
           <Chip icon={Trophy} tone={life}>
@@ -480,9 +375,7 @@ export function Artwork({
           </View>
         </View>
         {!sq && <Dots cells={dayDots(d.w30.range)} cols={10} color={life} />}
-        {on.hexagon && tall && (
-          <Hexagon facets={d.facets30} days={30} size={24} />
-        )}
+        {on.hexagon && tall && <Flower facets={d.facets30} size={24} />}
         <Stats items={items} cols={tall ? 2 : 4} size={tall ? 9 : 6.5} />
         {on.highlight && tall && !on.hexagon && (
           <Words size={3.6}>
@@ -650,9 +543,7 @@ export function Artwork({
               {`“${x}”`}
             </Words>
           ))}
-        {on.hexagon && tall && (
-          <Hexagon facets={d.facets30} days={30} size={32} />
-        )}
+        {on.hexagon && tall && <Flower facets={d.facets30} size={32} />}
         <Stats
           items={[
             {

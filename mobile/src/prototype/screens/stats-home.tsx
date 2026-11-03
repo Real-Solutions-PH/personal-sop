@@ -24,8 +24,9 @@ import {
 import { useEffect, useState } from "react"
 import { Text, View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
-import Svg, { Circle, G, Polygon, Line as SvgLine } from "react-native-svg"
+import Svg, { Circle, G } from "react-native-svg"
 import { BigMoment } from "../big-moment"
+import { petalsOf, Rosette } from "../brand/rosette"
 import { Deferred, FrameSkeleton } from "../deferred"
 import { useNoteGoals } from "../goal-ledger"
 import { dismissDrop, momentsSeen, noteLevel } from "../moments-seen"
@@ -487,12 +488,12 @@ function Areas({ days }: { days: number }) {
   const t = useTheme(),
     raw = useFacets(days),
     // Screen time with nothing recorded reads like an area switched off:
-    // its corner dimmed at the centre, not a score of 0.
+    // its petal empty and dimmed, not a score of 0.
     screenRate = SCR.useAreaRate(days),
     empty = (f: { module: string; value: number }) =>
       f.module === "screen" && screenRate === null && f.value === 0,
     screenOn = useScreenTimeShown(),
-    // Screen time off or not connected has no corner at all.
+    // Screen time off or not connected has no petal at all.
     facets = raw
       .filter((f) => f.module !== "screen" || screenOn)
       .map((f) => (empty(f) ? { ...f, off: true } : f)),
@@ -500,16 +501,7 @@ function Areas({ days }: { days: number }) {
     [sel, setSel] = useState<string | null>(null),
     [all, setAll] = useState(false),
     facet = facets.find((f) => f.key === sel)
-  // One corner per facet: a hexagon for six, a heptagon with Focus.
-  const step = 360 / Math.max(3, facets.length),
-    point = (i: number, r: number) => [
-      160 + r * Math.cos(((-90 + i * step) * Math.PI) / 180),
-      160 + r * Math.sin(((-90 + i * step) * Math.PI) / 180),
-    ],
-    poly = (values: number[]) =>
-      values
-        .map((v, i) => point(i, 100 * Math.max(0.04, Math.min(1, v))).join(","))
-        .join(" ")
+  const petals = petalsOf(facets, (a) => t[a])
   return (
     <>
       <SectionHeading
@@ -527,135 +519,22 @@ function Areas({ days }: { days: number }) {
         Areas
       </SectionHeading>
       <Frame style={{ paddingHorizontal: 8, paddingTop: 8, paddingBottom: 16 }}>
-        <View
-          style={{
-            width: "100%",
-            maxWidth: 340,
-            aspectRatio: 1,
-            alignSelf: "center",
-          }}
-        >
-          <Svg
-            width="100%"
-            height="100%"
-            viewBox="0 0 320 320"
-            accessibilityLabel={`Area hexagon: ${facets.map((f) => `${f.label} ${Math.round(f.value * 100)}`).join(", ")}`}
-          >
-            {[0.25, 0.5, 0.75, 1].map((v) => (
-              <Polygon
-                key={v}
-                points={poly(Array(facets.length).fill(v))}
-                fill="none"
-                stroke={v === 1 ? `${t.muted}66` : t.line}
-                strokeWidth={1}
-              />
-            ))}
-            {facets.map((f, i) => {
-              const [x, y] = point(i, 100)
-              return (
-                <SvgLine
-                  key={f.key}
-                  x1={160}
-                  y1={160}
-                  x2={x}
-                  y2={y}
-                  stroke={t.line}
-                />
-              )
-            })}
-            <Polygon
-              points={poly(facets.map((f) => (f.off ? 0 : f.prev)))}
-              fill="none"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-              stroke={t.muted}
-            />
-            <Polygon
-              points={poly(facets.map((f) => (f.off ? 0 : f.value)))}
-              fill={`${t.life}40`}
-              stroke={t.life}
-              strokeWidth={2.5}
-              strokeLinejoin="round"
-            />
-            {facets.map((f, i) => {
-              const [x, y] = point(
-                i,
-                100 * Math.max(0.04, Math.min(1, f.off ? 0 : f.value)),
-              )
-              return (
-                <Circle
-                  key={f.key}
-                  cx={x}
-                  cy={y}
-                  r={f.key === sel ? 6 : 4}
-                  fill={t.life}
-                  stroke={t.bg}
-                  strokeWidth={2}
-                />
-              )
-            })}
-          </Svg>
-          {facets.map((f, i) => {
-            const [x, y] = point(i, 138),
-              delta = Math.round((f.value - f.prev) * 100)
-            return (
-              <Tap
-                key={f.key}
-                label={`${f.label}: ${empty(f) ? "no data yet" : f.off ? "off" : Math.round(f.value * 100)}. Show details`}
-                onPress={() => setSel(sel === f.key ? null : f.key)}
-                style={{
-                  position: "absolute",
-                  left: `${(x / 320) * 100}%`,
-                  top: `${(y / 320) * 100}%`,
-                  width: 88,
-                  minHeight: 44,
-                  transform: [{ translateX: -44 }, { translateY: -22 }],
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 12,
-                  backgroundColor: sel === f.key ? t.soft : "transparent",
-                  opacity: f.off ? 0.4 : 1,
-                }}
-              >
-                {/* Pinned 88pt-wide around a fixed-size chart, so these
-                    labels do not grow with Dynamic Type. */}
-                <Copy
-                  size={20}
-                  weight="display"
-                  maxScale={1}
-                  style={{ color: f.off ? t.muted : t[AREA[f.module].accent] }}
-                >
-                  {f.off ? "—" : Math.round(f.value * 100)}
-                </Copy>
-                <Copy size={11} muted maxScale={1}>
-                  {f.label}
-                  {!f.off && delta !== 0 && (
-                    <Text style={{ color: delta > 0 ? t.good : t.bad }}>
-                      {" "}
-                      {delta > 0 ? "▲" : "▼"}
-                      {Math.abs(delta)}
-                    </Text>
-                  )}
-                </Copy>
-              </Tap>
-            )
-          })}
+        <View style={{ width: "100%", maxWidth: 360, alignSelf: "center" }}>
+          <Rosette
+            petals={petals}
+            height={228}
+            ink={{
+              ink: t.text,
+              muted: t.muted,
+              good: t.good,
+              bad: t.bad,
+              mark: t.dark ? t.sprout : t.frond,
+              hub: t.card,
+            }}
+            selected={sel}
+            onSelect={(k) => setSel(sel === k ? null : k)}
+          />
         </View>
-        <Line
-          style={{
-            justifyContent: "center",
-            gap: 16,
-            marginTop: 4,
-            flexWrap: "wrap",
-          }}
-        >
-          <Copy size={12} muted maxScale={CELL_SCALE}>
-            <Text style={{ color: t.life }}>━</Text> This {days}d
-          </Copy>
-          <Copy size={12} muted maxScale={CELL_SCALE}>
-            ┄ Previous {days}d
-          </Copy>
-        </Line>
         {facet ? (
           <View
             style={{
