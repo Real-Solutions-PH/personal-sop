@@ -105,6 +105,7 @@ RUNNING: dict[str, str] = {
     "web_search": "Searching the web",
     "todo": "Planning the steps",
     "ask_choice": "Asking you to choose",
+    "load_tools": "Getting the right tools",
     "nutrition_status": "Checking today's macros",
     "focus_status": "Checking your focus time",
     "start_focus": "Starting the focus timer",

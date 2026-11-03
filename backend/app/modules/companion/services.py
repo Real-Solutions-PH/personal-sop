@@ -1897,6 +1897,7 @@ READ_TOOLS = frozenset(
         "find_tasks",
         "todo",
         "ask_choice",
+        "load_tools",
     }
 )
 
@@ -2471,8 +2472,9 @@ def _ask_ai(
         for t in writes
     ]
     run.judge = memory_judge(ctx, resolved)
-    # Every tool on every turn (loop.py): the model gathers what the
-    # answer depends on in one round of reads instead of a guessed subset.
+    # Every tool on every turn (loop.py): the common ones in full, so the
+    # model gathers in one round; the rarely used ones by name, loaded on
+    # demand (``loop.DEFERRED``).
     every = [
         recording(run, t)
         for t in [
@@ -2482,6 +2484,8 @@ def _ask_ai(
             loop.choice_tool(run.block),
         ]
     ]
+    core = [t for t in every if t.name not in loop.DEFERRED]
+    later = [t for t in every if t.name in loop.DEFERRED]
     saved_now = (
         _remember_first(ctx, resolved, text, run, stream)
         if _ASKS_TO_REMEMBER.search(text)
@@ -2523,7 +2527,8 @@ def _ask_ai(
                 AIMessage(strip_internal(reply_so_far)),
                 HumanMessage(nudge),
             ],
-            tools=every,
+            tools=core,
+            deferred=later,
             on_text=lambda d: stream.text(_strip_marks(d)),
             max_turns=MAX_STEPS,
             max_tool_calls=MAX_TOOL_CALLS,
@@ -2536,7 +2541,8 @@ def _ask_ai(
         resolved,
         system=system,
         messages=turn,
-        tools=every,
+        tools=core,
+        deferred=later,
         on_text=lambda d: stream.text(_strip_marks(d)),
         max_turns=MAX_STEPS,
         max_tool_calls=MAX_TOOL_CALLS,
