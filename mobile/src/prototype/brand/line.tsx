@@ -14,10 +14,14 @@ export function LineTrack({
   value,
   color,
   height,
+  track,
 }: {
   value: number
   color: string
   height: number
+  /** The dotted track's colour; the theme's muted ink when not given. A
+   * share card passes its own ink, which follows the card's ground. */
+  track?: string
 }) {
   const t = useTheme()
   const v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
@@ -40,7 +44,7 @@ export function LineTrack({
     >
       <Path
         d={`M3 ${y} H${W - 3}`}
-        stroke={t.muted}
+        stroke={track ?? t.muted}
         strokeWidth={1.4}
         strokeDasharray="1 4"
         strokeLinecap="round"

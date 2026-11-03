@@ -2,32 +2,28 @@ import * as C from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import { Trophy, X } from "lucide-react-native"
+import { X } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
 import { View } from "react-native"
-import {
-  border,
-  Copy,
-  Frame,
-  Line,
-  SectionHeading,
-  ToolButton,
-} from "../native-kit"
+import { border, Copy, Frame, SectionHeading, ToolButton } from "../native-kit"
 import { replace } from "../navigation"
 import { fmt, group } from "../share-format"
 import {
+  Body,
   CardFrame,
   type CardLook,
-  Chip,
+  ChartNote,
   cardInk,
   Delta,
-  Label,
-  Num,
+  Figures,
+  Hero,
   ShareComposer,
   Spark,
-  Stats,
-  useCard,
+  Sub,
+  Title,
+  Win,
   Words,
+  XBars,
 } from "../share-kit"
 import { useTheme } from "../theme"
 import { Empty, Screen, Toggle } from "../ui"
@@ -46,14 +42,25 @@ export type WorkoutCardData = {
   date: string
   durationSec: number
   volume: number
+  /** The last time this workout was done: its volume, for the change. */
+  prevVolume: number | null
   sets: number
   prs: { exercise: string; label: string; value: number; volume: boolean }[]
-  lines: { id: string; name: string; weight: number | null; reps: number }[]
+  /** Each exercise: its volume, the sets done, and whether it set a record. */
+  lines: {
+    id: string
+    name: string
+    volume: number
+    sets: number
+    pr: boolean
+  }[]
   focus: {
     name: string
     pr: string | null
     e1rm: number
     gain: number
+    /** The best before this session, for a lift that set no record. */
+    best: number
     series: number[]
   }
   week: number
@@ -62,50 +69,16 @@ export type WorkoutCardData = {
   bodyweight: number
   macros: { kcal: number; protein: number }
 }
-/** "1:05 h" past an hour, "45 min" under it. */
+/** "1 h 12 m" past an hour, "45 min" under it. */
 const duration = (sec: number) => {
   const mins = Math.round(sec / 60)
   return mins >= 60
-    ? {
-        value: `${group(Math.floor(mins / 60))}:${String(mins % 60).padStart(2, "0")}`,
-        unit: "h",
-      }
-    : { value: String(mins), unit: "min" }
+    ? `${group(Math.floor(mins / 60))} h${mins % 60 ? ` ${mins % 60} m` : ""}`
+    : `${mins} min`
 }
-/** Volume in kg, or tonnes from 10 t: "8,450 kg", "12.3 t", "1.2k t". */
-const volume = (kg: number) =>
-  kg >= 10000
-    ? { value: fmt(Math.round(kg / 100) / 10, 5, 1), unit: "t" }
-    : { value: fmt(Math.round(kg)), unit: "kg" }
 const weight = (kg: number) => fmt(Math.round(kg * 10) / 10, 6, 1)
+const kg = (n: number) => `${fmt(Math.round(n))} kg`
 
-function WeekTally({ d }: { d: WorkoutCardData }) {
-  const { q, c } = useCard(),
-    slots = Math.min(14, Math.max(d.week, d.weeklyTarget))
-  return (
-    <View style={{ gap: 1.2 * q }}>
-      <Line style={{ justifyContent: "space-between" }}>
-        <Label>This week</Label>
-        <Num size={4.4}>{`${fmt(d.week)}/${fmt(d.weeklyTarget)}`}</Num>
-      </Line>
-      {slots > 0 && (
-        <Line style={{ gap: 1.2 * q }}>
-          {Array.from({ length: slots }, (_, i) => (
-            <View
-              key={i}
-              style={{
-                flex: 1,
-                height: 1.8 * q,
-                borderRadius: q,
-                backgroundColor: i < d.week ? c.area("fit") : c.track,
-              }}
-            />
-          ))}
-        </Line>
-      )}
-    </View>
-  )
-}
 export function WorkoutCard({
   kind,
   width,
@@ -120,138 +93,131 @@ export function WorkoutCard({
   flags: WorkoutFlags
 }) {
   const c = cardInk(look),
-    q = width / 100,
     tall = look.format === "9:16",
     sq = look.format === "1:1",
     fitC = c.area("fit"),
-    time = duration(d.durationSec),
-    vol = volume(d.volume),
-    stats = (size: number) => (
-      <Stats
+    change =
+      d.prevVolume && d.prevVolume > 0
+        ? Math.round(((d.volume - d.prevVolume) / d.prevVolume) * 100)
+        : 0,
+    delta = <Delta n={change} unit="%" suffix="vs last time" />,
+    figures = (
+      <Figures
         items={[
-          { label: "Time", ...time },
-          { label: "Volume", ...vol },
+          { label: "Time", value: duration(d.durationSec) },
           { label: "Sets", value: fmt(d.sets) },
+          ...(flags.prs
+            ? [
+                {
+                  label: d.prs.length === 1 ? "Record" : "Records",
+                  value: fmt(d.prs.length),
+                },
+              ]
+            : []),
         ]}
-        size={size}
       />
-    ),
-    medals =
-      flags.prs && d.prs.length > 0 ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}>
-          {d.prs.slice(0, 3).map((p) => (
-            <Chip key={`${p.exercise}-${p.label}`} icon={Trophy} tone={fitC}>
-              {`${p.exercise} ${p.volume ? "volume" : `${weight(p.value)} kg`}`}
-            </Chip>
-          ))}
-        </View>
-      ) : null,
-    shown = tall ? 5 : sq ? 2 : 3
+    )
   let body: ReactNode
-  if (kind === "pr")
+  if (kind === "pr") {
+    const record = !!d.focus.pr,
+      below = Math.round((d.focus.best - d.focus.e1rm) * 10) / 10
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 3.5 * q }}>
-        <View style={{ gap: 2 * q }}>
-          <Chip icon={Trophy} tone={fitC}>
-            {d.focus.pr ? `${d.focus.pr} PR` : "Top lift"}
-          </Chip>
-          <Words size={9} weight="semibold">
-            {d.focus.name}
-          </Words>
-        </View>
-        <View>
-          <Label>Est. 1-rep max</Label>
-          <Num size={tall ? 26 : 20} unit="kg">
-            {weight(d.focus.e1rm)}
-          </Num>
-          {d.focus.gain > 0 && (
-            <Delta
-              n={Math.round(d.focus.gain * 10) / 10}
-              unit=" kg"
-              suffix="vs previous best"
-            />
-          )}
-        </View>
-        {d.focus.series.length > 1 && !sq && (
-          <View style={{ gap: q }}>
+      <>
+        <Title>{d.focus.name}</Title>
+        <Hero
+          value={weight(d.focus.e1rm)}
+          unit="kg"
+          delta={
+            record ? (
+              <Delta
+                n={Math.round(d.focus.gain * 10) / 10}
+                unit=" kg"
+                suffix="vs best"
+              />
+            ) : below > 0 ? (
+              <Delta n={-below} unit=" kg" suffix="vs best" />
+            ) : undefined
+          }
+        />
+        {record ? (
+          <Win>{`${d.focus.pr} record`}</Win>
+        ) : (
+          <Sub bad={below > 0}>
+            {below > 0
+              ? "Top lift, estimated 1-rep max. No record today."
+              : "Top lift, estimated 1-rep max"}
+          </Sub>
+        )}
+        <Body end>
+          {d.focus.series.length > 1 && (
             <Spark
               values={d.focus.series}
               color={fitC}
-              height={tall ? 24 : 14}
+              height={tall ? 120 : sq ? 64 : 92}
+              best={d.focus.best > 0 ? d.focus.best : undefined}
+              bestLabel={
+                d.focus.best > 0
+                  ? `${record ? "Best before" : "Best"}, ${weight(d.focus.best)} kg`
+                  : undefined
+              }
+              label="Best estimated 1-rep max by session"
             />
-            <Label>{`Last ${fmt(d.focus.series.length)} sessions`}</Label>
-          </View>
-        )}
-        {tall && stats(8)}
-      </View>
+          )}
+          <ChartNote
+            left={`Last ${fmt(d.focus.series.length)} sessions`}
+            right={d.date}
+          />
+        </Body>
+      </>
     )
-  else if (kind === "photo")
+  } else if (kind === "photo")
     body = (
-      <View style={{ flex: 1, justifyContent: "flex-end", gap: 3.5 * q }}>
-        {look.backdrop === "photo" && !look.photo && (
-          <View style={{ flex: 1, justifyContent: "center" }}>
+      <>
+        <View style={{ flex: 1, justifyContent: "center" }}>
+          {look.backdrop === "photo" && !look.photo && (
             <Words size={3.6} align="center" muted>
               Add your gym photo
             </Words>
-          </View>
-        )}
-        <Words size={9} weight="semibold">
-          {d.name}
-        </Words>
-        {stats(sq ? 7 : 9)}
-        {!sq && medals}
-      </View>
-    )
-  else
-    body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 3.5 * q }}>
-        <View style={{ gap: 2 * q }}>
-          <Words size={sq ? 7 : 9} weight="semibold" lines={sq ? 1 : 2}>
-            {d.name}
-          </Words>
-          {d.prs.length > 0 && !sq && (
-            <Chip icon={Trophy} tone={fitC}>
-              {`${fmt(d.prs.length)} personal ${d.prs.length === 1 ? "record" : "records"}`}
-            </Chip>
           )}
         </View>
-        {stats(sq ? 7 : 9)}
-        {flags.exercises && d.lines.length > 0 && (
-          <View
-            style={{
-              borderTopWidth: 1,
-              borderColor: c.line,
-              paddingTop: 2.5 * q,
-              gap: 1.6 * q,
-            }}
-          >
-            {d.lines.slice(0, shown).map((l) => (
-              <Line key={l.id} style={{ gap: 3 * q }}>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Words size={3.8} lines={1}>
-                    {l.name}
-                  </Words>
-                </View>
-                {l.weight !== null && (
-                  <View style={{ maxWidth: "45%" }}>
-                    <Num size={4.2} align="right">
-                      {`${weight(l.weight)} × ${fmt(l.reps)}`}
-                    </Num>
-                  </View>
-                )}
-              </Line>
-            ))}
-            {d.lines.length > shown && (
-              <Label>{`+${fmt(d.lines.length - shown)} more`}</Label>
-            )}
-          </View>
-        )}
-        {tall && medals}
-        {flags.week && !sq && <WeekTally d={d} />}
-      </View>
+        <Title>{d.name}</Title>
+        <Hero
+          value={fmt(Math.round(d.volume))}
+          unit="kg"
+          delta={delta}
+          small={sq}
+        />
+        {figures}
+      </>
     )
+  else {
+    const rows = d.lines.map((l) => ({
+      key: l.id,
+      name: l.name,
+      value: l.volume,
+      label: kg(l.volume),
+      sets: l.sets,
+      pr: flags.prs && l.pr,
+    }))
+    body = (
+      <>
+        <Title>{d.name}</Title>
+        <Hero value={fmt(Math.round(d.volume))} unit="kg" delta={delta} />
+        {flags.prs && d.prs.length > 0 && (
+          <Win>{`${fmt(d.prs.length)} personal ${d.prs.length === 1 ? "record" : "records"}`}</Win>
+        )}
+        {figures}
+        {flags.exercises && rows.length > 0 && (
+          <Body>
+            <XBars rows={rows} color={fitC} />
+          </Body>
+        )}
+      </>
+    )
+  }
   const foot = [
-    d.streak > 0 ? `${fmt(d.streak)}-week streak` : "",
+    flags.week ? `${fmt(d.week)} of ${fmt(d.weeklyTarget)} this week` : "",
+    flags.week && d.streak > 0 ? `${fmt(d.streak)}-week streak` : "",
     flags.bodyweight && d.bodyweight > 0
       ? `Bodyweight ${weight(d.bodyweight)} kg`
       : "",
@@ -262,14 +228,7 @@ export function WorkoutCard({
     .filter(Boolean)
     .join(" · ")
   return (
-    <CardFrame
-      width={width}
-      look={look}
-      accent="fit"
-      kicker="Workout"
-      date={d.date}
-      foot={foot}
-    >
+    <CardFrame width={width} look={look} accent="fit" date={d.date} foot={foot}>
       {body}
     </CardFrame>
   )
@@ -313,8 +272,9 @@ export function FitnessShare({ id }: { id: string }) {
       return {
         id: we.exerciseId,
         name: ex?.name ?? "",
-        weight: stats.top ? stats.top.weight : null,
-        reps: stats.top?.reps ?? 0,
+        volume: stats.volume,
+        sets: stats.doneSets,
+        pr: prs.some((p) => p.exerciseId === we.exerciseId),
         e1rm: stats.bestE1rm,
       }
     }),
@@ -326,7 +286,21 @@ export function FitnessShare({ id }: { id: string }) {
       prs.find((p) => p.exerciseId === focusId && p.kind === "e1rm") ??
       prs.find((p) => p.exerciseId === focusId),
     focus = lines.find((l) => l.id === focusId),
-    day = dayKey(new Date(w.startedAt))
+    day = dayKey(new Date(w.startedAt)),
+    series = focusId
+      ? C.exerciseHistory(s, focusId)
+          .filter((h) => h.workout.startedAt <= w.startedAt)
+          .map((h) => h.stats.bestE1rm)
+      : [],
+    last = s.workouts
+      .filter(
+        (x) =>
+          x.id !== w.id &&
+          !!x.endedAt &&
+          x.name === w.name &&
+          x.startedAt < w.startedAt,
+      )
+      .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
   const data: WorkoutCardData = {
     name: w.name,
     date: new Date(w.startedAt).toLocaleDateString("en-GB", {
@@ -336,6 +310,7 @@ export function FitnessShare({ id }: { id: string }) {
     }),
     durationSec: totals.durationSec,
     volume: totals.volume,
+    prevVolume: last ? C.workoutTotals(s, last).volume : null,
     sets: totals.done,
     prs: prs.map((p) => ({
       exercise: exName(p.exerciseId).split(" ").slice(-1)[0] ?? "",
@@ -349,11 +324,8 @@ export function FitnessShare({ id }: { id: string }) {
       pr: focusPr ? C.prLabel[focusPr.kind] : null,
       e1rm: focusPr?.value ?? focus?.e1rm ?? 0,
       gain: focusPr ? Math.max(0, focusPr.value - focusPr.prev) : 0,
-      series: focusId
-        ? C.exerciseHistory(s, focusId)
-            .filter((h) => h.workout.startedAt <= w.startedAt)
-            .map((h) => h.stats.bestE1rm)
-        : [],
+      best: focusPr ? focusPr.prev : Math.max(0, ...series.slice(0, -1)),
+      series,
     },
     week:
       C.sessionsByWeek(s, 20).find((x) => x.start === C.weekStart(day))
@@ -379,7 +351,7 @@ export function FitnessShare({ id }: { id: string }) {
       <ShareComposer
         value={layout}
         onChange={setLayout}
-        caption={`${w.name} · ${C.fmtMin(totals.durationSec)} · ${volume(totals.volume).value} ${volume(totals.volume).unit}${prs.length ? ` · ${fmt(prs.length)} PR` : ""}`}
+        caption={`${w.name} · ${C.fmtMin(totals.durationSec)} · ${kg(totals.volume)}${prs.length ? ` · ${fmt(prs.length)} PR` : ""}`}
         items={(
           [
             { key: "summary", label: "Summary" },

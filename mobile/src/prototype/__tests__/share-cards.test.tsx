@@ -30,12 +30,22 @@ import { TaskCard } from "../screens/task-share"
 import { clock, compact, fmt, group, pct, signed } from "../share-format"
 import {
   alpha,
+  Body,
   type CardBackdrop,
   type CardFormat,
   CardFrame,
   type CardLook,
   cardInk,
+  endedRun,
+  FIT_SETTLE_MS,
+  Figures,
+  Hero,
+  nextFit,
   ShareComposer,
+  Sub,
+  Title,
+  Win,
+  XBars,
 } from "../share-kit"
 import { socialStore } from "../social/store"
 import * as F from "./share-fixtures"
@@ -376,6 +386,15 @@ describe.each(CARDS)("%s card", (_, make) => {
           expect(t.props.adjustsFontSizeToFit && t.props.numberOfLines).toBe(1)
       }
       for (const c of colours(r.toJSON())) expect(c).toMatch(valid)
+      // The approved anatomy: no accent bar, the flat lockup (never Fern)
+      // in the footer, and the motif behind every ground but the sticker
+      // and a photo.
+      expect(r.queryAllByTestId("card-accent")).toHaveLength(0)
+      expect(r.queryAllByTestId("card-watermark")).toHaveLength(0)
+      expect(r.getAllByTestId("card-lockup")).toHaveLength(1)
+      expect(r.queryAllByTestId("card-deco")).toHaveLength(
+        backdrop === "sticker" || backdrop === "photo" ? 0 : 1,
+      )
       r.unmount()
     }
   })
@@ -428,8 +447,9 @@ test("long values come out grouped or abbreviated", () => {
       flags={flags}
     />,
   )
-  expect(workout).toContain("1.2M")
-  expect(workout).toContain("12.3k × 1,234")
+  expect(workout).toContain("1.2M kg")
+  // Each exercise row counts its sets beside its volume.
+  expect(workout).toContain("1,234 sets · ")
   expect(
     words(
       <FoodCard kind="day" width={300} look={look} data={F.foodData(true)} />,
@@ -450,6 +470,44 @@ test("percent metrics are regrouped too", () => {
   )
   expect(r.getAllByText("1,234%").length).toBeGreaterThan(0)
   expect(r.queryByText("1234%")).toBeNull()
+})
+
+test.each(CARDS)("the %s card never shows a money amount", (_, make) => {
+  // The long fixtures carry "₱12,345,678.90" in the savings metric and a
+  // trophy's value; neither may reach any card, in any shape.
+  for (const format of FORMATS) {
+    const r = render(make({ format, backdrop: "fern", photo: null }, true))
+    const words = r
+      .UNSAFE_getAllByType(Text)
+      .map((t) => [t.props.children].flat(Infinity).join(""))
+      .join(" ")
+    expect(words).not.toMatch(/₱|PHP|12,345,678/)
+    r.unmount()
+  }
+})
+
+describe("endedRun", () => {
+  test("the run a miss ended, when it was longer than the run since", () => {
+    expect(endedRun(F.MISSED_DAYS)).toEqual({ lost: 19, at: 38 })
+  })
+  test("a rest day does not break a habit's run; today may still be open", () => {
+    // The run since is already longer than the one the miss ended.
+    expect(endedRun(["on", "miss", "on", "on", "off"])).toBeNull()
+    expect(endedRun(["on", "off", "on", "on", "miss", "on", "off"])).toEqual({
+      lost: 3,
+      at: 4,
+    })
+  })
+  test("for the journal a day not written is the break", () => {
+    expect(endedRun(["on", "on", "on", "off", "on", "off"], ["off"])).toEqual({
+      lost: 3,
+      at: 3,
+    })
+  })
+  test("no miss, no ended run", () => {
+    expect(endedRun(["none", "on", "on", "off"])).toBeNull()
+    expect(endedRun([])).toBeNull()
+  })
 })
 
 test("a money metric never reaches a card", () => {
@@ -555,24 +613,201 @@ test("the composer can centre its last card", () => {
   expect(2 * pad + card).toBeCloseTo(Dimensions.get("window").width, 5)
 })
 
-test("a body taller than its card is scaled down to fit, a short one is not", () => {
+describe("the fit rule", () => {
   const look: CardLook = { format: "1:1", backdrop: "dark", photo: null }
-  const r = render(
-    <CardFrame width={300} look={look} kicker="Test">
-      <Text>body</Text>
-    </CardFrame>,
-  )
-  const layout = (id: string, height: number) =>
-    fireEvent(r.getByTestId(id), "layout", {
-      nativeEvent: { layout: { height } },
+  const rows = Array.from({ length: 5 }, (_, i) => ({
+    key: `r${i}`,
+    name: `Row ${i + 1}`,
+    value: 10 - i,
+    label: `${10 - i} days`,
+  }))
+  const tall = () =>
+    render(
+      <CardFrame width={300} look={look}>
+        <Title>Title</Title>
+        <Hero value="12" unit="days" />
+        <Win>The win line</Win>
+        <Sub>The sub line</Sub>
+        <Figures items={[{ label: "Figure", value: "3" }]} />
+        <Body>
+          <XBars rows={rows} color="#3e63dd" />
+        </Body>
+      </CardFrame>,
+    )
+  const layout = (r: ReturnType<typeof tall>, id: string, height: number) => {
+    act(() => {
+      fireEvent(r.getByTestId(id), "layout", {
+        nativeEvent: { layout: { height } },
+      })
     })
-  const scale = () =>
-    r.getByTestId("card-body-fit").props.style.transform[1].scale
-  layout("card-body", 200)
-  layout("card-body-fit", 150)
-  expect(scale()).toBe(1)
-  layout("card-body-fit", 400)
-  expect(scale()).toBe(0.5)
+    // The rule reads a layout once it has held still.
+    act(() => {
+      jest.advanceTimersByTime(FIT_SETTLE_MS + 1)
+    })
+  }
+  beforeEach(() => jest.useFakeTimers())
+  afterEach(() => jest.useRealTimers())
+  test("a card with room keeps everything", () => {
+    const r = tall()
+    layout(r, "card-body", 200)
+    layout(r, "card-body-fit", 150)
+    expect(r.getAllByTestId("card-row")).toHaveLength(5)
+    expect(r.getByText("The sub line")).toBeTruthy()
+  })
+  test("drops list rows into +N more, then the sub line, the figures and the win line, never the title or hero", () => {
+    const r = tall()
+    const overflow = () => {
+      layout(r, "card-body", 100)
+      layout(r, "card-body-fit", 400 + Math.random())
+    }
+    overflow()
+    expect(r.getAllByTestId("card-row")).toHaveLength(4)
+    expect(r.getByText("+1 more")).toBeTruthy()
+    overflow()
+    overflow()
+    // Down to two rows before anything else goes.
+    expect(r.getAllByTestId("card-row")).toHaveLength(2)
+    expect(r.getByText("+3 more")).toBeTruthy()
+    expect(r.getByText("The sub line")).toBeTruthy()
+    overflow()
+    expect(r.queryByText("The sub line")).toBeNull()
+    expect(r.getByText("Figure")).toBeTruthy()
+    overflow()
+    expect(r.queryByText("Figure")).toBeNull()
+    expect(r.getByText("The win line")).toBeTruthy()
+    overflow()
+    expect(r.queryByText("The win line")).toBeNull()
+    overflow()
+    expect(r.getAllByTestId("card-row")).toHaveLength(1)
+    overflow()
+    expect(r.queryByTestId("card-body")).toBeNull()
+    expect(r.getByText("Title")).toBeTruthy()
+    expect(r.getByTestId("card-hero")).toBeTruthy()
+  })
+  test("skips a kind the card does not have", () => {
+    const parts = new Map([
+      ["figures", 1],
+      ["chart", 1],
+    ] as const)
+    expect(nextFit({ stage: 0, rows: 0 }, parts)).toEqual({ stage: 2, rows: 0 })
+    expect(nextFit({ stage: 2, rows: 0 }, parts)).toEqual({ stage: 6, rows: 0 })
+    expect(nextFit({ stage: 6, rows: 0 }, parts)).toEqual({ stage: 6, rows: 0 })
+  })
+})
+
+describe("win and miss", () => {
+  const look: CardLook = { format: "4:5", backdrop: "fern", photo: null }
+  const text = (r: ReturnType<typeof render>) =>
+    r
+      .UNSAFE_getAllByType(Text)
+      .map((t) => [t.props.children].flat(Infinity).join(""))
+      .join(" | ")
+  test("a missed day is drawn as a miss, and the streak it ended says its cost", () => {
+    const data = F.habitData()
+    const habit = data.habit!
+    const r = render(
+      <HabitCard
+        kind="streak"
+        width={300}
+        look={look}
+        data={{
+          ...data,
+          habit: { ...habit, current: 3, best: 31, days: F.MISSED_DAYS },
+        }}
+      />,
+    )
+    expect(r.getAllByTestId("leaf-missed").length).toBeGreaterThan(0)
+    expect(r.getByTestId("card-cost")).toBeTruthy()
+    expect(r.getByTestId("card-miss")).toBeTruthy()
+    const words = text(r)
+    expect(words).toContain("19 days lost")
+    expect(words).toContain("The 19-day streak ended there.")
+    expect(words).toContain("Best 31 days")
+    expect(r.queryByTestId("card-win")).toBeNull()
+  })
+  test("an unbroken streak is a win, with no miss on it", () => {
+    const r = render(
+      <HabitCard kind="streak" width={300} look={look} data={F.habitData()} />,
+    )
+    expect(r.queryByTestId("card-cost")).toBeNull()
+    expect(r.queryByTestId("card-miss")).toBeNull()
+  })
+  test("a week down shows a red change and the days off target", () => {
+    const d = F.dashData()
+    const r = render(
+      <Artwork
+        kind="weekly"
+        width={300}
+        look={look}
+        on={on}
+        d={{
+          ...d,
+          w7: {
+            ...d.w7,
+            prevRate: 1,
+            range: d.w7.range.map((x, i) => ({ ...x, onTarget: i > 4 })),
+          },
+        }}
+      />,
+    )
+    expect(r.getByTestId("card-cost")).toBeTruthy()
+    expect(text(r)).toMatch(/fewer than last week/)
+    expect(text(r)).toMatch(/Off target /)
+  })
+  test("food short of protein and over on calories", () => {
+    const d = F.foodData()
+    const r = render(
+      <FoodCard
+        kind="day"
+        width={300}
+        look={look}
+        data={{
+          ...d,
+          totals: { kcal: 2600, protein: 70, carbs: 300, fat: 60 },
+        }}
+      />,
+    )
+    expect(text(r)).toContain("50% short")
+    expect(text(r)).toContain("Calories 24% over goal")
+  })
+  test("a lift below its best is a top lift, with how far below", () => {
+    const d = F.workoutData()
+    const r = render(
+      <WorkoutCard
+        kind="pr"
+        width={300}
+        look={look}
+        flags={flags}
+        data={{
+          ...d,
+          focus: { ...d.focus, pr: null, e1rm: 105, best: 112.5, gain: 0 },
+        }}
+      />,
+    )
+    expect(text(r)).toContain("7.5 kg vs best")
+    expect(text(r)).toContain("No record today.")
+    expect(r.getByTestId("card-cost")).toBeTruthy()
+  })
+  test("budgets over: Rebuilding, in percent only", () => {
+    const d = F.dashData()
+    const r = render(
+      <Artwork
+        kind="finance"
+        width={300}
+        look={look}
+        on={on}
+        d={{
+          ...d,
+          savings30: { ...d.savings30!, value: "-6%", delta: -10 },
+          budgetsPct: 67,
+        }}
+      />,
+    )
+    expect(text(r)).toContain("Rebuilding. 33% of budgets went over.")
+    expect(text(r)).toContain("Spent 6% more than came in")
+    expect(text(r)).toContain("10 pts vs last month")
+    expect(r.getByTestId("card-cost")).toBeTruthy()
+  })
 })
 
 test.each([
@@ -595,7 +830,7 @@ test.each([
           key: "card",
           label: "Card",
           render: (width: number, look: CardLook) => (
-            <CardFrame width={width} look={look} kicker="Test">
+            <CardFrame width={width} look={look}>
               <Text>body</Text>
             </CardFrame>
           ),
@@ -620,7 +855,7 @@ test.each([
 })
 
 const card = (width: number, look: CardLook) => (
-  <CardFrame width={width} look={look} kicker="Test">
+  <CardFrame width={width} look={look}>
     <Text>body</Text>
   </CardFrame>
 )
@@ -633,12 +868,13 @@ test.each<CardBackdrop>([
   "custom",
   "photo",
   "sticker",
-])("the watermark on %s", (backdrop) => {
+])("the nature motif on %s", (backdrop) => {
   const r = render(
     card(300, { format: "9:16", backdrop, photo: "file:///p.jpg" }),
   )
-  expect(r.queryAllByTestId("card-watermark")).toHaveLength(
-    backdrop === "sticker" ? 0 : 1,
+  // Behind every ground but the see-through sticker and a person's photo.
+  expect(r.queryAllByTestId("card-deco")).toHaveLength(
+    backdrop === "sticker" || backdrop === "photo" ? 0 : 1,
   )
   expect(r.queryAllByTestId("card-ground")).toHaveLength(
     backdrop === "fern" || backdrop === "dusk" ? 1 : 0,

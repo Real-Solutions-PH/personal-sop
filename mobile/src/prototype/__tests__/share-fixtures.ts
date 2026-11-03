@@ -17,6 +17,27 @@ const days = (n: number, end = "2026-10-24") =>
   })
 const dots = (n: number, every = 3): Dot[] =>
   Array.from({ length: n }, (_, i) => (i % every === 0 ? "off" : "on"))
+/** 42 habit days ending today: a few before the start, a missed day early
+ * on, then a long run with rest days in it (today still open). */
+const habitDays = (): Dot[] => [
+  ...Array<Dot>(4).fill("none"),
+  ...Array.from(
+    { length: 25 },
+    (_, i): Dot => (i === 6 ? "miss" : i % 5 === 4 ? "off" : "on"),
+  ),
+  "off",
+  ...Array<Dot>(11).fill("on"),
+  "off",
+]
+/** A streak that ended: 19 days done, missed four days ago, three since. */
+export const MISSED_DAYS: Dot[] = [
+  ...Array<Dot>(19).fill("off"),
+  ...Array<Dot>(19).fill("on"),
+  "miss",
+  "on",
+  "on",
+  "on",
+]
 
 export const LONG_NAME = "Maximiliana Concepcion Dela Cruz-Villanueva Santiago"
 export const LONG_TITLE =
@@ -151,8 +172,8 @@ export function habitData(long = false): HabitCardData {
       current: long ? 1234 : 12,
       best: long ? 4321 : 30,
       rate30: long ? 1 : 0.83,
-      last14: dots(14),
-      last35: dots(35),
+      days: habitDays(),
+      start: "2026-09-13",
     },
     routine: {
       name: long ? LONG_TITLE : "Morning routine",
@@ -160,6 +181,11 @@ export function habitData(long = false): HabitCardData {
       durationSec: long ? 1234567 : 1520,
       done: long ? 1234 : 6,
       total: long ? 1234 : 7,
+      steps: [1, 2, 3, 4, 5, 6, 7].map((i) => ({
+        name: long ? `${LONG_TITLE} ${i}` : `Step ${i}`,
+        sec: long ? 1234567 - i : 60 * i,
+        done: i !== 7,
+      })),
     },
     board: {
       rate: 0.81,
@@ -196,6 +222,7 @@ export function workoutData(long = false): WorkoutCardData {
     date: "Fri 24 Oct",
     durationSec: long ? 1234567 : 3900,
     volume: long ? 1234567890 : 8450,
+    prevVolume: long ? 1 : 7800,
     sets: long ? 1234 : 18,
     prs: [1, 2, 3].map((i) => ({
       exercise: long ? "Supercalifragilisticexpialidocious" : `Lift${i}`,
@@ -206,14 +233,16 @@ export function workoutData(long = false): WorkoutCardData {
     lines: [1, 2, 3, 4, 5, 6].map((i) => ({
       id: `e${i}`,
       name: long ? `${LONG_TITLE} ${i}` : `Exercise ${i}`,
-      weight: long ? 12345.5 : 60 + i * 5,
-      reps: long ? 1234 : 8,
+      volume: long ? 1234567 : 1800 - i * 200,
+      sets: long ? 1234 : 3 + (i % 2),
+      pr: i === 1,
     })),
     focus: {
       name: long ? LONG_TITLE : "Bench press",
       pr: "Est. 1-rep max",
       e1rm: long ? 1234567.8 : 112.5,
       gain: long ? 12345 : 2.5,
+      best: long ? 1234567 : 110,
       series: [90, 95, 100, 104, 108, 112.5],
     },
     week: long ? 1234 : 3,
@@ -231,7 +260,13 @@ export function foodData(long = false): FoodCardData {
       ? { kcal: 1234567, protein: 12345, carbs: 123456, fat: 9999 }
       : { kcal: 1980, protein: 138, carbs: 210, fat: 64 },
     target: { kcal: 2100, protein: 140, carbs: 230, fat: 70 },
-    week: ["on", "off", "on", "on", "none", "on", "on"],
+    week: (["hit", "over", "hit", "hit", "none", "hit", "under"] as const).map(
+      (verdict, i) => ({
+        day: days(7)[i],
+        verdict,
+        kcal: verdict === "none" ? null : verdict === "over" ? 1.24 : 0.97,
+      }),
+    ),
     calorieDays: 5,
     proteinDays: 6,
     logged: 6,
@@ -245,6 +280,7 @@ export function journalData(long = false): JournalCardData {
     best: long ? 1234 : 21,
     entries30: long ? 1234567 : 26,
     days30: long ? 30 : 22,
-    grid: dots(35, 4),
+    grid: dots(42, 4),
+    start: "2026-09-13",
   }
 }

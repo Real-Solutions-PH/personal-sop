@@ -18,15 +18,10 @@ import { useLocalSearchParams } from "expo-router"
 import {
   BookOpen,
   Check,
-  Crown,
   Dumbbell,
-  Flame,
   ListChecks,
   Repeat,
   ShieldCheck,
-  Target,
-  TrendingUp,
-  Trophy,
   Utensils,
 } from "lucide-react-native"
 import { type ReactNode, useRef, useState } from "react"
@@ -44,20 +39,29 @@ import {
 } from "../native-kit"
 import { fmt, pct } from "../share-format"
 import {
+  Body,
   CardFrame,
   type CardLook,
-  CardRing,
-  Chip,
+  Change,
+  ChartNote,
   cardInk,
   Delta,
   type Dot,
-  Dots,
-  Label,
-  Meter,
-  Num,
+  dayName,
+  dayRange,
+  endedRun,
+  Figures,
+  Hero,
+  LeafCal,
+  Meters,
+  Optional,
+  P,
   ShareComposer,
-  Stats,
+  Stems,
+  Sub,
+  Title,
   useCard,
+  Win,
   Words,
 } from "../share-kit"
 import { useTheme } from "../theme"
@@ -83,25 +87,13 @@ const metric = (s: string | undefined) => {
   const m = s.trim().match(/^([+−-]?)([\d,]+(?:\.\d+)?)(%?)$/)
   if (!m) return s
   const n = Number(m[2].replace(/,/g, ""))
-  return `${m[1]}${fmt(n, m[3] ? 5 : 6)}${m[3]}`
+  return `${m[1] === "-" ? "−" : m[1]}${fmt(n, m[3] ? 5 : 6)}${m[3]}`
 }
 /** "≥ 1.2M kg / week": the goal's target, grouped like every card number. */
 const goalTarget = (g: Goal) =>
   safe(
     `${g.comparator === "gte" ? "≥" : "≤"} ${fmt(g.target, 6, 1)}${g.unit === "%" ? "%" : g.unit ? ` ${g.unit}` : ""} / ${g.period}`,
   )
-const verdict = (n: number | null) =>
-  n === null
-    ? "Getting started"
-    : n >= 0.9
-      ? "Elite form"
-      : n >= 0.75
-        ? "On fire"
-        : n >= 0.6
-          ? "Locked in"
-          : n >= 0.4
-            ? "Building"
-            : "Showing up"
 const defaults = (
   key: ShareTemplate,
   saved: ReturnType<typeof dashStore.get>["share"],
@@ -114,17 +106,17 @@ const defaults = (
   ),
   ...saved[key],
 })
-const short = (day: string | undefined) =>
-  day
-    ? new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "short",
-      })
-    : ""
+/** A scored day as a calendar leaf: on target, off target (a miss), or a
+ * day with nothing scored. */
 const dayDots = (range: CardData["w30"]["range"]): Dot[] =>
   range.map((x) =>
-    x.onTarget === true ? "on" : x.onTarget === false ? "off" : "none",
+    x.onTarget === true ? "on" : x.onTarget === false ? "miss" : "off",
   )
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${fmt(n)} ${n === 1 ? one : many}`
+/** A day's score: what was due that got done, as a percent. */
+const score = (x: CardData["w7"]["range"][number]) =>
+  x.due > 0 ? Math.round((x.done / x.due) * 100) : undefined
 /** The area facets as the leaf flower: a petal per area, its tip carrying
  * the value and the change against the period before. */
 function Flower({ facets, size }: { facets: Facet[]; size: number }) {
@@ -147,44 +139,18 @@ function Flower({ facets, size }: { facets: Facet[]; size: number }) {
     </View>
   )
 }
-/** Area bars: one per enabled area, its on-target rate. */
+/** Area lines: one per enabled area, its on-target rate. */
 function AreaMeters({ d }: { d: CardData }) {
-  const { q, c } = useCard()
+  const { c } = useCard()
   return (
-    <View
-      style={{
-        flexDirection: "row",
-        flexWrap: "wrap",
-        rowGap: 3 * q,
-        columnGap: 5 * q,
-      }}
-    >
-      {MODULE_KEYS.filter((k) => d.enabled[k]).map((k) => (
-        <View key={k} style={{ width: "46%", gap: q }}>
-          <Line style={{ justifyContent: "space-between", gap: q }}>
-            <View style={{ flexShrink: 1 }}>
-              <Label>{AREA[k].label}</Label>
-            </View>
-            <Num size={3.6}>{pct(d.life.rates[k])}</Num>
-          </Line>
-          <Meter value={d.life.rates[k]} color={c.area(areaColors[k])} />
-        </View>
-      ))}
-    </View>
-  )
-}
-function Weekdays({ range }: { range: CardData["w7"]["range"] }) {
-  const { q } = useCard()
-  return (
-    <Line style={{ gap: 1.4 * q, marginTop: q }}>
-      {range.map((x) => (
-        <View key={x.day} style={{ flex: 1 }}>
-          <Label align="center">
-            {"SMTWTFS"[new Date(`${x.day}T12:00:00`).getDay()]}
-          </Label>
-        </View>
-      ))}
-    </Line>
+    <Meters
+      rows={MODULE_KEYS.filter((k) => d.enabled[k]).map((k) => ({
+        name: AREA[k].label,
+        value: d.life.rates[k] ?? 0,
+        label: pct(d.life.rates[k]),
+        color: c.area(areaColors[k]),
+      }))}
+    />
   )
 }
 export function Artwork({
@@ -201,244 +167,241 @@ export function Artwork({
   d: CardData
 }) {
   const c = cardInk(look),
-    q = width / 100,
     tall = look.format === "9:16",
     sq = look.format === "1:1",
     life = c.area("life"),
+    span30 = d.w30.range.length
+      ? dayRange(d.w30.range[0].day, d.w30.range[d.w30.range.length - 1].day)
+      : "",
+    month =
+      /–/.test(span30) && !/ – /.test(span30)
+        ? new Date(`${d.w30.range[0].day}T12:00:00`).toLocaleDateString(
+            "en-GB",
+            {
+              month: "long",
+            },
+          )
+        : "",
     date =
       kind === "weekly"
-        ? `${short(d.w7.range[0]?.day)} – ${short(d.w7.range.at(-1)?.day)}`
-        : ["life", "monthly", "finance"].includes(kind)
-          ? "Last 30 days"
-          : new Date().toLocaleDateString("en-GB", {
-              month: "long",
-              year: "numeric",
-            })
-  let body: ReactNode = null,
-    kicker = "Life Score"
+        ? d.w7.range.length
+          ? dayRange(d.w7.range[0].day, d.w7.range[d.w7.range.length - 1].day)
+          : ""
+        : kind === "monthly" && span30
+          ? span30
+          : ["life", "monthly", "finance", "streak"].includes(kind)
+            ? "Last 30 days"
+            : new Date().toLocaleDateString("en-GB", {
+                month: "long",
+                year: "numeric",
+              }),
+    calH = tall ? 25 : sq ? 17 : 22,
+    pt = (P * width) / 100
+  let body: ReactNode = null
   if (kind === "life") {
-    const size = sq ? 38 : tall ? 54 : 40
-    const score = (
-      <View
-        style={{
-          alignItems: "center",
-          gap: 2.5 * q,
-          width: sq ? "46%" : undefined,
-        }}
-      >
-        <CardRing value={(d.life.score ?? 0) / 100} size={size} color={life}>
-          <Num size={size * 0.34} align="center">
-            {d.life.score === null ? "—" : fmt(d.life.score)}
-          </Num>
-          <Label align="center">of 100</Label>
-        </CardRing>
-        <View style={{ alignItems: "center", gap: 1.4 * q }}>
-          {on.level && (
-            <Chip icon={Crown} tone={life}>
-              {d.level}
-            </Chip>
-          )}
-          {on.delta && (
-            <Delta n={d.life.delta} unit=" pts" suffix="vs last month" />
-          )}
-        </View>
-      </View>
-    )
+    const facets = d.facets30.filter((f) => !f.off),
+      ranked = [...facets].sort((a, b) => b.value - a.value),
+      down = (d.life.delta ?? 0) < 0,
+      line =
+        ranked.length > 1
+          ? `${d.level}. Strongest: ${ranked[0].label.toLowerCase()}. Weakest: ${ranked[ranked.length - 1].label.toLowerCase()}.`
+          : `${d.level}.`
     body = (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: sq ? "row" : "column",
-          gap: 4 * q,
-        }}
-      >
-        {score}
-        {on.hexagon && (
-          <Flower facets={d.facets30} size={sq ? 24 : tall ? 46 : 28} />
-        )}
-        {on.areas && (tall || !on.hexagon) && !sq && (
-          <View style={{ alignSelf: "stretch" }}>
-            <AreaMeters d={d} />
-          </View>
-        )}
-      </View>
+      <>
+        <Hero
+          value={d.life.score === null ? "—" : fmt(d.life.score)}
+          unit="of 100"
+          delta={
+            on.delta ? (
+              <Delta n={d.life.delta} unit=" pts" suffix="vs last month" />
+            ) : undefined
+          }
+        />
+        {on.level && <Sub bad={down}>{line}</Sub>}
+        <Body>
+          {on.hexagon && (
+            <Flower facets={d.facets30} size={sq ? 24 : tall ? 46 : 28} />
+          )}
+          {on.areas && (tall || !on.hexagon) && (
+            <Optional>
+              <AreaMeters d={d} />
+            </Optional>
+          )}
+        </Body>
+      </>
     )
   }
   if (kind === "weekly") {
-    kicker = "Week recap"
-    const delta = (n?: number) =>
-      on.deltas && n ? <Delta n={n} suffix="vs last wk" /> : undefined
-    const items = [
-      ...(on.habits && d.habits7
-        ? [
-            {
-              label: "Habits",
-              value: metric(d.habits7.value),
-              delta: delta(d.habits7.delta),
-            },
-          ]
-        : []),
-      ...(on.training && d.training7
-        ? [
-            {
-              label: "Training",
-              value: metric(d.training7.value),
-              delta: delta(d.training7.delta),
-            },
-          ]
-        : []),
-      ...(on.savings && d.savings7
-        ? [
-            {
-              label: "Saved",
-              value: metric(d.savings7.value),
-              delta: delta(d.savings7.delta),
-            },
-          ]
-        : []),
-    ]
+    const days = d.w7.range,
+      onDays = days.filter((x) => x.onTarget === true).length,
+      prev =
+        d.w7.prevRate === null ? null : Math.round(d.w7.prevRate * d.w7.scored),
+      change = prev === null ? 0 : onDays - prev,
+      off = days.filter((x) => x.onTarget === false),
+      items = [
+        ...(on.habits && d.habits7
+          ? [{ label: "Habits", value: metric(d.habits7.value) }]
+          : []),
+        ...(on.training && d.training7
+          ? [{ label: "Workouts", value: metric(d.training7.value) }]
+          : []),
+        ...(on.savings && d.savings7
+          ? [{ label: "Saved", value: metric(d.savings7.value) }]
+          : []),
+      ]
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <Line style={{ gap: 4 * q }}>
-          {on.onTarget && (
-            <CardRing value={d.w7.rate ?? 0} size={sq ? 28 : 32} color={life}>
-              <Num size={8} align="center">
-                {pct(d.w7.rate)}
-              </Num>
-              <Label align="center">on target</Label>
-            </CardRing>
-          )}
-          <View style={{ flex: 1, gap: q }}>
-            <Words size={8} weight="semibold">
-              {verdict(d.w7.rate)}
-            </Words>
-            {on.deltas && d.w7.rate !== null && d.w7.prevRate !== null && (
+      <>
+        <Hero
+          value={fmt(onDays)}
+          unit={`of ${fmt(days.length)} days on target`}
+          small
+          delta={
+            on.deltas ? (
               <Delta
-                n={Math.round((d.w7.rate - d.w7.prevRate) * 100)}
-                unit=" pts"
-                suffix="vs last week"
+                n={change}
+                suffix={
+                  change < 0 ? "fewer than last week" : "more than last week"
+                }
               />
-            )}
-          </View>
-        </Line>
-        <View style={{ width: sq ? "72%" : "100%", alignSelf: "center" }}>
-          <Dots cells={dayDots(d.w7.range)} cols={7} color={life} />
-          <Weekdays range={d.w7.range} />
-        </View>
-        {on.hexagon && tall && <Flower facets={d.facets7} size={38} />}
-        <Stats items={items} cols={3} size={tall ? 8 : 7} />
-        {on.trophy && d.trophy && !sq && (
-          <Chip icon={Trophy} tone={life}>
-            {safe(d.trophy.title)}
-          </Chip>
-        )}
-      </View>
+            ) : undefined
+          }
+        />
+        {on.trophy && d.trophy && <Win>{safe(d.trophy.title)}</Win>}
+        <Body end>
+          {on.onTarget && (
+            <Stems
+              values={days.map(score)}
+              labels={days.map((x) => dayName(x.day).slice(0, 1))}
+              on={days.length - 1}
+              leaf={(_, i) => days[i]?.onTarget === true}
+              missed={(_, i) => days[i]?.onTarget === false}
+              format={(v) => `${fmt(v, 5)}%`}
+              height={tall ? 130 : sq ? 76 : 100}
+              color={life}
+              label="Daily score"
+            />
+          )}
+          {off.length > 0 && (
+            <Sub bad>
+              {`Off target ${off.map((x) => dayName(x.day).split(" ")[0]).join(", ")}.`}
+            </Sub>
+          )}
+        </Body>
+        <Figures items={items} />
+      </>
     )
   }
   if (kind === "monthly") {
-    kicker = "Month recap"
-    const items = on.hero
-      ? [
-          { label: "On target", value: pct(d.w30.rate) },
-          ...(d.habits30
-            ? [{ label: "Habits", value: metric(d.habits30.value) }]
-            : []),
-          ...(d.training30
-            ? [{ label: "Workouts", value: metric(d.training30.value) }]
-            : []),
-          ...(d.savings30
-            ? [{ label: "Saved", value: metric(d.savings30.value) }]
-            : []),
-        ]
-      : []
-    const prs = d.prs30 ? (parseMetric(d.prs30.value) ?? 0) : 0
+    const days = d.w30.range,
+      onDays = days.filter((x) => x.onTarget === true).length,
+      missed = days.filter((x) => x.onTarget === false).length,
+      prev =
+        d.w30.prevRate === null
+          ? null
+          : Math.round(d.w30.prevRate * d.w30.scored),
+      change = prev === null ? 0 : onDays - prev,
+      prs = d.prs30 ? (parseMetric(d.prs30.value) ?? 0) : 0,
+      items = on.hero
+        ? [
+            ...(on.prs ? [{ label: "Records", value: fmt(prs) }] : []),
+            ...(d.training30
+              ? [{ label: "Workouts", value: metric(d.training30.value) }]
+              : []),
+            ...(on.streak
+              ? [{ label: "Best streak", value: fmt(d.w30.best), unit: "days" }]
+              : []),
+            ...(d.habits30
+              ? [{ label: "Habits", value: metric(d.habits30.value) }]
+              : []),
+            ...(d.savings30
+              ? [{ label: "Saved", value: metric(d.savings30.value) }]
+              : []),
+          ]
+        : []
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <View style={{ gap: 2 * q }}>
-          <Words size={12} weight="semibold" lines={1}>
-            {new Date().toLocaleDateString("en-GB", { month: "long" })}
-          </Words>
-          <View
-            style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}
-          >
-            <Chip icon={Flame} tone={life}>
-              {verdict(d.w30.rate)}
-            </Chip>
-            {on.prs && prs > 0 && (
-              <Chip icon={Trophy} tone={life}>
-                {`${fmt(prs)} ${prs === 1 ? "PR" : "PRs"}`}
-              </Chip>
-            )}
-            {on.streak && <Chip>{`${fmt(d.w30.best)}-day best streak`}</Chip>}
-          </View>
-        </View>
-        {!sq && <Dots cells={dayDots(d.w30.range)} cols={10} color={life} />}
-        {on.hexagon && tall && <Flower facets={d.facets30} size={24} />}
-        <Stats items={items} cols={tall ? 2 : 4} size={tall ? 9 : 6.5} />
-        {on.highlight && tall && !on.hexagon && (
-          <Words size={3.6}>
-            {`${fmt(d.w30.onTarget)} on-target days out of ${fmt(d.w30.scored)}.`}
-          </Words>
+      <>
+        {/* A month's name only when the window is that month. */}
+        {month ? <Title>{month}</Title> : null}
+        <Hero
+          value={fmt(onDays)}
+          unit={`of ${fmt(days.length)} days on target`}
+          small
+          delta={
+            <Delta
+              n={change}
+              suffix={
+                change < 0 ? "fewer than last month" : "more than last month"
+              }
+            />
+          }
+        />
+        {on.highlight && missed > 0 && change < 0 && (
+          <Sub bad>{`${plural(missed, "day")} off target.`}</Sub>
         )}
-      </View>
+        <Body end>
+          <LeafCal
+            cells={dayDots(days)}
+            start={days[0]?.day}
+            weeks={5}
+            rowH={calH - 4}
+            color={life}
+          />
+        </Body>
+        <Figures items={items} />
+      </>
     )
   }
   if (kind === "streak") {
-    kicker = "On-target streak"
-    const best = d.w7.current > 0 && d.w7.current >= d.w7.best
+    const best = d.w7.current > 0 && d.w7.current >= d.w7.best,
+      all = dayDots(d.w30.series ?? d.w30.range),
+      ended = endedRun(all),
+      long = d.w30.series ?? d.w30.range,
+      cells = dayDots(d.w30.range),
+      first = d.w30.range[0]?.day
     body = (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3.5 * q,
-        }}
-      >
-        <CardRing
-          value={d.w7.best ? d.w7.current / d.w7.best : 0}
-          size={tall ? 58 : 42}
-          color={life}
-        >
-          <Flame size={7 * q} color={life} strokeWidth={2} />
-          <Num size={tall ? 18 : 13} align="center">
-            {fmt(d.w7.current)}
-          </Num>
-          <Label align="center">{d.w7.current === 1 ? "day" : "days"}</Label>
-        </CardRing>
-        <Words size={5} weight="semibold" align="center">
-          On target, day after day
-        </Words>
-        {on.best && (
-          <Chip icon={best ? Trophy : undefined} tone={life}>
-            {best ? "Personal best" : `Best ${fmt(d.w7.best)} days`}
-          </Chip>
+      <>
+        <Title>On target, day after day</Title>
+        <Hero
+          value={fmt(d.w7.current)}
+          unit={d.w7.current === 1 ? "day" : "days"}
+          delta={
+            ended ? (
+              <Change
+                good={false}
+              >{`${plural(ended.lost, "day")} lost`}</Change>
+            ) : undefined
+          }
+        />
+        {ended ? (
+          <Sub bad>
+            {`Off target ${dayName(long[ended.at].day)}. The ${fmt(ended.lost)}-day run ended there.`}
+          </Sub>
+        ) : on.best && best ? (
+          <Win>Personal best</Win>
+        ) : null}
+        {on.grid && (
+          <Body end>
+            <LeafCal
+              cells={cells}
+              start={first}
+              weeks={sq ? 3 : 4}
+              rowH={calH}
+              color={life}
+            />
+            {on.best && <ChartNote left={`Best ${plural(d.w7.best, "day")}`} />}
+          </Body>
         )}
-        {on.grid && !sq && (
-          <View style={{ alignSelf: "stretch" }}>
-            <Dots cells={dayDots(d.w30.range)} cols={10} color={life} />
-          </View>
-        )}
-      </View>
+      </>
     )
   }
   if (kind === "finance") {
-    kicker = "Money, in percent"
     const fin = c.area("fin"),
       sr = d.savings30 ? parseMetric(d.savings30.value) : null,
+      rebuilding = sr !== null && sr <= 0,
+      over = d.budgetsPct === null ? null : Math.max(0, 100 - d.budgetsPct),
       items = [
         ...(on.spend && d.spend30
           ? [{ label: "Spend vs last month", value: metric(d.spend30.value) }]
-          : []),
-        ...(on.budgets && (sq || d.budgetsPct === null)
-          ? [
-              {
-                label: "Budgets kept",
-                value: d.budgetsPct === null ? "—" : `${fmt(d.budgetsPct)}%`,
-              },
-            ]
           : []),
         ...(on.nospend && d.nospend30
           ? [
@@ -450,73 +413,100 @@ export function Artwork({
           : []),
       ]
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 5 * q }}>
-        {on.savings && d.savings30 && (
-          <Line style={{ gap: 5 * q }}>
-            <CardRing
-              value={(sr ?? 0) / 100}
-              size={sq ? 30 : tall ? 44 : 38}
-              color={fin}
-            >
-              <Num size={sq ? 8 : 10} align="center">
-                {sr === null ? "—" : `${fmt(Math.round(sr), 5)}%`}
-              </Num>
-            </CardRing>
-            <View style={{ flex: 1, gap: q }}>
-              <Label>Savings rate</Label>
-              <Words size={7} weight="semibold">
-                {sr === null
-                  ? "Tracking"
-                  : sr >= 20
-                    ? "Saving strong"
-                    : sr > 0
-                      ? "In the green"
-                      : "Rebuilding"}
-              </Words>
-            </View>
-          </Line>
+      <>
+        <Title>
+          {sr === null
+            ? "Money, in percent"
+            : rebuilding
+              ? `Spent ${fmt(Math.abs(Math.round(sr)), 5)}% more than came in`
+              : `Saved ${fmt(Math.round(sr), 5)}% of what came in`}
+        </Title>
+        {on.savings && (
+          <Hero
+            value={
+              sr === null
+                ? "—"
+                : `${sr < 0 ? "−" : ""}${fmt(Math.abs(Math.round(sr)), 5)}`
+            }
+            unit="%"
+            delta={
+              <Delta
+                n={d.savings30?.delta}
+                unit=" pts"
+                suffix="vs last month"
+              />
+            }
+          />
         )}
-        {on.budgets && d.budgetsPct !== null && !sq && (
-          <View style={{ gap: 1.6 * q }}>
-            <Line style={{ justifyContent: "space-between" }}>
-              <Label>Budgets kept</Label>
-              <Num size={4.4}>{`${fmt(d.budgetsPct)}%`}</Num>
-            </Line>
-            <Meter value={d.budgetsPct / 100} color={fin} height={2} />
-          </View>
-        )}
-        <Stats
-          items={items}
-          cols={items.length === 2 ? 2 : Math.max(1, items.length)}
-          size={tall ? 10 : 8}
-        />
-      </View>
+        {rebuilding ? (
+          <Sub bad>
+            {over
+              ? `Rebuilding. ${fmt(over, 5)}% of budgets went over.`
+              : "Rebuilding."}
+          </Sub>
+        ) : sr !== null && sr >= 20 ? (
+          <Win>Saving strong</Win>
+        ) : sr !== null && sr > 0 ? (
+          <Sub>In the green</Sub>
+        ) : null}
+        <Body end>
+          <Meters
+            rows={[
+              ...(on.savings && sr !== null
+                ? [
+                    {
+                      name: "Savings rate, goal 20%",
+                      value: Math.max(0, sr) / 100,
+                      mark: 0.2,
+                      label: `${fmt(Math.round(sr), 5)}%`,
+                      color: rebuilding ? c.bad : fin,
+                      bad: rebuilding,
+                    },
+                  ]
+                : []),
+              ...(on.budgets && d.budgetsPct !== null
+                ? [
+                    {
+                      name: "Budgets kept",
+                      value: d.budgetsPct / 100,
+                      label: `${fmt(d.budgetsPct, 5)}%`,
+                      color: (over ?? 0) > 0 ? c.bad : fin,
+                      bad: (over ?? 0) > 0,
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </Body>
+        <Figures items={items} />
+      </>
     )
   }
   if (kind === "profile") {
-    kicker = "Profile"
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <Line style={{ gap: 4 * q }}>
+      <>
+        <Line style={{ gap: 12 * pt }}>
           {on.photo && d.photo ? (
             <Image
               source={{ uri: d.photo }}
-              style={{ width: 18 * q, height: 18 * q, borderRadius: 9 * q }}
+              style={{
+                width: 48 * pt,
+                height: 48 * pt,
+                borderRadius: 24 * pt,
+              }}
             />
           ) : (
             <View
               style={{
-                width: 18 * q,
-                height: 18 * q,
-                borderRadius: 9 * q,
+                width: 48 * pt,
+                height: 48 * pt,
+                borderRadius: 24 * pt,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: c.panel,
-                borderWidth: 1,
-                borderColor: c.line,
               }}
             >
-              <Words size={6} weight="semibold" lines={1}>
+              <Words size={17 * P} weight="semibold" lines={1}>
                 {d.name
                   .split(/\s+/)
                   .filter(Boolean)
@@ -527,90 +517,91 @@ export function Artwork({
               </Words>
             </View>
           )}
-          <View style={{ flex: 1, gap: 1.5 * q }}>
-            <Words size={8} weight="semibold">
-              {d.name}
-            </Words>
-            <Chip icon={Crown} tone={life}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Title>{d.name}</Title>
+            <Words size={14 * P} lines={1} muted>
               {d.level}
-            </Chip>
+            </Words>
           </View>
         </Line>
         {on.identity &&
           !sq &&
-          d.identities.slice(0, 2).map((x) => (
-            <Words key={x} size={3.6} lines={1} muted>
-              {`“${x}”`}
-            </Words>
-          ))}
-        {on.hexagon && tall && <Flower facets={d.facets30} size={32} />}
-        <Stats
+          d.identities.slice(0, 2).map((x) => <Sub key={x}>{`“${x}”`}</Sub>)}
+        <Body>
+          {on.hexagon && <Flower facets={d.facets30} size={tall ? 32 : 28} />}
+        </Body>
+        <Figures
           items={[
             {
-              label: "Score",
+              label: "Life Score",
               value: d.life.score === null ? "—" : fmt(d.life.score),
             },
             { label: "Hit rate", value: pct(d.w30.rate) },
-            { label: "Best streak", value: fmt(d.w30.best), unit: "d" },
+            { label: "Best streak", value: fmt(d.w30.best), unit: "days" },
             ...(d.savings30
               ? [{ label: "Saved", value: metric(d.savings30.value) }]
               : []),
           ]}
-          cols={2}
-          size={7}
         />
-        {on.records && (
-          <View
-            style={{ flexDirection: "row", flexWrap: "wrap", gap: 1.6 * q }}
-          >
-            {d.trophies.slice(0, 2).map((x) => (
-              <Chip key={x.id} icon={Trophy} tone={life}>
-                {`${metric(x.value)} · ${safe(x.title)}`}
-              </Chip>
+        {on.records &&
+          d.trophies
+            .slice(0, 2)
+            .map((x) => (
+              <Win key={x.id}>{`${metric(x.value)} · ${safe(x.title)}`}</Win>
             ))}
-          </View>
-        )}
-      </View>
+      </>
     )
   }
   if (kind === "goal") {
-    kicker = "Goal"
     const g = d.goal,
       fin = g?.goal.metric.startsWith("finance:"),
-      Icon = g?.hit ? Target : TrendingUp,
-      shown = g ? `${fmt(Math.round(Math.min(g.pct, 99.99) * 100), 5)}%` : "—"
+      share = g ? Math.round(g.pct * 100) : 0,
+      gap = g?.current != null ? g.goal.target - g.current : 0,
+      unit = g?.goal.unit === "%" ? "%" : g?.goal.unit ? ` ${g.goal.unit}` : ""
     body = g ? (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3 * q,
-        }}
-      >
-        <CardRing value={g.pct} size={tall ? 52 : sq ? 36 : 40} color={life}>
-          <Icon size={7 * q} color={life} strokeWidth={2} />
-          <Num size={tall ? 11 : 9} align="center">
-            {shown}
-          </Num>
-        </CardRing>
-        <Chip icon={g.hit ? Check : undefined} tone={c.good}>
-          {g.hit ? "Goal hit" : "In progress"}
-        </Chip>
-        <Words size={7} weight="semibold" align="center">
-          {safe(g.goal.label)}
-        </Words>
-        <View style={{ alignItems: "center", alignSelf: "stretch" }}>
-          <Num size={tall ? 14 : 11} align="center">
-            {fin ? shown : metric(g.entry?.value)}
-          </Num>
-          {on.target && (
-            <Label align="center">
-              {fin ? "of target" : `Target ${goalTarget(g.goal)}`}
-            </Label>
-          )}
-        </View>
-      </View>
+      <>
+        <Title>{safe(g.goal.label)}</Title>
+        <Hero
+          value={
+            fin ? `${fmt(Math.min(share, 9999), 5)}` : metric(g.entry?.value)
+          }
+          unit={fin ? "% of target" : undefined}
+          small
+          delta={
+            g.hit ? (
+              share > 100 ? (
+                <Change good>{`${fmt(share - 100, 5)}% over`}</Change>
+              ) : undefined
+            ) : fin || gap <= 0 ? (
+              <Change
+                good={false}
+              >{`${fmt(Math.max(0, 100 - share), 5)}% to go`}</Change>
+            ) : (
+              <Change good={false}>
+                {safe(`${fmt(gap, 6, 1)}${unit} short`)}
+              </Change>
+            )
+          }
+        />
+        {g.hit ? <Win>Goal hit</Win> : <Sub bad>In progress</Sub>}
+        <Body end>
+          <Meters
+            rows={[
+              {
+                name: on.target
+                  ? fin
+                    ? "Of target"
+                    : `Target ${goalTarget(g.goal)}`
+                  : "Progress",
+                value: Math.min(1, g.pct),
+                mark: g.pct > 1 ? 1 / g.pct : undefined,
+                label: `${fmt(Math.min(share, 9999), 5)}%`,
+                color: g.hit ? c.good : life,
+              },
+            ]}
+          />
+        </Body>
+      </>
     ) : (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <Words size={4} muted align="center">
@@ -623,8 +614,8 @@ export function Artwork({
     <CardFrame
       width={width}
       look={look}
-      accent={kind === "finance" ? "fin" : "life"}
-      kicker={kicker}
+      accent={kind === "finance" ? "fin" : kind === "goal" ? "fit" : "life"}
+      deco={kind === "goal" ? "frond" : "sprig"}
       date={on.dates ? date : ""}
       mark={on.mark}
       foot={[

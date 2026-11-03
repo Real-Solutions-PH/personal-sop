@@ -1,23 +1,27 @@
 import { captureStore } from "@domain/capture/store"
 import { dayKey } from "@domain/lib/day"
-import { BookOpen, ShieldCheck, Trophy } from "lucide-react-native"
+import { ShieldCheck } from "lucide-react-native"
 import { useState } from "react"
-import { View } from "react-native"
 import { Copy, Line } from "../native-kit"
 import { fmt } from "../share-format"
 import {
+  Body,
   CardFrame,
   type CardLook,
-  CardRing,
-  Chip,
+  Change,
+  ChartNote,
   cardInk,
   type Dot,
-  Dots,
-  Label,
-  Num,
+  dayName,
+  endedRun,
+  Figures,
+  Hero,
+  LeafCal,
   ShareComposer,
-  Stats,
-  Words,
+  Sub,
+  shiftDay,
+  Title,
+  Win,
 } from "../share-kit"
 import { useTheme } from "../theme"
 import { Screen } from "../ui"
@@ -30,8 +34,11 @@ export type JournalCardData = {
   best: number
   entries30: number
   days30: number
-  /** The last 35 days, oldest first: on = wrote that day. */
+  /** The last 42 days, oldest first, ending today: on = wrote that day,
+   * off = did not, none = before the first entry. */
   grid: Dot[]
+  /** The day of the first cell (YYYY-MM-DD). */
+  start: string
 }
 /** ``day`` (YYYY-MM-DD) moved by ``n`` calendar days, at local noon so a
  * DST change never skips or repeats a day. */
@@ -61,6 +68,8 @@ export function journalStats(days: Set<string>, today = dayKey()) {
   }
   return { current, best: Math.max(best, current) }
 }
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${fmt(n)} ${n === 1 ? one : many}`
 export function JournalCard({
   kind,
   width,
@@ -73,76 +82,101 @@ export function JournalCard({
   data: JournalCardData
 }) {
   const c = cardInk(look),
-    q = width / 100,
     tall = look.format === "9:16",
     sq = look.format === "1:1",
     ink = c.area("life"),
-    record = d.current > 0 && d.current >= d.best
+    record = d.current > 0 && d.current >= d.best,
+    rowH = tall ? 25 : sq ? 15 : 22
+  if (kind === "streak") {
+    const ended = endedRun(d.grid, ["off"])
+    return (
+      <CardFrame
+        width={width}
+        look={look}
+        accent="life"
+        deco="vine"
+        date={dayName(shiftDay(d.start, d.grid.length - 1))}
+        foot="Counts only. What you wrote stays private."
+      >
+        <Title>Writing every day</Title>
+        <Hero
+          value={fmt(d.current)}
+          unit={d.current === 1 ? "day" : "days"}
+          delta={
+            ended ? (
+              <Change
+                good={false}
+              >{`${plural(ended.lost, "day")} lost`}</Change>
+            ) : undefined
+          }
+        />
+        {ended ? (
+          <Sub bad>
+            {`No entry on ${dayName(shiftDay(d.start, ended.at))}; the ${fmt(ended.lost)}-day run ended.`}
+          </Sub>
+        ) : record ? (
+          <Win>Longest streak yet</Win>
+        ) : (
+          <Sub>{`Best ${plural(d.best, "day")}`}</Sub>
+        )}
+        <Body end>
+          <LeafCal
+            cells={d.grid}
+            start={d.start}
+            weeks={sq ? 3 : 4}
+            rowH={rowH}
+            color={ink}
+          />
+          <ChartNote
+            left={ended ? `Best ${plural(d.best, "day")}` : undefined}
+            right={
+              ended
+                ? `New count since ${dayName(shiftDay(d.start, ended.at + 1))}`
+                : undefined
+            }
+          />
+        </Body>
+      </CardFrame>
+    )
+  }
+  const low = d.days30 < 15
   return (
     <CardFrame
       width={width}
       look={look}
       accent="life"
-      kicker="Journal"
-      date={kind === "month" ? "Last 30 days" : ""}
+      deco="vine"
+      date="Last 30 days"
       foot="Counts only. What you wrote stays private."
     >
-      {kind === "streak" ? (
-        <View
-          style={{
-            flex: 1,
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 3 * q,
-          }}
-        >
-          <CardRing
-            value={d.best ? d.current / d.best : 0}
-            size={tall ? 56 : 42}
-            color={ink}
-          >
-            <BookOpen size={6.5 * q} color={ink} strokeWidth={2} />
-            <Num size={tall ? 17 : 13} align="center">
-              {fmt(d.current)}
-            </Num>
-            <Label align="center">{d.current === 1 ? "day" : "days"}</Label>
-          </CardRing>
-          <Words size={5.4} weight="semibold" align="center">
-            Writing every day
-          </Words>
-          <Chip icon={record ? Trophy : undefined} tone={ink}>
-            {record ? "Longest streak yet" : `Best ${fmt(d.best)} days`}
-          </Chip>
-          {tall && (
-            <View
-              style={{ alignSelf: "stretch", gap: 1.4 * q, marginTop: 2 * q }}
-            >
-              <Label>Last 5 weeks</Label>
-              <Dots cells={d.grid} cols={7} color={ink} />
-            </View>
-          )}
-        </View>
-      ) : (
-        <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-          <Words size={tall ? 9 : 7} weight="semibold">
-            {`Wrote on ${fmt(d.days30)} of 30 days`}
-          </Words>
-          <Dots
-            cells={d.grid}
-            cols={7}
-            color={ink}
-            width={tall ? "100%" : sq ? "40%" : "58%"}
-          />
-          <Stats
-            items={[
-              { label: "Entries", value: fmt(d.entries30) },
-              { label: "Streak", value: fmt(d.current), unit: "d" },
-              { label: "Best", value: fmt(d.best), unit: "d" },
-            ]}
-            size={sq ? 7 : 8}
-          />
-        </View>
-      )}
+      <Hero
+        value={fmt(d.days30)}
+        unit="of 30 days written"
+        small
+        delta={
+          low ? (
+            <Change
+              good={false}
+            >{`${plural(30 - d.days30, "day")} without an entry`}</Change>
+          ) : undefined
+        }
+      />
+      <Body end>
+        <LeafCal
+          cells={low ? d.grid.map((x) => (x === "off" ? "miss" : x)) : d.grid}
+          start={d.start}
+          weeks={5}
+          rowH={rowH}
+          color={ink}
+        />
+      </Body>
+      <Figures
+        items={[
+          { label: "Entries", value: fmt(d.entries30) },
+          { label: "Streak", value: fmt(d.current), unit: "days" },
+          { label: "Best", value: fmt(d.best), unit: "days" },
+        ]}
+      />
     </CardFrame>
   )
 }
@@ -153,14 +187,17 @@ export function JournalShare() {
   const today = dayKey(),
     written = new Set(entries.map((e) => e.day)),
     stats = journalStats(written, today),
-    from = addDays(today, -29)
+    from = addDays(today, -29),
+    first = [...written].sort()[0] ?? today
   const data: JournalCardData = {
     ...stats,
     entries30: entries.filter((e) => e.day >= from && e.day <= today).length,
     days30: [...written].filter((d) => d >= from && d <= today).length,
-    grid: Array.from({ length: 35 }, (_, i) =>
-      written.has(addDays(today, i - 34)) ? "on" : "off",
-    ),
+    grid: Array.from({ length: 42 }, (_, i) => {
+      const day = addDays(today, i - 41)
+      return written.has(day) ? "on" : day < first ? "none" : "off"
+    }),
+    start: addDays(today, -41),
   }
   return (
     <Screen title="Share card">

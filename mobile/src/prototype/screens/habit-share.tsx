@@ -2,26 +2,34 @@ import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import { Check, Flame, Medal, Trophy } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
 import { ScrollView, View } from "react-native"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { clock, fmt, pct, signed } from "../share-format"
 import {
+  Body,
   CardFrame,
   type CardLook,
-  CardRing,
-  Chip,
+  Change,
+  ChartNote,
   cardInk,
   Delta,
   type Dot,
-  Dots,
-  Label,
-  Meter,
-  Num,
+  dayName,
+  dayRange,
+  endedRun,
+  Figures,
+  Growth,
+  Hero,
+  LeafCal,
   ShareComposer,
-  Stats,
+  Sub,
+  shiftDay,
+  Title,
+  Win,
   Words,
+  weekCells,
+  XBars,
 } from "../share-kit"
 import { useTheme } from "../theme"
 import { Screen, Toggle } from "../ui"
@@ -40,8 +48,10 @@ export type HabitCardData = {
     current: number
     best: number
     rate30: number
-    last14: Dot[]
-    last35: Dot[]
+    /** The last 42 days, oldest first, ending today. */
+    days: Dot[]
+    /** The day of the first cell (YYYY-MM-DD). */
+    start: string
   } | null
   routine: {
     name: string
@@ -49,6 +59,8 @@ export type HabitCardData = {
     durationSec: number
     done: number
     total: number
+    /** Each step of the run, in order: its time and whether it was done. */
+    steps: { name: string; sec: number; done: boolean }[]
   } | null
   board: {
     rate: number
@@ -70,14 +82,18 @@ export function milestoneOf(current: number) {
     (Math.floor(current / 1000) + 1) * 1000
   return { reached, next }
 }
-const dotOf = (c: L.Cell): Dot =>
-  c === "done"
-    ? "on"
-    : c === "partial"
-      ? "part"
-      : c === "missed"
-        ? "off"
-        : "none"
+/** A habit's day as a calendar leaf: a scheduled day gone by undone is a
+ * miss; a day it was not due, or today still open, is not done. */
+const dotOf = (c: L.Cell, before: boolean): Dot =>
+  before
+    ? "none"
+    : c === "done" || c === "bonus"
+      ? "on"
+      : c === "partial"
+        ? "part"
+        : c === "missed"
+          ? "miss"
+          : "off"
 function verdict(rate: number) {
   return rate >= 0.9
     ? "Elite form"
@@ -89,11 +105,12 @@ function verdict(rate: number) {
           ? "Building"
           : "Showing up"
 }
-const shortDay = (day: string) =>
-  new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-  })
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${fmt(n)} ${n === 1 ? one : many}`
+/** How many weeks the streak calendar shows, by card shape. */
+const span = (look: CardLook) => (look.format === "1:1" ? 3 : 4)
+const rowH = (look: CardLook) =>
+  look.format === "9:16" ? 25 : look.format === "1:1" ? 19 : 24
 
 export function HabitCard({
   kind,
@@ -107,11 +124,15 @@ export function HabitCard({
   data: HabitCardData
 }) {
   const c = cardInk(look),
-    q = width / 100,
-    tall = look.format === "9:16",
     hab = c.area("hab"),
-    h = data.habit
-  let body: ReactNode = null
+    h = data.habit,
+    today = new Date().toLocaleDateString("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    })
+  let body: ReactNode = null,
+    date = today
   if ((kind === "streak" || kind === "milestone" || kind === "month") && !h)
     body = (
       <View style={{ flex: 1, justifyContent: "center" }}>
@@ -121,154 +142,182 @@ export function HabitCard({
       </View>
     )
   else if (kind === "streak" && h) {
-    const best = h.current > 0 && h.current >= h.best
-    body = (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3 * q,
-        }}
-      >
-        <CardRing
-          value={h.best ? h.current / h.best : 0}
-          size={tall ? 58 : 44}
-          color={hab}
-        >
-          <Flame size={7 * q} color={hab} strokeWidth={2} />
-          <Num size={tall ? 18 : 14} align="center">
-            {fmt(h.current)}
-          </Num>
-          <Label align="center">{h.current === 1 ? "day" : "days"}</Label>
-        </CardRing>
-        <Words size={6} weight="semibold" align="center">
-          {h.name}
-        </Words>
-        <View
-          style={{
-            flexDirection: "row",
-            flexWrap: "wrap",
-            justifyContent: "center",
-            gap: 1.6 * q,
-          }}
-        >
-          <Chip icon={best ? Trophy : undefined} tone={hab}>
-            {best ? "Personal best" : `Best ${fmt(h.best)} days`}
-          </Chip>
-          {data.showRate && (
-            <Chip icon={Check} tone={c.good}>
-              {`${pct(h.rate30)} · 30 days`}
-            </Chip>
-          )}
-        </View>
-        {tall && (
-          <View
-            style={{ alignSelf: "stretch", gap: 1.5 * q, marginTop: 2 * q }}
-          >
-            <Label>Last 14 days</Label>
-            <Dots cells={h.last14} cols={14} color={hab} />
-          </View>
+    const { cells } = weekCells(h.days, h.start, span(look)),
+      ended = endedRun(h.days),
+      record = h.current > 0 && h.current >= h.best,
+      done = cells.filter((d) => d === "on" || d === "part").length
+    body = ended ? (
+      <>
+        <Title>{h.name}</Title>
+        <Hero
+          value={fmt(h.current)}
+          unit={h.current === 1 ? "day" : "days"}
+          delta={
+            <Change good={false}>{`${plural(ended.lost, "day")} lost`}</Change>
+          }
+        />
+        <Sub bad>
+          {`Missed ${dayName(shiftDay(h.start, ended.at))}. The ${fmt(ended.lost)}-day streak ended there.`}
+        </Sub>
+        <Body end>
+          <LeafCal
+            cells={h.days}
+            start={h.start}
+            weeks={span(look)}
+            rowH={rowH(look)}
+            color={hab}
+          />
+          <ChartNote
+            left={`Best ${plural(h.best, "day")}`}
+            right={`New count since ${dayName(shiftDay(h.start, ended.at + 1))}`}
+          />
+        </Body>
+      </>
+    ) : (
+      <>
+        <Title>{h.name}</Title>
+        <Hero value={fmt(h.current)} unit={h.current === 1 ? "day" : "days"} />
+        {record ? (
+          <Win>Longest streak yet</Win>
+        ) : (
+          <Sub>{`Best ${plural(h.best, "day")}`}</Sub>
         )}
-      </View>
+        <Body end>
+          <LeafCal
+            cells={h.days}
+            start={h.start}
+            weeks={span(look)}
+            rowH={rowH(look)}
+            color={hab}
+          />
+          <ChartNote
+            left={
+              done === cells.length
+                ? `Last ${fmt(span(look))} weeks, every day done`
+                : `${fmt(done)} of the last ${fmt(cells.length)} days done`
+            }
+            right={data.showRate ? `${pct(h.rate30)} over 30 days` : undefined}
+          />
+        </Body>
+      </>
     )
   } else if (kind === "milestone" && h) {
-    const { reached, next } = milestoneOf(h.current)
+    const { reached, next } = milestoneOf(h.current),
+      stops = MILESTONES.filter((m) => m <= next).slice(-5)
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <Chip icon={Medal} tone={hab}>
-          {reached ? "Milestone" : "On the way"}
-        </Chip>
-        <View>
-          <Num size={tall ? 34 : 26}>{fmt(reached ?? h.current)}</Num>
-          <Words size={6} weight="semibold">
-            {reached
-              ? `${reached === 1 ? "day" : "days"} of ${h.name}`
-              : `${h.current === 1 ? "day" : "days"} of ${h.name}`}
-          </Words>
-        </View>
-        <View style={{ gap: 1.5 * q }}>
-          <Line style={{ justifyContent: "space-between", gap: 2 * q }}>
-            <View style={{ flexShrink: 1 }}>
-              <Label>{`Next: ${fmt(next)} days`}</Label>
-            </View>
-            <Num size={4}>{`${fmt(h.current)} / ${fmt(next)}`}</Num>
-          </Line>
-          <Meter value={h.current / next} color={hab} height={2} />
-        </View>
-        {look.format !== "1:1" && (
-          <Stats
-            items={[
-              { label: "Current streak", value: fmt(h.current), unit: "d" },
-              { label: "Best streak", value: fmt(h.best), unit: "d" },
-            ]}
-            size={8}
-          />
+      <>
+        <Hero
+          value={fmt(reached ?? h.current)}
+          unit={(reached ?? h.current) === 1 ? "day" : "days"}
+        />
+        <Title>{h.name}</Title>
+        {reached ? (
+          <Win>Milestone reached</Win>
+        ) : (
+          <Sub>{`On the way: ${plural(next - h.current, "day")} to ${fmt(next)}.`}</Sub>
         )}
-      </View>
+        <Body end>
+          <Growth
+            stops={stops.includes(next) ? stops : [...stops, next]}
+            now={h.current}
+            end={next}
+            unit="days"
+            height={look.format === "9:16" ? 84 : 72}
+            color={hab}
+          />
+          <ChartNote
+            left={`Next: ${fmt(next)} days`}
+            right={`Best ${fmt(h.best)}`}
+          />
+        </Body>
+      </>
     )
   } else if (kind === "month" && h) {
+    const { cells, start = h.start } = weekCells(h.days, h.start, 5),
+      done = cells.filter((d) => d === "on" || d === "part").length,
+      missed = cells.filter((d) => d === "miss").length,
+      due = done + missed,
+      low = due > 0 && done / due < 0.5
+    date = dayRange(start, shiftDay(start, cells.length - 1))
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <View style={{ gap: q }}>
-          <Words
-            size={tall ? 8 : 6}
-            weight="semibold"
-            lines={look.format === "1:1" ? 1 : 2}
-          >
-            {h.name}
-          </Words>
-          <Label>Last 5 weeks</Label>
-        </View>
-        <Dots
-          cells={h.last35}
-          cols={7}
-          color={hab}
-          width={tall ? "100%" : look.format === "4:5" ? "62%" : "44%"}
+      <>
+        <Title>{h.name}</Title>
+        <Hero
+          value={fmt(done)}
+          unit={`of ${plural(due, "day")}`}
+          small
+          delta={
+            low ? (
+              <Change good={false}>{`${plural(missed, "day")} missed`}</Change>
+            ) : undefined
+          }
         />
-        <Line
-          style={{
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            gap: 3 * q,
-          }}
-        >
-          {data.showRate ? (
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Label>Completion</Label>
-              <Num size={tall ? 18 : 14}>{pct(h.rate30)}</Num>
-            </View>
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
-          <Chip icon={Flame} tone={hab}>
-            {verdict(h.rate30)}
-          </Chip>
-        </Line>
-      </View>
+        <Body end>
+          <LeafCal
+            cells={h.days}
+            start={h.start}
+            weeks={5}
+            rowH={rowH(look) - 4}
+            color={hab}
+          />
+          <ChartNote
+            left={
+              low
+                ? `${pct(done / due)} of due days done`
+                : missed
+                  ? `${plural(missed, "day")} missed`
+                  : "No day missed"
+            }
+            bad={!low && missed > 0}
+            right="Last 5 weeks"
+          />
+        </Body>
+      </>
     )
   } else if (kind === "routine") {
     const r = data.routine
     body = r ? (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <Chip icon={Check} tone={c.good}>
-          {`Complete · ${shortDay(r.day)}`}
-        </Chip>
-        <Words size={9} weight="semibold">
-          {r.name}
-        </Words>
-        <View>
-          <Label>Time</Label>
-          <Num size={tall ? 22 : 18}>{clock(r.durationSec)}</Num>
-        </View>
-        <View style={{ gap: 1.6 * q }}>
-          <Line style={{ justifyContent: "space-between" }}>
-            <Label>Steps done</Label>
-            <Num size={4.4}>{`${fmt(r.done)}/${fmt(r.total)}`}</Num>
-          </Line>
-          <Meter value={r.done / Math.max(1, r.total)} color={hab} height={2} />
-        </View>
-      </View>
+      <>
+        <Title>{r.name}</Title>
+        {r.done >= r.total ? (
+          <>
+            <Hero value={clock(r.durationSec)} />
+            <Win>{`All ${plural(r.total, "step")} done`}</Win>
+          </>
+        ) : (
+          <>
+            <Hero
+              value={fmt(r.done)}
+              unit={`of ${plural(r.total, "step")}`}
+              small
+              delta={
+                <Change
+                  good={false}
+                >{`${fmt(r.total - r.done)} skipped`}</Change>
+              }
+            />
+            <Sub bad>
+              {`Skipped: ${r.steps
+                .filter((x) => !x.done)
+                .map((x) => x.name)
+                .join(", ")}.`}
+            </Sub>
+          </>
+        )}
+        <Body>
+          <XBars
+            color={hab}
+            rows={r.steps
+              .filter((x) => x.done)
+              .map((x, i) => ({
+                key: `${x.name}-${i}`,
+                name: x.name,
+                value: x.sec,
+                label: clock(x.sec),
+              }))}
+          />
+        </Body>
+      </>
     ) : (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <Words size={4} muted align="center">
@@ -276,63 +325,48 @@ export function HabitCard({
         </Words>
       </View>
     )
+    if (r) date = dayName(r.day)
   } else {
     const b = data.board,
-      top = b.top.slice(0, tall ? 5 : look.format === "1:1" ? 2 : 3),
-      max = Math.max(1, ...top.map((x) => x.streak)),
-      delta = Math.round((b.rate - b.prevRate) * 100)
+      delta = Math.round((b.rate - b.prevRate) * 100),
+      fell = b.top.filter((x) => x.streak === 0).length
+    date = "Last 30 days"
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <Line style={{ gap: 4 * q }}>
-          <CardRing value={b.rate} size={tall ? 32 : 26} color={hab}>
-            <Num size={8} align="center">
-              {pct(b.rate)}
-            </Num>
-            <Label align="center">done</Label>
-          </CardRing>
-          <View style={{ flex: 1, gap: q }}>
-            <Words size={7} weight="semibold">
-              {verdict(b.rate)}
-            </Words>
-            <Label>Habits · 30 days</Label>
-            <Delta n={delta} unit=" pts" suffix="vs prior 30 days" />
-          </View>
-        </Line>
-        <View style={{ gap: 2.4 * q }}>
-          <Label>Top streaks</Label>
-          {top.map((x, i) => (
-            <Line key={`${x.name}-${i}`} style={{ gap: 2.4 * q }}>
-              <View style={{ flex: 1, minWidth: 0, gap: 0.8 * q }}>
-                <Words size={3.8} weight="medium" lines={1}>
-                  {x.name}
-                </Words>
-                <Meter value={x.streak / max} color={hab} height={1.4} />
-              </View>
-              <View style={{ width: 18 * q }}>
-                <Num size={4.6} unit="d" align="right">
-                  {fmt(x.streak)}
-                </Num>
-              </View>
-            </Line>
-          ))}
-        </View>
-        <Stats
+      <>
+        <Hero
+          value={fmt(Math.round(b.rate * 100), 5)}
+          unit="% done"
+          delta={<Delta n={delta} unit=" pts" suffix="vs prior 30" />}
+        />
+        {delta < 0 && (
+          <Sub bad>
+            {fell
+              ? `${verdict(b.rate)}. ${plural(fell, "habit")} lost ${fell === 1 ? "its" : "their"} streak.`
+              : `${verdict(b.rate)}.`}
+          </Sub>
+        )}
+        <Figures
           items={[
             { label: "Perfect days", value: fmt(b.perfect) },
             { label: "Check-ins", value: fmt(b.checkins) },
           ]}
-          size={8}
         />
-      </View>
+        <Body>
+          <XBars
+            color={hab}
+            rows={b.top.map((x, i) => ({
+              key: `${x.name}-${i}`,
+              name: x.name,
+              value: x.streak,
+              label: plural(x.streak, "day"),
+            }))}
+          />
+        </Body>
+      </>
     )
   }
   return (
-    <CardFrame
-      width={width}
-      look={look}
-      accent="hab"
-      kicker={kind === "milestone" ? "Habit milestone" : "Habits"}
-    >
+    <CardFrame width={width} look={look} accent="hab" date={date}>
       {body}
     </CardFrame>
   )
@@ -368,10 +402,10 @@ export function HabitShare() {
     [...state.runs]
       .reverse()
       .find((r) => r.routineId === routineId && r.state === "completed")
-  const cells = (days: number) =>
-    habit
-      ? L.daysBetween(dayOffset(1 - days), today).map((d) =>
-          dotOf(L.cellFor(habit, d, idx, today)),
+  const start = dayOffset(-41),
+    cells = habit
+      ? L.daysBetween(start, today).map((d) =>
+          dotOf(L.cellFor(habit, d, idx, today), d < habit.createdAt),
         )
       : []
   const st = habit ? L.streaks(habit, idx) : null
@@ -384,8 +418,8 @@ export function HabitShare() {
             current: st.current,
             best: st.best,
             rate30: L.habitStats(habit, idx, dayOffset(-29), today).rate,
-            last14: cells(14),
-            last35: cells(35),
+            days: cells,
+            start,
           }
         : null,
     routine:
@@ -396,6 +430,13 @@ export function HabitShare() {
             durationSec: L.runActualSec(run),
             done: run.results.filter((r) => r.status === "done").length,
             total: run.steps.length,
+            steps: run.steps.map((st, i) => ({
+              name: hide
+                ? `Step ${i + 1}`
+                : (state.habits.find((x) => x.id === st.habitId)?.name ?? ""),
+              sec: run.results[i]?.actualSec ?? 0,
+              done: run.results[i]?.status === "done",
+            })),
           }
         : null,
     board: {
