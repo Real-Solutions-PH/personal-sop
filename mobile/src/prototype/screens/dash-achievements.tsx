@@ -10,7 +10,6 @@ import {
 import { dashStore, markTrophiesSeen, noteMiss } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { moveToToday } from "@domain/tasks/actions"
-import { LinearGradient } from "expo-linear-gradient"
 import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { Award, Lock, Trophy } from "lucide-react-native"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -126,7 +125,7 @@ export function Misses() {
               <Copy size={18} weight="semibold">
                 {count(cur, k)}
               </Copy>
-              <Copy size={10} muted>
+              <Copy size={12} muted>
                 {AREA[k].label}
               </Copy>
               {delta(count(cur, k) - count(prev, k))}
@@ -314,8 +313,8 @@ export function Trophies() {
                   /{all.length}
                 </Copy>
               </Copy>
-              <Copy size={9} muted>
-                {TROPHY_LABEL[type].split(" ").at(-1)?.toUpperCase()}
+              <Copy size={12} muted>
+                {TROPHY_LABEL[type].split(" ").at(-1)}
               </Copy>
             </View>
           )
@@ -347,9 +346,9 @@ export function Trophies() {
                     onPress={() => setOpen(a.trophy!.id)}
                     style={{ width: "48%" }}
                   >
-                    <LinearGradient
-                      colors={[border(t[colors[type]], 0.25), "transparent"]}
+                    <View
                       style={{
+                        backgroundColor: t.card,
                         padding: 12,
                         borderRadius: 16,
                         borderWidth: 1,
@@ -367,7 +366,7 @@ export function Trophies() {
                             paddingHorizontal: 6,
                           }}
                         >
-                          <Copy size={9} style={{ color: t.bg }}>
+                          <Copy size={12} style={{ color: t.bg }}>
                             NEW
                           </Copy>
                         </View>
@@ -382,10 +381,10 @@ export function Trophies() {
                       <Copy size={12} weight="medium" lines={2}>
                         {a.trophy.title}
                       </Copy>
-                      <Copy size={10} muted style={{ marginTop: 2 }}>
+                      <Copy size={12} muted style={{ marginTop: 2 }}>
                         {fmt(a.trophy.day)}
                       </Copy>
-                    </LinearGradient>
+                    </View>
                   </Tap>
                 ) : (
                   <View
@@ -411,13 +410,13 @@ export function Trophies() {
                         {a.title}
                       </Copy>
                     </Line>
-                    <Copy size={11} muted lines={2} style={{ marginTop: 4 }}>
+                    <Copy size={12} muted lines={2} style={{ marginTop: 4 }}>
                       {a.requirement}
                     </Copy>
                     <View style={{ marginTop: 8 }}>
                       <Bar value={a.progress.pct} color={t.primary} />
                     </View>
-                    <Copy size={10} muted style={{ marginTop: 4 }}>
+                    <Copy size={12} muted style={{ marginTop: 4 }}>
                       {a.progress.text}
                     </Copy>
                   </View>
@@ -439,9 +438,9 @@ export function Trophies() {
       >
         {selected && (
           <View style={{ alignItems: "center" }}>
-            <LinearGradient
-              colors={[border(t[colors[selected.type]], 0.25), "transparent"]}
+            <View
               style={{
+                backgroundColor: border(t[colors[selected.type]], 0.15),
                 width: 96,
                 height: 96,
                 borderRadius: 48,
@@ -450,7 +449,7 @@ export function Trophies() {
               }}
             >
               <Trophy size={40} color={t[colors[selected.type]]} />
-            </LinearGradient>
+            </View>
             <Copy
               size={48}
               style={{ fontFamily: fonts.displayBlack, marginTop: 12 }}

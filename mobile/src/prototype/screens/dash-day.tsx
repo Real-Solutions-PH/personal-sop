@@ -165,7 +165,7 @@ export function Inbox() {
                           </Copy>
                         </View>
                         <View style={{ alignItems: "flex-end", gap: 4 }}>
-                          <Copy size={10} muted>
+                          <Copy size={12} muted>
                             {new Date(n.at).toLocaleTimeString("en-PH", {
                               hour: "numeric",
                               minute: "2-digit",

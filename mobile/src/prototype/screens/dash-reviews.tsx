@@ -159,7 +159,7 @@ function ReviewList() {
                   <Copy size={14} weight="semibold">
                     {pct(rate)}
                   </Copy>
-                  <Copy size={10} muted>
+                  <Copy size={12} muted>
                     on-target rate
                   </Copy>
                 </View>

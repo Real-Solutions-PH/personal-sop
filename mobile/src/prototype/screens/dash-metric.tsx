@@ -183,7 +183,7 @@ function Detail({
                         }}
                       />
                     </View>
-                    <Copy size={10} muted>
+                    <Copy size={12} muted>
                       {["7d", "30d", "90d", "1y"][i]}
                     </Copy>
                   </View>

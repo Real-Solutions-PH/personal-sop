@@ -57,6 +57,7 @@ import {
 } from "../motion"
 import {
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -679,10 +680,10 @@ export function HabitPlanPanel() {
                   alignItems: "center",
                   paddingVertical: 8,
                   borderRadius: 16,
-                  backgroundColor: sel === d ? `${t.hab}26` : "transparent",
+                  ...chosen(t, sel === d),
                 }}
               >
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   {
                     new Date(`${d}T12:00:00`).toLocaleDateString("en", {
                       weekday: "short",
@@ -703,7 +704,7 @@ export function HabitPlanPanel() {
                     {Number(d.slice(8))}
                   </Copy>
                 </Ring>
-                <Copy size={10} muted>
+                <Copy size={12} muted>
                   {d <= today ? `${done}/${due.length}` : due.length}
                 </Copy>
               </Tap>
@@ -727,7 +728,7 @@ export function HabitPlanPanel() {
           items.map((item, i) => (
             <View key={item.id}>
               {i === 0 || item.time !== items[i - 1].time ? (
-                <Copy size={11} muted style={{ padding: 8 }}>
+                <Copy size={12} muted style={{ padding: 8 }}>
                   {H.fmtTime(item.time)}
                 </Copy>
               ) : null}
@@ -743,7 +744,7 @@ export function HabitPlanPanel() {
                   paddingHorizontal: 12,
                   paddingVertical: item.routine ? 10 : 8,
                   borderRadius: 12,
-                  backgroundColor: item.routine ? `${t.hab}1a` : "transparent",
+                  backgroundColor: item.routine ? t.soft : "transparent",
                 }}
               >
                 <Line>
@@ -958,7 +959,7 @@ function CalendarPanel() {
             {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
               <Copy
                 key={`${d}-${i}`}
-                size={10}
+                size={12}
                 muted
                 style={{ flex: 1, textAlign: "center" }}
               >
@@ -1041,7 +1042,7 @@ function CalendarPanel() {
                     })}
                   </Line>
                   {mode === "week" && (
-                    <Copy size={10} muted>
+                    <Copy size={12} muted>
                       {list.length || ""}
                     </Copy>
                   )}
@@ -1140,7 +1141,7 @@ function CalendarPanel() {
                       {part.range}
                     </Copy>
                     {current && (
-                      <Copy size={10} style={{ color: t.primary }}>
+                      <Copy size={12} style={{ color: t.primary }}>
                         NOW
                       </Copy>
                     )}
