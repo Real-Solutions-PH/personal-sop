@@ -199,6 +199,8 @@ export function ArcCircle({
   strokeWidth: number
   strokeLinecap?: "round" | "butt"
   transform?: string
+  /** The echo stroke of the hand-drawn ring is drawn at half strength. */
+  opacity?: number
   /** Sweep time; the score rings' slow reveal unless a control wants a
    * quicker answer. */
   duration?: number
@@ -1072,11 +1074,14 @@ export function GrowBar({
   height,
   index = 0,
   style,
+  children,
 }: {
   /** Points, or a percentage of the parent such as "40%". */
   height: number | `${number}%`
   index?: number
   style?: ViewStyle
+  /** Drawn inside the growing box (the hand-drawn stem, ADR-0032). */
+  children?: ReactNode
 }) {
   const reduced = useReducedMotion()
   const pct = typeof height === "string"
@@ -1096,7 +1101,7 @@ export function GrowBar({
   const anim = useAnimatedStyle(() => ({
     height: pct ? (`${h.value}%` as `${number}%`) : h.value,
   }))
-  return <Animated.View style={[style, anim]} />
+  return <Animated.View style={[style, anim]}>{children}</Animated.View>
 }
 
 /** Line/area charts sweep in left to right when they first appear. */

@@ -10,6 +10,7 @@ import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { useStats } from "@domain/tasks/hooks"
 import { View } from "react-native"
+import { LineStem } from "../brand/line"
 import { GrowBar } from "../motion"
 import { Copy, Line, Part } from "../native-kit"
 import { type Accent, useTheme } from "../theme"
@@ -65,12 +66,16 @@ function StatStrip({
               <GrowBar
                 index={i}
                 height={`${Math.max(v > 0 ? 6 : 2, (v / max) * 100)}%`}
-                style={{
-                  borderRadius: 3,
-                  backgroundColor:
-                    i === 6 ? t[accent] : v > 0 ? `${t[accent]}80` : t.soft,
-                }}
-              />
+              >
+                {/* Hand-drawn stems, no leaves (ADR-0032); today at full
+                    strength, past days softer, empty days a faint stub. */}
+                <LineStem
+                  color={v > 0 ? t[accent] : t.soft}
+                  width={5}
+                  seed={i + 1}
+                  opacity={i === 6 || v === 0 ? 1 : 0.55}
+                />
+              </GrowBar>
             </View>
           ))}
         </Line>

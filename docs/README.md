@@ -39,6 +39,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/0029-fern-replay-eval-dataset.md](adr/0029-fern-replay-eval-dataset.md) | Fern replay eval dataset: scrubbed real chats in the public repository (2026-11-02) | Testing |
 | [adr/0030-record-icons-are-emoji.md](adr/0030-record-icons-are-emoji.md) | Icons people pick for their records are emoji from one catalogue; interface icons stay lucide (2026-11-02) | Design |
 | [adr/0031-fern-claude-style-agent-loop.md](adr/0031-fern-claude-style-agent-loop.md) | Fern works each turn as a Claude-style agent loop: every tool, thinking every call, todo, multiple-choice asks (2026-11-03) | Architecture |
+| [adr/0032-hand-drawn-line-in-the-app.md](adr/0032-hand-drawn-line-in-the-app.md) | The brand's hand-drawn line in the app's shared chart parts (progress, rings, small bars, sparklines), amending ADR-0019's flat rule for data marks (2026-11-03) | Design |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans
