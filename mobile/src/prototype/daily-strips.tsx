@@ -1,18 +1,18 @@
 // Two strips at the top of Today. Yesterday's recap says plainly what a
 // missed day cost (off target, the streak it ended, how many things were
-// missed) and leads to the Misses page; it shows on the day after and goes
-// once dismissed. The first-week strip keeps the promise onboarding makes
+// missed), with Fern consoling beside it, and leads to the Misses page; it
+// shows on the day after and goes once dismissed. The first-week strip keeps the promise onboarding makes
 // ("log one thing today to light up day 1"): days 1–7 from the first log,
 // lit as they are logged, until the first week is over.
 import * as D from "@domain/dash/hooks"
 import { addDays } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
-import { ChevronRight, TrendingDown, X } from "lucide-react-native"
+import { ChevronRight, X } from "lucide-react-native"
 import { View } from "react-native"
 import Svg, { Path } from "react-native-svg"
 import { CornerMotif } from "./brand/corner"
 import { jitter, leaf, rng, smooth } from "./brand/scribble"
-import { alpha } from "./motion"
+import { FernSprite } from "./companion/fern-sprite"
 import { Copy, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { claimDay, firstWeek, rewardStore, yesterdayRecap } from "./rewards"
@@ -29,11 +29,13 @@ export function YesterdayStrip() {
   const headline = recap.offTarget
     ? `Yesterday: off target${recap.ended > 1 ? ` · ${recap.ended}-day streak ended` : ""}`
     : `Yesterday: ${missed} missed`
-  const detail = recap.offTarget
-    ? missed
-      ? `${missed} missed · see what slipped`
-      : "See what slipped"
-    : "On target, but these slipped"
+  // Fern's line: the cost first, then the way back.
+  const lost = missed ? `${missed} missed. ` : ""
+  const detail = !recap.offTarget
+    ? "On target, but these slipped. Today is a new count."
+    : recap.ended > 1
+      ? `${lost}The ${recap.ended} days still count; the next one starts today.`
+      : `${lost || "Missed yesterday. "}Today is a new count.`
   return (
     <YesterdayStripView
       headline={headline}
@@ -57,7 +59,7 @@ export function YesterdayStripView({
     <View testID="yesterday-strip">
       <Frame style={{ flexDirection: "row" }}>
         <Tap
-          label={`${headline}. ${detail}`}
+          label={`${headline}. ${detail} See what slipped`}
           onPress={() => go("/stats/misses")}
           style={{
             flex: 1,
@@ -68,24 +70,16 @@ export function YesterdayStripView({
             paddingLeft: 16,
           }}
         >
-          <View
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: alpha(t.bad, 0.12),
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <TrendingDown size={18} color={t.bad} />
-          </View>
+          <FernSprite size={40} state="consoling" decorative />
           <View style={{ flex: 1 }}>
             <Copy size={14} weight="semibold" style={{ color: t.bad }}>
               {headline}
             </Copy>
             <Copy size={12} muted>
-              {detail}
+              {detail}{" "}
+              <Copy size={12} weight="medium" style={{ color: t.primary }}>
+                See what slipped
+              </Copy>
             </Copy>
           </View>
           <ChevronRight size={16} color={t.muted} />

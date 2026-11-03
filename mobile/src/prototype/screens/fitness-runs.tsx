@@ -20,11 +20,13 @@ import * as RL from "@domain/fitness/run-live"
 import * as R from "@domain/fitness/runs"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
+import { createStore } from "@domain/lib/store"
 import * as Haptics from "expo-haptics"
 import { useLocalSearchParams } from "expo-router"
 import type { LucideIcon } from "lucide-react-native"
 import {
   Activity,
+  Check,
   ChevronRight,
   Ellipsis,
   Flag,
@@ -43,6 +45,7 @@ import {
   Trash2,
   TrendingUp,
   Undo2,
+  X,
 } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
 import { Pressable, Text, TextInput, View } from "react-native"
@@ -322,6 +325,109 @@ function PlaceChoice({
   )
 }
 
+/** Whether the phone-placement tip was dismissed; it stays dismissed. */
+export const runTipStore = createStore<{ dismissed: boolean }>(
+  "run-tip",
+  () => ({ dismissed: false }),
+)
+
+/** One quiet line under the live figures: where to keep the phone so
+ * steps (and on a treadmill, distance) are counted. Tap for the detail,
+ * × to hide it for good. */
+function PlacementTip({
+  indoor,
+  watch,
+  onOpen,
+}: {
+  indoor: boolean
+  /** Heart rate is coming in, so a watch is counting too. */
+  watch: boolean
+  onOpen: () => void
+}) {
+  const t = useTheme()
+  const blue = t["chart-1"]
+  const text = indoor
+    ? `Keep your phone in a pocket or clipped to your waistband: on the console it can't count steps.${watch ? " Holding the rails stops your watch counting." : ""}`
+    : "A pocket, waistband or armband counts steps best; GPS just needs a view of the sky."
+  return (
+    <Line style={{ gap: 6, marginTop: 12, alignItems: "flex-start" }}>
+      <Tap
+        label="Where to keep your phone"
+        onPress={onOpen}
+        style={{ flex: 1 }}
+      >
+        <Line style={{ gap: 6, alignItems: "flex-start" }}>
+          <Info size={14} color={blue} style={{ marginTop: 2 }} />
+          <Copy size={12} style={{ color: blue, flex: 1 }}>
+            {text}
+          </Copy>
+        </Line>
+      </Tap>
+      <IconTap
+        size={28}
+        icon={X}
+        label="Hide this tip"
+        color={blue}
+        onPress={() => runTipStore.set({ dismissed: true })}
+      />
+    </Line>
+  )
+}
+
+/** The tip's detail: where the phone counts best, the setting that keeps
+ * its distance calibrated, and what changes with a watch. */
+function PlacementSheet({
+  indoor,
+  onClose,
+}: {
+  indoor: boolean
+  onClose: () => void
+}) {
+  const t = useTheme()
+  const places: { where: string; how: string; color: string }[] = [
+    { where: "Pocket or waistband", how: "Best", color: t.good },
+    { where: "Armband", how: "Good", color: t.good },
+    { where: "In your hand", how: "Fair", color: t.warn },
+    { where: "On the console", how: "Doesn't count", color: t.bad },
+  ]
+  return (
+    <Sheet open onClose={onClose} title="Where to keep your phone">
+      <Copy size={14} muted>
+        {indoor
+          ? "Your phone counts steps from its motion, and turns them into the treadmill's distance until you enter the machine's."
+          : "Your phone counts steps from its motion; GPS draws the route and measures the distance."}
+      </Copy>
+      <View style={{ gap: 6 }}>
+        {places.map((p) => (
+          <Line key={p.where} style={{ justifyContent: "space-between" }}>
+            <Copy size={14}>{p.where}</Copy>
+            <Copy size={13} weight="medium" style={{ color: p.color }}>
+              {p.how}
+            </Copy>
+          </Line>
+        ))}
+      </View>
+      <Copy size={13} muted>
+        Turn on Settings → Privacy & Security → Location Services → System
+        Services → Motion Calibration & Distance, so your stride is learned.
+      </Copy>
+      {indoor && (
+        <Copy size={13} muted>
+          An outdoor walk now and then keeps the treadmill distance accurate:
+          GPS teaches the phone your stride.
+        </Copy>
+      )}
+      <Copy size={13} muted>
+        With an Apple Watch, Health counts your steps from the watch by default.
+        On a treadmill, holding the rails stops its count.
+      </Copy>
+      <Button icon={Check} onPress={onClose}>
+        Got it
+      </Button>
+    </Sheet>
+  )
+}
+
 /** The GPS chip: how sure the last fix was. */
 function Signal({
   accuracy,
@@ -467,6 +573,8 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
     : R.runKcal(run.points, run.pauses, kg)
   const lastSplit = indoor ? undefined : snap.splits.at(-1)
   const [menu, setMenu] = useState(false)
+  const [tips, setTips] = useState(false)
+  const tipHidden = runTipStore.use((x) => x.dismissed)
   const finish = () => {
     // A treadmill's distance is entered after, so time decides what is
     // worth keeping there.
@@ -501,12 +609,22 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
     <Screen
       title={R.sessionLabel(run)}
       actions={
-        <IconTap
-          size={40}
-          icon={Ellipsis}
-          label="Session options"
-          onPress={() => setMenu(true)}
-        />
+        <Line style={{ gap: 0 }}>
+          {tipHidden && (
+            <IconTap
+              size={40}
+              icon={Info}
+              label="Phone placement tips"
+              onPress={() => setTips(true)}
+            />
+          )}
+          <IconTap
+            size={40}
+            icon={Ellipsis}
+            label="Session options"
+            onPress={() => setMenu(true)}
+          />
+        </Line>
       }
       footer={
         <Line style={{ gap: 10, paddingHorizontal: 16, paddingBottom: 8 }}>
@@ -611,6 +729,16 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
           elev={indoor ? undefined : (snap.elevationGainM ?? undefined)}
         />
       </View>
+      {!tipHidden && (
+        <PlacementTip
+          indoor={indoor}
+          watch={!!run.hr}
+          onOpen={() => setTips(true)}
+        />
+      )}
+      {tips && (
+        <PlacementSheet indoor={indoor} onClose={() => setTips(false)} />
+      )}
       {lastSplit ? (
         <>
           <SectionHeading>Splits</SectionHeading>

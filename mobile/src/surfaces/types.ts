@@ -165,6 +165,9 @@ export interface LiveState {
   next: LiveNext[]
   controls: LiveControl[]
   href: string
+  /** Run or walk: steps so far (the step counter, else Health); absent
+   * until first read. */
+  steps?: number
   /** The other sessions running at the same time (a run beside a workout,
    * a focus session beside both), drawn as one line each under this one.
    * Absent when this is the only one. */

@@ -21,6 +21,10 @@ jest.mock("expo-location", () => mockLocation)
 jest.mock("expo-task-manager", () => {
   throw new Error("not in this build")
 })
+let mockPedometer: number | null = 1500
+jest.mock("../pedometer", () => ({
+  readSteps: jest.fn(async () => mockPedometer),
+}))
 let mockReading = { steps: 3100, hr: null, distanceM: 2400 }
 jest.mock("../health", () => ({
   connectHealth: jest.fn(async () => true),
@@ -28,7 +32,7 @@ jest.mock("../health", () => ({
   readWindow: jest.fn(async () => mockReading),
 }))
 
-const { startRunTracker, startTracking } =
+const { onFixes, startRunTracker, startTracking } =
   require("../run-tracker") as typeof import("../run-tracker")
 
 beforeEach(() => {
@@ -41,6 +45,8 @@ beforeEach(() => {
   fitStore.set((s) => ({ ...s, weighIns: [], runs: [] }))
   jest.clearAllMocks()
   mockReading = { steps: 3100, hr: null, distanceM: 2400 }
+  // No step counter unless a test says so: Health's steps are used.
+  mockPedometer = null
 })
 
 const flush = () => new Promise((r) => setTimeout(r, 0))
@@ -119,5 +125,48 @@ it("a distance saved by hand is never replaced, even when unchanged", async () =
     expect(R.runsOf(fitStore.get())[0].distanceM).toBe(2400)
   } finally {
     jest.useRealTimers()
+  }
+})
+
+it("a GPS fix refreshes the steps from the step counter, at most every 30 s, even locked", async () => {
+  const { AppState } = require("react-native")
+  const was = AppState.currentState
+  AppState.currentState = "background"
+  try {
+    mockPedometer = 1500
+    startRunTracker()
+    const t0 = Date.now() - 600_000
+    RL.startRun("walk", t0)
+    const fix = (i: number) => ({
+      lat: 14 + i * 0.0001,
+      lng: 121,
+      alt: 10,
+      accuracy: 5,
+      at: Date.now() - 10_000 + i * 1000,
+    })
+    mockPedometer = 1500
+    onFixes([fix(0)])
+    await flush()
+    // The step counter's figure wins over Health's.
+    expect(RL.runLiveStore.get().active?.steps).toBe(1500)
+    mockPedometer = 1600
+    onFixes([fix(1)])
+    await flush()
+    // Within 30 s of the last read: not read again.
+    expect(RL.runLiveStore.get().active?.steps).toBe(1500)
+    // 31 s on, with the app still in the background, the next fix reads.
+    const real = Date.now
+    const later = real() + 31_000
+    const spy = jest.spyOn(Date, "now").mockImplementation(() => later)
+    try {
+      onFixes([fix(2)])
+      await flush()
+      expect(RL.runLiveStore.get().active?.steps).toBe(1600)
+    } finally {
+      spy.mockRestore()
+    }
+  } finally {
+    AppState.currentState = was
+    RL.discardRun()
   }
 })

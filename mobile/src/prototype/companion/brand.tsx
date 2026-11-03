@@ -21,6 +21,43 @@ export type FernPalette = typeof LIGHT
 
 export const fernPalette = (dark: boolean): FernPalette => (dark ? DARK : LIGHT)
 
+// Fern's moods, from the brand kit's C1 sprite: small flat accents that say
+// the feeling before the face is read, and the dry olive and straw it wilts
+// to on a miss. `ink` draws the curl and leaf outlines.
+const MOOD_LIGHT = {
+  ink: LIGHT.moss,
+  joy: "#f2b632",
+  love: "#ea7c98",
+  water: "#4f9fa8",
+  think: "#a2a8a3",
+  blush: "#f39ba3",
+  wilt: "#c99a55",
+  wiltInk: "#8a5f22",
+  sad1: "#5a5826",
+  sad2: "#9a8838",
+  sad3: "#d6bd68",
+  dew: "#e4f3f1",
+  dewInk: "#9bbfb8",
+}
+const MOOD_DARK: typeof MOOD_LIGHT = {
+  ink: DARK.sprout,
+  joy: "#f5c451",
+  love: "#f08ea8",
+  water: "#7cc3c9",
+  think: "#7f8680",
+  blush: "#e88f98",
+  wilt: "#c99a55",
+  wiltInk: "#e0b97a",
+  sad1: "#4f5024",
+  sad2: "#8d7f3a",
+  sad3: "#cdb466",
+  dew: "#e4f3f1",
+  dewInk: "#9bbfb8",
+}
+export type FernMoodPalette = typeof MOOD_LIGHT
+export const fernMoods = (dark: boolean): FernMoodPalette =>
+  dark ? MOOD_DARK : MOOD_LIGHT
+
 /** The fiddlehead's strokes in a 24-unit box: the stem rising into a spiral
  * of about one and a half turns, then two young leaflets on the stem. */
 export const FERN_PATHS = [
@@ -31,7 +68,8 @@ export const FERN_PATHS = [
 
 /**
  * The fiddlehead: a frond unfurling from its spiral, drawn as one stroke.
- * Reads from 16 pt up; below that use the orb alone.
+ * This is the Unfurl logo's mark (wordmark, sign-in, share-card footers);
+ * where Fern acts, draw FernSprite instead.
  */
 export function FernMark({
   size = 24,
