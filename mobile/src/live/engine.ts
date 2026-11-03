@@ -18,9 +18,13 @@ interface OpResult {
   code?: string | null
   row?: Payload | null
   replayed?: boolean
+  /** An applied action: the synced rows it wrote (a confirmed card's
+   * record), so they show without waiting for a pull that may hold them. */
+  changes?: Change[]
 }
 
-interface Change {
+/** One synced row as the server hands it out (a pull, a reply, an action). */
+export interface Change {
   entity: string
   id: string
   version: number
@@ -55,6 +59,11 @@ const DEFERRED_KEY = "sop-live:deferred"
 const DELETED_LIMIT = 500
 const DEAD_LETTER_LIMIT = 200
 
+// A pull holding committed rows back (an older server transaction still
+// running, e.g. a Fern turn) is asked again after these waits, doubling.
+const HELD_FIRST_MS = 1_000
+const HELD_MAX_MS = 8_000
+
 // Sync requests run in the background and nothing waits on them, so a slow
 // link gets longer than an interactive call before it counts as offline.
 const SYNC_TIMEOUT_MS = 30_000
@@ -77,6 +86,8 @@ export class SyncEngine {
   private unsubscribe: (() => void)[] = []
   private backoffMs = 0
   private retry: ReturnType<typeof setTimeout> | null = null
+  private heldMs = 0
+  private heldRetry: ReturnType<typeof setTimeout> | null = null
   /** Server rows held back while an op of this device's still speaks for
    * them, keyed entity:id: shown once the outbox no longer names the row. */
   private deferred: Record<string, Change> = {}
@@ -129,6 +140,8 @@ export class SyncEngine {
     if (this.timer) clearTimeout(this.timer)
     if (this.retry) clearTimeout(this.retry)
     this.retry = null
+    if (this.heldRetry) clearTimeout(this.heldRetry)
+    this.heldRetry = null
   }
 
   /** Coalesce a burst of edits into one diff. */
@@ -377,6 +390,11 @@ export class SyncEngine {
         // The pull after this push then brings every server row back.
         if (op?.kind === "action" && resync.has(op.name)) this.cursor = 0
       }
+      if (r.changes?.length && op?.kind === "action" && i !== undefined)
+        for (const c of r.changes) {
+          rows.push(c)
+          after.set(c, ops.slice(i + 1))
+        }
       if (r.row && op?.kind === "upsert" && op.id && i !== undefined) {
         const c: Change = {
           entity: op.name,
@@ -429,14 +447,33 @@ export class SyncEngine {
         changes: Change[]
         cursor: number
         truncated: boolean
+        held?: boolean
       }>("GET", `/sync/pull?cursor=${this.cursor}&limit=500`, undefined, {
         timeoutMs: SYNC_TIMEOUT_MS,
       })
       this.apply(page.changes)
       this.cursor = page.cursor
       this.persist()
-      if (!page.truncated) return
+      if (!page.truncated) return this.askAgainIfHeld(!!page.held)
     }
+  }
+
+  /** The server holds committed rows back until an older writer ends, and
+   * nothing announces when it does: ask again shortly, backing off. */
+  private askAgainIfHeld(held: boolean) {
+    if (!held) {
+      this.heldMs = 0
+      return
+    }
+    if (this.heldRetry) return
+    this.heldMs = Math.min(
+      HELD_MAX_MS,
+      this.heldMs ? this.heldMs * 2 : HELD_FIRST_MS,
+    )
+    this.heldRetry = setTimeout(() => {
+      this.heldRetry = null
+      void this.sync()
+    }, this.heldMs)
   }
 
   private queued(): SyncOp[] {

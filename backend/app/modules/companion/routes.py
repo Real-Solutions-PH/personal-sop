@@ -37,6 +37,7 @@ from app.modules.iam.deps import (
     require_permission,
 )
 from app.modules.profile import public as profile
+from app.modules.sync import written
 from app.shared.context import Ctx, CtxDep, make_ctx
 from app.shared.events import publish
 from app.shared.pagination import PaginationDep
@@ -163,6 +164,7 @@ def ask_stream(
                     run_id,
                     on_wait=lambda ahead: stream.custom("queued", {"behind": ahead}),
                 ),
+                written.tracking(ctx.session) as wrote,
             ):
                 out = services.ask(
                     ctx,
@@ -172,9 +174,13 @@ def ask_stream(
                     media_ids=data.media_ids,
                     thread_id=data.thread_id,
                 )
+                ctx.commit()
         except gate.Busy:
             stream.failed("busy", "Still answering your last message. Try again.")
             return
+        # What the turn recorded rides on the finished reply: a pull may hold
+        # it back while this or another turn's transaction is still open.
+        out = out.model_copy(update={"changes": written.changes(ctx, wrote)})
         stream.finished(out.model_dump(mode="json"))
         # Whether or not the phone still holds the stream: one in the app
         # fetches the reply at once instead of at its next sync.

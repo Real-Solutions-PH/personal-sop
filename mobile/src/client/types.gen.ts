@@ -650,6 +650,7 @@ export type AskOut = {
     capture?: ({
     [key: string]: unknown;
 } | null);
+    changes?: Array<SyncChange>;
 };
 
 export type kind3 = 'reply' | 'capture';
@@ -4067,6 +4068,7 @@ export type SyncOpResult = {
     result?: ({
     [key: string]: unknown;
 } | null);
+    changes?: Array<SyncChange>;
     replayed?: boolean;
 };
 
@@ -4076,6 +4078,7 @@ export type SyncPull = {
     changes: Array<SyncChange>;
     cursor: number;
     truncated: boolean;
+    held?: boolean;
 };
 
 export type SyncPush = {
