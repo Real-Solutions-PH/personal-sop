@@ -43,8 +43,6 @@ export function Stepper({
         muted
         style={{
           textAlign: "center",
-          textTransform: "uppercase",
-          letterSpacing: 0.6,
           marginBottom: 6,
         }}
       >

@@ -765,13 +765,17 @@ export function Routines() {
                       height: 36,
                       borderRadius: 99,
                       paddingHorizontal: 12,
-                      backgroundColor: t.hab,
+                      backgroundColor: t.primary,
                       justifyContent: "center",
                     }}
                   >
                     <Line style={{ gap: 6 }}>
-                      <Play size={14} fill={t.bg} color={t.bg} />
-                      <Copy size={14} weight="medium" style={{ color: t.bg }}>
+                      <Play size={14} fill={t.onPrimary} color={t.onPrimary} />
+                      <Copy
+                        size={14}
+                        weight="medium"
+                        style={{ color: t.onPrimary }}
+                      >
                         Start
                       </Copy>
                     </Line>

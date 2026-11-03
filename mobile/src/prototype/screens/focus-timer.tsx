@@ -140,7 +140,7 @@ export function FocusTimer() {
     })
   }
   const item = p?.item ?? session?.item ?? null
-  const accent = p?.kind === "break" ? t.good : t.foc
+  const accent = p?.kind === "break" ? t.good : t.primary
   const progress = p?.plannedSec
     ? p.elapsed / p.plannedSec
     : p
@@ -294,8 +294,8 @@ export function FocusTimer() {
           )}
         </TimerRing>
         {!session ? (
-          <Tap label="Start focus" onPress={start} style={round(88, t.foc)}>
-            <Play size={36} color={t.bg} fill={t.bg} />
+          <Tap label="Start focus" onPress={start} style={round(88, t.primary)}>
+            <Play size={36} color={t.onPrimary} fill={t.onPrimary} />
           </Tap>
         ) : p?.status === "waiting" ? (
           <Line style={{ gap: 16 }}>

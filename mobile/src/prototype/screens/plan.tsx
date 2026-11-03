@@ -240,8 +240,8 @@ export function TaskPlanPanel({
                   </Tap>
                 }
               >
-                <Copy size={12} weight="medium" style={{ color: t.bad }}>
-                  OVERDUE · {d.overdue.length}
+                <Copy size={13} weight="medium" style={{ color: t.bad }}>
+                  Overdue · {d.overdue.length}
                 </Copy>
               </SectionHeading>
               {d.overdue.slice(0, 3).map((task) => row(task))}
@@ -274,7 +274,7 @@ export function TaskPlanPanel({
                 <Line style={{ gap: 4 }}>
                   <ChevronDown size={16} color={t.muted} />
                   <Copy size={12} weight="medium" muted>
-                    DONE TODAY · {d.doneToday.length}
+                    Done today · {d.doneToday.length}
                   </Copy>
                 </Line>
               </Tap>
