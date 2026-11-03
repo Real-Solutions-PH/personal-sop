@@ -1,6 +1,7 @@
 import * as Haptics from "expo-haptics"
 import {
   Archive,
+  ArrowDown,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -40,6 +41,8 @@ import {
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
 import Animated, {
+  FadeIn,
+  FadeOut,
   interpolate,
   runOnJS,
   type SharedValue,
@@ -53,6 +56,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { screenShown } from "./boot/first-screen"
 import { formatPick, parseDay, startOf, toClock, toDay } from "./date-pick"
+import { useFollowBottom } from "./follow"
 import { feel } from "./motion"
 import { back, go } from "./navigation"
 import { Switch } from "./switch"
@@ -600,6 +604,8 @@ export function Screen({
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const scroller = useRef<ScrollViewInstance>(null)
+  // A chat page follows its newest message only while the reader lets it.
+  const latest = useFollowBottom(scroller, scrollToEnd)
   // A drag inside the page (reordering a list) pauses its scrolling.
   const [locked, setLocked] = useState(false)
   // A hairline appears under the header once content scrolls beneath it.
@@ -717,57 +723,127 @@ export function Screen({
           {pinned}
         </View>
       )}
-      <ScrollView
-        ref={scroller}
-        scrollEnabled={!locked}
-        scrollEventThrottle={64}
-        onLayout={(e) => {
-          view.current.height = e.nativeEvent.layout.height
-        }}
-        onScroll={(e) => {
-          const { contentOffset, contentSize, layoutMeasurement } =
-            e.nativeEvent
-          view.current.top = contentOffset.y
-          const next = contentOffset.y > 4
-          if (next !== scrolled) setScrolled(next)
-          if (
-            onEndReached &&
-            contentOffset.y + layoutMeasurement.height >
-              contentSize.height - END_DISTANCE
-          )
-            onEndReached()
-        }}
-        refreshControl={
-          onRefresh ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => void refresh()}
-              tintColor={t.muted}
-              colors={[t.primary]}
-            />
-          ) : undefined
-        }
-        onContentSizeChange={(_w, h) => {
-          if (scrollToEnd) scroller.current?.scrollToEnd({ animated: false })
-          // Not enough rows to scroll yet: the next page fills the screen.
-          if (onEndReached && view.current.height && h < view.current.height)
-            onEndReached()
-        }}
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingHorizontal: 16,
-          paddingTop: prototypeLayout ? 0 : 8,
-          // Clears the Fern button, which rises ~36pt above the tab bar.
-          paddingBottom: safe.bottom + 64,
-          gap: prototypeLayout ? 12 : 8,
-        }}
-      >
-        <ScrollLock.Provider value={setLocked}>
-          <PageScroll.Provider value={reveal}>{children}</PageScroll.Provider>
-        </ScrollLock.Provider>
-      </ScrollView>
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          ref={scroller}
+          scrollEnabled={!locked}
+          scrollEventThrottle={64}
+          // Content growing above what the reader sees (an earlier reply
+          // settling) does not move it.
+          maintainVisibleContentPosition={
+            scrollToEnd ? { minIndexForVisible: 0 } : undefined
+          }
+          onScrollBeginDrag={latest.handlers.onScrollBeginDrag}
+          onScrollEndDrag={latest.handlers.onScrollEndDrag}
+          onMomentumScrollEnd={latest.handlers.onMomentumScrollEnd}
+          onLayout={(e) => {
+            view.current.height = e.nativeEvent.layout.height
+          }}
+          onScroll={(e) => {
+            if (scrollToEnd) latest.handlers.onScroll(e)
+            const { contentOffset, contentSize, layoutMeasurement } =
+              e.nativeEvent
+            view.current.top = contentOffset.y
+            const next = contentOffset.y > 4
+            if (next !== scrolled) setScrolled(next)
+            if (
+              onEndReached &&
+              contentOffset.y + layoutMeasurement.height >
+                contentSize.height - END_DISTANCE
+            )
+              onEndReached()
+          }}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => void refresh()}
+                tintColor={t.muted}
+                colors={[t.primary]}
+              />
+            ) : undefined
+          }
+          onContentSizeChange={(_w, h) => {
+            latest.handlers.onContentSizeChange()
+            // Not enough rows to scroll yet: the next page fills the screen.
+            if (onEndReached && view.current.height && h < view.current.height)
+              onEndReached()
+          }}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: prototypeLayout ? 0 : 8,
+            // Clears the Fern button, which rises ~36pt above the tab bar.
+            paddingBottom: safe.bottom + 64,
+            gap: prototypeLayout ? 12 : 8,
+          }}
+        >
+          <ScrollLock.Provider value={setLocked}>
+            <PageScroll.Provider value={reveal}>{children}</PageScroll.Provider>
+          </ScrollLock.Provider>
+        </ScrollView>
+        {scrollToEnd && latest.away && (
+          <JumpToLatest unread={latest.unread} onPress={latest.jump} />
+        )}
+      </View>
       {footer}
     </KeyboardAvoidingView>
+  )
+}
+/** Back to the newest message of a chat the reader scrolled up in; the dot
+ * says something arrived meanwhile. */
+export function JumpToLatest({
+  unread,
+  onPress,
+}: {
+  unread: boolean
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Animated.View
+      entering={FadeIn.duration(150)}
+      exiting={FadeOut.duration(150)}
+      style={{ position: "absolute", right: 16, bottom: 12 }}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={
+          unread ? "Jump to latest, new messages" : "Jump to latest"
+        }
+        hitSlop={8}
+        onPress={() => {
+          feel.tap()
+          onPress()
+        }}
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 20,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: t.card,
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: t.line,
+          boxShadow: "0px 4px 12px #00000026",
+        }}
+      >
+        <ArrowDown size={18} color={t.text} />
+        {unread && (
+          <View
+            style={{
+              position: "absolute",
+              top: 6,
+              right: 6,
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: t.primary,
+            }}
+          />
+        )}
+      </Pressable>
+    </Animated.View>
   )
 }
 export function ListScreen<T>({

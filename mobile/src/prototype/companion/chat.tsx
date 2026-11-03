@@ -52,6 +52,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { stopSpeech, speaking as useSpeaking } from "@/live/speech"
+import { jumpToLatest, useFollowBottom } from "../follow"
 import { stopDictation } from "../live-dictation"
 import { copyText } from "../media"
 import { feel } from "../motion"
@@ -60,7 +61,7 @@ import { go } from "../navigation"
 import { chatPage } from "../notifications"
 import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, useTheme } from "../theme"
-import { Screen } from "../ui"
+import { JumpToLatest, Screen } from "../ui"
 import { wake } from "../wake-word"
 import { AskStatus } from "./ask-status"
 import { BlockView, Chips, TrackerCard } from "./blocks"
@@ -216,7 +217,7 @@ export function SolMessage({ m, name }: { m: Msg; name: string }) {
           </Text>
         )}
         {rest.map((b, i) => (
-          <BlockView key={i} block={b} />
+          <BlockView key={i} block={b} live={writing} />
         ))}
         {writing && !text && stage && <ThinkLine>{stage}</ThinkLine>}
         {!!text && !writing && <ReplyActions id={m.id} text={text} />}
@@ -370,6 +371,14 @@ function SentPhoto({ url, media }: { url: string | null; media?: string }) {
     </View>
   )
 }
+/** Sending a message shows it, wherever the reader had scrolled. */
+function send(...args: Parameters<typeof ask>) {
+  jumpToLatest()
+  return ask(...args)
+}
+/** A row of the full chat page: with the page's 12 pt gap, 18 pt between
+ * messages, as before they became the page's own rows. */
+const ROW = { paddingTop: 6 }
 function Thinking({ name }: { name: string }) {
   const t = useTheme()
   const on = thinking((s) => s.on)
@@ -741,7 +750,7 @@ export function CompanionChat() {
           }}
         >
           <ThreadComposer
-            onText={(v, hint, photos) => ask(v, hint, photos)}
+            onText={(v, hint, photos) => send(v, hint, photos)}
             initialText={params.q ?? ""}
             initialHint={params.hint}
             placeholder={`Message ${name}…`}
@@ -764,30 +773,37 @@ export function CompanionChat() {
           ))}
         </ScrollView>
       )}
-      <View style={{ gap: 18, paddingVertical: 12 }}>
-        {timeline.length === 0 ? (
+      {/* One row per child of the page's scroll content, so a row growing
+          above what the reader sees keeps their place
+          (maintainVisibleContentPosition anchors children). */}
+      {timeline.length === 0 ? (
+        <View style={ROW}>
           <Welcome name={name} />
-        ) : (
-          settled.map((x) => {
-            const day = dayKey(new Date(x.at))
-            const sep = day !== lastDay
-            lastDay = day
-            return (
-              <View key={x.key} style={{ gap: 18 }}>
-                {sep && <DaySeparator day={day} />}
-                <TimelineItem node={x.node} name={name} />
-              </View>
-            )
-          })
-        )}
-        <Thinking name={name} />
-        {waiting.map((x) => (
-          <TimelineItem key={x.key} node={x.node} name={name} />
-        ))}
-        {timeline.length > 0 && !on && (
+        </View>
+      ) : (
+        settled.map((x) => {
+          const day = dayKey(new Date(x.at))
+          const sep = day !== lastDay
+          lastDay = day
+          return (
+            <View key={x.key} style={[ROW, { gap: 18 }]}>
+              {sep && <DaySeparator day={day} />}
+              <TimelineItem node={x.node} name={name} />
+            </View>
+          )
+        })
+      )}
+      <Thinking name={name} />
+      {waiting.map((x) => (
+        <View key={x.key} style={ROW}>
+          <TimelineItem node={x.node} name={name} />
+        </View>
+      ))}
+      {timeline.length > 0 && !on && (
+        <View style={ROW}>
           <Chips prompts={["How am I doing?", "Coach me", "Plan my day"]} />
-        )}
-      </View>
+        </View>
+      )}
       <ChatsSheet open={chats} onClose={() => setChats(false)} />
     </Screen>
   )
@@ -843,6 +859,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
   const grow = useSharedValue(0)
   const scroller = useRef<ScrollViewInstance>(null)
   const timeline = useTimeline()
+  const latest = useFollowBottom(scroller, timeline.length > 0)
   const [settled, waiting] = useMemo(() => splitWaiting(timeline), [timeline])
   const [chats, setChats] = useState(false)
   const [typing, setTyping] = useState(false)
@@ -1066,36 +1083,41 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
               </View>
             </View>
           </GestureDetector>
-          <ScrollView
-            ref={scroller}
-            keyboardShouldPersistTaps="handled"
-            // Follow the conversation down; a new chat's welcome stays at
-            // its top so the greeting is not scrolled out of view.
-            onContentSizeChange={() => {
-              if (timeline.length)
-                scroller.current?.scrollToEnd({ animated: true })
-            }}
-            contentContainerStyle={{
-              paddingHorizontal: 16,
-              paddingTop: 4,
-              paddingBottom: 12,
-              gap: 16,
-            }}
-          >
-            {timeline.length === 0 ? (
-              <Welcome name={name} compact />
-            ) : (
-              settled.map((x) => (
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              ref={scroller}
+              keyboardShouldPersistTaps="handled"
+              scrollEventThrottle={64}
+              // Follow the conversation down only while the reader lets it
+              // (follow.ts); a new chat's welcome stays at its top so the
+              // greeting is not scrolled out of view.
+              {...latest.handlers}
+              maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+              contentContainerStyle={{
+                paddingHorizontal: 16,
+                paddingTop: 4,
+                paddingBottom: 12,
+                gap: 16,
+              }}
+            >
+              {timeline.length === 0 ? (
+                <Welcome name={name} compact />
+              ) : (
+                settled.map((x) => (
+                  <TimelineItem key={x.key} node={x.node} name={name} />
+                ))
+              )}
+              <Thinking name={name} />
+              {waiting.map((x) => (
                 <TimelineItem key={x.key} node={x.node} name={name} />
-              ))
+              ))}
+            </ScrollView>
+            {latest.away && (
+              <JumpToLatest unread={latest.unread} onPress={latest.jump} />
             )}
-            <Thinking name={name} />
-            {waiting.map((x) => (
-              <TimelineItem key={x.key} node={x.node} name={name} />
-            ))}
-          </ScrollView>
+          </View>
           <ThreadComposer
-            onText={(v, hint, photos) => ask(v, hint, photos)}
+            onText={(v, hint, photos) => send(v, hint, photos)}
             hints={false}
             initialHint={ctx.hint}
             initialMode={ctx.mode}
