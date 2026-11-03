@@ -7,7 +7,13 @@ import type { AuthError as GoTrueError } from "@supabase/supabase-js"
 import { sessionStoreReadable } from "@/lib/storage"
 import { getSupabase } from "@/lib/supabase"
 import type { About } from "@/prototype/onboarding-draft"
-import { ApiError, createHttp, NetworkError, type TokenSource } from "./http"
+import {
+  ApiError,
+  createHttp,
+  NetworkError,
+  sessionRenewed,
+  type TokenSource,
+} from "./http"
 
 let sessionLost: (() => void) | null = null
 
@@ -18,8 +24,20 @@ export function onSessionLost(handler: (() => void) | null) {
   sessionLost = handler
 }
 
+// The auth client renews the session on its own timer too; each renewal,
+// whoever asked for it, is announced to what waits for it.
+let watching = false
+function watchRenewals() {
+  if (watching) return
+  watching = true
+  getSupabase().auth.onAuthStateChange((event) => {
+    if (event === "TOKEN_REFRESHED") sessionRenewed()
+  })
+}
+
 export const tokens: TokenSource = {
   async current() {
+    watchRenewals()
     const { data } = await getSupabase().auth.getSession()
     return data.session?.access_token ?? null
   },

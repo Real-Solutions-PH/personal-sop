@@ -263,11 +263,15 @@ THREAD_TITLE = 48
 def thread_for(ctx: Ctx, thread_id: uuid.UUID | None) -> CompanionThread:
     """The chat a message goes to: the one named (made with that id when the
     phone started it offline, brought back if it was deleted), else the most
-    recent, else a new one."""
+    recent, else a new one.
+
+    A chat started on the phone is also pushed by sync, often in the same
+    moment as its first question: the push can land between this lookup and
+    the insert, so the insert takes the pushed row instead of failing."""
     if thread_id is not None:
         row = owned_repo.get(ctx, CompanionThread, thread_id, include_deleted=True)
         if row is None:
-            return owned_repo.insert(ctx, CompanionThread, {}, row_id=thread_id)
+            row, _ = owned_repo.insert_once(ctx, CompanionThread, {}, row_id=thread_id)
         if row.deleted_at is not None:
             owned_repo.restore(ctx, row)
         return row

@@ -79,8 +79,10 @@ import {
   type Fetch,
   type Http,
   NetworkError,
+  onSessionRenewed,
   REQUEST_TIMEOUT_MS,
   timed,
+  withFreshToken,
 } from "./http"
 import { keepFile, releaseFile } from "./keep-file"
 import {
@@ -1413,6 +1415,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       }))
     putAsk(meId, text, hint, photos, "sending", threadId)
     const view = replyView(meId, threadId)
+    let parked = false
     // Set once the stream is open: a drop after that is followed again.
     let opened = false
     const fail = () => {
@@ -1451,6 +1454,14 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           ...(mediaIds.length ? { media_ids: mediaIds } : {}),
           thread_id: threadId,
         })
+        if (res.status === 401) {
+          // Signed in, but the session could not be renewed just now (the
+          // auth server unreachable for a moment after the app slept). The
+          // question waits and goes once the session is renewed.
+          markAsk(meId, "queued")
+          parked = true
+          return
+        }
         if (!res.ok) {
           fail()
           toast.error(
@@ -1492,6 +1503,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           fail()
       }
     })
+    return parked
   }
 
   /** Coming back to the app with a reply still being written when it last
@@ -1561,7 +1573,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           .messages.filter((m) => m.role === "me" && m.status === "queued")
           .sort((a, b) => a.at - b.at)[0]
         if (!next) return
-        await runAsk(next.text ?? "", next.hint, photosOf(next), next.id)
+        // Parked again (still unauthorised): wait for the next renewal.
+        if (await runAsk(next.text ?? "", next.hint, photosOf(next), next.id))
+          return
       }
     })().finally(() => {
       flushing = null
@@ -1636,12 +1650,7 @@ async function openStream(
         throw new NetworkError(String(error))
       }
     })
-  let res = await send(await tokens.current())
-  if (res.status === 401) {
-    const fresh = await tokens.refresh()
-    if (fresh) res = await send(fresh)
-  }
-  return res
+  return withFreshToken(tokens, send)
 }
 const postStream = (path: string, body: unknown) =>
   openStream("POST", path, body)
@@ -1687,7 +1696,15 @@ export function captureMappers(userId: string) {
     },
     applyRows: (changes) => engine()?.apply(changes),
     cats: categoryIds(userId),
-    watch: onConnectivityChange,
+    // Back online, or the session renewed: send what was waiting.
+    watch: (then) => {
+      const offline = onConnectivityChange(then)
+      const renewed = onSessionRenewed(then)
+      return () => {
+        offline()
+        renewed()
+      }
+    },
     listen: onServerEvent,
   })
   return captureSyncMappers(userId)

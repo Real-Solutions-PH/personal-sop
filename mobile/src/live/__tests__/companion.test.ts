@@ -778,3 +778,55 @@ test("Send now stops the reply being written", async () => {
   await flush()
   expect(post).toHaveBeenCalledWith(`/companion/messages/${id}/stop`, {})
 })
+
+test("an ask refused 401 (the session not renewed yet) waits, then goes once it is", async () => {
+  let renewed = false
+  const { post } = install(async (_p, body) =>
+    renewed
+      ? sseResponse(replayAsk(REC.ask_reply, body))
+      : ({ ok: false, status: 401 } as Response),
+  )
+  ask("log option a")
+  await flush()
+  const [waiting] = companionStore.get().messages
+  // Not "Not sent · Retry": nothing for the person to do.
+  expect(waiting).toMatchObject({ text: "log option a", status: "queued" })
+  expect(toasts).toEqual([])
+  expect(thinking.getState().on).toBe(false)
+  expect(replying.getState().id).toBeNull()
+  const tries = post.mock.calls.length
+  renewed = true
+  reconnect() // the session renewed
+  await flush()
+  expect(post).toHaveBeenCalledTimes(tries + 1)
+  expect(post.mock.calls.at(-1)?.[1]).toMatchObject({ id: waiting.id })
+  expect(companionStore.get().messages.map((m) => [m.role, m.status])).toEqual([
+    ["me", undefined],
+    ["sol", undefined],
+  ])
+})
+
+test("after a streamed reply the next question goes, and Fern is not left thinking", async () => {
+  const { post } = install(async (_p, body) =>
+    sseResponse(replayAsk(REC.ask_reply, body)),
+  )
+  ask("how am I doing?")
+  await flush()
+  expect(thinking.getState().on).toBe(false)
+  expect(answering.getState().id).toBeNull()
+  ask("log option a")
+  await flush()
+  expect(post.mock.calls.map((c) => c[1].text)).toEqual([
+    "how am I doing?",
+    "log option a",
+  ])
+  // Both answered (the recorded reply echoes its own question's words).
+  expect(companionStore.get().messages.map((m) => [m.role, m.status])).toEqual([
+    ["me", undefined],
+    ["sol", undefined],
+    ["me", undefined],
+    ["sol", undefined],
+  ])
+  expect(thinking.getState().on).toBe(false)
+  expect(replying.getState().id).toBeNull()
+})
