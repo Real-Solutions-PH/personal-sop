@@ -157,3 +157,45 @@ def test_rename_and_delete_through_sync(
     messages = pull(client, api, "companion_message")
     assert all(messages[i]["deleted"] is True for i in ids)
     assert pull(client, api, "companion_thread")[str(t)]["deleted"] is True
+
+
+def test_a_chat_pushed_by_sync_mid_ask_still_takes_the_first_message(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A new chat on the phone is pushed by sync while its first question is
+    on its way: the push can land between the ask's lookup and its insert.
+    The ask then uses the pushed chat instead of failing on a duplicate id."""
+    from app.modules.companion.models import CompanionThread
+    from app.shared import owned_repo
+
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    t = uuid.uuid4()
+    real_get = owned_repo.get
+    raced: list[bool] = []
+
+    def get_racing_push(ctx: Any, model: Any, row_id: Any, **kw: Any) -> Any:
+        found = real_get(ctx, model, row_id, **kw)
+        if model is CompanionThread and row_id == t and not raced:
+            raced.append(True)
+            # The sync push commits right after this lookup missed.
+            push(
+                client,
+                api,
+                {
+                    "op_id": str(uuid.uuid4()),
+                    "kind": "upsert",
+                    "name": "companion_thread",
+                    "id": str(t),
+                    "data": {},
+                },
+            )
+        return found
+
+    monkeypatch.setattr(owned_repo, "get", get_racing_push)
+    install(monkeypatch, say("Hi Kai."))
+    out = ask(api, client, "hello", t)
+    assert [m["role"] for m in out["messages"]] == ["me", "sol"]
+    assert {m["thread_id"] for m in out["messages"]} == {str(t)}
+    assert raced
+    assert pull(client, api, "companion_thread")[str(t)]["row"]["title"] == "hello"

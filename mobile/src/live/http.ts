@@ -20,6 +20,11 @@ export class NetworkError extends Error {}
 
 /** A request that has not answered in this long is treated as offline. */
 export const REQUEST_TIMEOUT_MS = 15_000
+/** One token-refresh attempt. GoTrue retries a refresh that fails on the
+ * network within a 30 s budget, then caches the failure for 60 s; at 15 s
+ * an attempt that hangs (a dead socket after the app slept) used the whole
+ * budget in two tries and left every request unauthorised for 90 s. */
+export const AUTH_TIMEOUT_MS = 6_000
 
 /** Run ``run`` with an abort signal that fires after ``ms``. A request that
  * times out rejects with a NetworkError ("timeout") even if the fetch
@@ -59,6 +64,41 @@ export function fetchWithTimeout(
 export interface TokenSource {
   current(): Promise<string | null>
   refresh(): Promise<string | null>
+}
+
+const renewed = new Set<() => void>()
+/** Runs ``then`` each time the session is renewed (a token refresh). */
+export function onSessionRenewed(then: () => void): () => void {
+  renewed.add(then)
+  return () => void renewed.delete(then)
+}
+/** The session was renewed: whatever waited for it can go. */
+export function sessionRenewed() {
+  for (const then of [...renewed]) then()
+}
+
+const inFlight = new WeakMap<TokenSource, Promise<string | null>>()
+/** Refresh once for everyone: the requests that all came back 401 together
+ * (a burst on resume) share one refresh and replay with its token. */
+export function refreshOnce(tokens: TokenSource): Promise<string | null> {
+  const running = inFlight.get(tokens)
+  if (running) return running
+  const next = tokens.refresh().finally(() => inFlight.delete(tokens))
+  inFlight.set(tokens, next)
+  return next
+}
+
+/** Send with the current token; on a 401, refresh (shared) and send once
+ * more with the new token. A 401 that a refresh could not fix comes back
+ * as it is. */
+export async function withFreshToken(
+  tokens: TokenSource,
+  send: (token: string | null) => Promise<Response>,
+): Promise<Response> {
+  const res = await send(await tokens.current())
+  if (res.status !== 401) return res
+  const fresh = await refreshOnce(tokens)
+  return fresh ? send(fresh) : res
 }
 
 export type Fetch = (url: string, init: RequestInit) => Promise<Response>
@@ -103,13 +143,8 @@ export function createHttp(
     return res
   }
 
-  async function open(path: string, init: RequestInit) {
-    let res = await send(path, init, await tokens.current())
-    if (res.status === 401) {
-      const fresh = await tokens.refresh()
-      if (fresh) res = await send(path, init, fresh)
-    }
-    return res
+  function open(path: string, init: RequestInit) {
+    return withFreshToken(tokens, (token) => send(path, init, token))
   }
 
   function raw(path: string, init: RequestInit = {}, opts?: RequestOptions) {
