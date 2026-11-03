@@ -153,13 +153,17 @@ export function Button({
           borderRadius: 12,
           alignItems: "center",
           justifyContent: "center",
+          // The brand's one filled button is moss on every screen; area
+          // colours stay on data (ADR-0019). Quiet buttons are outlined.
           backgroundColor:
             tone === "quiet"
-              ? t.soft
+              ? t.card
               : tone === "danger"
                 ? `${t.bad}26`
-                : t.accent,
-          opacity: disabled ? 0.4 : pressed ? 0.8 : 1,
+                : t.primary,
+          borderWidth: tone === "quiet" ? 1 : 0,
+          borderColor: t.input,
+          opacity: disabled ? 0.4 : pressed ? 0.72 : 1,
         })}
       >
         {Icon && (
@@ -170,9 +174,7 @@ export function Button({
                 ? t.text
                 : tone === "danger"
                   ? t.bad
-                  : t.dark
-                    ? t.bg
-                    : "#FFF"
+                  : t.onPrimary
             }
           />
         )}
@@ -185,9 +187,7 @@ export function Button({
                 ? t.text
                 : tone === "danger"
                   ? t.bad
-                  : t.dark
-                    ? t.bg
-                    : "#FFF",
+                  : t.onPrimary,
           }}
         >
           {children}
@@ -672,9 +672,8 @@ export function Screen({
             <Text
               style={{
                 fontFamily: fonts.medium,
-                fontSize: prototypeLayout ? 12 : 11,
-                lineHeight: prototypeLayout ? 16 : undefined,
-                letterSpacing: 1,
+                fontSize: 13,
+                lineHeight: 18,
                 color: t.muted,
                 marginBottom: prototypeLayout ? 0 : 2,
               }}

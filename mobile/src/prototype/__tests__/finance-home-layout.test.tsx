@@ -142,8 +142,8 @@ test("the home's sections come in the agreed order", () => {
   const order = [
     "Net worth",
     "What if?",
-    "BUDGETS",
-    "CASH FLOW, ",
+    "Budgets",
+    "Cash flow, ",
     "Savings projection",
     "Transactions",
     "Savings rate",
@@ -152,7 +152,7 @@ test("the home's sections come in the agreed order", () => {
     "Budget history",
     "Top payees",
     "Day-of-week spend",
-    "RECENT",
+    "Recent",
   ]
   const at = order.map((x) => all.indexOf(x))
   expect(at.every((i) => i >= 0)).toBe(true)

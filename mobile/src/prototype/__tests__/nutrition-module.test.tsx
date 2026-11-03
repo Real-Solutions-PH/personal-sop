@@ -485,7 +485,7 @@ test("the food library lists the built-in foods offline", () => {
     { wrapper },
   )
   expect(screen.getByText("Food library")).toBeTruthy()
-  expect(screen.getByText("BUILT-IN FOODS")).toBeTruthy()
+  expect(screen.getByText("Built-in foods")).toBeTruthy()
   expect(screen.getByText("Garlic rice (sinangag)")).toBeTruthy()
 })
 

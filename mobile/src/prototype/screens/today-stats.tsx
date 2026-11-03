@@ -47,77 +47,98 @@ function StatStrip({
   const t = useTheme()
   const days = last7()
   const max = Math.max(1, ...bars, goal ?? 0)
+  // The card library's layout: the figures two to a row on the left, the
+  // week's bars small on the right with today's letter in ink.
   return (
-    <Part style={{ gap: 12 }}>
-      <Line style={{ gap: 8, alignItems: "flex-start" }}>
-        {stats.map((s) => (
-          <View key={s.label} style={{ flex: 1, gap: 2 }}>
-            <Copy
-              size={18}
-              weight="semibold"
-              lines={1}
-              style={{ color: s.tone ? t[s.tone] : t.text }}
-            >
-              {s.value}
-            </Copy>
-            <Copy size={11} muted lines={2}>
-              {s.label}
-            </Copy>
-          </View>
-        ))}
-      </Line>
-      <View accessible accessibilityLabel={barsLabel} style={{ gap: 4 }}>
-        <Line style={{ height: 40, alignItems: "flex-end", gap: 6 }}>
-          {goal ? (
+    <Part>
+      <Line style={{ gap: 12, alignItems: "flex-end" }}>
+        <Line
+          style={{
+            flex: 1,
+            flexWrap: "wrap",
+            alignItems: "flex-start",
+            rowGap: 8,
+          }}
+        >
+          {stats.map((s) => (
             <View
-              testID="strip-goal-line"
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: `${(goal / max) * 100}%`,
-                borderTopWidth: 1,
-                borderStyle: "dashed",
-                borderColor: t.good,
-              }}
-            />
-          ) : null}
-          {bars.map((v, i) => (
-            <View
-              key={days[i]}
-              style={{ flex: 1, height: "100%", justifyContent: "flex-end" }}
+              key={s.label}
+              style={{ width: "50%", gap: 1, paddingRight: 6 }}
             >
-              <GrowBar
-                index={i}
-                height={`${Math.max(v > 0 ? 6 : 2, (v / max) * 100)}%`}
+              <Copy
+                size={18}
+                weight="semibold"
+                lines={1}
+                style={{
+                  color: s.tone ? t[s.tone] : t.text,
+                  fontVariant: ["tabular-nums"],
+                }}
               >
-                {/* Hand-drawn stems, no leaves (ADR-0032); today at full
-                    strength, past days softer, empty days a faint stub. */}
-                <LineStem
-                  color={v > 0 ? t[accent] : t.soft}
-                  width={5}
-                  seed={i + 1}
-                  opacity={i === 6 || v === 0 ? 1 : 0.55}
-                />
-              </GrowBar>
+                {s.value}
+              </Copy>
+              <Copy size={12} muted lines={2}>
+                {s.label}
+              </Copy>
             </View>
           ))}
         </Line>
-        <Line style={{ gap: 6 }}>
-          {days.map((d, i) => (
-            <Copy
-              key={d}
-              size={10}
-              muted
-              style={{ flex: 1, textAlign: "center" }}
-              weight={i === 6 ? "semibold" : undefined}
-            >
-              {weekday(d)}
-            </Copy>
-          ))}
-        </Line>
-      </View>
+        <View
+          accessible
+          accessibilityLabel={barsLabel}
+          style={{ width: 112, gap: 4 }}
+        >
+          <Line style={{ height: 40, alignItems: "flex-end", gap: 4 }}>
+            {goal ? (
+              <View
+                testID="strip-goal-line"
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  bottom: `${(goal / max) * 100}%`,
+                  borderTopWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: t.good,
+                }}
+              />
+            ) : null}
+            {bars.map((v, i) => (
+              <View
+                key={days[i]}
+                style={{ flex: 1, height: "100%", justifyContent: "flex-end" }}
+              >
+                <GrowBar
+                  index={i}
+                  height={`${Math.max(v > 0 ? 6 : 2, (v / max) * 100)}%`}
+                >
+                  {/* Hand-drawn stems, no leaves (ADR-0032); today at full
+                      strength, past days softer, empty days a faint stub. */}
+                  <LineStem
+                    color={v > 0 ? t[accent] : t.soft}
+                    width={4}
+                    seed={i + 1}
+                    opacity={i === 6 || v === 0 ? 1 : 0.55}
+                  />
+                </GrowBar>
+              </View>
+            ))}
+          </Line>
+          <Line style={{ gap: 4 }}>
+            {days.map((d, i) => (
+              <Copy
+                key={d}
+                size={12}
+                muted={i !== 6}
+                style={{ flex: 1, textAlign: "center" }}
+                weight={i === 6 ? "semibold" : undefined}
+              >
+                {weekday(d)}
+              </Copy>
+            ))}
+          </Line>
+        </View>
+      </Line>
     </Part>
   )
 }
