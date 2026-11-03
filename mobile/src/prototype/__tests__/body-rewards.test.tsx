@@ -4,9 +4,11 @@
 // warns instead of cheering, a weigh-in says its step toward the goal, a
 // lock-screen finish lands as the workout card, and Monday says when last
 // week fell short.
+
 import * as FA from "@domain/fitness/actions"
 import type { MacroTarget, RunSession } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
+import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render, screen } from "@testing-library/react-native"
@@ -112,7 +114,16 @@ beforeEach(() => {
   resetAll()
   resetOverlay()
   anchor.measure = (_, done) => done({ x: 0, y: 0, width: 40, height: 40 })
-  celebrateStore.set({ ids: [] })
+  // The demo seed's own finishes were announced long ago. Seeded on the
+  // business day, one can end inside the watcher's six-hour window at some
+  // hours (a live workout at 19:32 UTC, for a run at 00:31 UTC) and take
+  // the card's slot ahead of the finish under test.
+  celebrateStore.set({
+    ids: [
+      ...habitsStore.get().runs.map((r) => r.id),
+      ...fitStore.get().workouts.map((w) => w.id),
+    ],
+  })
   momentSlot.set({ holder: null })
   setPrStore.set({ sets: {} })
   mockPath.current = "/today"
