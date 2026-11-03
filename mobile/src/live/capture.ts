@@ -72,6 +72,7 @@ import {
 import { noteServerContact } from "@/prototype/connectivity"
 import { http, tokens } from "./auth"
 import { API_PREFIX, API_URL } from "./config"
+import type { Change } from "./engine"
 import { createSseParser, type ServerEvent } from "./events"
 import {
   ApiError,
@@ -102,7 +103,7 @@ import { messageFromServer, withMessages } from "./mappers/companion"
 import { categoryIds, fromMinor } from "./mappers/finance"
 import { type UploadInput, uploadMedia } from "./media"
 import { refreshQueries } from "./query-refresh"
-import { onServerEvent, queueAction, syncNow } from "./runtime"
+import { engine, onServerEvent, queueAction, syncNow } from "./runtime"
 import { toggleSpeech } from "./speech"
 
 /** The companion as the user named it (toasts speak in its name). */
@@ -130,6 +131,9 @@ export interface LiveCaptureDeps {
   act?(name: string, data: Row): boolean
   /** Push and pull now (the decision wrote rows in other modules). */
   kick(): void
+  /** Show synced rows the server returned with an answer (what a Fern turn
+   * recorded) at once, as a pull would; the pull still follows. */
+  applyRows?(changes: Change[]): void
   cats: Cats
   /** Calls back whenever connectivity changes; returns the unsubscribe.
    * Queued questions are sent when the device comes back online. */
@@ -995,6 +999,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
               putMessages(msgs)
               if (r.capture && typeof r.capture === "object")
                 detail(r.capture as Row)
+              if (Array.isArray(r.changes))
+                deps.applyRows?.(r.changes as Change[])
               // Read as a log: the capture shows in the thread instead.
               if (!msgs.some((m) => m.id === meId)) dropAsk(meId)
             })
@@ -1264,6 +1270,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           }
           if (out.capture && typeof out.capture === "object")
             detail(out.capture as Row)
+          // What Fern recorded shows on every screen now, not after a pull
+          // the server may hold back while a transaction is still open.
+          if (Array.isArray(out.changes))
+            deps.applyRows?.(out.changes as Change[])
           // A dictated message hears its answer, like voice chat.
           const reply = msgs.find((m) => m.role === "sol" && m.text)
           if (readAloud && reply)
@@ -1675,6 +1685,7 @@ export function captureMappers(userId: string) {
       syncNow()
       refreshQueries("capture.done")
     },
+    applyRows: (changes) => engine()?.apply(changes),
     cats: categoryIds(userId),
     watch: onConnectivityChange,
     listen: onServerEvent,

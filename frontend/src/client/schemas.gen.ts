@@ -1476,6 +1476,13 @@ export const AskOutSchema = {
                 }
             ],
             title: 'Capture'
+        },
+        changes: {
+            items: {
+                '$ref': '#/components/schemas/SyncChange'
+            },
+            type: 'array',
+            title: 'Changes'
         }
     },
     type: 'object',
@@ -19431,6 +19438,13 @@ export const SyncOpResultSchema = {
             ],
             title: 'Result'
         },
+        changes: {
+            items: {
+                '$ref': '#/components/schemas/SyncChange'
+            },
+            type: 'array',
+            title: 'Changes'
+        },
         replayed: {
             type: 'boolean',
             title: 'Replayed',
@@ -19458,6 +19472,11 @@ export const SyncPullSchema = {
         truncated: {
             type: 'boolean',
             title: 'Truncated'
+        },
+        held: {
+            type: 'boolean',
+            title: 'Held',
+            default: false
         }
     },
     type: 'object',

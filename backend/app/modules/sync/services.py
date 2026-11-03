@@ -21,6 +21,7 @@ Pull: every registered entity's rows past ``cursor`` (tombstones included),
 merged by ``version``, at most ``limit`` with ``truncated`` set when more wait.
 """
 
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -30,6 +31,7 @@ from sqlalchemy import func, text
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
+from app.modules.sync import written
 from app.modules.sync.models import SyncOpReceipt
 from app.modules.sync.registry import Entity, registry
 from app.modules.sync.schema import (
@@ -139,6 +141,13 @@ def _apply(ctx: Ctx, op: SyncOp) -> SyncOpResult:
 
 
 def push(ctx: Ctx, ops: list[SyncOp]) -> SyncPushResult:
+    with written.tracking(ctx.session) as wrote:
+        return _push(ctx, ops, wrote)
+
+
+def _push(
+    ctx: Ctx, ops: list[SyncOp], wrote: set[tuple[str, uuid.UUID]]
+) -> SyncPushResult:
     ctx.in_batch = True
     server_now = ctx.now
     results: list[SyncOpResult] = []
@@ -149,6 +158,7 @@ def push(ctx: Ctx, ops: list[SyncOp]) -> SyncPushResult:
             stored = SyncOpResult.model_validate(receipt.result)
             results.append(stored.model_copy(update={"replayed": True}))
             continue
+        wrote.clear()
         savepoint = ctx.session.begin_nested()
         try:
             result = _apply(ctx, op)
@@ -193,6 +203,10 @@ def push(ctx: Ctx, ops: list[SyncOp]) -> SyncPushResult:
             )
         )
         ctx.session.commit()
+        if op.kind == "action" and result.status == "applied":
+            # What the action wrote elsewhere (a confirmed card's record),
+            # read once committed; the receipt above keeps none of it.
+            result = result.model_copy(update={"changes": written.changes(ctx, wrote)})
         results.append(result)
     ctx.now = server_now
     ctx.in_batch = False
@@ -234,15 +248,16 @@ def _settled_before(ctx: Ctx) -> int:
 
 def pull(ctx: Ctx, cursor: int, limit: int) -> SyncPull:
     batch: list[tuple[int, Entity, OwnedRow]] = []
+    held = False
     horizon = _settled_before(ctx)
     for entity in registry().entities.values():
         model = entity.model
         table = model.__table__.name  # type: ignore[attr-defined]
         # age() counts back from the next xid, so an older writer has a larger
         # age; it is wraparound-safe, and a frozen row's age is the maximum.
-        settled = text(
-            f'age("{table}".xmin) > age(CAST(CAST(:horizon AS text) AS xid))'
-        ).bindparams(horizon=horizon)
+        age = f'age("{table}".xmin) %s age(CAST(CAST(:horizon AS text) AS xid))'
+        settled = text(age % ">").bindparams(horizon=horizon)
+        waiting = text(age % "<=").bindparams(horizon=horizon)
         rows = ctx.session.exec(
             select(model)
             .where(
@@ -254,6 +269,20 @@ def pull(ctx: Ctx, cursor: int, limit: int) -> SyncPull:
             .limit(limit + 1)
         ).all()
         batch.extend((r.version, entity, r) for r in rows)
+        # Committed rows this pull holds back: the device asks again soon,
+        # since nothing else tells it when the older writer ends.
+        held = held or (
+            ctx.session.exec(
+                select(model.id)
+                .where(
+                    *owned_repo.scope(ctx, model),
+                    col(model.version) > cursor,
+                    waiting,
+                )
+                .limit(1)
+            ).first()
+            is not None
+        )
     batch.sort(key=lambda item: item[0])
     truncated = len(batch) > limit
     page = batch[:limit]
@@ -268,7 +297,7 @@ def pull(ctx: Ctx, cursor: int, limit: int) -> SyncPull:
         for version, entity, row in page
     ]
     next_cursor = page[-1][0] if page else cursor
-    return SyncPull(changes=changes, cursor=next_cursor, truncated=truncated)
+    return SyncPull(changes=changes, cursor=next_cursor, truncated=truncated, held=held)
 
 
 def entity_names() -> list[str]:

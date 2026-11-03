@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.modules.companion.models import MEMORY_KINDS, METRICS
+from app.modules.sync.schema import SyncChange
 
 Metric = Literal[
     "life",
@@ -81,6 +82,9 @@ class AskOut(BaseModel):
     engine: Literal["ai", "rules"]
     messages: list[MessagePublic] = Field(default_factory=list)
     capture: dict[str, Any] | None = None
+    # The synced rows the turn wrote (a meal, a task, a card), as a pull
+    # hands them out: the app shows them at once (sync ``written``).
+    changes: list[SyncChange] = Field(default_factory=list)
 
 
 class ReplyOut(BaseModel):

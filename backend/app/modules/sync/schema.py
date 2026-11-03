@@ -27,22 +27,6 @@ class SyncPush(BaseModel):
     ops: list[SyncOp] = Field(max_length=200)
 
 
-class SyncOpResult(BaseModel):
-    op_id: uuid.UUID
-    status: OpStatus
-    code: str | None = None
-    message: str | None = None
-    # The server's row after the op (applied) or as it stands (conflict).
-    row: dict[str, Any] | None = None
-    result: dict[str, Any] | None = None
-    replayed: bool = False
-
-
-class SyncPushResult(BaseModel):
-    results: list[SyncOpResult]
-    cursor: int
-
-
 class SyncChange(BaseModel):
     entity: str
     id: uuid.UUID
@@ -51,7 +35,29 @@ class SyncChange(BaseModel):
     row: dict[str, Any] | None
 
 
+class SyncOpResult(BaseModel):
+    op_id: uuid.UUID
+    status: OpStatus
+    code: str | None = None
+    message: str | None = None
+    # The server's row after the op (applied) or as it stands (conflict).
+    row: dict[str, Any] | None = None
+    result: dict[str, Any] | None = None
+    # An applied action: the synced rows it wrote, so the device shows them
+    # without waiting for a pull (``written``). Never on a replay.
+    changes: list[SyncChange] = Field(default_factory=list)
+    replayed: bool = False
+
+
+class SyncPushResult(BaseModel):
+    results: list[SyncOpResult]
+    cursor: int
+
+
 class SyncPull(BaseModel):
     changes: list[SyncChange]
     cursor: int
     truncated: bool
+    # Rows past ``cursor`` are committed but wait for an older writer still
+    # running (``_settled_before``): pull again shortly.
+    held: bool = False

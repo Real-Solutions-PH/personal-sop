@@ -20087,6 +20087,11 @@
               { "type": "null" }
             ],
             "title": "Capture"
+          },
+          "changes": {
+            "items": { "$ref": "#/components/schemas/SyncChange" },
+            "type": "array",
+            "title": "Changes"
           }
         },
         "type": "object",
@@ -31989,6 +31994,11 @@
             ],
             "title": "Result"
           },
+          "changes": {
+            "items": { "$ref": "#/components/schemas/SyncChange" },
+            "type": "array",
+            "title": "Changes"
+          },
           "replayed": {
             "type": "boolean",
             "title": "Replayed",
@@ -32007,7 +32017,8 @@
             "title": "Changes"
           },
           "cursor": { "type": "integer", "title": "Cursor" },
-          "truncated": { "type": "boolean", "title": "Truncated" }
+          "truncated": { "type": "boolean", "title": "Truncated" },
+          "held": { "type": "boolean", "title": "Held", "default": false }
         },
         "type": "object",
         "required": ["changes", "cursor", "truncated"],
