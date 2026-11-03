@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { replace } from "./navigation"
+import { switchTab } from "./navigation"
 
 /** Tab routes in bar order (the centre + button is not a page). */
 export const TAB_ROUTES = ["/today", "/plan", "/stats", "/me"]
@@ -13,6 +13,6 @@ export function stepTab(path: string, dir: 1 | -1) {
   const next = i < 0 ? undefined : TAB_ROUTES[i + dir]
   if (!next) return false
   tabDirection.setState({ dir })
-  replace(next)
+  switchTab(next)
   return true
 }

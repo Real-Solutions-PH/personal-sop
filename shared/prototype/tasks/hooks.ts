@@ -1,5 +1,6 @@
 "use client"
 import { useMemo } from "react"
+import { useSharedMemo } from "../lib/memo"
 import type { Task, TaskList } from "./data"
 import {
   addDays,
@@ -100,7 +101,7 @@ export function useTodayData(): TodayData {
 }
 export function useStats(days: number, offset = 0) {
   const state = tasksStore.use((s) => s)
-  return useMemo(() => {
+  return useSharedMemo("tasks.useStats", () => {
     const to = addDays(today(), -offset)
     return computeStats(state, addDays(to, -(days - 1)), to)
   }, [state, days, offset])

@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
 import { dayKey, dayOffset } from "../lib/day"
+import { useSharedMemo } from "../lib/memo"
 import type { ScreenDay, ScreenGroup, ScreenState } from "./data"
 import { areaRate } from "./logic"
 import { useScreen } from "./store"
@@ -20,7 +21,7 @@ const inWindow = (s: ScreenState, first: string, last: string) =>
 
 function useAreaRate(days: number, offset = 0): number | null {
   const s = useScreen()
-  return useMemo(() => {
+  return useSharedMemo("screen.useAreaRate", () => {
     const [first, last] = win(days, offset)
     return areaRate(inWindow(s, first, last), s.groups)
   }, [s, days, offset])
@@ -55,7 +56,7 @@ function avgUsed(s: ScreenState, first: string, last: string): number | null {
 
 function useMetrics(days: number): Metric[] {
   const s = useScreen()
-  return useMemo(() => {
+  return useSharedMemo("screen.useMetrics", () => {
     const a = avgUsed(s, ...win(days))
     const b = avgUsed(s, ...win(days, days))
     return [

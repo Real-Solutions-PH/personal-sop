@@ -1,6 +1,7 @@
 "use client"
 import { useMemo } from "react"
 import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
+import { useSharedMemo } from "../lib/memo"
 import {
   addDays,
   addMonths,
@@ -39,7 +40,7 @@ function budgetScore(s: FinState) {
 }
 function useAreaRate(days: number, offset = 0) {
   const s = useFin()
-  return useMemo(() => {
+  return useSharedMemo("finance.useAreaRate", () => {
     if (!s.accounts.length) return null
     const to = addDays(today(), -offset)
     const sr = savingsRate(
@@ -62,7 +63,7 @@ function runwayMonths(s: FinState) {
 }
 function useMetrics(days: number): Metric[] {
   const s = useFin()
-  return useMemo(() => {
+  return useSharedMemo("finance.useMetrics", () => {
     if (!s.accounts.length) return []
     const [from, to] = span(days)
     const [pf, pt] = span(days, 1)
@@ -121,7 +122,8 @@ function useMetrics(days: number): Metric[] {
 }
 function useCalendar(from: string, to: string): CalendarItem[] {
   const s = useFin()
-  return useMemo(
+  return useSharedMemo(
+    "finance.useCalendar",
     () =>
       occurrencesIn(s, from, to)
         .filter((o) => o.status !== "skipped")
@@ -138,7 +140,7 @@ function useCalendar(from: string, to: string): CalendarItem[] {
 }
 function useMisses(from: string, to: string): Miss[] {
   const s = useFin()
-  return useMemo(() => {
+  return useSharedMemo("finance.useMisses", () => {
     const out: Miss[] = []
     const sd = s.settings.monthStartDay
     const t = today()

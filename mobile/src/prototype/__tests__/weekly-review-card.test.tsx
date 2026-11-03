@@ -167,6 +167,8 @@ describe("the card", () => {
     jest.useFakeTimers({ now: new Date(`${dayKey()}T09:30:00`) })
     const { Today } = require("../screens/today")
     render(<Today />, { wrapper })
+    // Today's summary cards render a frame after the page itself.
+    act(() => jest.advanceTimersByTime(200))
     expect(card()).toBeTruthy()
     // The old bottom-of-Today nudge gave way to the card.
     expect(screen.queryByText("Weekly review is ready")).toBeNull()

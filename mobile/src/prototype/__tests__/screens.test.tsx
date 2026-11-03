@@ -167,22 +167,23 @@ test("Plan exposes the full overdue queue separately from today's preview", () =
   view.unmount()
 })
 
-test("Stats area selection exposes the selected area metrics", () => {
+test("Stats area selection exposes the selected area metrics", async () => {
   const { StatsHome } = require("../screens/stats-home")
   const view = render(<StatsHome />, { wrapper })
+  // The figures render a frame after the page.
   fireEvent.press(
-    screen.getByRole("button", { name: /^Routines:.*Show details$/ }),
+    await screen.findByRole("button", { name: /^Routines:.*Show details$/ }),
   )
   expect(screen.getByText("Routines completed")).toBeTruthy()
   expect(screen.getByText("Runs finished")).toBeTruthy()
   view.unmount()
 })
 
-test("Stats shows each area's today next to its range, and follows the range", () => {
+test("Stats shows each area's today next to its range, and follows the range", async () => {
   const { StatsHome } = require("../screens/stats-home")
   const view = render(<StatsHome />, { wrapper })
   // One row per area: today's done of due (or nothing due) and the range.
-  const habits = screen.getByRole("button", {
+  const habits = await screen.findByRole("button", {
     name: /^Habits: today (\d+ of \d+|nothing due); 7d (\d+%|not scored yet)$/,
   })
   expect(habits).toBeTruthy()

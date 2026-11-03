@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
 import { dayKey } from "../lib/day"
+import { useSharedMemo } from "../lib/memo"
 import {
   cellFor,
   daysBetween,
@@ -18,14 +19,14 @@ import { habitsStore } from "./store"
 const useState = () => habitsStore.use((s) => s)
 function useAreaRate(days: number, offset = 0) {
   const s = useState()
-  return useMemo(() => {
+  return useSharedMemo("habits.useAreaRate", () => {
     const o = overallStats(s, days, offset)
     return o.rated ? o.rate : null
   }, [s, days, offset])
 }
 function useMetrics(days: number): Metric[] {
   const s = useState()
-  return useMemo(() => {
+  return useSharedMemo("habits.useMetrics", () => {
     const cur = overallStats(s, days)
     const prev = overallStats(s, days, days)
     const idx = logIndex(s.logs)
@@ -76,7 +77,7 @@ function useMetrics(days: number): Metric[] {
 }
 function useCalendar(from: string, to: string): CalendarItem[] {
   const s = useState()
-  return useMemo(() => {
+  return useSharedMemo("habits.useCalendar", () => {
     const idx = logIndex(s.logs)
     const out: CalendarItem[] = []
     for (const day of daysBetween(from, to)) {
@@ -115,7 +116,7 @@ function useCalendar(from: string, to: string): CalendarItem[] {
 }
 function useMisses(from: string, to: string): Miss[] {
   const s = useState()
-  return useMemo(() => {
+  return useSharedMemo("habits.useMisses", () => {
     const today = dayKey()
     const idx = logIndex(s.logs)
     const out: Miss[] = []

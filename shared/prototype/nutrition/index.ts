@@ -3,6 +3,7 @@ import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
 import { adherence, nutritionDays, targetFor } from "../fitness/calc"
 import { useFit } from "../fitness/store"
 import { dayKey } from "../lib/day"
+import { useSharedMemo } from "../lib/memo"
 
 // Meals are not calendar items; a constant keeps memos stable.
 const NO_ITEMS: CalendarItem[] = []
@@ -14,14 +15,14 @@ const NO_ITEMS: CalendarItem[] = []
  * Score. */
 function useAreaRate(days: number, offset = 0): number | null {
   const s = useFit()
-  return useMemo(() => {
+  return useSharedMemo("nutrition.useAreaRate", () => {
     const a = adherence(s, days, offset)
     return a.logged ? (a.calorie + a.protein) / 2 : null
   }, [s, days, offset])
 }
 function useMetrics(days: number): Metric[] {
   const s = useFit()
-  return useMemo(() => {
+  return useSharedMemo("nutrition.useMetrics", () => {
     const a = adherence(s, days)
     const b = adherence(s, days, days)
     const eaten = (x: typeof a) => x.days.filter((d) => d.meals > 0)
@@ -74,7 +75,7 @@ function useMetrics(days: number): Metric[] {
 }
 function useMisses(from: string, to: string): Miss[] {
   const s = useFit()
-  return useMemo(() => {
+  return useSharedMemo("nutrition.useMisses", () => {
     const out: Miss[] = []
     for (const d of nutritionDays(s, 90)) {
       if (

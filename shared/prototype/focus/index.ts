@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import type { CalendarItem, Metric, Miss, ModuleContract } from "../contract"
 import { dayKey, dayOffset } from "../lib/day"
+import { useSharedMemo } from "../lib/memo"
 import * as C from "./calc"
 import * as L from "./logic"
 import { useFocusState } from "./store"
@@ -22,7 +23,7 @@ const win = (days: number, offset = 0) =>
 
 function useAreaRate(days: number, offset = 0): number | null {
   const s = useFocusState()
-  return useMemo(() => {
+  return useSharedMemo("focus.useAreaRate", () => {
     const [first, last] = win(days, offset)
     return C.areaRate(s, first, last)
   }, [s, days, offset])
@@ -54,7 +55,7 @@ function read(
 
 function useMetrics(days: number): Metric[] {
   const s = useFocusState()
-  return useMemo(() => {
+  return useSharedMemo("focus.useMetrics", () => {
     const [f0, l0] = win(days)
     const [f1, l1] = win(days, days)
     const a = read(s, f0, l0)
@@ -110,7 +111,7 @@ function useMetrics(days: number): Metric[] {
 
 function useCalendar(from: string, to: string): CalendarItem[] {
   const s = useFocusState()
-  return useMemo(() => {
+  return useSharedMemo("focus.useCalendar", () => {
     const r = C.rangeStats(s, from, to)
     const out: CalendarItem[] = []
     for (const tl of r.timelines) {
@@ -148,7 +149,7 @@ function useCalendar(from: string, to: string): CalendarItem[] {
 
 function useMisses(from: string, to: string): Miss[] {
   const s = useFocusState()
-  return useMemo(() => {
+  return useSharedMemo("focus.useMisses", () => {
     const goal = C.goalSec(s)
     const today = dayKey()
     const days = C.dueDays(s, from, to).filter((d) => d < today)
