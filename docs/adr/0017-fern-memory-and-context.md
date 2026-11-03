@@ -74,7 +74,8 @@ focused pass with only the memory tool. With the full instructions, the
 model tended to answer "Remembered: …" without calling the tool.
 
 **Per-turn context:**
-- **Tool routing.** Each turn offers a core set of 17 tools, plus the
+- **Tool routing** (superseded by ADR-0031, 2026-11-03: every turn now
+  offers every tool). Each turn offered a core set of 17 tools, plus the
   groups (money, tasks, habits, fitness, journal) that its words, or the
   person's two previous messages, point to. A long message that names no
   group gets every tool, as do a message with photos, a generic write
@@ -105,9 +106,10 @@ None. pgvector is an extension to the Postgres default, not a new store.
 **Negative:**
 - Each memory write and each recall costs an embedding call. These are
   small: under 10 tokens per memory measured.
-- Tool routing can leave a tool out when a message's words miss its group.
-  The fallbacks (long or generic messages get every tool, plus the
-  corrective pass) bound this, but do not remove it.
+- Tool routing could leave a tool out when a message's words missed its
+  group (removed by ADR-0031).
+  The fallbacks (long or generic messages got every tool, plus the
+  corrective pass) bounded this, but did not remove it.
 - The local and test Postgres needs the pgvector extension.
 
 **Follow-ups:**

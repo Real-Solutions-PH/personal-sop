@@ -352,6 +352,23 @@ def meal_item_problems(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, 
     return out
 
 
+def meal_item_gaps(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The values each estimated item (one the food library won't replace)
+    left out, as ``{"item": name, "missing": [...]}``; empty when none."""
+    hits = fitness.food_library.library_hits(ctx, items)
+    out = []
+    for it, hit in zip(items, hits, strict=True):
+        missing = (
+            []
+            if hit
+            else [k for k in ("protein", "carbs", "fat") if it.get(k) is None]
+            + fitness.nutrient_check.missing_details(it)
+        )
+        if missing:
+            out.append({"item": it.get("name"), "missing": missing})
+    return out
+
+
 WARN_MAX = 280
 
 

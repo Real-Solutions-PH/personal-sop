@@ -3,6 +3,7 @@
 // waits while the app is in the background or another moment is up, and
 // shares its once-only record with the routine summary so neither plays the
 // same finish twice.
+import { fitStore } from "@domain/fitness/store"
 import * as HA from "@domain/habits/actions"
 import type { Routine, RoutineRun } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
@@ -117,7 +118,16 @@ beforeEach(() => {
   resetAll()
   resetOverlay()
   anchor.measure = (_, done) => done({ x: 0, y: 0, width: 0, height: 0 })
-  celebrateStore.set({ ids: [] })
+  // The demo seed's own finishes were announced long ago. Seeded on the
+  // business day, one can end inside the watcher's six-hour window at some
+  // hours (a live workout at 19:32 UTC, for a run at 00:31 UTC) and take
+  // the card's slot ahead of the finish under test.
+  celebrateStore.set({
+    ids: [
+      ...habitsStore.get().runs.map((r) => r.id),
+      ...fitStore.get().workouts.map((w) => w.id),
+    ],
+  })
   momentSlot.set({ holder: null })
   mockMotion.reduced = false
   mockPath.current = "/today"

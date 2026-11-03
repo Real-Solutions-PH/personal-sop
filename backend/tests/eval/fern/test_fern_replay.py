@@ -23,6 +23,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.core.db import engine
+from app.modules.iam.users.models import User
 from tests.utils.tenant import fresh_tenant
 from tests.utils.user import create_auth_user
 
@@ -57,8 +58,14 @@ def test_replay(
     runs = []
     for n in range(REPEATS):
         # Each case in its own tenant: the food library is unique per tenant.
-        user, _ = create_auth_user(db, tenant_id=fresh_tenant(db))
+        made, _ = create_auth_user(db, tenant_id=fresh_tenant(db))
+        user_id = made.id
+        # End the fixture session's transaction: a case waits minutes on the
+        # model, and an idle-in-transaction connection holds back the
+        # cluster's xmin for every other database on the server.
+        db.rollback()
         with Session(engine) as session:
+            user = session.get_one(User, user_id)
             trace = harness.run_case(session, user, case)
         checks = harness.check(case, trace)
         # Judged here, or later over the saved results (report.py --judge).

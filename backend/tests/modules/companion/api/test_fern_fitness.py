@@ -13,7 +13,6 @@ from fastapi.testclient import TestClient
 from langchain_core.messages import ToolMessage
 from sqlmodel import Session
 
-from app.modules.companion import routing
 from app.modules.fitness.models import (
     Exercise,
     FitnessSettings,
@@ -899,23 +898,3 @@ def test_a_live_workout_is_in_todays_facts(client: TestClient, db: Session) -> N
         "id": w["id"],
         "name": w["name"],
     }
-
-
-@pytest.mark.parametrize(
-    "text,tool",
-    [
-        ("rename lat pulldown to wide grip pulldown", "edit_exercise"),
-        ("rename my push day template", "edit_workout_template"),
-        ("start my pull day", "start_workout"),
-        ("change my second bench set to 65", "edit_workout"),
-        ("move that breakfast to lunch", "edit_meal"),
-        ("fix my weigh-in, it was 71", "edit_weigh_in"),
-        ("set my protein target to 150", "set_macro_target"),
-        ("change my goal weight to 68", "fitness_settings"),
-        ("rename pancit canton in my food library", "edit_food"),
-        ("add a treadmill walk exercise", "create_exercise"),
-    ],
-)
-def test_fitness_words_offer_the_fitness_tools(text: str, tool: str) -> None:
-    names = routing.pick(text, [])
-    assert names is not None and tool in names, (text, sorted(names or []))

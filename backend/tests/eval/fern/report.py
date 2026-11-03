@@ -58,6 +58,19 @@ def summary(results: list[dict[str, Any]]) -> dict[str, Any]:
         "per_criterion": {n: (round(mean(v), 3), len(v)) for n, v in per.items() if v},
         "errors": sum(1 for t in traces if t.get("error")),
         "seconds_mean": round(mean(t["seconds"] for t in traces), 1),
+        "turn_seconds_mean": round(
+            mean(x for t in traces for x in t.get("turn_seconds") or [t["seconds"]]), 1
+        ),
+        "turn_seconds_p90": round(
+            sorted(x for t in traces for x in t.get("turn_seconds") or [t["seconds"]])[
+                int(sum(len(t.get("turn_seconds") or [1]) for t in traces) * 0.9) - 1
+            ],
+            1,
+        ),
+        "tools_per_round": round(
+            mean([r for t in traces for r in t.get("rounds") or [] if r] or [0]), 2
+        ),
+        "rounds_mean": round(mean(len(t.get("rounds") or []) for t in traces), 2),
         "seconds_p90": round(
             sorted(t["seconds"] for t in traces)[int(len(traces) * 0.9) - 1], 1
         ),
@@ -109,7 +122,7 @@ def compare(outs: list[Path]) -> str:
     head = (
         "| Arch | Failures fixed | Guards kept | Checks | Judge | "
         + " | ".join(f"C{n}" for n in crit)
-        + " | s/turn | calls | tokens in | cost |"
+        + " | s/turn | p90 | rounds | tools/round | calls | tokens in | cost |"
     )
     lines = [head, "|" + "---|" * (head.count("|") - 1)]
     for name, s in rows:
@@ -117,7 +130,8 @@ def compare(outs: list[Path]) -> str:
             f"| {name} | {s['failures_fixed']}/{s['failures']} | {s['guards_kept']}/{s['guards']} | "
             f"{s['checks_passed']}/{s['checks']} | {s['judge']} | "
             + " | ".join(f"{s['per_criterion'].get(n, (None,))[0]}" for n in crit)
-            + f" | {s['seconds_mean']} | {s['model_calls_mean']} | {s['input_tokens_mean']:,} | "
+            + f" | {s['turn_seconds_mean']} | {s['turn_seconds_p90']} | {s['rounds_mean']} | "
+            f"{s['tools_per_round']} | {s['model_calls_mean']} | {s['input_tokens_mean']:,} | "
             f"{s['cost_minor_total']:,} |"
         )
     return "\n".join(lines)

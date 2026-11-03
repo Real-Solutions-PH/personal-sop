@@ -266,6 +266,9 @@ def test_a_turn_reaches_its_first_words_fast(
     )
     # Before this budget (2026-11-01, same assumptions): first text 45.8 s,
     # reply done 62.4 s; four calls, all thinking, a summary call first.
+    # Every tool on every call (2026-11-03) took first text to 6.6-7.1 s:
+    # 75 schemas, 11,925 tokens a call. The rare ones deferred (42 sent,
+    # 7,273 tokens): 5.6 s.
     assert m["first_progress_s"] < 5
     assert m["first_text_s"] < 7
     assert m["reply_s"] < 20

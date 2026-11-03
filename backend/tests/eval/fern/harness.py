@@ -281,6 +281,9 @@ class Trace:
     cost_minor: int = 0
     model_calls: int = 0
     seconds: float = 0.0
+    # Wall-clock seconds of each message's turn, and tool calls per round.
+    turn_seconds: list[float] = field(default_factory=list)
+    rounds: list[int] = field(default_factory=list)
     error: str | None = None
 
     def names(self) -> list[str]:
@@ -308,6 +311,8 @@ class Trace:
             "cost_minor": self.cost_minor,
             "model_calls": self.model_calls,
             "seconds": round(self.seconds, 2),
+            "turn_seconds": [round(x, 2) for x in self.turn_seconds],
+            "rounds": self.rounds,
             "error": self.error,
         }
 
@@ -318,6 +323,12 @@ class RecordingStream(TurnStream):
 
     calls: list[ToolCall] = field(default_factory=list)
     turn_no: int = 0
+    # Tool calls the model asked for in each of its calls (0: it answered).
+    rounds: list[int] = field(default_factory=list)
+
+    def model_finished(self, turn: int, message: Any) -> None:
+        self.rounds.append(len(getattr(message, "tool_calls", None) or []))
+        super().model_finished(turn, message)
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
         self.calls.append(ToolCall(name=name, args=dict(args), turn=self.turn_no))
@@ -371,6 +382,7 @@ def run_case(session: Session, user: User, case: Case) -> Trace:
         stream = RecordingStream(
             ctx, thread_id=f"companion:{user.id}", run_id=str(me_id), turn_no=i
         )
+        turn_started = time.monotonic()
         try:
             out = services.ask(
                 ctx, text=sent.text, message_id=me_id, stream=stream, thread_id=thread
@@ -379,6 +391,8 @@ def run_case(session: Session, user: User, case: Case) -> Trace:
             session.rollback()
             trace.error = f"{type(exc).__name__}: {exc}"[:500]
             break
+        trace.turn_seconds.append(time.monotonic() - turn_started)
+        trace.rounds.extend(stream.rounds)
         trace.calls.extend(stream.calls)
         for m in out.messages:
             if m.role == "sol":

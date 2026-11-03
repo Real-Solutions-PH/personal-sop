@@ -1,5 +1,7 @@
-"""Fern thinks on a turn's first model call only, so its plan shows as it
-forms, and a call that thinks for too long is asked again without thinking.
+"""Fern thinks before every model call of a turn (companion/loop.py): its
+plan shows as it forms, and reading the results it gathered is where a
+wrong assumption gets caught. A call that thinks for too long is asked
+again without thinking.
 
 Why: with thinking off on every call (to stop one-to-three-minute replies),
 a reasoning model sent nothing while it planned, and the person watched a
@@ -22,7 +24,7 @@ def _thinking(opts: list[dict[str, object]]) -> list[bool]:
     return [o.get("extra_body") == THINK for o in opts]
 
 
-def test_only_the_first_call_of_a_turn_thinks(
+def test_every_call_of_a_turn_thinks(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api = user(client, db, accounts=False)
@@ -40,10 +42,9 @@ def test_only_the_first_call_of_a_turn_thinks(
         e["delta"] for e in evs if e["type"] == "REASONING_MESSAGE_CONTENT"
     )
     assert thought == "They want their macros."
-    # The turn's first call thinks; no later call does.
+    # Every call thinks, the one after the tool results too.
     calls = _thinking(model.opts)
-    assert calls[0] is True
-    assert len(calls) > 1 and not any(calls[1:])
+    assert len(calls) > 1 and all(calls)
 
 
 def test_a_model_without_a_switch_is_asked_as_before(

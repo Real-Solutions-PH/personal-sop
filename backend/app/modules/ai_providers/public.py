@@ -180,9 +180,10 @@ def thinking_options(resolved: ResolvedModel) -> dict[str, Any]:
 
     Why (2026-11-02): with thinking off everywhere, Fern sent nothing while
     it planned and the person watched a bare "Thinking". Measured on
-    DeepSeek-V4-Flash: thinking on a turn's first call shows the plan's
-    first words in 1.1-1.4 s and costs 0.3-0.8 s, so the companion asks for
-    it there only (``capture.agent.run_loop`` ``think_first``, with a cap).
+    DeepSeek-V4-Flash: thinking on a call shows the plan's first words in
+    1.1-1.4 s and costs 0.3-0.8 s. The companion asks for it on every call
+    of a turn (``capture.agent.run_loop`` ``think_every``, with a cap; see
+    companion/loop.py).
     Empty when the family has no switch or the provider refused it."""
     if (resolved.base_url, resolved.model) in _REFUSED:
         return {}

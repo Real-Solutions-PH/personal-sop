@@ -15,7 +15,7 @@ from langchain_core.messages import SystemMessage, ToolMessage
 from sqlmodel import Session, select
 
 from app.core.db import engine as db_engine
-from app.modules.companion import routing, services
+from app.modules.companion import services
 from tests.modules.capture.api.helpers import (
     Api,
     ScriptedModel,
@@ -259,8 +259,6 @@ def test_it_is_breakfast_is_an_edit_that_never_confirms(
     stream(api, client, "It is breakfast")
     system = system_of(model)
     assert "Job: edit" in system and "never confirm or re-create it" in system
-    offered = routing.pick("It is breakfast", [])
-    assert offered is not None and "edit_meal" in offered
     refused = tool_result(model, 1, "confirm_pending")
     assert refused["error"] == "they_did_not_confirm"
 

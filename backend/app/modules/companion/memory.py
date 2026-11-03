@@ -43,6 +43,7 @@ from sqlmodel import col, select
 
 from app.modules.ai_providers import public as ai
 from app.modules.companion.models import Memory
+from app.modules.iam.deps import release_connection
 from app.shared import owned_repo
 from app.shared.context import Ctx
 
@@ -125,6 +126,10 @@ def always_on(ctx: Ctx) -> list[Memory]:
 
 
 def _embed_one(ctx: Ctx, text: str) -> tuple[list[float], str] | None:
+    # The embedding is a network wait: don't hold the turn's connection idle
+    # in a transaction through it (as the agent loop does before a model call).
+    if not ctx.in_batch and not ctx.session.in_nested_transaction():
+        release_connection(ctx.session)
     try:
         vectors, model = ai.embed(ctx, [text])
     except ai.EmbedError:

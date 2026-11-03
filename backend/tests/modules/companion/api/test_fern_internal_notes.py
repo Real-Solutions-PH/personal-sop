@@ -21,6 +21,7 @@ from app.modules.companion import services
 from app.modules.companion.turn import Step, TurnStream
 from app.shared.context import Ctx
 from tests.modules.capture.api.helpers import Api, call, install, parse_agui, say, user
+from tests.modules.companion.api.meal_items import full
 
 NOTE = "[Done this turn: Dropped meal: Matcha; Logged meal: Buko pandan (waiting for your OK)]"
 
@@ -64,14 +65,14 @@ def meal(name: str, kcal: float = 200) -> dict[str, Any]:
     return {
         "description": name,
         "items": [
-            {
-                "name": name,
-                "kcal": kcal,
-                "carbs": kcal / 4,
-                "sugar": 0,
-                "sodium": 0,
-                "grams": 100,
-            }
+            full(
+                {
+                    "name": name,
+                    "kcal": kcal,
+                    "carbs": kcal / 4,
+                    "grams": 100,
+                }
+            )
         ],
         "confidence": 0.5,
     }
