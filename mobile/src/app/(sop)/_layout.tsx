@@ -17,7 +17,9 @@ import { useEffect, useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
+  ReduceMotion,
   runOnJS,
+  type SharedValue,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -60,10 +62,24 @@ const tabs = [
 ]
 // The centre of the bar is Fern, the app's main way in: say or snap what
 // happened, ask what you need. Fern turns into × while the drawer is open,
-// and listens while "Hey Fern" is on.
-function FabIcon({ open, hearing }: { open: boolean; hearing: boolean }) {
+// and listens while "Hey Fern" is on. A press squeezes Fern down a little
+// and lets go with a spring (a dip in opacity under Reduce Motion).
+function FabIcon({
+  open,
+  hearing,
+  press,
+}: {
+  open: boolean
+  hearing: boolean
+  press: SharedValue<number>
+}) {
   const t = useTheme()
   const reduced = useReducedMotion()
+  const squeeze = useAnimatedStyle(() =>
+    reduced
+      ? { opacity: 1 - press.value * 0.35 }
+      : { transform: [{ scale: 1 - press.value * 0.12 }] },
+  )
   const turn = useSharedValue(open ? 1 : 0)
   useEffect(() => {
     turn.value = reduced
@@ -87,13 +103,16 @@ function FabIcon({ open, hearing }: { open: boolean; hearing: boolean }) {
     ],
   }))
   return (
-    <View
-      style={{
-        width: 48,
-        height: 48,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
+    <Animated.View
+      style={[
+        {
+          width: 48,
+          height: 48,
+          alignItems: "center",
+          justifyContent: "center",
+        },
+        squeeze,
+      ]}
     >
       <Animated.View style={[{ position: "absolute" }, mark]}>
         <FernSprite
@@ -105,23 +124,40 @@ function FabIcon({ open, hearing }: { open: boolean; hearing: boolean }) {
       <Animated.View style={[{ position: "absolute" }, close]}>
         <X size={26} strokeWidth={2.5} color={t.text} />
       </Animated.View>
-    </View>
+    </Animated.View>
   )
 }
-// A slow breathing halo marks Fern as the place to start. Still when the
-// person prefers reduced motion, and while the drawer is open.
+const pressIn = (v: SharedValue<number>) => {
+  v.value = withTiming(1, { duration: 90, reduceMotion: ReduceMotion.Never })
+}
+const pressOut = (v: SharedValue<number>) => {
+  v.value = withSpring(0, {
+    damping: 9,
+    stiffness: 320,
+    reduceMotion: ReduceMotion.Never,
+  })
+}
+// A slow breathing halo marks Fern as the place to start; under Reduce
+// Motion it only brightens and dims, never grows. Still while the drawer
+// is open.
 function FernHalo({ color, still }: { color: string; still: boolean }) {
   const reduced = useReducedMotion()
   const pulse = useSharedValue(0)
   useEffect(() => {
-    pulse.value =
-      reduced || still
-        ? withSpring(0)
-        : withRepeat(withTiming(1, { duration: 2200 }), -1, true)
-  }, [reduced, still, pulse])
+    const never = ReduceMotion.Never
+    pulse.value = still
+      ? withSpring(0)
+      : withRepeat(
+          withTiming(1, { duration: 2200, reduceMotion: never }),
+          -1,
+          true,
+          undefined,
+          never,
+        )
+  }, [still, pulse])
   const style = useAnimatedStyle(() => ({
     opacity: 0.22 + pulse.value * 0.18,
-    transform: [{ scale: 1 + pulse.value * 0.08 }],
+    transform: [{ scale: reduced ? 1 : 1 + pulse.value * 0.08 }],
   }))
   return (
     <Animated.View
@@ -238,6 +274,7 @@ export default function PrototypeLayout() {
   const dir = tabDirection((s) => s.dir)
   const drawer = captureUi.use((s) => s.open)
   const hearing = wake((s) => s.armed)
+  const fabPress = useSharedValue(0)
   const [bar, setBar] = useState(0)
   // Task and habit reminders as notifications scheduled on this phone.
   useEffect(() => startReminders(), [])
@@ -406,6 +443,12 @@ export default function PrototypeLayout() {
                   accessibilityState={{
                     selected: tab.label === "Fern" ? drawer : active,
                   }}
+                  onPressIn={
+                    tab.label === "Fern" ? () => pressIn(fabPress) : undefined
+                  }
+                  onPressOut={
+                    tab.label === "Fern" ? () => pressOut(fabPress) : undefined
+                  }
                   onPress={() => {
                     void Haptics.selectionAsync().catch(() => {})
                     if (tab.label === "Fern")
@@ -448,7 +491,11 @@ export default function PrototypeLayout() {
                           boxShadow: `0px 6px 14px ${fern.moss}33`,
                         }}
                       >
-                        <FabIcon open={drawer} hearing={hearing} />
+                        <FabIcon
+                          open={drawer}
+                          hearing={hearing}
+                          press={fabPress}
+                        />
                       </View>
                       {hearing && <ListeningBadge />}
                     </View>
