@@ -9,6 +9,9 @@ import { addDays } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
 import { ChevronRight, X } from "lucide-react-native"
 import { View } from "react-native"
+import Svg, { Path } from "react-native-svg"
+import { CornerMotif } from "./brand/corner"
+import { jitter, leaf, rng, smooth } from "./brand/scribble"
 import { FernSprite } from "./companion/fern-sprite"
 import { Copy, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
@@ -118,6 +121,7 @@ export function FirstWeekView({
   return (
     <View testID="first-week">
       <Frame style={{ padding: 16 }}>
+        <CornerMotif kind="vine" seed={n + 2} />
         <Line style={{ justifyContent: "space-between", marginBottom: 8 }}>
           <Copy size={14} weight="semibold">
             Your first week
@@ -126,23 +130,20 @@ export function FirstWeekView({
             Day {n} of 7 · {lit} lit
           </Copy>
         </Line>
-        <Line style={{ gap: 6 }}>
-          {week.map((d, i) => (
-            <View
-              key={d.day}
-              accessibilityLabel={`Day ${i + 1}${d.logged ? ", lit" : ""}`}
-              style={{
-                height: 8,
-                flex: 1,
-                borderRadius: 4,
-                backgroundColor: d.logged ? t.primary : t.soft,
-                borderWidth: d.day === today && !d.logged ? 1 : 0,
-                borderColor: t.primary,
-              }}
-            />
-          ))}
-        </Line>
-        <Copy size={12} muted style={{ marginTop: 8 }}>
+        <LeafRow
+          cells={week.map((d) =>
+            d.logged ? "lit" : d.day === today ? "today" : "ahead",
+          )}
+        />
+        <Copy
+          size={12}
+          weight={todayLit && n === 7 ? "medium" : undefined}
+          muted={!(todayLit && n === 7)}
+          style={{
+            marginTop: 8,
+            color: todayLit && n === 7 ? t.good : undefined,
+          }}
+        >
           {todayLit
             ? n < 7
               ? `Day ${n} is lit. Come back tomorrow for day ${n + 1}.`
@@ -150,6 +151,61 @@ export function FirstWeekView({
             : `Log one thing today to light up day ${n}.`}
         </Copy>
       </Frame>
+    </View>
+  )
+}
+
+export type LeafCell = "lit" | "today" | "ahead"
+/** A day sequence as leaves on a stem, the share cards' calendar: filled
+ * for a lit day, outlined in primary for today, faint for days ahead. */
+export function LeafRow({ cells }: { cells: LeafCell[] }) {
+  const t = useTheme()
+  const lit = cells.filter((c) => c === "lit").length
+  const cw = 300 / cells.length
+  const stem = smooth(
+    jitter(
+      Array.from({ length: 8 }, (_, i) => [
+        (i * 300) / 7,
+        26 + Math.sin(i) * 1.5,
+      ]) as [number, number][],
+      1,
+      rng(4),
+    ),
+  )
+  return (
+    <View
+      testID="leaf-row"
+      accessible
+      accessibilityLabel={`${lit} of ${cells.length} days lit`}
+    >
+      <Svg
+        width="100%"
+        height={30}
+        viewBox="0 0 300 30"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <Path
+          d={stem}
+          fill="none"
+          stroke={t.line}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+        />
+        {cells.map((c, i) => {
+          const d = leaf(cw * i + cw / 2 - 6, 22, 18, -0.8, 0.46)
+          return (
+            <Path
+              key={i}
+              testID={`leaf-${c}`}
+              d={d}
+              fill={c === "lit" ? t.primary : "none"}
+              stroke={c === "ahead" ? t.muted : t.primary}
+              strokeWidth={c === "today" ? 1.6 : 1}
+              opacity={c === "ahead" ? 0.45 : 1}
+            />
+          )
+        })}
+      </Svg>
     </View>
   )
 }

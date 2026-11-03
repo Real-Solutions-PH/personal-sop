@@ -166,6 +166,28 @@ export function describeCode(
     }
   return { label: "Unknown", icon: Cloud, sky: "cloudy" }
 }
+/** The Today card's hand-drawn background for a sky. Clear and partly
+ * cloudy skies have a day and a night drawing; the rest are drawn once, on
+ * the light paper ground. */
+export type SkyImage =
+  | "clear-day"
+  | "clear-night"
+  | "partly-day"
+  | "partly-night"
+  | "cloudy"
+  | "fog"
+  | "drizzle"
+  | "rain"
+  | "snow"
+  | "storm"
+export function skyImage(sky: Sky, day: boolean): SkyImage {
+  return sky === "clear" || sky === "partly"
+    ? `${sky}-${day ? "day" : "night"}`
+    : sky
+}
+/** Night drawings sit on a dark ground and take light text; the rest take
+ * ink. */
+export const skyImageIsDark = (k: SkyImage) => k.endsWith("-night")
 // Fixed hero gradients (white text stays readable in both app themes).
 export function skyGradient(sky: Sky, day: boolean): [string, string] {
   const table: Record<Sky, [[string, string], [string, string]]> = {
