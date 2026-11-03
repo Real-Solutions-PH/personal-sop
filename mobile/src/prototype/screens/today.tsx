@@ -60,13 +60,7 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import {
-  type ComponentType,
-  memo,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { type ComponentType, memo, useEffect, useMemo, useState } from "react"
 import { Platform, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
