@@ -1,7 +1,10 @@
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import { Target } from "lucide-react-native"
+import { StyleSheet } from "react-native"
 import {
+  cardLabels,
   flowerTier,
+  MIN_LABELLED_R,
   type Petal,
   petalTier,
   Rosette,
@@ -162,5 +165,102 @@ describe("the leaf flower", () => {
     mockMotion.reduced = true
     render(<Rosette petals={all} ink={ink} />)
     expect(scales()).toEqual([1, 1, 1, 1])
+  })
+})
+
+describe("the leaf flower on a share card", () => {
+  const row = (fontU: number) => fontU * 1.3 + 8
+  /** Each tip label's box in drawing units, as the card places it. */
+  function boxes(n: number, h: number, fontU = 15) {
+    const labels = cardLabels(fontU),
+      s = rosetteShape(
+        Array.from({ length: n }, (_, i) => petal(`a${i}`, 50 + i * 5)),
+        h,
+        labels,
+      ),
+      half = row(fontU) / 2
+    return {
+      R: s.R,
+      cx: s.cx,
+      cy: s.cy,
+      boxes: s.petals.map((p) => {
+        const [x, y] = p.label,
+          [x0, x1] =
+            p.side === "left"
+              ? [x - labels.width, x]
+              : p.side === "right"
+                ? [x, x + labels.width]
+                : [x - labels.width / 2, x + labels.width / 2]
+        return { x0, x1, y0: y - half, y1: y + half }
+      }),
+    }
+  }
+  const sizes = [3, 4, 5, 6, 7, 8].flatMap((n) =>
+    [240, 280, 312].map((h) => [n, h] as const),
+  )
+
+  it.each(
+    sizes,
+  )("keeps %i labels inside a 312×%i drawing, clear of the petals and of each other", (n, h) => {
+    const { R, cx, cy, boxes: all } = boxes(n, h)
+    expect(R).toBeGreaterThanOrEqual(MIN_LABELLED_R)
+    for (const b of all) {
+      expect(b.x0).toBeGreaterThanOrEqual(0)
+      expect(b.x1).toBeLessThanOrEqual(312)
+      expect(b.y0).toBeGreaterThanOrEqual(0)
+      expect(b.y1).toBeLessThanOrEqual(h)
+      // The box's nearest point to the hub lies past every petal tip.
+      const nx = Math.max(b.x0, Math.min(cx, b.x1)),
+        ny = Math.max(b.y0, Math.min(cy, b.y1))
+      expect(Math.hypot(nx - cx, ny - cy)).toBeGreaterThan(R)
+    }
+    for (let i = 0; i < all.length; i++)
+      for (let j = i + 1; j < all.length; j++) {
+        const a = all[i],
+          b = all[j]
+        const apart =
+          a.x1 <= b.x0 || b.x1 <= a.x0 || a.y1 <= b.y0 || b.y1 <= a.y0
+        expect(apart).toBe(true)
+      }
+  })
+
+  const eight = Array.from({ length: 8 }, (_, i) =>
+    petal(`Area${i}`, 40 + i * 7, { prev: 0 }),
+  )
+  const lay = (width: number, height: number) =>
+    fireEvent(screen.getByTestId("rosette"), "layout", {
+      nativeEvent: { layout: { width, height } },
+    })
+
+  it("shows each area's value without the change, at the size it is given", () => {
+    render(<Rosette card petals={eight} ink={ink} height={300} font={15} />)
+    lay(312, 300)
+    const text = screen.UNSAFE_root.findAll(
+      (n) =>
+        typeof n.props.children !== "undefined" &&
+        (n.type as unknown) === "Text",
+    )
+    const shown = text.map((t) =>
+      [t.props.children]
+        .flat()
+        .filter((x) => typeof x === "string" || typeof x === "number")
+        .join(""),
+    )
+    expect(shown).toEqual(expect.arrayContaining(["40", "89"]))
+    expect(shown.join(" ")).not.toMatch(/[▲▼]/)
+    for (const t of text) {
+      const style = StyleSheet.flatten(t.props.style)
+      expect(style.fontSize).toBe(15)
+      expect(t.props.adjustsFontSizeToFit).toBe(false)
+    }
+  })
+
+  it("drops the labels when they would shrink the petals, and grows instead", () => {
+    render(<Rosette card petals={eight} ink={ink} height={110} font={15} />)
+    lay(312, 110)
+    expect(screen.queryByText("40")).toBeNull()
+    expect(rosetteShape(eight, 110, cardLabels(15)).R).toBeLessThan(
+      MIN_LABELLED_R,
+    )
   })
 })

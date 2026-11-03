@@ -54,7 +54,6 @@ import {
   Hero,
   LeafCal,
   Meters,
-  Optional,
   P,
   ShareComposer,
   Stems,
@@ -117,25 +116,44 @@ const plural = (n: number, one: string, many = `${one}s`) =>
 /** A day's score: what was due that got done, as a percent. */
 const score = (x: CardData["w7"]["range"][number]) =>
   x.due > 0 ? Math.round((x.done / x.due) * 100) : undefined
-/** The area facets as the leaf flower: a petal per area, its tip carrying
- * the value and the change against the period before. */
-function Flower({ facets, size }: { facets: Facet[]; size: number }) {
-  const { q, c } = useCard()
+/** The area facets as the leaf flower, the card's hero chart: it takes
+ * the whole room the card leaves it (``Body fill``), up to a square, and
+ * each tip carries its area's icon and value at 15 kit points. When that
+ * room is too short for labels (a square card) the flower is drawn bare and
+ * larger, and the card's line names the strongest and weakest area. Over a
+ * photo it sits on a soft ground of the card colour so petals and values
+ * stay readable. */
+function Flower({ facets, photo }: { facets: Facet[]; photo: boolean }) {
+  const { q, c } = useCard(),
+    [room, setRoom] = useState({ width: 0, height: 0 }),
+    h = room.width > 0 ? Math.min(312, (312 * room.height) / room.width) : 0
   return (
-    <View style={{ width: Math.min(88, size * 1.8) * q, alignSelf: "center" }}>
-      <Rosette
-        petals={petalsOf(facets, c.area)}
-        height={220}
-        font={(size >= 38 ? 3 : 2.4) * q}
-        ink={{
-          ink: c.ink,
-          muted: c.muted,
-          good: c.good,
-          bad: c.bad,
-          mark: c.mark,
-          hub: c.bg,
-        }}
-      />
+    <View
+      style={{ flex: 1, minHeight: 0, justifyContent: "center" }}
+      onLayout={(e) => {
+        const { width, height } = e.nativeEvent.layout
+        setRoom((r) =>
+          r.width === width && r.height === height ? r : { width, height },
+        )
+      }}
+    >
+      {h > 40 && (
+        <Rosette
+          card
+          petals={petalsOf(facets, c.area)}
+          height={h}
+          font={15 * P * q}
+          halo={photo ? c.bg : undefined}
+          ink={{
+            ink: c.ink,
+            muted: c.muted,
+            good: c.good,
+            bad: c.bad,
+            mark: c.mark,
+            hub: c.bg,
+          }}
+        />
+      )}
     </View>
   )
 }
@@ -218,16 +236,17 @@ export function Artwork({
           }
         />
         {on.level && <Sub bad={down}>{line}</Sub>}
-        <Body>
-          {on.hexagon && (
-            <Flower facets={d.facets30} size={sq ? 24 : tall ? 46 : 28} />
-          )}
-          {on.areas && (tall || !on.hexagon) && (
-            <Optional>
+        {on.hexagon ? (
+          <Body fill>
+            <Flower facets={d.facets30} photo={look.backdrop === "photo"} />
+          </Body>
+        ) : (
+          on.areas && (
+            <Body>
               <AreaMeters d={d} />
-            </Optional>
-          )}
-        </Body>
+            </Body>
+          )
+        )}
       </>
     )
   }
@@ -527,9 +546,11 @@ export function Artwork({
         {on.identity &&
           !sq &&
           d.identities.slice(0, 2).map((x) => <Sub key={x}>{`“${x}”`}</Sub>)}
-        <Body>
-          {on.hexagon && <Flower facets={d.facets30} size={tall ? 32 : 28} />}
-        </Body>
+        {on.hexagon && (
+          <Body fill>
+            <Flower facets={d.facets30} photo={look.backdrop === "photo"} />
+          </Body>
+        )}
         <Figures
           items={[
             {
@@ -672,7 +693,9 @@ export function ShareCard() {
               width={width}
               look={{
                 ...look,
-                format: x.formats.includes(look.format)
+                // Every card has a 4:5 layout for posting, the story-only
+                // profile included.
+                format: [...x.formats, "4:5"].includes(look.format)
                   ? look.format
                   : x.formats[0],
               }}
@@ -682,6 +705,7 @@ export function ShareCard() {
           ),
         }))}
         formats={tpl.formats}
+        postFormats={[...tpl.formats, "4:5"]}
         caption={caption}
         beforeShare={(action) => {
           proceed.current = action
