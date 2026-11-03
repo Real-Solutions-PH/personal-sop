@@ -52,40 +52,48 @@ function StatStrip({
   return (
     <Part>
       <Line style={{ gap: 12, alignItems: "flex-end" }}>
-        <Line
-          style={{
-            flex: 1,
-            flexWrap: "wrap",
-            alignItems: "flex-start",
-            rowGap: 8,
-          }}
-        >
-          {stats.map((s) => (
-            <View
-              key={s.label}
-              style={{ width: "50%", gap: 1, paddingRight: 6 }}
-            >
-              <Copy
-                size={18}
-                weight="semibold"
-                lines={1}
-                style={{
-                  color: s.tone ? t[s.tone] : t.text,
-                  fontVariant: ["tabular-nums"],
-                }}
+        {/* Two figures to a row, as explicit rows (two 50% cells plus
+            the row's gap wrapped to one column). */}
+        <View style={{ flex: 1, gap: 8 }}>
+          {[stats.slice(0, 2), stats.slice(2, 4)]
+            .filter((row) => row.length)
+            .map((row) => (
+              <Line
+                key={row[0].label}
+                style={{ alignItems: "flex-start", gap: 8 }}
               >
-                {s.value}
-              </Copy>
-              <Copy size={12} muted lines={2}>
-                {s.label}
-              </Copy>
-            </View>
-          ))}
-        </Line>
+                {[0, 1].map((k) => {
+                  const st = row[k]
+                  return (
+                    <View key={st?.label ?? k} style={{ flex: 1, gap: 1 }}>
+                      {st && (
+                        <>
+                          <Copy
+                            size={18}
+                            weight="semibold"
+                            lines={1}
+                            style={{
+                              color: st.tone ? t[st.tone] : t.text,
+                              fontVariant: ["tabular-nums"],
+                            }}
+                          >
+                            {st.value}
+                          </Copy>
+                          <Copy size={12} muted lines={2}>
+                            {st.label}
+                          </Copy>
+                        </>
+                      )}
+                    </View>
+                  )
+                })}
+              </Line>
+            ))}
+        </View>
         <View
           accessible
           accessibilityLabel={barsLabel}
-          style={{ width: 112, gap: 4 }}
+          style={{ width: 104, gap: 4 }}
         >
           <Line style={{ height: 40, alignItems: "flex-end", gap: 4 }}>
             {goal ? (
