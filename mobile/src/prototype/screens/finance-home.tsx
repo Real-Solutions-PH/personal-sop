@@ -404,7 +404,9 @@ export function FinanceHome({
                     height: 44,
                     width: 44,
                     borderRadius: 16,
-                    backgroundColor: `${t.fin}26`,
+                    borderWidth: 1,
+                    borderColor: t.line,
+                    backgroundColor: t.card,
                     alignItems: "center",
                     justifyContent: "center",
                   }}

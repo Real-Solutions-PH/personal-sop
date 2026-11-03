@@ -247,7 +247,7 @@ export function FinanceReview() {
             label: "Savings rate",
             value: C.pct(d.rate),
             delta: Math.round((d.rate - d.prevRate) * 100),
-            color: d.rate >= 0 ? t.fin : t.text,
+            color: d.rate >= 0 ? t.text : t.bad,
             hint: d.rate < 0 ? "Spent more than you earned" : "",
           },
           {
@@ -320,13 +320,12 @@ export function FinanceReview() {
       <Frame
         style={{
           padding: 16,
-          borderColor: `${t.fin}4d`,
           backgroundColor: t.soft,
         }}
       >
         <Line style={{ gap: 8, marginBottom: 8 }}>
-          <Sparkles size={16} color={t.fin} />
-          <Copy size={14} weight="medium" style={{ color: t.fin }}>
+          <Sparkles size={16} color={t.primary} />
+          <Copy size={14} weight="medium">
             The short version
           </Copy>
         </Line>

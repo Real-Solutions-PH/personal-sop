@@ -21,6 +21,7 @@ import { MoneyInput } from "../money-input"
 import {
   border,
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -61,17 +62,12 @@ export function FinChip({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        borderWidth: 1,
-        borderColor: active ? "transparent" : t.line,
-        backgroundColor: active ? t.fin : t.card,
+        // Selected is a 2 pt ink outline, never an area-colour fill.
+        ...chosen(t, active),
       }}
     >
       {leading}
-      <Copy
-        size={14}
-        weight="medium"
-        style={{ color: active ? t.onPrimary : t.text }}
-      >
+      <Copy size={14} weight="medium">
         {label}
       </Copy>
     </Tap>
