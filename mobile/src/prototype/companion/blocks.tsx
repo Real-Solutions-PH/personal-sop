@@ -40,7 +40,14 @@ import {
   X,
 } from "lucide-react-native"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ActivityIndicator, Pressable, Text, View } from "react-native"
+import type { ScrollViewInstance } from "react-native"
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native"
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
@@ -1214,8 +1221,87 @@ function StepCard({
 }
 
 /** What Fern did during a reply, one row per tool call (ADR-0015). */
-function StepsBlock({ items }: { items: StepItem[] }) {
+/** Steps shown at most while a reply is written: more scroll inside the box,
+ * so a long run of tools never pushes the chat around. */
+const LIVE_STEPS = 3
+const STEP_ROW = 32
+function StepsBlock({ items, live }: { items: StepItem[]; live?: boolean }) {
   const t = useTheme()
+  const steps = useRef<ScrollViewInstance>(null)
+  const capped = live && items.length > LIVE_STEPS
+  const rows = items.map((s) => (
+    <View key={s.id}>
+      <View
+        accessibilityLabel={s.running ? `${s.label}…` : s.summary || s.label}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          paddingHorizontal: 12,
+          paddingVertical: 7,
+        }}
+      >
+        <View style={{ width: 16, alignItems: "center" }}>
+          {s.running ? (
+            <ActivityIndicator size="small" color={t.muted} />
+          ) : s.ok === false ? (
+            <CircleAlert size={15} color={t.bad} />
+          ) : (
+            <Check size={15} color={t.good} />
+          )}
+        </View>
+        <Text
+          numberOfLines={2}
+          style={{
+            flex: 1,
+            color: s.running ? t.muted : t.text,
+            fontFamily: fonts.body,
+            fontSize: 13,
+            lineHeight: 18,
+          }}
+        >
+          {s.running ? `${s.label}…` : s.summary || s.label}
+        </Text>
+        {s.card_id && !s.running ? (
+          <StepCard id={s.card_id} state={s.state} captureId={s.capture_id} />
+        ) : null}
+      </View>
+      {s.card_id && !s.running ? <StepMeal id={s.card_id} /> : null}
+      {s.card_id && !s.running ? <StepAsk id={s.card_id} /> : null}
+      {s.running
+        ? null
+        : (s.cards ?? []).map((c) => (
+            <View
+              key={c.card_id}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingLeft: 36,
+                paddingRight: 12,
+                paddingVertical: 5,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  color: t.muted,
+                  fontFamily: fonts.body,
+                  fontSize: 12,
+                }}
+              >
+                {c.label}
+              </Text>
+              <StepCard
+                id={c.card_id}
+                state={c.state}
+                captureId={s.capture_id}
+              />
+            </View>
+          ))}
+    </View>
+  ))
   return (
     <View
       style={{
@@ -1226,85 +1312,21 @@ function StepsBlock({ items }: { items: StepItem[] }) {
         backgroundColor: t.card,
       }}
     >
-      {items.map((s) => (
-        <View key={s.id}>
-          <View
-            accessibilityLabel={
-              s.running ? `${s.label}…` : s.summary || s.label
-            }
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 7,
-            }}
-          >
-            <View style={{ width: 16, alignItems: "center" }}>
-              {s.running ? (
-                <ActivityIndicator size="small" color={t.muted} />
-              ) : s.ok === false ? (
-                <CircleAlert size={15} color={t.bad} />
-              ) : (
-                <Check size={15} color={t.good} />
-              )}
-            </View>
-            <Text
-              numberOfLines={2}
-              style={{
-                flex: 1,
-                color: s.running ? t.muted : t.text,
-                fontFamily: fonts.body,
-                fontSize: 13,
-                lineHeight: 18,
-              }}
-            >
-              {s.running ? `${s.label}…` : s.summary || s.label}
-            </Text>
-            {s.card_id && !s.running ? (
-              <StepCard
-                id={s.card_id}
-                state={s.state}
-                captureId={s.capture_id}
-              />
-            ) : null}
-          </View>
-          {s.card_id && !s.running ? <StepMeal id={s.card_id} /> : null}
-          {s.card_id && !s.running ? <StepAsk id={s.card_id} /> : null}
-          {s.running
-            ? null
-            : (s.cards ?? []).map((c) => (
-                <View
-                  key={c.card_id}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                    paddingLeft: 36,
-                    paddingRight: 12,
-                    paddingVertical: 5,
-                  }}
-                >
-                  <Text
-                    numberOfLines={1}
-                    style={{
-                      flex: 1,
-                      color: t.muted,
-                      fontFamily: fonts.body,
-                      fontSize: 12,
-                    }}
-                  >
-                    {c.label}
-                  </Text>
-                  <StepCard
-                    id={c.card_id}
-                    state={c.state}
-                    captureId={s.capture_id}
-                  />
-                </View>
-              ))}
-        </View>
-      ))}
+      {capped ? (
+        <ScrollView
+          ref={steps}
+          nestedScrollEnabled
+          style={{ height: LIVE_STEPS * STEP_ROW }}
+          // The newest step stays in view as the tools run.
+          onContentSizeChange={() =>
+            steps.current?.scrollToEnd({ animated: false })
+          }
+        >
+          {rows}
+        </ScrollView>
+      ) : (
+        rows
+      )}
     </View>
   )
 }
@@ -1312,6 +1334,7 @@ function StepsBlock({ items }: { items: StepItem[] }) {
 /** The model's thinking, as it writes it: one line with the latest of it
  * while it runs, all of it on a tap. Muted and apart from the answer, so it
  * never reads as the reply. */
+const THOUGHT_HEIGHT = 36
 function ThinkingBlock({ text, done }: { text: string; done?: boolean }) {
   const t = useTheme()
   const [open, setOpen] = useState(false)
@@ -1368,11 +1391,13 @@ function ThinkingBlock({ text, done }: { text: string; done?: boolean }) {
             {text.trim()}
           </Text>
         ) : (
-          !done &&
-          !!latest && (
+          !done && (
+            // Always two lines tall while Fern thinks, whatever the latest
+            // thought's length, so the chat under it never jumps.
             <Text
               numberOfLines={2}
               style={{
+                height: THOUGHT_HEIGHT,
                 color: t.muted,
                 fontFamily: fonts.body,
                 fontSize: 13,
@@ -1521,7 +1546,8 @@ function TableBlock({ block }: { block: Extract<Block, { t: "table" }> }) {
   )
 }
 
-export function BlockView({ block }: { block: Block }) {
+/** ``live``: the reply this block belongs to is still being written. */
+export function BlockView({ block, live }: { block: Block; live?: boolean }) {
   const t = useTheme()
   switch (block.t) {
     case "text":
@@ -1552,7 +1578,7 @@ export function BlockView({ block }: { block: Block }) {
     case "chips":
       return <Chips prompts={block.prompts} />
     case "steps":
-      return <StepsBlock items={block.items} />
+      return <StepsBlock items={block.items} live={live} />
     case "thinking":
       return <ThinkingBlock text={block.text} done={block.done} />
     case "nutrition":
