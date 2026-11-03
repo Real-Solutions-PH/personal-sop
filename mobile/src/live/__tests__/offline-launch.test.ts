@@ -3,6 +3,9 @@
 // is still valid. The app must stay signed in and start syncing (ops queue
 // locally); only a refusal from the auth server signs the person out.
 const mockGetSession = jest.fn()
+// The session store opens (an unlocked phone); auth-locked.test.ts covers
+// a locked one.
+jest.mock("@/lib/storage", () => ({ sessionStoreReadable: async () => true }))
 jest.mock("@/lib/supabase", () => ({
   getSupabase: () => ({ auth: { getSession: mockGetSession } }),
 }))
