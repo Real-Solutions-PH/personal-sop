@@ -160,3 +160,38 @@ describe("comparisons are like with like", () => {
     ).toBeTruthy()
   })
 })
+
+describe("undoing keeps what Health added since", () => {
+  it("undoing a switch brings the GPS route back with the newer steps", () => {
+    fitStore.set((s) => ({ ...s, runs: [session()] }))
+    const before = RL.markTreadmill("w1")!
+    RL.patchRun("w1", (r) => ({ ...r, steps: 2300, avgHr: 118 }))
+    RL.unmarkTreadmill("w1", before)
+    const r = R.runsOf(fitStore.get())[0]
+    expect(r).toMatchObject({
+      route: before.route,
+      elevationGainM: 34,
+      distanceM: 500,
+      kcal: 30,
+      steps: 2300,
+      avgHr: 118,
+    })
+    expect(r.indoor).toBeUndefined()
+  })
+  it("undoing readings restores only distance, incline and calories", () => {
+    fitStore.set((s) => ({
+      ...s,
+      runs: [session({ indoor: true, route: [], inclinePct: 2 })],
+    }))
+    const prev = R.runsOf(fitStore.get())[0]
+    RL.setTreadmillReadings("w1", { distanceM: 3000, inclinePct: 5 })
+    RL.patchRun("w1", (r) => ({ ...r, steps: 4100 }))
+    RL.restoreReadings("w1", prev)
+    expect(R.runsOf(fitStore.get())[0]).toMatchObject({
+      distanceM: 500,
+      inclinePct: 2,
+      kcal: 30,
+      steps: 4100,
+    })
+  })
+})

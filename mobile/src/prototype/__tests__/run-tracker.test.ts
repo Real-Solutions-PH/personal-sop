@@ -75,3 +75,24 @@ it("outdoors still asks for location", async () => {
   expect((await startTracking("walk")).ok).toBe(true)
   expect(mockLocation.requestForegroundPermissionsAsync).toHaveBeenCalled()
 })
+
+it("reads the treadmill distance again a little later, Health being slow", async () => {
+  jest.useFakeTimers({
+    doNotFake: ["nextTick", "setImmediate", "queueMicrotask"],
+  })
+  try {
+    startRunTracker()
+    RL.startRun("walk", Date.now() - 1_200_000, { indoor: true })
+    await Promise.resolve()
+    const done = RL.finishRun()!
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(R.runsOf(fitStore.get())[0].distanceM).toBe(2400)
+    mockReading = { steps: 3500, hr: null, distanceM: 2600 }
+    await jest.advanceTimersByTimeAsync(120_000)
+    const r = R.runsOf(fitStore.get()).find((x) => x.id === done.id)!
+    expect(r).toMatchObject({ distanceM: 2600, steps: 3500 })
+  } finally {
+    jest.useRealTimers()
+  }
+})

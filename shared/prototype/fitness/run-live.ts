@@ -252,6 +252,39 @@ export function markTreadmill(id: string): RunSession | undefined {
   return before
 }
 
+/** Undoes markTreadmill: the GPS route, splits, climb, distance and
+ * calories come back from `before`; steps and heart rate Health added since
+ * are kept. */
+export function unmarkTreadmill(id: string, before: RunSession) {
+  patchRun(id, (r) => {
+    const { indoor: _i, inclinePct: _p, elevationGainM: _e, ...rest } = r
+    return {
+      ...rest,
+      route: before.route,
+      splits: before.splits,
+      distanceM: before.distanceM,
+      ...(before.elevationGainM !== undefined
+        ? { elevationGainM: before.elevationGainM }
+        : {}),
+      ...(before.kcal !== undefined ? { kcal: before.kcal } : {}),
+    }
+  })
+}
+
+/** Undoes setTreadmillReadings: distance, incline and calories as they
+ * were in `prev`, the rest (steps Health added since) as it is now. */
+export function restoreReadings(id: string, prev: RunSession) {
+  patchRun(id, (r) => {
+    const { inclinePct: _p, kcal: _k, ...rest } = r
+    return {
+      ...rest,
+      distanceM: prev.distanceM,
+      ...(prev.inclinePct !== undefined ? { inclinePct: prev.inclinePct } : {}),
+      ...(prev.kcal !== undefined ? { kcal: prev.kcal } : {}),
+    }
+  })
+}
+
 /** The treadmill's own distance and incline, entered after the session;
  * calories follow them. A null incline clears it. */
 export function setTreadmillReadings(

@@ -42,13 +42,15 @@ import {
   Satellite,
   Trash2,
   TrendingUp,
+  Undo2,
 } from "lucide-react-native"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Pressable, Text, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { runRecord } from "../body-rewards"
 import { Celebration, useCelebrate } from "../celebration"
 import { Stepper } from "../fitness-controls"
+import { connectHealth, healthAvailable, readWindow } from "../health"
 import {
   border,
   Copy,
@@ -388,7 +390,9 @@ function StartRun() {
   const runs = R.runsOf(fitStore.use((s) => s))
   const start = async () => {
     if (indoor) {
-      // No route on a treadmill: location is never asked for.
+      // No route on a treadmill: location is never asked for, Health is
+      // (its walking distance is the session's distance).
+      if (healthAvailable()) void connectHealth()
       void Haptics.notificationAsync(
         Haptics.NotificationFeedbackType.Success,
       ).catch(() => {})
@@ -736,6 +740,9 @@ export function RunDetail({
   // The session as it was before "Recorded on a treadmill?", for the
   // readings sheet's Undo.
   const [switched, setSwitched] = useState<RunSession>()
+  // The phone's motion distance for a switched session's time, offered in
+  // the readings sheet once Health answers.
+  const [motionM, setMotionM] = useState<number>()
   const fresh = useCelebrate(id, summary)
   if (!r)
     return (
@@ -764,7 +771,13 @@ export function RunDetail({
     const before = RL.markTreadmill(id)
     if (!before) return
     setSwitched(before)
+    setMotionM(undefined)
     setReadings(true)
+    void readWindow(new Date(before.startedAt), new Date(before.endedAt)).then(
+      (h) => {
+        if (h.distanceM) setMotionM(h.distanceM)
+      },
+    )
   }
   const editReadings = (
     <Pencil size={16} color={t.muted} accessibilityElementsHidden />
@@ -842,7 +855,7 @@ export function RunDetail({
           <Line style={{ gap: 6, minHeight: 32 }}>
             <Pencil size={14} color={t["chart-1"]} />
             <Copy size={13} weight="medium" style={{ color: t["chart-1"] }}>
-              {`${R.fmtKm(r.distanceM)} km is your phone's estimate · enter the treadmill's`}
+              Check the distance against the treadmill's display
             </Copy>
           </Line>
         </Tap>
@@ -943,7 +956,7 @@ export function RunDetail({
       {method && (
         <Copy size={12} muted>
           {indoor
-            ? `Active calories from your average speed on the treadmill (its distance over your moving time) and its incline${r.inclinePct ? ` of ${tenths(r.inclinePct)}%` : ", flat when none is entered"} (ACSM walking and running equations), at ${weight.kg} kg`
+            ? `Active calories from your average speed on the treadmill (its distance over your moving time) and its incline${r.inclinePct ? ` of ${tenths(r.inclinePct)}%${r.inclinePct > 15 ? " (counted as 15%, where the equations stop)" : ""}` : ", flat when none is entered"} (ACSM walking and running equations), at ${weight.kg} kg`
             : `Active calories from your speed and the climb on each stretch (ACSM walking and running equations), at ${weight.kg} kg`}
           {weight.assumed
             ? " (no weigh-in yet, so 70 kg is assumed)"
@@ -1006,9 +1019,16 @@ export function RunDetail({
         <ReadingsSheet
           run={r}
           switched={switched}
-          onClose={() => {
+          suggestedM={motionM}
+          onClose={(how) => {
             setReadings(false)
             setSwitched(undefined)
+            // Closed with the switch kept but nothing saved: the sheet's
+            // own Undo is gone, so the toast carries it.
+            if (switched && how === "closed") {
+              const back = switched
+              undo("Switched to treadmill", () => RL.unmarkTreadmill(id, back))
+            }
           }}
         />
       )}
@@ -1016,32 +1036,49 @@ export function RunDetail({
   )
 }
 
+const toKm = (m: number) => Math.round(m / 10) / 100
+
 /** The treadmill's own distance and incline, from its display; calories
  * follow them. Saving shows Undo. */
 function ReadingsSheet({
   run,
   switched,
+  suggestedM,
   onClose,
 }: {
   run: RunSession
   /** Just switched from GPS: the session before, which Undo puts back. */
   switched?: RunSession
-  onClose: () => void
+  /** The phone's motion distance, prefilled while the field is untouched. */
+  suggestedM?: number
+  onClose: (how: "saved" | "undone" | "closed") => void
 }) {
   const t = useTheme()
-  const [km, setKm] = useState(Math.round(run.distanceM / 10) / 100)
+  const [km, setKm] = useState(toKm(run.distanceM))
+  const [touched, setTouched] = useState(false)
   const [incline, setIncline] = useState(run.inclinePct ?? 0)
+  // Until the person types, the field follows the best figure known: a
+  // late Health read, or the motion distance of a switched session.
+  const latest = suggestedM ?? run.distanceM
+  useEffect(() => {
+    if (!touched) setKm(toKm(latest))
+  }, [latest, touched])
   const save = () => {
-    const before = run
+    const prev = run
+    const back = switched
     RL.setTreadmillReadings(run.id, {
       distanceM: km * 1000,
       inclinePct: incline > 0 ? incline : null,
     })
-    undo("Treadmill readings saved", () => RL.restoreRun(before, true))
-    onClose()
+    undo("Treadmill readings saved", () =>
+      back
+        ? RL.unmarkTreadmill(run.id, back)
+        : RL.restoreReadings(run.id, prev),
+    )
+    onClose("saved")
   }
   return (
-    <Sheet open onClose={onClose} title="Treadmill readings">
+    <Sheet open onClose={() => onClose("closed")} title="Treadmill readings">
       {switched && (
         <Line style={{ gap: 8 }}>
           <Info size={14} color={t["chart-1"]} />
@@ -1051,13 +1088,16 @@ function ReadingsSheet({
           <Tap
             label="Undo the switch to treadmill"
             onPress={() => {
-              RL.restoreRun(switched, true)
-              onClose()
+              RL.unmarkTreadmill(run.id, switched)
+              onClose("undone")
             }}
           >
-            <Copy size={13} weight="semibold" style={{ color: t.fit }}>
-              Undo
-            </Copy>
+            <Line style={{ gap: 4, minHeight: 32 }}>
+              <Undo2 size={14} color={t.fit} />
+              <Copy size={13} weight="semibold" style={{ color: t.fit }}>
+                Undo
+              </Copy>
+            </Line>
           </Tap>
         </Line>
       )}
@@ -1069,7 +1109,10 @@ function ReadingsSheet({
         label="Distance"
         unit="km"
         value={km}
-        onChange={setKm}
+        onChange={(v) => {
+          setTouched(true)
+          setKm(v)
+        }}
         step={0.1}
         min={0}
         max={100}

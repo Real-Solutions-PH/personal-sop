@@ -71,6 +71,14 @@ const mockStartTracking = jest.fn(async () => ({
   ok: true as const,
   background: true,
 }))
+const mockConnectHealth = jest.fn(async () => true)
+const mockWindow = { steps: 2900, hr: null, distanceM: 2310 }
+jest.mock("../health", () => ({
+  ...jest.requireActual("../health"),
+  healthAvailable: () => true,
+  connectHealth: () => mockConnectHealth(),
+  readWindow: async () => mockWindow,
+}))
 jest.mock("../run-tracker", () => ({
   finishAndStop: jest.fn(),
   startTracking: () => mockStartTracking(),
@@ -137,6 +145,8 @@ it("choosing Treadmill starts the walk without GPS", async () => {
     fireEvent.press(screen.getByText("Start treadmill walk"))
   })
   expect(mockStartTracking).not.toHaveBeenCalled()
+  // Health is still asked for: it gives the treadmill's distance.
+  expect(mockConnectHealth).toHaveBeenCalled()
   expect(RL.runLiveStore.get().active).toMatchObject({
     kind: "walk",
     indoor: true,
@@ -229,4 +239,50 @@ it("a treadmill walk is celebrated even before its distance is known", () => {
   expect(
     screen.getByLabelText("Edit treadmill distance and incline"),
   ).toBeTruthy()
+})
+
+it("a switch closed without saving can still be undone, from a toast", async () => {
+  fitStore.set((s) => ({ ...s, runs: [walk()] }))
+  render(<RunDetail id="w1" />, { wrapper })
+  fireEvent.press(screen.getByText("Recorded on a treadmill?"))
+  // The phone's motion distance for that time fills in once read.
+  await act(async () => {})
+  expect(screen.getByLabelText("Distance").props.value).toBe("2.31")
+  fireEvent.press(screen.getByLabelText("Close"))
+  expect(toast).toHaveBeenCalledWith(
+    "Switched to treadmill",
+    expect.objectContaining({
+      action: expect.objectContaining({ label: "Undo" }),
+    }),
+  )
+  const undo = (toast as unknown as jest.Mock).mock.calls.at(-1)[1].action
+    .onClick
+  act(() => undo())
+  expect(R.runsOf(fitStore.get())[0]).toMatchObject({ distanceM: 500 })
+  expect(R.runsOf(fitStore.get())[0].route).toHaveLength(2)
+})
+
+it("saving right after a switch: Undo goes back to the GPS record", async () => {
+  fitStore.set((s) => ({ ...s, runs: [walk()] }))
+  render(<RunDetail id="w1" />, { wrapper })
+  fireEvent.press(screen.getByText("Recorded on a treadmill?"))
+  await act(async () => {})
+  fireEvent.press(screen.getByText("Save readings"))
+  expect(R.runsOf(fitStore.get())[0]).toMatchObject({
+    indoor: true,
+    distanceM: 2310,
+  })
+  const undo = (toast as unknown as jest.Mock).mock.calls.at(-1)[1].action
+    .onClick
+  act(() => undo())
+  const r = R.runsOf(fitStore.get())[0]
+  expect(r.route).toHaveLength(2)
+  expect(r.indoor).toBeUndefined()
+})
+
+it("the calorie note says when a steep incline is counted as 15%", () => {
+  fitStore.set((s) => ({ ...s, runs: [treadmill({ inclinePct: 20 })] }))
+  render(<RunDetail id="w1" />, { wrapper })
+  fireEvent.press(screen.getByText("How calories are estimated"))
+  expect(screen.getByText(/counted as 15%/)).toBeTruthy()
 })
