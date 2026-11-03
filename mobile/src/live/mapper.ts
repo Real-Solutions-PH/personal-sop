@@ -56,11 +56,30 @@ export interface Mapper<S = unknown, L = unknown> {
    * entities point at (a category a new transaction uses). Its edits and
    * deletes keep the mapper's own place in the order. */
   createsFirst?: boolean
+  /** ``toServer`` reads only the row (never the state) and ``actions``
+   * return nothing for a row that is the very object it was: a row the
+   * store still holds as the same object since the last diff is then
+   * skipped without being serialised. For the long histories (logs,
+   * sessions, runs) that every diff otherwise walks field by field. */
+  pureRows?: boolean
 }
 
 export type AnyMapper = Mapper<any, any>
 
 const stable = (v: unknown): string => JSON.stringify(v ?? null)
+/** Same field value as JSON sees it (undefined and null are one value);
+ * scalars without serialising, since every row is compared on each diff. */
+const sameValue = (a: unknown, b: unknown): boolean => {
+  const x = a ?? null
+  const y = b ?? null
+  if (x === y) return true
+  const plain = (v: unknown) =>
+    typeof v === "string" ||
+    typeof v === "boolean" ||
+    (typeof v === "number" && Number.isFinite(v))
+  if (plain(x) || plain(y)) return false
+  return stable(x) === stable(y)
+}
 
 export interface RowDiff {
   upserts: { id: string; data: Payload; create: boolean }[]
@@ -74,6 +93,9 @@ export function diffEntity(
   state: unknown,
   snapshot: Record<string, Payload>,
   previous: Record<string, unknown>,
+  /** Rows to compare again even when unchanged by identity (a pull or an
+   * adopt moved their snapshot on without a diff). */
+  recheck?: ReadonlySet<string>,
 ): RowDiff {
   const out: RowDiff = { upserts: [], deletes: [], actions: [] }
   if (mapper.readOnly) return out
@@ -82,8 +104,10 @@ export function diffEntity(
   for (const local of mapper.list(state)) {
     const id = mapper.id(local)
     seen.add(id)
-    const next = mapper.toServer(local, state)
     const prev = snapshot[id]
+    if (mapper.pureRows && prev && previous[id] === local && !recheck?.has(id))
+      continue
+    const next = mapper.toServer(local, state)
     if (mapper.actions)
       out.actions.push(...mapper.actions(previous[id], local, state))
     if (mapper.actionsOnly) continue
@@ -96,7 +120,7 @@ export function diffEntity(
     const changed: Payload = {}
     for (const [k, v] of Object.entries(next)) {
       if (owned.has(k)) continue
-      if (stable(v) !== stable(prev[k])) changed[k] = v
+      if (!sameValue(v, prev[k])) changed[k] = v
     }
     if (Object.keys(changed).length)
       out.upserts.push({ id, data: changed, create: false })

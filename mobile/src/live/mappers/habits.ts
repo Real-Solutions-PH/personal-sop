@@ -278,6 +278,7 @@ function pauseMapper(
 function logMapper(): Mapper<S, HabitLog> {
   return {
     entity: "habit_log",
+    pureRows: true,
     store: habitsStore,
     list: (s) => s.logs,
     id: (l) => l.id,

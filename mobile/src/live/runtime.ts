@@ -13,7 +13,7 @@ import { http, tokens } from "./auth"
 import { clearToBlank } from "./blank"
 import { captureMappers } from "./capture"
 import { API_PREFIX, API_URL } from "./config"
-import { SyncEngine } from "./engine"
+import { forgetSyncState, SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
 import { foregroundStream } from "./foreground-stream"
 import { transcribePending } from "./journal-audio"
@@ -101,16 +101,7 @@ export function startLive(
   if (storage.getItem(OWNER_KEY) !== userId) {
     // First run of this account on this device: no demo data, no other
     // account's leftovers, no stale cursor.
-    for (const key of [
-      "sop-live:outbox",
-      "sop-live:snapshot",
-      "sop-live:cursor",
-      "sop-live:deleted",
-      "sop-live:dead-letter",
-      "sop-live:previous",
-      "sop-live:deferred",
-    ])
-      storage.removeItem(key)
+    forgetSyncState(storage)
     clearToBlank()
     storage.setItem(OWNER_KEY, userId)
   }

@@ -1242,11 +1242,15 @@ export function undo(message: string, action: () => void) {
     duration: 5000,
   })
 }
-export function useNow() {
+/** The time, refreshed every `everyMs`. Each tick re-renders the caller and
+ * everything under it, so a screen that shows minutes asks for a minute: a
+ * one-second clock on a large screen keeps the JS thread busy and every tap
+ * waits behind it. */
+export function useNow(everyMs = 1000) {
   const [now, setNow] = useState(Date.now())
   useEffect(() => {
     const tick = () => setNow(Date.now())
-    const id = setInterval(tick, 1000)
+    const id = setInterval(tick, everyMs)
     const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") tick()
     })
@@ -1254,7 +1258,7 @@ export function useNow() {
       clearInterval(id)
       sub.remove()
     }
-  }, [])
+  }, [everyMs])
   return now
 }
 export async function shareText(message: string) {
