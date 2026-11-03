@@ -443,9 +443,11 @@ export function TaskPlanPanel({
         onClose={() => setTriage(false)}
       >
         <Copy size={14} muted>
-          Choose a new date, finish, or delete each task.
+          Finish each one or move it on. More has the rest.
         </Copy>
-        {d.overdue.map((task) => row(task))}
+        {d.overdue.map((task) => (
+          <TaskRow key={task.id} task={task} compact showDay quick />
+        ))}
         <Button
           onPress={() =>
             confirm(
