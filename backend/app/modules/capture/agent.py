@@ -170,6 +170,39 @@ def _slim(node: Any) -> Any:
     }
 
 
+class LoadToolsArgs(BaseModel):
+    names: list[str] = Field(
+        min_length=1, max_length=12, description="Tool names from the list above."
+    )
+
+
+def load_tools_tool(
+    later: dict[str, BaseTool], load: Callable[[list[str]], None]
+) -> BaseTool:
+    """The tool that adds deferred tools' schemas to the next model call;
+    its description names each one with its first sentence."""
+
+    def first(t: BaseTool) -> str:
+        return (t.description or "").split(". ")[0].strip().rstrip(".")[:110]
+
+    def load_tools(**kw: Any) -> dict[str, Any]:
+        a = LoadToolsArgs(**kw)
+        known = [n for n in a.names if n in later]
+        load(known)
+        out: dict[str, Any] = {"loaded": known}
+        unknown = [n for n in a.names if n not in later]
+        return out | ({"unknown": unknown} if unknown else {})
+
+    return StructuredTool.from_function(
+        func=load_tools,
+        name="load_tools",
+        description="Load more tools before using them (all you need in one "
+        "call; they are yours from the next step):\n"
+        + "\n".join(f"- {n}: {first(t)}" for n, t in sorted(later.items())),
+        args_schema=LoadToolsArgs,
+    )
+
+
 def slim_tools(tools: list[BaseTool]) -> list[dict[str, Any]]:
     """The tools as the OpenAI tool schemas sent to the model, slimmed."""
     from langchain_core.utils.function_calling import convert_to_openai_tool
@@ -190,6 +223,7 @@ def run_loop(
     hooks: LoopHooks | None = None,
     think_first: bool = False,
     think_every: bool = False,
+    deferred: list[BaseTool] | None = None,
 ) -> str:
     """Run the model/tools graph; returns the model's final text. Every
     model call is metered; a provider failure raises ``SeamError``.
@@ -199,13 +233,38 @@ def run_loop(
     from the first second; past ``THINK_CAP_SECONDS`` of thinking alone
     the call is asked again without it.
 
+    ``deferred`` tools are named (with their first sentence) in a
+    ``load_tools`` tool instead of sent in full: their schemas join the call
+    after the model loads them, as Claude Code defers rarely used tools. A
+    deferred tool called without loading still runs.
+
     ``max_tool_calls`` caps the tool calls of the whole run (past it a call
     is answered with an error instead of run); ``hooks`` hears each model
     call and tool call as it starts and ends."""
     h = hooks or LoopHooks()
     model = ai.build_chat_model(resolved)
-    bound = model.bind_tools(slim_tools(tools)) if tools else model
-    by_name = {t.name: t for t in tools}
+    later = {t.name: t for t in deferred or []}
+    active: list[BaseTool] = list(tools)
+
+    def load(names: list[str]) -> None:
+        for name in names:
+            t = later.get(name)
+            if t is not None and t not in active:
+                active.append(t)
+
+    if later:
+        active.append(load_tools_tool(later, load))
+    by_name = {t.name: t for t in [*active, *later.values()]}
+    schemas: dict[str, dict[str, Any]] = {}
+
+    def bound_now() -> Any:
+        """The model with the tools active now (a load adds to them)."""
+        if not active:
+            return model
+        for t in active:
+            if t.name not in schemas:
+                (schemas[t.name],) = slim_tools([t])
+        return model.bind_tools([schemas[t.name] for t in active])
 
     def call_model(state: LoopState) -> dict[str, Any]:
         h.model_started(state["turns"] + 1)
@@ -227,7 +286,7 @@ def run_loop(
         try:
             while True:
                 started, shown, cut = time.monotonic(), False, False
-                for chunk in bound.stream(
+                for chunk in bound_now().stream(
                     [SystemMessage(system), *state["messages"]], **opts
                 ):
                     if h.stopped():
@@ -251,7 +310,7 @@ def run_loop(
                     u = getattr(chunk, "usage_metadata", None)
                     if u:
                         usages.append(dict(u))
-                    acc = chunk if acc is None else acc + chunk  # type: ignore[assignment]
+                    acc = chunk if acc is None else acc + chunk
                 if not cut:
                     break
                 # Thought too long: what it thought stays shown, the call is
@@ -293,6 +352,9 @@ def run_loop(
             elif tool is None:
                 result = {"error": "unknown_tool"}
             else:
+                # Called without loading it first: run it, and keep its
+                # schema for the rest of the turn.
+                load([tc["name"]])
                 try:
                     result = tool.invoke(tc["args"])
                 except ValidationError:

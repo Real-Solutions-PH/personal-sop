@@ -42,7 +42,13 @@ lives in `companion/loop.py`:
   reply. It keeps a short list of rules, each learned from a reply that
   went wrong. Everything else is in the tool descriptions.
 - **Every tool on every turn.** The model calls independent reads in the
-  same round; tool routing is removed.
+  same round; tool routing is removed. Amended 2026-11-03: the 34 rarely
+  used tools are deferred, as Claude Code defers its own. They cover setup
+  and edits of routines, workouts, accounts, budgets, categories, habits and
+  focus, and made up about 1 in 20 calls on the replay eval. They are named
+  with one line each in `load_tools`, and their schemas join the call after
+  it. Sending all 75 schemas cost 11,925 tokens a call and pushed first
+  words past the 7 s budget; 42 schemas cost 7,273.
 - **Thinking before every model call,** not only the first. The existing
   cap still retries a call that thinks too long without thinking.
 - **`todo`:** a plan the model writes for itself on multi-step asks

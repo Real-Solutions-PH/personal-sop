@@ -287,6 +287,7 @@ def run_agent(
     hooks: agent.LoopHooks | None = None,
     think_first: bool = False,
     think_every: bool = False,
+    deferred: list[BaseTool] | None = None,
 ) -> str:
     """The metered model/tools LangGraph loop capture runs, for the other AI
     surfaces (the companion, the finance advisor). Raises :class:`SeamError` when the
@@ -303,6 +304,7 @@ def run_agent(
         hooks=hooks,
         think_first=think_first,
         think_every=think_every,
+        deferred=deferred,
     )
 
 

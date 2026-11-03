@@ -25,6 +25,50 @@ from pydantic import BaseModel, Field
 
 STEPS = 10
 
+# Sent by name only (``load_tools``), as Claude Code defers rarely used
+# tools: setup and edits of routines, workouts, accounts, budgets,
+# categories, habits and focus. Together they were 1 in 20 calls on the
+# replay eval but most of every call's input (each call sent all 75 tool
+# schemas, about 12,000 tokens, before the person saw a word).
+DEFERRED = frozenset(
+    {
+        "copy_meal",
+        "create_account",
+        "create_budget",
+        "create_category",
+        "create_exercise",
+        "create_habit",
+        "create_routine",
+        "create_task_list",
+        "create_workout_template",
+        "edit_account",
+        "edit_budget",
+        "edit_exercise",
+        "edit_food",
+        "edit_scheduled",
+        "edit_weigh_in",
+        "edit_workout",
+        "edit_workout_template",
+        "fitness_settings",
+        "focus_control",
+        "log_transfer",
+        "set_account_balance",
+        "set_macro_target",
+        "start_focus",
+        "start_routine",
+        "start_workout",
+        "stop_focus",
+        "track",
+        "update_habit",
+        "update_routine",
+        "coach",
+        "compare_periods",
+        "focus_status",
+        "show_insights",
+        "show_memories",
+    }
+)
+
 WORKFLOW = """You are {sol}, the companion inside a life-logging app
 (food and macros, training, habits, tasks, money, journal). The user is
 {user}. NOW and TODAY at the end are current.
