@@ -359,14 +359,16 @@ describe("screen data while off", () => {
     screenStore.set({ groups: [ALL], days: [row(1), row(2)] })
     const shown = render(<StatsHome />, { wrapper })
     // Shown once iOS answers that Screen Time is connected.
-    expect(await screen.findByLabelText(/^Area hexagon: .*Screen/)).toBeTruthy()
+    expect(
+      await screen.findByLabelText(/^Score by area: .*Screen/),
+    ).toBeTruthy()
     expect(screen.queryAllByText("Screen time").length).toBeGreaterThan(0)
     shown.unmount()
 
     setEnabled("screen", false)
     render(<StatsHome />, { wrapper })
     expect(
-      (await screen.findByLabelText(/^Area hexagon: /)).props
+      (await screen.findByLabelText(/^Score by area: /)).props
         .accessibilityLabel,
     ).not.toMatch(/Screen/)
     expect(screen.queryAllByText("Screen time")).toHaveLength(0)

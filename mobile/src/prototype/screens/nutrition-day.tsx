@@ -17,7 +17,11 @@ export function NutritionDay({ day }: { day: string }) {
   return (
     <View style={{ gap: 16 }}>
       <View style={{ gap: 12 }}>
-        <MacroRings totals={totals.totals} target={target} />
+        <MacroRings
+          totals={totals.totals}
+          target={target}
+          fiber={{ value: detail.fiber ?? 0, goal: fiberGoalFor(target) }}
+        />
         <Copy size={12} muted>
           {[
             target

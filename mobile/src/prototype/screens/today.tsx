@@ -1,4 +1,4 @@
-import type { CalendarItem, ModuleKey } from "@domain/contract"
+import type { CalendarItem, Miss, ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import * as D from "@domain/dash/hooks"
 import {
@@ -33,6 +33,7 @@ import {
   ArrowRight,
   Bell,
   CalendarClock,
+  CalendarDays,
   Camera,
   Check,
   CheckSquare,
@@ -56,20 +57,22 @@ import {
   Target,
   Timer,
   TriangleAlert,
-  Trophy,
   Utensils,
   Wallet,
   X,
 } from "lucide-react-native"
-import { type ComponentType, memo, useEffect, useState } from "react"
+import { type ComponentType, memo, useEffect, useMemo, useState } from "react"
 import { Platform, Text, View } from "react-native"
 import Animated, { FadeInDown } from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
+import { TrophyBadge } from "../brand/badge"
+import { CornerMotif } from "../brand/corner"
 import { Sparkline } from "../chart"
-import { FirstWeekStrip, YesterdayStrip } from "../daily-strips"
+import { FirstWeekStrip, LeafRow, YesterdayStrip } from "../daily-strips"
 import { CardSkeleton, Deferred, FrameSkeleton } from "../deferred"
 import { extrasStore } from "../extras"
+import { GoalVine, goalLeft, missCost } from "../goal-vine"
 import {
   AnimatedCheck,
   CountUp,
@@ -124,10 +127,12 @@ import {
   useRuleState,
 } from "./screen-card"
 import { SleepPart } from "./sleep-card"
+import { StepsTodayPart } from "./steps-card"
 import { TaskRow } from "./tasks"
 import {
   FinanceStats,
   FitnessStats,
+  FocusStats,
   HabitsStats,
   TasksStats,
 } from "./today-stats"
@@ -1125,6 +1130,7 @@ function FitnessCards() {
   return (
     <Group title="Fitness" icon={Dumbbell} accent="fit" href="/fitness">
       <FitnessStats />
+      <StepsTodayPart />
       {active ? (
         <Part>
           <Tap onPress={() => go("/fitness/workout")}>
@@ -1316,18 +1322,10 @@ function FocusCard() {
           </View>
         </Line>
         {goal > 0 && (
-          <View style={{ height: 6, borderRadius: 3, backgroundColor: t.soft }}>
-            <View
-              style={{
-                height: 6,
-                borderRadius: 3,
-                width: `${Math.min(100, (sec / goal) * 100)}%`,
-                backgroundColor: sec >= goal ? t.good : t.foc,
-              }}
-            />
-          </View>
+          <Bar value={sec / goal} color={sec >= goal ? t.good : t.foc} />
         )}
       </Part>
+      <FocusStats />
     </Group>
   )
 }
@@ -1606,79 +1604,158 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
     trophies = D.useTrophies(),
     misses = D.useAllMisses(dayOffset(-1), dayOffset(-1)),
     fresh = trophies.find((x) => !s.seenTrophies.includes(x.id)),
-    tomorrow = D.useAllCalendar(dayOffset(1), dayOffset(1))
+    tomorrow = D.useAllCalendar(dayOffset(1), dayOffset(1)),
+    ended = useEndedRuns(misses)
   // The weekly review has its own card at the top of Today.
-  const context = fresh
-    ? {
-        title: `New: ${fresh.title}`,
-        detail: fresh.detail,
-        href: "/stats/trophies",
-        icon: Trophy,
-        color: t.life,
-      }
-    : misses.length
-      ? {
-          title: `${misses.length} misses yesterday`,
-          detail: "Look, note, move on.",
-          href: "/stats/misses",
-          icon: X,
-          color: t.bad,
-        }
-      : null
+  const context = evening ? null : fresh ? (
+    <Tap onPress={() => go("/stats/trophies")}>
+      <Line style={{ gap: 10 }}>
+        <TrophyBadge type={fresh.type} size={44} color={t.life} />
+        <View style={{ flex: 1 }}>
+          <Copy weight="semibold">New: {fresh.title}</Copy>
+          <Copy size={12} muted>
+            {fresh.detail}
+          </Copy>
+        </View>
+        <ChevronRight size={16} color={t.muted} />
+      </Line>
+    </Tap>
+  ) : misses.length ? (
+    <Tap onPress={() => go("/stats/misses")} style={{ gap: 8 }}>
+      <Line style={{ justifyContent: "space-between" }}>
+        <Copy weight="semibold" style={{ color: t.bad }}>
+          {misses.length.toLocaleString("en-US")}{" "}
+          {misses.length === 1 ? "miss" : "misses"} yesterday
+        </Copy>
+        <ChevronRight size={16} color={t.muted} />
+      </Line>
+      {misses.slice(0, 3).map((m) => {
+        const { name, cost } = missCost(m, ended.get(m.id))
+        const accent = AREA[m.module].accent
+        return (
+          <Line
+            key={m.id}
+            testID="miss-row"
+            style={{ gap: 8, alignItems: "flex-start" }}
+          >
+            <X size={14} color={t[accent]} style={{ marginTop: 3 }} />
+            <Copy size={14} style={{ flex: 1 }}>
+              <Text style={{ fontFamily: fonts.medium }}>{name}</Text>
+              <Text style={{ color: t.bad, fontSize: 12 }}> {cost}</Text>
+            </Copy>
+          </Line>
+        )
+      })}
+      {misses.length > 3 && (
+        <Copy size={12} muted>
+          +{(misses.length - 3).toLocaleString("en-US")} more
+        </Copy>
+      )}
+      <Copy size={12} muted>
+        Look, note, move on.
+      </Copy>
+    </Tap>
+  ) : null
   return (
     <>
-      {goals.length > 0 && (
+      {(goals.length > 0 || context) && (
         <Frame style={{ padding: 16 }}>
-          <Tap onPress={() => go("/stats/goals")}>
-            <Line style={{ gap: 8, marginBottom: 8 }}>
-              <Target size={16} color={t.primary} />
-              <Copy weight="semibold" style={{ flex: 1 }}>
-                Goals in play
-              </Copy>
-              <ChevronRight size={16} color={t.muted} />
-            </Line>
-          </Tap>
-          <View style={{ gap: 12 }}>
-            {goals.map(({ goal, entry, pct, hit }) => (
-              <Tap
-                key={goal.id}
-                onPress={() =>
-                  go(
-                    goal.metric.includes(":")
-                      ? `/stats/metric/${encodeURIComponent(goal.metric)}`
-                      : "/stats/goals",
-                  )
-                }
-              >
-                <Line
-                  style={{ marginBottom: 4, justifyContent: "space-between" }}
-                >
-                  <Copy size={14} style={{ flex: 1 }}>
-                    {goal.label}
-                    <Text style={{ color: t.muted, fontSize: 12 }}>
-                      {" "}
-                      {D.fmtGoal(goal)}
-                    </Text>
+          <CornerMotif kind="sprig" seed={9} />
+          {goals.length > 0 && (
+            <>
+              <Tap onPress={() => go("/stats/goals")}>
+                <Line style={{ gap: 8 }}>
+                  <Target size={16} color={t.primary} />
+                  <Copy weight="semibold" style={{ flex: 1 }}>
+                    Goals in play
                   </Copy>
-                  <Copy
-                    size={14}
-                    weight="medium"
-                    style={{ color: hit ? t.good : t.text }}
-                  >
-                    {entry?.value ?? "—"}
-                    {hit ? " ✓" : ""}
+                  <Copy size={12} muted>
+                    this week
                   </Copy>
                 </Line>
-                <Bar value={pct} color={hit ? t.life : t.primary} />
               </Tap>
-            ))}
-          </View>
+              <View style={{ gap: 10 }}>
+                {goals.map(({ goal, entry, pct, hit, current }) => {
+                  const mod = goal.metric.split(":")[0]
+                  const accent =
+                    mod in AREA ? AREA[mod as ModuleKey].accent : "life"
+                  const left = goalLeft(goal, current, hit)
+                  return (
+                    <Tap
+                      key={goal.id}
+                      label={`${goal.label}: ${entry?.value ?? "no value yet"} of ${D.fmtGoal(goal)}${hit ? ", hit" : ""}`}
+                      onPress={() =>
+                        go(
+                          goal.metric.includes(":")
+                            ? `/stats/metric/${encodeURIComponent(goal.metric)}`
+                            : "/stats/goals",
+                        )
+                      }
+                    >
+                      <Line style={{ justifyContent: "space-between" }}>
+                        <Copy size={14} style={{ flex: 1 }}>
+                          {goal.label}
+                        </Copy>
+                        <Copy
+                          size={14}
+                          weight="medium"
+                          style={{ color: hit ? t.good : t.text }}
+                        >
+                          {entry?.value ?? "—"}
+                          <Text style={{ color: t.muted, fontSize: 12 }}>
+                            {" "}
+                            / {goal.target.toLocaleString("en-US")}
+                            {goal.unit}
+                          </Text>
+                        </Copy>
+                      </Line>
+                      <GoalVine
+                        pct={pct}
+                        hit={hit}
+                        color={t[accent]}
+                        seed={goal.label.length}
+                      />
+                      {left && (
+                        <Copy
+                          size={12}
+                          muted={!hit}
+                          style={hit ? { color: t.good } : undefined}
+                        >
+                          {left}
+                        </Copy>
+                      )}
+                    </Tap>
+                  )
+                })}
+              </View>
+            </>
+          )}
+          {context && (
+            <View
+              style={
+                goals.length
+                  ? {
+                      borderTopWidth: 1,
+                      borderColor: border(t.line, 0.5),
+                      paddingTop: 12,
+                      marginTop: 2,
+                    }
+                  : undefined
+              }
+            >
+              {context}
+            </View>
+          )}
         </Frame>
       )}
-      {evening ? (
+      {evening && (
         <Frame style={{ padding: 16 }}>
+          <CornerMotif kind="sprig" seed={9} />
           <Tap onPress={() => go("/plan?seg=calendar")}>
-            <Copy weight="semibold">Tomorrow</Copy>
+            <Line style={{ gap: 8 }}>
+              <CalendarDays size={16} color={t.primary} />
+              <Copy weight="semibold">Tomorrow</Copy>
+            </Line>
             {tomorrow.length ? (
               tomorrow.slice(0, 3).map((i) => (
                 <Copy key={i.id} size={14} style={{ paddingVertical: 6 }}>
@@ -1686,43 +1763,42 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
                 </Copy>
               ))
             ) : (
-              <Copy size={14} muted>
-                Nothing scheduled yet — a clean slate.
-              </Copy>
+              <>
+                <View style={{ opacity: 0.32, marginVertical: 4 }}>
+                  <LeafRow cells={Array(7).fill("ahead")} />
+                </View>
+                <Copy size={14} muted>
+                  Nothing scheduled yet — a clean slate.
+                </Copy>
+              </>
             )}
           </Tap>
         </Frame>
-      ) : (
-        context && (
-          <Frame style={{ padding: 16 }}>
-            <Tap onPress={() => go(context.href)}>
-              <Line>
-                <View
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 12,
-                    backgroundColor: `${context.color}26`,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <context.icon size={20} color={context.color} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Copy weight="semibold">{context.title}</Copy>
-                  <Copy size={12} muted>
-                    {context.detail}
-                  </Copy>
-                </View>
-                <ChevronRight size={16} color={t.muted} />
-              </Line>
-            </Tap>
-          </Frame>
-        )
       )}
     </>
   )
+}
+/** For yesterday's habit misses, the streak each one ended (3 days or more,
+ * as the habit screen counts a run), keyed by the miss id. */
+function useEndedRuns(misses: Miss[]) {
+  const hs = habitsStore.use((x) => x)
+  return useMemo(() => {
+    const out = new Map<string, number>()
+    const habitMisses = misses.filter((m) => m.module === "habits")
+    if (!habitMisses.length) return out
+    const idx = H.logIndex(hs.logs),
+      today = dayKey(),
+      yesterday = dayOffset(-1)
+    for (const h of hs.habits) {
+      const id = `miss-${h.id}-${yesterday}`
+      if (!habitMisses.some((m) => m.id === id)) continue
+      const run = H.streaks(h, idx, today).broken.find(
+        (b) => b.day === yesterday,
+      )
+      if (run) out.set(id, run.length)
+    }
+    return out
+  }, [misses, hs])
 }
 /** Today's card for each module, placed in the person's order (Settings →
  * Sections). Screen time has no Today card. */

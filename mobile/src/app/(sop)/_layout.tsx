@@ -3,7 +3,6 @@ import { captureUi, closeCapture, openCapture } from "@domain/lib/capture"
 import { useConnectivity } from "@domain/lib/platform"
 import { LaggingReads } from "@domain/lib/store"
 import * as Haptics from "expo-haptics"
-import { LinearGradient } from "expo-linear-gradient"
 import { Redirect, Stack, usePathname } from "expo-router"
 import type { LucideIcon } from "lucide-react-native"
 import {
@@ -29,7 +28,8 @@ import Animated, {
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { syncReady } from "@/live/ready"
-import { FernMark, fernPalette } from "@/prototype/companion/brand"
+import { fernPalette } from "@/prototype/companion/brand"
+import { FernSprite } from "@/prototype/companion/fern-sprite"
 import { DayMomentWatcher } from "@/prototype/day-moment"
 import { startFocusLive } from "@/prototype/focus-live"
 import { LiveBar } from "@/prototype/live-bar"
@@ -59,9 +59,10 @@ const tabs = [
   { label: "Me", href: "/me", icon: User },
 ]
 // The centre of the bar is Fern, the app's main way in: say or snap what
-// happened, ask what you need. The fiddlehead turns into × while her drawer
-// is open.
-function FabIcon({ open }: { open: boolean }) {
+// happened, ask what you need. Fern turns into × while the drawer is open,
+// and listens while "Hey Fern" is on.
+function FabIcon({ open, hearing }: { open: boolean; hearing: boolean }) {
+  const t = useTheme()
   const reduced = useReducedMotion()
   const turn = useSharedValue(open ? 1 : 0)
   useEffect(() => {
@@ -86,12 +87,23 @@ function FabIcon({ open }: { open: boolean }) {
     ],
   }))
   return (
-    <View style={{ width: 30, height: 30 }}>
+    <View
+      style={{
+        width: 48,
+        height: 48,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <Animated.View style={[{ position: "absolute" }, mark]}>
-        <FernMark size={30} color="white" weight={2.2} />
+        <FernSprite
+          size={48}
+          state={hearing ? "listening" : "idle"}
+          decorative
+        />
       </Animated.View>
-      <Animated.View style={[{ position: "absolute", left: 2, top: 2 }, close]}>
-        <X size={26} strokeWidth={2.5} color="white" />
+      <Animated.View style={[{ position: "absolute" }, close]}>
+        <X size={26} strokeWidth={2.5} color={t.text} />
       </Animated.View>
     </View>
   )
@@ -423,23 +435,21 @@ export default function PrototypeLayout() {
                       }}
                     >
                       <FernHalo color={fern.sprout} still={drawer} />
-                      <LinearGradient
-                        colors={[fern.frond, fern.moss]}
-                        start={{ x: 0.2, y: 0 }}
-                        end={{ x: 0.8, y: 1 }}
+                      <View
                         style={{
                           width: 60,
                           height: 60,
                           borderRadius: 30,
                           alignItems: "center",
                           justifyContent: "center",
-                          borderWidth: 3,
-                          borderColor: t.bg,
-                          boxShadow: `0px 6px 14px ${fern.moss}59`,
+                          borderWidth: 1,
+                          borderColor: t.line,
+                          backgroundColor: t.card,
+                          boxShadow: `0px 6px 14px ${fern.moss}33`,
                         }}
                       >
-                        <FabIcon open={drawer} />
-                      </LinearGradient>
+                        <FabIcon open={drawer} hearing={hearing} />
+                      </View>
                       {hearing && <ListeningBadge />}
                     </View>
                   ) : (
@@ -447,7 +457,7 @@ export default function PrototypeLayout() {
                       <TabIcon icon={Icon} active={active} />
                     </View>
                   )}
-                  {/* The orb speaks for itself; its name is for screen readers. */}
+                  {/* Fern speaks for itself; the name is for screen readers. */}
                   {tab.label !== "Fern" && (
                     <Text
                       style={{

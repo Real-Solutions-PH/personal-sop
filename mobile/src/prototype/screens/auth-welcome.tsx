@@ -89,7 +89,7 @@ function You({ children }: { children: string }) {
   )
 }
 
-/** Fern's reply: the orb beside a `mist` bubble (Fern's colours, Fern only). */
+/** Fern's reply: Fern beside a `mist` bubble (Fern's colours, Fern only). */
 function FernSays({ children }: { children: ReactNode }) {
   const t = useTheme()
   const p = fernPalette(t.dark)
@@ -166,9 +166,9 @@ function SayArt() {
   const t = useTheme()
   return (
     <View style={{ flex: 1, justifyContent: "center", gap: space.md }}>
-      {/* Room for the orb's breathing glow, which reaches past its edge. */}
+      {/* Room for Fern's mood marks, which reach past the sprite's box. */}
       <View style={{ alignItems: "center", paddingVertical: space.md }}>
-        <Orb size={72} />
+        <Orb size={72} state="speaking" />
       </View>
       <You>Lunch was 250 and I did squats, 3 sets of 8</You>
       <FernSays>

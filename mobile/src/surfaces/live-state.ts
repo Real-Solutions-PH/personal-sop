@@ -342,8 +342,10 @@ export function runState(r: ActiveRun, now: number): LiveState {
     title: RN.sessionLabel(r),
     icon: r.kind === "run" ? "🏃" : "🚶",
     step: `${RN.fmtKm(distanceM)} km`,
+    // No pace "now" without recent GPS movement (standing, a treadmill):
+    // the average alone rather than a blank.
     detail:
-      paused || r.indoor
+      paused || pace === null
         ? `avg ${RN.fmtPace(avg)} /km`
         : `${RN.fmtPace(pace)} /km now · avg ${RN.fmtPace(avg)}`,
     key: "",
@@ -358,6 +360,7 @@ export function runState(r: ActiveRun, now: number): LiveState {
     next: [],
     controls: [paused ? "resume" : "pause"],
     href: "/fitness/run",
+    ...(r.steps != null ? { steps: r.steps } : {}),
   }
 }
 
@@ -366,7 +369,13 @@ const other = (s: LiveState): LiveOther => ({
   id: s.id,
   title: s.title,
   icon: s.icon,
-  line: [s.step, s.detail].filter(Boolean).join(" · "),
+  line: [
+    s.step,
+    s.detail,
+    s.steps != null ? `${s.steps.toLocaleString("en-US")} steps` : "",
+  ]
+    .filter(Boolean)
+    .join(" · "),
   paused: s.paused,
   startedAt: s.startedAt,
   elapsedSec: s.elapsedSec,

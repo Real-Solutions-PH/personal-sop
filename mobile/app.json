@@ -124,6 +124,12 @@
       "expo-video",
       "expo-maps",
       [
+        "expo-sensors",
+        {
+          "motionPermission": "Unfurl counts your steps during a run or walk to show them as you go."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

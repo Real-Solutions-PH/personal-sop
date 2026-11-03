@@ -20,7 +20,7 @@ import { reviewMapper } from "@/live/mappers/dash"
 import { modulePrefMapper } from "@/live/mappers/reference"
 import { AppLauncher } from "../app-launcher"
 import { Settings } from "../screens/dash-profile"
-import { WeeklyReviewCard } from "../weekly-review-card"
+import { WeeklyReviewCard, weekMood } from "../weekly-review-card"
 
 jest.mock("expo-router", () => ({
   router: {
@@ -129,6 +129,23 @@ describe("the card", () => {
     render(<WeeklyReviewCard now={Date.now()} />, { wrapper })
     expect(card()).toBeTruthy()
     expect(screen.getByText(/^You hit the target on \d+ of \d+/)).toBeTruthy()
+  })
+
+  test("Fern says the read, in the week's mood", () => {
+    render(<WeeklyReviewCard now={Date.now()} />, { wrapper })
+    expect(card()?.props.accessibilityLabel).toMatch(/\. Fern: You hit /)
+    expect(
+      screen.getByTestId(/^fern-(celebrating|consoling|idle)$/, {
+        includeHiddenElements: true,
+      }),
+    ).toBeTruthy()
+    // Up on the week before is a win and down is a miss, whatever the rate.
+    expect(weekMood(0.4, 6, 0.7)).toBe("celebrating")
+    expect(weekMood(0.9, -12, 0.7)).toBe("consoling")
+    // Level with it: the bar decides; no rate yet is neither.
+    expect(weekMood(0.7, 0, 0.7)).toBe("celebrating")
+    expect(weekMood(0.5, null, 0.7)).toBe("consoling")
+    expect(weekMood(null, null, 0.7)).toBe("idle")
   })
 
   test("a tap opens that week's review and starts the one-day clock", () => {

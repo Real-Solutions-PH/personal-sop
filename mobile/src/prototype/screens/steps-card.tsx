@@ -1,7 +1,7 @@
 // Steps from Apple Health on Fitness: the selected day's count (today until
 // a bar is tapped), this week's and this month's daily averages, and a bar
 // per day. Read-only; nothing is synced.
-import { ChevronRight } from "lucide-react-native"
+import { ChevronRight, Footprints } from "lucide-react-native"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { AppState, View } from "react-native"
 import { DailyBars } from "../chart"
@@ -11,9 +11,10 @@ import {
   localDay,
   readDays,
 } from "../health"
-import { Copy, Frame, Line, Tap } from "../native-kit"
+import { Bar, Copy, Frame, Line, Part, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
+import { Button } from "../ui"
 import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
 export const GOAL = 10_000
@@ -164,3 +165,79 @@ export function StepsCard() {
     </Frame>
   )
 }
+
+/** Steps today against the goal and the active calories Health counted,
+ * for the Today Fitness card. `steps` undefined draws the empty bar. */
+export function StepsTodayView({
+  steps,
+  kcal,
+}: {
+  steps: number
+  kcal: number
+}) {
+  const t = useTheme(),
+    hit = steps >= GOAL
+  return (
+    <View
+      testID="steps-today"
+      accessible
+      accessibilityLabel={`${n(steps)} of ${n(GOAL)} steps today${hit ? ", goal reached" : ""}, ${n(kcal)} kcal burned`}
+      style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}
+    >
+      <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
+        <Line style={{ gap: 6 }}>
+          <Footprints size={16} color={t.fit} />
+          <Copy weight="semibold" style={{ color: hit ? t.good : t.text }}>
+            {n(steps)}
+          </Copy>
+          <Copy size={12} muted lines={1} style={{ flexShrink: 1 }}>
+            / {n(GOAL)} steps today
+          </Copy>
+        </Line>
+        <Bar value={steps / GOAL} color={hit ? t.good : t.fit} />
+      </View>
+      <View style={{ alignItems: "flex-end" }}>
+        <Copy weight="semibold">{n(kcal)}</Copy>
+        <Copy size={12} muted>
+          kcal burned
+        </Copy>
+      </View>
+    </View>
+  )
+}
+
+/** Today's steps from Apple Health, as a part of the Today Fitness card.
+ * Before Health is connected: the same figure dimmed, with the Connect
+ * button; with no Health on this device: nothing. */
+export function StepsTodayPart() {
+  const { asked, connect } = useHealthAsked(),
+    days = useDays(TODAY, asked)
+  if (asked === false)
+    return (
+      <Part style={{ gap: 10 }}>
+        <View
+          style={{ opacity: 0.35 }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <StepsTodayView steps={0} kcal={0} />
+        </View>
+        <Copy size={13} muted>
+          See your steps and the calories you burn.
+        </Copy>
+        <Button small onPress={connect}>
+          Connect Apple Health
+        </Button>
+      </Part>
+    )
+  const today = days?.[0]
+  if (!today) return null
+  return (
+    <Part>
+      <Tap label="Step details" onPress={() => go("/fitness/steps")}>
+        <StepsTodayView steps={today.steps} kcal={today.activeKcal} />
+      </Tap>
+    </Part>
+  )
+}
+const TODAY = [0] as const

@@ -153,6 +153,9 @@ struct LiveState: Codable, Hashable {
   var href: String
   /** The other sessions running beside this one; absent when none. */
   var others: [LiveOther]?
+  /** Run or walk: steps so far; absent until first read (and from an
+   * app that predates it). */
+  var steps: Int?
 
   var startDate: Date { Date(timeIntervalSince1970: startedAt / 1000) }
   var stepEnd: Date? { stepEndsAt.map { Date(timeIntervalSince1970: $0 / 1000) } }

@@ -11,7 +11,7 @@ import { dayKey } from "@domain/lib/day"
 import { ChevronRight, Gauge } from "lucide-react-native"
 import { View } from "react-native"
 import { FlashLine } from "../body-moments"
-import { Copy, Line, Tap } from "../native-kit"
+import { Bar, Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 
 // Limits read differently from goals on purpose. Goals (calories, protein,
@@ -33,6 +33,11 @@ export function useTodayLimits(): Limits {
   const target = fitStore.use((s) => targetFor(s, dayKey()))
   return limitsFor(target)
 }
+
+/** The bar's full width: a quarter past the limit, or the amount once it is
+ * further over than that, so the mark always sits inside the bar. */
+export const scaleTop = (amount: number, max: number) =>
+  Math.max(max * 1.25, amount, 0.0001)
 
 const fmt = (n: number, unit: string) =>
   unit === "mg"
@@ -110,37 +115,15 @@ export function LimitBar({
           {right}
         </Copy>
       </Line>
-      <Line style={{ gap: 0 }}>
-        <View
-          style={{
-            flex: 1,
-            height: 6,
-            borderTopLeftRadius: 3,
-            borderBottomLeftRadius: 3,
-            backgroundColor: t.soft,
-            overflow: "hidden",
-            opacity: known ? 1 : 0.5,
-          }}
-        >
-          <View
-            style={{
-              width: `${Math.min(1, share) * 100}%`,
-              height: 6,
-              backgroundColor: color,
-            }}
-          />
-        </View>
-        {/* The cap: the line the bar must not cross. */}
-        <View
-          style={{
-            width: 2,
-            height: 12,
-            borderRadius: 1,
-            backgroundColor: level === "over" ? t.bad : t.text,
-            opacity: level === "over" ? 1 : 0.55,
-          }}
+      {/* One hand-drawn bar on a scale a quarter past the limit, the mark
+          at the limit: the line the fill must not cross. Red once over. */}
+      <View style={{ opacity: known ? 1 : 0.5 }}>
+        <Bar
+          value={(amount ?? 0) / scaleTop(amount ?? 0, max)}
+          target={max / scaleTop(amount ?? 0, max)}
+          color={level === "over" ? t.bad : level === "near" ? t.warn : t.nut}
         />
-      </Line>
+      </View>
       {flash && (
         <FlashLine testID={`limit-over-${k}`} text={flash} tone="bad" />
       )}

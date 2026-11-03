@@ -3,6 +3,7 @@
 // every second, so it is right after the app was killed or the phone
 // locked; nothing here counts.
 
+import { dashStore } from "@domain/dash/store"
 import * as A from "@domain/focus/actions"
 import * as C from "@domain/focus/calc"
 import {
@@ -12,9 +13,14 @@ import {
   type PresetKey,
 } from "@domain/focus/data"
 import * as L from "@domain/focus/logic"
-import { useFocusState } from "@domain/focus/store"
+import { focusStore, useFocusState } from "@domain/focus/store"
+import * as HA from "@domain/habits/actions"
+import * as H from "@domain/habits/logic"
+import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
+import * as TA from "@domain/tasks/actions"
+import { tasksStore } from "@domain/tasks/store"
 import {
   CalendarClock,
   ChartColumn,
@@ -43,10 +49,11 @@ import {
 } from "../focus-kit"
 import { MomentCard } from "../moment"
 import { claimOnce } from "../moments-seen"
+import { AnimatedCheck, markCompletion } from "../motion"
 import { Copy, Frame, IconTap, Line, Segmented, Tap } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Sheet, useNow } from "../ui"
+import { Button, confirm, Sheet, undo, useNow } from "../ui"
 import { PastSessionSheet } from "./focus-past"
 
 type PresetChoice = PresetKey | "custom"
@@ -240,6 +247,7 @@ export function FocusTimer() {
           item={session ? item : next}
           onPress={() => setPick(true)}
           switching={!!session}
+          now={now}
         />
         <TimerRing value={progress} size={264} stroke={10} color={accent}>
           <Copy
@@ -601,44 +609,229 @@ function ItemChip({
   item,
   onPress,
   switching,
+  now,
 }: {
   item: FocusItem | null
   onPress: () => void
   switching: boolean
+  now: number
 }) {
   const t = useTheme()
+  const [done, setDone] = useState(false)
   const Icon = item?.kind === "habit" ? Target : CheckSquare
   return (
-    <Tap
-      label={
-        item
-          ? `Working on ${item.title}. Change`
-          : "Pick what you're working on"
-      }
-      onPress={onPress}
+    <View
       style={{
         flexDirection: "row",
         alignItems: "center",
-        gap: 8,
-        paddingHorizontal: 14,
-        height: 40,
-        borderRadius: 20,
+        gap: 4,
+        paddingLeft: item ? 4 : 14,
+        paddingRight: 6,
+        minHeight: 44,
+        borderRadius: 22,
         borderWidth: 1,
         borderColor: t.line,
         maxWidth: "100%",
       }}
     >
-      {item ? (
-        <Icon size={16} color={item.kind === "habit" ? t.hab : t.tsk} />
+      {item?.kind === "task" ? (
+        <TaskCheck key={item.id} id={item.id} onDone={setDone} />
+      ) : item?.kind === "habit" ? (
+        <HabitCheck key={item.id} id={item.id} now={now} onDone={setDone} />
       ) : null}
-      <Copy size={14} weight="medium" lines={1} style={{ flexShrink: 1 }}>
-        {item?.title ??
-          (switching ? "Nothing in particular" : "What are you working on?")}
-      </Copy>
-      <Copy size={12} muted>
-        {switching ? "Switch" : "Pick"}
-      </Copy>
-    </Tap>
+      <Tap
+        label={
+          item
+            ? `Working on ${item.title}. ${done ? "Pick the next item" : "Change"}`
+            : "Pick what you're working on"
+        }
+        onPress={onPress}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          flexShrink: 1,
+          paddingVertical: 10,
+          paddingHorizontal: 8,
+        }}
+      >
+        {item && !checkable(item) ? (
+          <Icon size={16} color={item.kind === "habit" ? t.hab : t.tsk} />
+        ) : null}
+        {/* What the session is on: it wraps, never truncates. */}
+        <Copy
+          size={14}
+          weight="medium"
+          style={{
+            flexShrink: 1,
+            ...(done
+              ? { color: t.muted, textDecorationLine: "line-through" }
+              : {}),
+          }}
+        >
+          {item?.title ??
+            (switching ? "Nothing in particular" : "What are you working on?")}
+        </Copy>
+        <Copy
+          size={12}
+          weight={done ? "semibold" : "body"}
+          muted={!done}
+          style={done ? { color: t.foc } : undefined}
+        >
+          {done ? "Next" : switching ? "Switch" : "Pick"}
+        </Copy>
+      </Tap>
+    </View>
+  )
+}
+
+// The kinds the pill shows a check for (anything else keeps its icon).
+const checkable = (item: FocusItem) =>
+  item.kind === "task"
+    ? !!TA.getTask(item.id)
+    : (() => {
+        const h = habitsStore.get().habits.find((x) => x.id === item.id)
+        return !!h && !(h.rule && dashStore.get().enabled.screen)
+      })()
+
+/** Checks off the focused task where it is shown. The session keeps timing:
+ * the time already focused stays on the task, and the pill then suggests
+ * picking the next item. */
+function TaskCheck({
+  id,
+  onDone,
+}: {
+  id: string
+  onDone: (done: boolean) => void
+}) {
+  const t = useTheme(),
+    task = tasksStore.use((s) => s.tasks.find((x) => x.id === id)),
+    done = task?.status === "done"
+  useEffect(() => onDone(done), [done, onDone])
+  // Another item (or none) takes the pill: it is not done.
+  useEffect(() => () => onDone(false), [onDone])
+  if (!task) return null
+  const toggle = () => {
+    if (done) TA.uncompleteTask(id)
+    else {
+      TA.completeTask(id)
+      markCompletion()
+    }
+    undo(done ? "Task reopened" : "Task complete", () =>
+      done ? TA.completeTask(id) : TA.uncompleteTask(id),
+    )
+  }
+  return (
+    <AnimatedCheck
+      checked={done}
+      onToggle={toggle}
+      label={`${done ? "Reopen" : "Complete"} ${task.title}`}
+      color={t.tsk}
+      idle={`${t.muted}66`}
+      size={30}
+      checkColor={t.dark ? t.bg : "#fff"}
+    />
+  )
+}
+
+/** Checks off the focused habit as its type is logged everywhere else: a
+ * check is ticked, a count steps up (and its check marks it done), and a
+ * timed habit records the minutes focused on it today, so checking it twice
+ * never counts the same time twice. */
+function HabitCheck({
+  id,
+  now,
+  onDone,
+}: {
+  id: string
+  now: number
+  onDone: (done: boolean) => void
+}) {
+  const t = useTheme(),
+    today = dayKey(new Date(now)),
+    habit = habitsStore.use((s) => s.habits.find((x) => x.id === id)),
+    log = habitsStore.use((s) => H.logIndex(s.logs).get(H.lk(id, today))),
+    auto = dashStore.use((s) => s.enabled.screen) && !!habit?.rule,
+    done = log?.status === "done",
+    [stepped, setStepped] = useState(0)
+  useEffect(() => onDone(done), [done, onDone])
+  // Another item (or none) takes the pill: it is not done.
+  useEffect(() => () => onDone(false), [onDone])
+  if (!habit || auto) return null
+  const restore = () => {
+    HA.clearLog(id, today)
+    if (log) HA.restoreLog(log)
+  }
+  const toggle = () => {
+    if (done) {
+      HA.clearLog(id, today)
+      undo("Log cleared", restore)
+      return
+    }
+    let minutes = 0
+    if (habit.type === "duration") {
+      minutes = Math.max(
+        1,
+        Math.round(
+          C.itemTime(focusStore.get(), "habit", id, now).todaySec / 60,
+        ),
+      )
+      HA.logHabit({
+        habitId: id,
+        day: today,
+        status: "done",
+        value: minutes,
+        source: "timer",
+      })
+    } else HA.checkHabit(id, today)
+    markCompletion()
+    undo(
+      `${habit.name} done${minutes ? ` · ${H.valueLabel(habit, minutes)}` : ""}`,
+      restore,
+    )
+  }
+  const step = () => {
+    HA.incrementCount(id, undefined, today)
+    const next = H.logIndex(habitsStore.get().logs).get(H.lk(id, today))
+    if (H.progressOf(habit, next) >= 1) {
+      markCompletion()
+      setStepped((n) => n + 1)
+    }
+    undo(`${habit.name} · ${H.valueLabel(habit, next?.value)}`, restore)
+  }
+  return (
+    <>
+      <AnimatedCheck
+        checked={done}
+        onToggle={toggle}
+        label={`${done ? "Reopen" : "Complete"} ${habit.name}`}
+        color={t.hab}
+        idle={`${t.muted}66`}
+        size={30}
+        checkColor={t.onPrimary}
+        progress={H.progressOf(habit, log)}
+        celebrate={stepped}
+      />
+      {habit.type === "count" && !done && (
+        <Tap
+          label={`Add ${habit.step ?? 1} ${habit.unit ?? ""}`.trim()}
+          onPress={step}
+          style={{
+            minWidth: 36,
+            height: 32,
+            paddingHorizontal: 8,
+            borderRadius: 16,
+            backgroundColor: `${t.hab}26`,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Copy size={12} weight="semibold" style={{ color: t.hab }}>
+            +{habit.step ?? 1}
+          </Copy>
+        </Tap>
+      )}
+    </>
   )
 }
 
