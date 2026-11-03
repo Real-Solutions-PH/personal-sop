@@ -269,7 +269,7 @@ test("completing the last habit shows the all-done moment once per day", () => {
   expect(Haptics.impactAsync).toHaveBeenCalledWith("medium")
   const buzz = success()
   // Reopen and redo the same day: the banner returns without replaying.
-  fireEvent.press(screen.getByText("DONE · 2"))
+  fireEvent.press(screen.getByText("Done · 2"))
   fireEvent.press(screen.getByRole("checkbox", { name: "Reopen Read" }))
   act(() => jest.advanceTimersByTime(beat))
   expect(screen.queryByText("All habits done today")).toBeNull()

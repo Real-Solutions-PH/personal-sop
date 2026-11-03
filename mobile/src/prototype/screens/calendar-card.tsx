@@ -65,8 +65,8 @@ export function CalendarCard() {
   const ahead = upcoming(events, new Date())
   return (
     <Frame style={{ padding: 16, marginTop: 16, gap: 8 }}>
-      <Copy size={12} muted style={{ letterSpacing: 0.6 }}>
-        CALENDAR
+      <Copy size={13} weight="medium" muted>
+        Calendar
       </Copy>
       {ahead.length ? (
         ahead.slice(0, SHOWN).map((e) => (

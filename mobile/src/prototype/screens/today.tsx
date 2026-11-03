@@ -345,8 +345,8 @@ function TodayPlan() {
   return (
     <Frame style={{ padding: 16, gap: 8 }}>
       <Line style={{ justifyContent: "space-between" }}>
-        <Copy size={12} muted style={{ letterSpacing: 1 }}>
-          TODAY'S PLAN
+        <Copy size={13} weight="medium" muted>
+          Today's plan
         </Copy>
         <Tap onPress={() => go("/plan?seg=calendar")} label="Open the calendar">
           <Copy size={12} style={{ color: t.primary }}>
@@ -896,29 +896,24 @@ export function HabitsCard() {
                   style={{ padding: 4 }}
                 >
                   <Line style={{ gap: 4 }}>
-                    <Copy
-                      size={11}
-                      weight="medium"
-                      muted
-                      style={{ letterSpacing: 0.6 }}
-                    >
-                      DONE · {items.length}
+                    <Copy size={13} weight="medium" muted>
+                      Done · {items.length}
                     </Copy>
                     <ChevronDown size={14} color={t.muted} />
                   </Line>
                 </Tap>
               ) : (
                 <Copy
-                  size={11}
+                  size={13}
                   weight="medium"
                   muted
-                  style={{ letterSpacing: 0.6, paddingHorizontal: 4 }}
+                  style={{ paddingHorizontal: 4 }}
                 >
                   {group === "now"
-                    ? "NOW"
+                    ? "Now"
                     : group === "later"
-                      ? "LATER TODAY"
-                      : "ANYTIME"}
+                      ? "Later today"
+                      : "Anytime"}
                 </Copy>
               )}
               {(group !== "done" || showDone) &&
