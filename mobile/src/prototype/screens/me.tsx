@@ -192,7 +192,7 @@ export function Me() {
                             color={g.hit ? t.life : t.primary}
                           />
                           <Copy
-                            size={11}
+                            size={12}
                             weight="display"
                             muted
                             style={{ fontFamily: fonts.displayRegular }}
@@ -202,7 +202,7 @@ export function Me() {
                         </Line>
                       ) : (
                         <Copy
-                          size={11}
+                          size={12}
                           style={{ marginTop: 4, color: t.primary }}
                         >
                           Link a goal →

@@ -248,20 +248,16 @@ function LifeHero({
               }}
             />
             <Copy
-              size={10}
+              size={12}
               maxScale={1}
-              style={{ color: t.muted, letterSpacing: 2, marginTop: 4 }}
+              style={{ color: t.muted, marginTop: 4 }}
             >
-              LIFE SCORE
+              Life Score
             </Copy>
           </Tap>
           <View style={{ flex: 1 }}>
-            <Copy
-              size={10}
-              maxScale={CELL_SCALE}
-              style={{ color: t.muted, letterSpacing: 2 }}
-            >
-              LEVEL
+            <Copy size={12} maxScale={CELL_SCALE} style={{ color: t.muted }}>
+              Level
             </Copy>
             <Copy
               size={24}
@@ -273,7 +269,7 @@ function LifeHero({
                 letterSpacing: -0.6,
               }}
             >
-              {level.name.toUpperCase()}
+              {level.name}
             </Copy>
             {level.next && (
               <View style={{ marginTop: 4 }}>
@@ -294,7 +290,7 @@ function LifeHero({
                   />
                 </View>
                 <Copy
-                  size={11}
+                  size={12}
                   maxScale={CELL_SCALE}
                   style={{ color: t.muted, marginTop: 4 }}
                 >
@@ -312,7 +308,7 @@ function LifeHero({
               <Line style={{ gap: 4 }}>
                 <Info size={12} color={t.muted} />
                 <Copy
-                  size={11}
+                  size={12}
                   maxScale={CELL_SCALE}
                   style={{ color: t.muted }}
                 >
@@ -366,14 +362,14 @@ function LifeHero({
               >
                 <Copy
                   maxScale={CELL_SCALE}
-                  size={10}
+                  size={12}
                   style={{ color: t.muted }}
                 >
                   {AREA[k].label}
                 </Copy>
                 <Copy
                   maxScale={CELL_SCALE}
-                  size={10}
+                  size={12}
                   weight="semibold"
                   style={{ color: t.text }}
                 >
@@ -443,7 +439,7 @@ function DailyForm({ days }: { days: number }) {
               {target.range.map((d) => (
                 <Copy
                   key={d.day}
-                  size={10}
+                  size={12}
                   muted
                   style={{ flex: 1, textAlign: "center" }}
                 >
@@ -648,7 +644,7 @@ export function MissTiles({
               >
                 {n}
               </Copy>
-              <Copy size={10} muted lines={1} maxScale={CELL_SCALE}>
+              <Copy size={12} muted lines={1} maxScale={CELL_SCALE}>
                 {AREA[key].label}
               </Copy>
             </View>
@@ -877,7 +873,7 @@ export function StatsHome() {
                     paddingVertical: 2,
                   }}
                 >
-                  <Copy size={11}>{i.text}</Copy>
+                  <Copy size={12}>{i.text}</Copy>
                 </View>
               ))}
             </Line>
@@ -1059,7 +1055,7 @@ function StatsBody({
                         <Copy size={12} lines={1}>
                           {tr.title}
                         </Copy>
-                        <Copy size={10} muted>
+                        <Copy size={12} muted>
                           {new Date(`${tr.day}T12:00:00`).toLocaleDateString(
                             "en-PH",
                             {
