@@ -230,9 +230,102 @@ def test_recent_run_sessions_for_the_chat_agent(
         "max_hr",
         "kcal",
         "splits",
+        "indoor",
+        "incline_pct",
     }
     assert (s["kind"], s["name"], s["distance_m"]) == ("walk", "Walk", 5012.4)
     with ctx_for(user) as ctx:
         both = public.recent_run_sessions(ctx, since=long_ago - timedelta(days=1))
         assert [r["name"] for r in both] == ["Walk", "Morning run"]
         assert len(public.recent_run_sessions(ctx, since=long_ago, limit=1)) == 1
+
+
+def test_an_indoor_session_carries_its_incline_and_no_route(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    rid = uuid.uuid4()
+    res = push(
+        client,
+        h,
+        op(
+            "upsert",
+            "run_session",
+            rid,
+            **_session(
+                kind="walk",
+                indoor=True,
+                incline_pct=4.5,
+                distance_m=2350,
+                route=[],
+                splits=[],
+                elevation_gain_m=None,
+            ),
+        ),
+    )[0]
+    assert res["status"] == "applied", res
+    row = res["row"]
+    assert (row["indoor"], row["incline_pct"], row["route"]) == (True, 4.5, [])
+    # An outdoor session defaults to outdoors with no incline.
+    out = push(client, h, op("upsert", "run_session", uuid.uuid4(), **_session()))[0]
+    assert (out["row"]["indoor"], out["row"]["incline_pct"]) == (False, None)
+
+
+def test_a_gps_session_switched_to_the_treadmill_keeps_the_rest(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    rid = uuid.uuid4()
+    push(client, h, op("upsert", "run_session", rid, **_session(kind="walk")))
+    upd = push(
+        client,
+        h,
+        op(
+            "upsert",
+            "run_session",
+            rid,
+            indoor=True,
+            distance_m=2400,
+            route=None,
+            splits=None,
+            elevation_gain_m=None,
+            kcal=118.0,
+        ),
+    )[0]
+    assert upd["status"] == "applied", upd
+    row = upd["row"]
+    assert (row["indoor"], row["distance_m"], row["route"], row["splits"]) == (
+        True,
+        2400,
+        [],
+        [],
+    )
+    assert row["elevation_gain_m"] is None
+    assert (row["steps"], row["name"]) == (5100, "Morning run")
+
+
+def test_incline_bounds(client: TestClient, db: Session) -> None:
+    _, h = signed_in(db)
+    for bad in (-0.5, 40.5):
+        res = push(
+            client,
+            h,
+            op(
+                "upsert",
+                "run_session",
+                uuid.uuid4(),
+                **_session(indoor=True, incline_pct=bad),
+            ),
+        )[0]
+        assert res["status"] == "rejected", (bad, res)
+    ok = push(
+        client,
+        h,
+        op(
+            "upsert",
+            "run_session",
+            uuid.uuid4(),
+            **_session(indoor=True, incline_pct=40),
+        ),
+    )[0]
+    assert ok["status"] == "applied", ok

@@ -74,7 +74,11 @@ export function runRecord(
 ): RunRecord | undefined {
   const earlier = runs.filter(
     (x) =>
-      x.id !== run.id && x.kind === run.kind && x.startedAt < run.startedAt,
+      x.id !== run.id &&
+      x.kind === run.kind &&
+      // A treadmill pace is never an outdoor record, nor the reverse.
+      !!x.indoor === !!run.indoor &&
+      x.startedAt < run.startedAt,
   )
   if (!earlier.length) return undefined
   const out: RunRecord = {}

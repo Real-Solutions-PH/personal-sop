@@ -350,10 +350,15 @@ export interface WindowReading {
   /** Beats per minute over the window (an Apple Watch records them);
    * null without samples. */
   hr: { avg: number; max: number; last: number } | null
+  /** Walking + running distance the phone (or watch) measured from motion,
+   * metres; a treadmill session's distance until the person enters the
+   * machine's. Null when Health can't say. */
+  distanceM: number | null
 }
 
-/** Steps and heart rate between `start` and `end`: a workout's or a run's
- * own window. Expo Go answers with a plausible sample. */
+/** Steps, heart rate and walking distance between `start` and `end`: a
+ * workout's or a run's own window. Expo Go answers with a plausible
+ * sample. */
 export async function readWindow(
   start: Date,
   end: Date,
@@ -363,11 +368,12 @@ export async function readWindow(
     return {
       steps: Math.round(min * 95),
       hr: min > 1 ? { avg: 138, max: 162, last: 141 } : null,
+      distanceM: Math.round(min * 75),
     }
-  if (!healthAvailable()) return { steps: null, hr: null }
+  if (!healthAvailable()) return { steps: null, hr: null, distanceM: null }
   const hk = load() as HealthKit
   const filter = { date: { startDate: start, endDate: end } }
-  const [steps, hr] = await Promise.all([
+  const [steps, hr, distanceM] = await Promise.all([
     hk
       .queryStatisticsForQuantity(STEPS, ["cumulativeSum"], {
         filter,
@@ -392,6 +398,13 @@ export async function readWindow(
         }
       })
       .catch(() => null),
+    hk
+      .queryStatisticsForQuantity(DISTANCE, ["cumulativeSum"], {
+        filter,
+        unit: "m",
+      })
+      .then((r) => Math.round(r.sumQuantity?.quantity ?? 0))
+      .catch(() => null),
   ])
-  return { steps, hr }
+  return { steps, hr, distanceM }
 }

@@ -328,21 +328,24 @@ export const liveKey = (s: LiveState | null) =>
 export function runState(r: ActiveRun, now: number): LiveState {
   const paused = RL.isPaused(r)
   const moving = RL.movingSec(r, now)
-  const sum = RN.summarize(r.points, r.pauses)
+  const distanceM = RN.liveDistanceM(r)
   const five = (p: number | null) => (p === null ? null : Math.round(p / 5) * 5)
-  const pace = paused
-    ? null
-    : five(RN.currentPace(r.points, r.pauses, 30, RL.sessionSec(r, now)))
-  const avg = five(RN.paceSecPerKm(moving, sum.distanceM))
+  // A treadmill has no GPS track, so no pace "now": only the average.
+  const pace =
+    paused || r.indoor
+      ? null
+      : five(RN.currentPace(r.points, r.pauses, 30, RL.sessionSec(r, now)))
+  const avg = five(RN.paceSecPerKm(moving, distanceM))
   return {
     kind: "run",
     id: r.id,
-    title: RN.kindLabel(r.kind),
+    title: RN.sessionLabel(r),
     icon: r.kind === "run" ? "🏃" : "🚶",
-    step: `${RN.fmtKm(sum.distanceM)} km`,
-    detail: paused
-      ? `avg ${RN.fmtPace(avg)} /km`
-      : `${RN.fmtPace(pace)} /km now · avg ${RN.fmtPace(avg)}`,
+    step: `${RN.fmtKm(distanceM)} km`,
+    detail:
+      paused || r.indoor
+        ? `avg ${RN.fmtPace(avg)} /km`
+        : `${RN.fmtPace(pace)} /km now · avg ${RN.fmtPace(avg)}`,
     key: "",
     index: 0,
     count: 0,

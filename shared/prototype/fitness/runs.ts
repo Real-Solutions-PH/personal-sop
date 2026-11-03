@@ -9,6 +9,8 @@
 //       walking (under 8 km/h)  VO2 = 0.1·v + 1.8·v·grade
 //       running                 VO2 = 0.2·v + 0.9·v·grade
 //     kcal = VO2 (ml/kg/min) × kg × minutes / 1000 × 5 kcal per litre O2.
+//     On a treadmill there is no track: one stretch at the average speed
+//     (distance over moving time) up the machine's incline (treadmillKcal).
 //   - lifting: the session's time not spent on timed cardio sets, capped at
 //     3 hours, at MET 3.5 (resistance training, moderate) or 5.0 (vigorous)
 //     when it averaged 3 or more working sets per 10 minutes (Compendium of
@@ -227,6 +229,50 @@ export function runKcal(
   return Math.round(kcal)
 }
 
+/** Active kcal of a treadmill session: its average speed over the moving
+ * time, up its incline (the same equations; past 15% counts as 15%). */
+export function treadmillKcal(
+  distanceM: number,
+  movingSec: number,
+  inclinePct: number,
+  weightKg: number,
+): number {
+  if (distanceM <= 0 || movingSec <= 0) return 0
+  const min = movingSec / 60
+  return Math.round(
+    kcalOf(footVo2(distanceM / min, inclinePct / 100), weightKg, min),
+  )
+}
+
+/** Distance so far: the GPS track outdoors, the phone's motion estimate
+ * (Apple Health walking + running distance) on a treadmill. */
+export function liveDistanceM(r: {
+  indoor?: boolean
+  distanceM?: number
+  points: RunPoint[]
+  pauses: Pause[]
+}): number {
+  return r.indoor ? (r.distanceM ?? 0) : summarize(r.points, r.pauses).distanceM
+}
+
+/** The last session before `r` of the same kind done the same way
+ * (treadmill or outdoors): paces only compare like with like. */
+export function previousLike(
+  runs: RunSession[],
+  r: RunSession,
+): RunSession | undefined {
+  return runs
+    .filter(
+      (x) =>
+        x.id !== r.id &&
+        x.kind === r.kind &&
+        !!x.indoor === !!r.indoor &&
+        x.startedAt < r.startedAt,
+    )
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt))
+    .at(-1)
+}
+
 /** The latest weigh-in at or before `at`, else the latest at all, else
  * DEFAULT_WEIGHT_KG; `assumed` when there was none. */
 export function weightAt(
@@ -318,6 +364,9 @@ export function hoursFigure(sec: number): [string, string] {
   return [`${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`, "h"]
 }
 export const kindLabel = (k: RunKind) => (k === "run" ? "Run" : "Walk")
+/** "Run", "Walk", or "Treadmill run" / "Treadmill walk" indoors. */
+export const sessionLabel = (r: { kind: RunKind; indoor?: boolean }) =>
+  r.indoor ? `Treadmill ${r.kind}` : kindLabel(r.kind)
 
 /** "Morning run", "Evening walk": what a session is called until renamed. */
 export function defaultRunName(kind: RunKind, at: Date): string {

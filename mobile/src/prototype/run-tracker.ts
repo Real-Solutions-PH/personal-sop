@@ -12,13 +12,16 @@
 import { onWorkoutFinished, updateWorkoutHealth } from "@domain/fitness/actions"
 import {
   addFixes,
+  enteredByHand,
   type Fix,
   finishRun,
   onRunFinished,
   patchRun,
   runLiveStore,
   setRunHealth,
+  setTreadmillReadings,
 } from "@domain/fitness/run-live"
+import { fitStore } from "@domain/fitness/store"
 import { AppState, Platform } from "react-native"
 import { connectHealth, healthAvailable, readWindow } from "./health"
 
@@ -142,6 +145,8 @@ async function refreshHealth() {
   setRunHealth({
     ...(h.steps !== null ? { steps: h.steps } : {}),
     ...(h.hr ? { hr: h.hr } : {}),
+    // On a treadmill the motion distance is the session's distance.
+    ...(r.indoor && h.distanceM !== null ? { distanceM: h.distanceM } : {}),
   })
 }
 
@@ -156,7 +161,8 @@ export function startRunTracker() {
   const sync = () => {
     const active = runLiveStore.get().active
     if (active && !timer) {
-      void startTracking(active.kind)
+      // A treadmill session has no route: location is never asked for.
+      if (!active.indoor) void startTracking(active.kind)
       void refreshHealth()
       timer = setInterval(() => {
         if (AppState.currentState === "active") void refreshHealth()
@@ -169,15 +175,44 @@ export function startRunTracker() {
   }
   runLiveStore.subscribe(sync)
   sync()
+  // Back from the lock screen: catch up at once instead of on the next
+  // 30-second tick (a treadmill session reads nothing while away).
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") void refreshHealth()
+  })
   onRunFinished((run) => {
     if (!healthAvailable()) return
-    void readWindow(new Date(run.startedAt), new Date(run.endedAt)).then((h) =>
-      patchRun(run.id, (r) => ({
-        ...r,
-        ...(h.steps !== null ? { steps: h.steps } : {}),
-        ...(h.hr ? { avgHr: h.hr.avg, maxHr: h.hr.max } : {}),
-      })),
-    )
+    // The distance this tracker last wrote: a read may replace it only
+    // while it is still there (the person has not entered the machine's).
+    let ours = run.distanceM
+    const read = () =>
+      readWindow(new Date(run.startedAt), new Date(run.endedAt)).then((h) => {
+        patchRun(run.id, (r) => ({
+          ...r,
+          ...(h.steps !== null ? { steps: h.steps } : {}),
+          ...(h.hr ? { avgHr: h.hr.avg, maxHr: h.hr.max } : {}),
+        }))
+        // Health can lag the last minutes, so the whole window's motion
+        // distance replaces the last poll's.
+        const now = (fitStore.get().runs ?? []).find((x) => x.id === run.id)
+        if (
+          run.indoor &&
+          h.distanceM !== null &&
+          now?.distanceM === ours &&
+          now.inclinePct === undefined &&
+          !enteredByHand(run.id)
+        ) {
+          setTreadmillReadings(run.id, {
+            distanceM: h.distanceM,
+            inclinePct: null,
+          })
+          ours = Math.round(h.distanceM)
+        }
+      })
+    void read()
+    // A treadmill's distance is all Health's: read once more after it has
+    // caught up, as a workout's steps are.
+    if (run.indoor) setTimeout(() => void read(), LATE_READ_MS)
   })
   onWorkoutFinished((w) => {
     // A chat-logged workout has a placeholder time: no real window.

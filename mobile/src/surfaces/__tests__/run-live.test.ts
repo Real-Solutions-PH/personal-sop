@@ -78,3 +78,14 @@ it("a queued run tap passes the native action check", () => {
     isAction({ id: "a", type: "pause", kind: "run", target: "r", at: 1 }),
   ).toBe(true)
 })
+
+it("a treadmill walk shows the motion distance and its average pace", () => {
+  const t0 = Date.now() - 1_200_000
+  RL.startRun("walk", t0, { indoor: true })
+  RL.setRunHealth({ distanceM: 1500 })
+  const s = all(t0 + 1_200_000)!
+  // 1.50 km in 20 min = 13:20 /km; no GPS, so no pace "now".
+  expect(s.title).toBe("Treadmill walk")
+  expect(s.step).toBe("1.50 km")
+  expect(s.detail).toBe("avg 13:20 /km")
+})

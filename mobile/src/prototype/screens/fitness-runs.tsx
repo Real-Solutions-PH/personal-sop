@@ -9,6 +9,10 @@
 //   splits (one bar per km, fastest marked), then climb, kcal, steps, HR.
 // /fitness/runs — history: this week's distance, then every session as a
 //   row that leads with its route's shape and distance and opens it.
+// On a treadmill (chosen at the start, or switched to from a GPS record)
+//   there is no map or GPS: a drawn treadmill takes the map's place, the
+//   distance is the phone's motion estimate until the machine's is
+//   entered, and pace compares only with other treadmill sessions.
 
 import { addDays, relDay, weekStart } from "@domain/fitness/calc"
 import type { RunKind, RunSession } from "@domain/fitness/data"
@@ -26,20 +30,27 @@ import {
   Flag,
   Flame,
   Footprints,
+  Gauge,
   HeartPulse,
   History,
   Info,
+  MapPin,
   Mountain,
   Pause,
+  Pencil,
   Play,
   Satellite,
   Trash2,
+  TrendingUp,
+  Undo2,
 } from "lucide-react-native"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Pressable, Text, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { runRecord } from "../body-rewards"
 import { Celebration, useCelebrate } from "../celebration"
+import { Stepper } from "../fitness-controls"
+import { connectHealth, healthAvailable, readWindow } from "../health"
 import {
   border,
   Copy,
@@ -53,6 +64,7 @@ import { go, replace } from "../navigation"
 import { RouteMap, Trace } from "../route-map"
 import { finishAndStop, startTracking, stopTracking } from "../run-tracker"
 import { fonts, useTheme } from "../theme"
+import { TreadmillVisual } from "../treadmill-visual"
 import {
   Button,
   confirm,
@@ -72,6 +84,9 @@ const KIND_ICON: Record<RunKind, LucideIcon> = {
   walk: Footprints,
 }
 const grouped = (n: number) => Math.round(n).toLocaleString("en-US")
+/** One decimal at most: "4.5", "3". */
+const tenths = (n: number) =>
+  n.toLocaleString("en-US", { maximumFractionDigits: 1 })
 /** The shortest session worth keeping (metres). */
 const MIN_SAVE_M = 50
 
@@ -145,6 +160,7 @@ function Extras({
   steps,
   kcal,
   elev,
+  incline,
 }: {
   hr?: number
   /** Shown beside the average when known: "157 avg · 176 max bpm". */
@@ -152,6 +168,8 @@ function Extras({
   steps?: number
   kcal?: number
   elev?: number
+  /** A treadmill's incline, %. */
+  incline?: number
 }) {
   const t = useTheme()
   const items: { icon: LucideIcon; text: string; label: string }[] = []
@@ -178,6 +196,12 @@ function Extras({
       icon: Mountain,
       text: `${grouped(elev)} m climb`,
       label: "Climb",
+    })
+  if (incline != null)
+    items.push({
+      icon: TrendingUp,
+      text: `${tenths(incline)}% incline`,
+      label: "Incline",
     })
   if (!items.length) return null
   return (
@@ -236,6 +260,60 @@ function KindChoice({
               style={{ color: on ? t.fit : t.text }}
             >
               {R.kindLabel(k)}
+            </Copy>
+          </Pressable>
+        )
+      })}
+    </Line>
+  )
+}
+
+/** Outdoors with GPS, or on a treadmill with the phone's motion data. */
+function PlaceChoice({
+  indoor,
+  onChange,
+}: {
+  indoor: boolean
+  onChange: (indoor: boolean) => void
+}) {
+  const t = useTheme()
+  const opts = [
+    { indoor: false, label: "Outdoors", icon: MapPin },
+    { indoor: true, label: "Treadmill", icon: Gauge },
+  ]
+  return (
+    <Line style={{ gap: 10 }}>
+      {opts.map((o) => {
+        const on = indoor === o.indoor
+        return (
+          <Pressable
+            key={o.label}
+            cssInterop={false}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={o.label}
+            onPress={() => onChange(o.indoor)}
+            style={({ pressed }) => ({
+              flex: 1,
+              minHeight: 48,
+              borderRadius: 14,
+              borderWidth: on ? 2 : 1,
+              borderColor: on ? t.fit : border(t.line, 0.8),
+              backgroundColor: on ? `${t.fit}14` : t.card,
+              alignItems: "center",
+              justifyContent: "center",
+              flexDirection: "row",
+              gap: 8,
+              opacity: pressed ? 0.8 : 1,
+            })}
+          >
+            <o.icon size={18} color={on ? t.fit : t.muted} />
+            <Copy
+              size={15}
+              weight="semibold"
+              style={{ color: on ? t.fit : t.text }}
+            >
+              {o.label}
             </Copy>
           </Pressable>
         )
@@ -307,9 +385,20 @@ function StartRun() {
   const [kind, setKind] = useState<RunKind>(
     params.kind === "walk" ? "walk" : "run",
   )
+  const [indoor, setIndoor] = useState(false)
   const [busy, setBusy] = useState(false)
   const runs = R.runsOf(fitStore.use((s) => s))
   const start = async () => {
+    if (indoor) {
+      // No route on a treadmill: location is never asked for, Health is
+      // (its walking distance is the session's distance).
+      if (healthAvailable()) void connectHealth()
+      void Haptics.notificationAsync(
+        Haptics.NotificationFeedbackType.Success,
+      ).catch(() => {})
+      RL.startRun(kind, Date.now(), { indoor: true })
+      return
+    }
     setBusy(true)
     const res = await startTracking(kind)
     setBusy(false)
@@ -337,15 +426,21 @@ function StartRun() {
       footer={
         <View style={{ paddingHorizontal: 16, paddingBottom: 8 }}>
           <Button icon={Play} onPress={() => void start()} disabled={busy}>
-            {busy ? "Starting…" : `Start ${kind}`}
+            {busy
+              ? "Starting…"
+              : `Start ${indoor ? `treadmill ${kind}` : kind}`}
           </Button>
         </View>
       }
     >
       <KindChoice value={kind} onChange={setKind} />
+      <View style={{ marginTop: 10 }}>
+        <PlaceChoice indoor={indoor} onChange={setIndoor} />
+      </View>
       <Copy size={14} muted style={{ marginTop: 10 }}>
-        Records your route, distance, pace and splits with GPS, plus steps and
-        heart rate from Apple Health. It runs beside a workout or focus session.
+        {indoor
+          ? "No GPS: distance comes from your phone's motion through Apple Health, and you can enter the treadmill's own distance and incline when you finish. It runs beside a workout or focus session."
+          : "Records your route, distance, pace and splits with GPS, plus steps and heart rate from Apple Health. It runs beside a workout or focus session."}
       </Copy>
       <WeekSummary runs={runs} />
       <RecentRuns runs={runs} />
@@ -358,20 +453,33 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
   const now = useNow()
   const paused = RL.isPaused(run)
   const moving = RL.movingSec(run, now)
+  const indoor = !!run.indoor
   const snap = R.summarize(run.points, run.pauses)
-  const pace = paused
-    ? null
-    : R.currentPace(run.points, run.pauses, 30, RL.sessionSec(run, now))
-  const avg = R.paceSecPerKm(moving, snap.distanceM)
-  const kcal = R.runKcal(
-    run.points,
-    run.pauses,
-    R.weightAt(fitStore.get(), run.startedAt).kg,
-  )
-  const lastSplit = snap.splits.at(-1)
+  const distanceM = R.liveDistanceM(run)
+  const pace =
+    paused || indoor
+      ? null
+      : R.currentPace(run.points, run.pauses, 30, RL.sessionSec(run, now))
+  const avg = R.paceSecPerKm(moving, distanceM)
+  const kg = R.weightAt(fitStore.get(), run.startedAt).kg
+  const kcal = indoor
+    ? R.treadmillKcal(distanceM, moving, 0, kg)
+    : R.runKcal(run.points, run.pauses, kg)
+  const lastSplit = indoor ? undefined : snap.splits.at(-1)
   const [menu, setMenu] = useState(false)
   const finish = () => {
-    if (snap.distanceM < MIN_SAVE_M)
+    // A treadmill's distance is entered after, so time decides what is
+    // worth keeping there.
+    if (indoor && moving < 60)
+      return confirm(
+        `Discard this ${run.kind}?`,
+        "It lasted under a minute, too short to save.",
+        () => {
+          RL.discardRun()
+          replace("/fitness")
+        },
+      )
+    if (!indoor && snap.distanceM < MIN_SAVE_M)
       return confirm(
         `Discard this ${run.kind}?`,
         `It covered under ${MIN_SAVE_M} m, too short to save.`,
@@ -391,7 +499,7 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
   }
   return (
     <Screen
-      title={R.kindLabel(run.kind)}
+      title={R.sessionLabel(run)}
       actions={
         <IconTap
           size={40}
@@ -421,17 +529,28 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
         </Line>
       }
     >
-      <RouteMap points={run.points} height={210} live />
-      <Line style={{ justifyContent: "space-between", marginTop: 12 }}>
-        <Signal
-          accuracy={run.accuracy}
-          waiting={!run.points.length}
-          lost={
-            !paused &&
-            run.points.length > 0 &&
-            RL.sessionSec(run, now) - (run.points.at(-1)?.[3] ?? 0) > 15
-          }
+      {indoor ? (
+        <TreadmillVisual
+          height={210}
+          caption="Distance from your phone's motion. Enter the treadmill's when you finish."
         />
+      ) : (
+        <RouteMap points={run.points} height={210} live />
+      )}
+      <Line style={{ justifyContent: "space-between", marginTop: 12 }}>
+        {indoor ? (
+          <View />
+        ) : (
+          <Signal
+            accuracy={run.accuracy}
+            waiting={!run.points.length}
+            lost={
+              !paused &&
+              run.points.length > 0 &&
+              RL.sessionSec(run, now) - (run.points.at(-1)?.[3] ?? 0) > 15
+            }
+          />
+        )}
         {paused ? (
           <Line style={{ gap: 6 }}>
             <Pause size={14} color={t.warn} />
@@ -441,7 +560,7 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
           </Line>
         ) : null}
       </Line>
-      {run.background === false && (
+      {!indoor && run.background === false && (
         <Line style={{ gap: 6, marginTop: 8 }}>
           <Info size={14} color={t["chart-1"]} />
           <Copy size={12} style={{ color: t["chart-1"], flex: 1 }}>
@@ -453,7 +572,7 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
       <View
         style={{ marginTop: 8 }}
         accessible
-        accessibilityLabel={`${R.fmtKm(snap.distanceM)} kilometres`}
+        accessibilityLabel={`${R.fmtKm(distanceM)} kilometres`}
       >
         <Text
           style={{
@@ -464,19 +583,23 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
             color: paused ? t.muted : t.text,
           }}
         >
-          {R.fmtKm(snap.distanceM)}
+          {R.fmtKm(distanceM)}
           <Text style={{ fontSize: 24, color: t.muted }}> km</Text>
         </Text>
       </View>
       <Peers>
         {[
           <Figure key="t" value={R.fmtClock(moving)} label="Moving time" />,
-          <Figure
-            key="p"
-            value={R.fmtPace(pace)}
-            unit="/km"
-            label="Pace now"
-          />,
+          ...(indoor
+            ? []
+            : [
+                <Figure
+                  key="p"
+                  value={R.fmtPace(pace)}
+                  unit="/km"
+                  label="Pace now"
+                />,
+              ]),
           <Figure key="a" value={R.fmtPace(avg)} unit="/km" label="Average" />,
         ]}
       </Peers>
@@ -485,7 +608,7 @@ function LiveRun({ run }: { run: RL.ActiveRun }) {
           hr={run.hr?.last}
           steps={run.steps}
           kcal={kcal}
-          elev={snap.elevationGainM ?? undefined}
+          elev={indoor ? undefined : (snap.elevationGainM ?? undefined)}
         />
       </View>
       {lastSplit ? (
@@ -613,6 +736,13 @@ export function RunDetail({
   const r = R.runsOf(s).find((x) => x.id === id)
   const [name, setName] = useState(r?.name ?? "")
   const [method, setMethod] = useState(false)
+  const [readings, setReadings] = useState(false)
+  // The session as it was before "Recorded on a treadmill?", for the
+  // readings sheet's Undo.
+  const [switched, setSwitched] = useState<RunSession>()
+  // The phone's motion distance for a switched session's time, offered in
+  // the readings sheet once Health answers.
+  const [motionM, setMotionM] = useState<number>()
   const fresh = useCelebrate(id, summary)
   if (!r)
     return (
@@ -620,10 +750,11 @@ export function RunDetail({
         <Empty title="Session not found" detail="It may have been deleted." />
       </Screen>
     )
+  const indoor = !!r.indoor
   const avg = R.paceSecPerKm(r.movingSec, r.distanceM)
-  const prev = R.runsOf(s)
-    .filter((x) => x.kind === r.kind && x.startedAt < r.startedAt)
-    .at(-1)
+  // Treadmill against treadmill, outdoors against outdoors; nothing to
+  // compare with hides the line.
+  const prev = R.previousLike(R.runsOf(s), r)
   const prevPace = prev ? R.paceSecPerKm(prev.movingSec, prev.distanceM) : null
   const delta =
     avg !== null && prevPace !== null ? Math.round(avg - prevPace) : null
@@ -636,6 +767,21 @@ export function RunDetail({
     })
   const save = () =>
     RL.patchRun(id, (x) => ({ ...x, name: name.trim() || x.name }))
+  const toTreadmill = () => {
+    const before = RL.markTreadmill(id)
+    if (!before) return
+    setSwitched(before)
+    setMotionM(undefined)
+    setReadings(true)
+    void readWindow(new Date(before.startedAt), new Date(before.endedAt)).then(
+      (h) => {
+        if (h.distanceM) setMotionM(h.distanceM)
+      },
+    )
+  }
+  const editReadings = (
+    <Pencil size={16} color={t.muted} accessibilityElementsHidden />
+  )
   const when = new Date(r.startedAt)
   const paceDelta = delta !== null && delta !== 0 && (
     <Copy
@@ -658,7 +804,7 @@ export function RunDetail({
       : undefined
   return (
     <Screen
-      title={summary ? `${R.kindLabel(r.kind)} complete` : r.name}
+      title={summary ? `${R.sessionLabel(r)} complete` : r.name}
       actions={
         <IconTap
           size={40}
@@ -691,11 +837,29 @@ export function RunDetail({
             },
           ]}
           record={record}
-          play={fresh && r.distanceM > 0}
+          play={fresh && (r.distanceM > 0 || indoor)}
         />
       )}
       {summary && paceDelta}
-      <RouteMap points={r.route} height={240} />
+      {indoor ? (
+        <TreadmillVisual height={240} inclinePct={r.inclinePct} />
+      ) : (
+        <RouteMap points={r.route} height={240} />
+      )}
+      {summary && indoor && (
+        <Tap
+          label="Edit treadmill distance and incline"
+          onPress={() => setReadings(true)}
+          style={{ marginTop: 10, alignSelf: "flex-start" }}
+        >
+          <Line style={{ gap: 6, minHeight: 32 }}>
+            <Pencil size={14} color={t["chart-1"]} />
+            <Copy size={13} weight="medium" style={{ color: t["chart-1"] }}>
+              Check the distance against the treadmill's display
+            </Copy>
+          </Line>
+        </Tap>
+      )}
       <Copy size={14} muted style={{ marginTop: 10 }}>
         {when.toLocaleDateString("en-PH", {
           weekday: "long",
@@ -711,19 +875,44 @@ export function RunDetail({
       {/* The summary's celebration already leads with these figures. */}
       {!summary && (
         <>
-          <Text
-            accessibilityLabel={`${R.fmtKm(r.distanceM)} kilometres`}
-            style={{
-              fontFamily: fonts.displayMedium,
-              fontVariant: ["tabular-nums"],
-              fontSize: 56,
-              lineHeight: 64,
-              color: t.text,
-            }}
-          >
-            {R.fmtKm(r.distanceM)}
-            <Text style={{ fontSize: 22, color: t.muted }}> km</Text>
-          </Text>
+          {indoor ? (
+            <Tap
+              label="Edit treadmill distance and incline"
+              onPress={() => setReadings(true)}
+              style={{ alignSelf: "flex-start" }}
+            >
+              <Line style={{ gap: 10, alignItems: "center" }}>
+                <Text
+                  accessibilityLabel={`${R.fmtKm(r.distanceM)} kilometres`}
+                  style={{
+                    fontFamily: fonts.displayMedium,
+                    fontVariant: ["tabular-nums"],
+                    fontSize: 56,
+                    lineHeight: 64,
+                    color: t.text,
+                  }}
+                >
+                  {R.fmtKm(r.distanceM)}
+                  <Text style={{ fontSize: 22, color: t.muted }}> km</Text>
+                </Text>
+                {editReadings}
+              </Line>
+            </Tap>
+          ) : (
+            <Text
+              accessibilityLabel={`${R.fmtKm(r.distanceM)} kilometres`}
+              style={{
+                fontFamily: fonts.displayMedium,
+                fontVariant: ["tabular-nums"],
+                fontSize: 56,
+                lineHeight: 64,
+                color: t.text,
+              }}
+            >
+              {R.fmtKm(r.distanceM)}
+              <Text style={{ fontSize: 22, color: t.muted }}> km</Text>
+            </Text>
+          )}
           <Peers>
             {[
               <Figure
@@ -749,7 +938,8 @@ export function RunDetail({
           maxHr={r.maxHr}
           steps={r.steps}
           kcal={r.kcal}
-          elev={r.elevationGainM}
+          elev={indoor ? undefined : r.elevationGainM}
+          incline={indoor ? r.inclinePct : undefined}
         />
       </View>
       <Tap
@@ -765,8 +955,9 @@ export function RunDetail({
       </Tap>
       {method && (
         <Copy size={12} muted>
-          Active calories from your speed and the climb on each stretch (ACSM
-          walking and running equations), at {weight.kg} kg
+          {indoor
+            ? `Active calories from your average speed on the treadmill (its distance over your moving time) and its incline${r.inclinePct ? ` of ${tenths(r.inclinePct)}%${r.inclinePct > 15 ? " (counted as 15%, where the equations stop)" : ""}` : ", flat when none is entered"} (ACSM walking and running equations), at ${weight.kg} kg`
+            : `Active calories from your speed and the climb on each stretch (ACSM walking and running equations), at ${weight.kg} kg`}
           {weight.assumed
             ? " (no weigh-in yet, so 70 kg is assumed)"
             : " from your latest weigh-in"}
@@ -778,6 +969,19 @@ export function RunDetail({
           <SectionHeading>Splits</SectionHeading>
           <Splits splits={r.splits} />
         </>
+      )}
+      {!indoor && (
+        <Tap
+          onPress={toTreadmill}
+          style={{ marginTop: 12, alignSelf: "flex-start" }}
+        >
+          <Line style={{ gap: 6, minHeight: 44 }}>
+            <Gauge size={16} color={t["chart-1"]} />
+            <Copy size={14} weight="medium" style={{ color: t["chart-1"] }}>
+              Recorded on a treadmill?
+            </Copy>
+          </Line>
+        </Tap>
       )}
       <SectionHeading>Name</SectionHeading>
       <TextInput
@@ -811,7 +1015,128 @@ export function RunDetail({
           </Button>
         </View>
       )}
+      {readings && (
+        <ReadingsSheet
+          run={r}
+          switched={switched}
+          // Only right after a switch: once saved, the record is the truth.
+          suggestedM={switched ? motionM : undefined}
+          onClose={(how) => {
+            setReadings(false)
+            setSwitched(undefined)
+            // Closed with the switch kept but nothing saved: the sheet's
+            // own Undo is gone, so the toast carries it.
+            if (switched && how === "closed") {
+              const back = switched
+              undo("Switched to treadmill", () => RL.unmarkTreadmill(id, back))
+            }
+          }}
+        />
+      )}
     </Screen>
+  )
+}
+
+const toKm = (m: number) => Math.round(m / 10) / 100
+
+/** The treadmill's own distance and incline, from its display; calories
+ * follow them. Saving shows Undo. */
+function ReadingsSheet({
+  run,
+  switched,
+  suggestedM,
+  onClose,
+}: {
+  run: RunSession
+  /** Just switched from GPS: the session before, which Undo puts back. */
+  switched?: RunSession
+  /** The phone's motion distance, prefilled while the field is untouched. */
+  suggestedM?: number
+  onClose: (how: "saved" | "undone" | "closed") => void
+}) {
+  const t = useTheme()
+  const [km, setKm] = useState(toKm(run.distanceM))
+  const [touched, setTouched] = useState(false)
+  const [incline, setIncline] = useState(run.inclinePct ?? 0)
+  // Until the person types, the field follows the best figure known: a
+  // late Health read, or the motion distance of a switched session.
+  const latest = suggestedM ?? run.distanceM
+  useEffect(() => {
+    if (!touched) setKm(toKm(latest))
+  }, [latest, touched])
+  const save = () => {
+    const prev = run
+    const back = switched
+    RL.setTreadmillReadings(
+      run.id,
+      {
+        distanceM: km * 1000,
+        inclinePct: incline > 0 ? incline : null,
+      },
+      true,
+    )
+    undo("Treadmill readings saved", () =>
+      back
+        ? RL.unmarkTreadmill(run.id, back)
+        : RL.restoreReadings(run.id, prev),
+    )
+    onClose("saved")
+  }
+  return (
+    <Sheet open onClose={() => onClose("closed")} title="Treadmill readings">
+      {switched && (
+        <Line style={{ gap: 8 }}>
+          <Info size={14} color={t["chart-1"]} />
+          <Copy size={13} style={{ color: t["chart-1"], flex: 1 }}>
+            Switched from GPS: the route, splits and climb are gone.
+          </Copy>
+          <Tap
+            label="Undo the switch to treadmill"
+            onPress={() => {
+              RL.unmarkTreadmill(run.id, switched)
+              onClose("undone")
+            }}
+          >
+            <Line style={{ gap: 4, minHeight: 32 }}>
+              <Undo2 size={14} color={t.fit} />
+              <Copy size={13} weight="semibold" style={{ color: t.fit }}>
+                Undo
+              </Copy>
+            </Line>
+          </Tap>
+        </Line>
+      )}
+      <Copy size={14} muted>
+        From the treadmill's display, which is more accurate than your phone on
+        a belt. Calories and pace follow these.
+      </Copy>
+      <Stepper
+        label="Distance"
+        unit="km"
+        value={km}
+        onChange={(v) => {
+          setTouched(true)
+          setKm(v)
+        }}
+        step={0.1}
+        min={0}
+        max={100}
+        decimals={2}
+      />
+      <Stepper
+        label="Incline"
+        unit="%"
+        value={incline}
+        onChange={setIncline}
+        step={0.5}
+        min={0}
+        max={40}
+        decimals={1}
+      />
+      <Button icon={Pencil} onPress={save}>
+        Save readings
+      </Button>
+    </Sheet>
   )
 }
 
@@ -924,7 +1249,17 @@ export function RunRow({
             overflow: "hidden",
           }}
         >
-          {r.route.length > 1 ? (
+          {r.indoor ? (
+            <View
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Gauge size={20} color={t.fit} />
+            </View>
+          ) : r.route.length > 1 ? (
             <Trace points={r.route} height={48} aspect={1} stroke={9} />
           ) : (
             <View
@@ -953,6 +1288,7 @@ export function RunRow({
             })}
             {" · "}
             {R.fmtClock(r.movingSec)}
+            {r.indoor ? " · Treadmill" : ""}
           </Copy>
         </View>
         <View style={{ alignItems: "flex-end" }}>
