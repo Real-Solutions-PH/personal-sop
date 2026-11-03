@@ -195,7 +195,7 @@ export function TaskPlanPanel({
             icon={Plus}
             label="Add task"
             color={t.onPrimary}
-            background={t.tsk}
+            background={t.primary}
             onPress={() => go("/tasks/new")}
           />
         </Line>

@@ -328,16 +328,21 @@ export function Choices<T extends string>({
           paddingHorizontal: 14,
           paddingVertical: 10,
           borderRadius: 24,
-          borderWidth: 1,
-          borderColor: o.value === value ? "transparent" : t.line,
+          // Selected is a 2 pt ink outline and a check, never colour alone
+          // (ADR-0019); the rest sit on a hairline.
+          borderWidth: o.value === value ? 2 : 1,
+          borderColor: o.value === value ? t.text : t.line,
+          flexDirection: "row",
+          gap: 6,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: o.value === value ? t.accent : t.card,
+          backgroundColor: t.card,
         }}
       >
+        {o.value === value && <Check size={14} color={t.text} />}
         <Text
           style={{
-            color: o.value === value ? t.bg : t.text,
+            color: t.text,
             fontSize: 14,
             lineHeight: 20,
             fontFamily: fonts.medium,

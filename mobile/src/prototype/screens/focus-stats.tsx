@@ -243,7 +243,7 @@ function GoalBars({
         {days.map((d, i) => (
           <Copy
             key={d}
-            size={10}
+            size={12}
             muted
             style={{ flex: 1, textAlign: "center" }}
           >

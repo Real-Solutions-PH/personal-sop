@@ -85,7 +85,7 @@ test.each([
       <SmallButton key="small" accent="hab" onPress={() => {}}>
         Start
       </SmallButton>,
-      { height: 36, paddingHorizontal: 12, backgroundColor: theme.hab },
+      { height: 36, paddingHorizontal: 12, backgroundColor: theme.primary },
     ],
     [
       <Button key="button" onPress={() => {}}>

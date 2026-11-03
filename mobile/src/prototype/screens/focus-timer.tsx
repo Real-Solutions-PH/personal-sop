@@ -676,7 +676,7 @@ function ItemChip({
           size={12}
           weight={done ? "semibold" : "body"}
           muted={!done}
-          style={done ? { color: t.foc } : undefined}
+          style={done ? { color: t.primary } : undefined}
         >
           {done ? "Next" : switching ? "Switch" : "Pick"}
         </Copy>
@@ -821,12 +821,14 @@ function HabitCheck({
             height: 32,
             paddingHorizontal: 8,
             borderRadius: 16,
-            backgroundColor: `${t.hab}26`,
+            borderWidth: 1,
+            borderColor: t.input,
+            backgroundColor: t.card,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Copy size={12} weight="semibold" style={{ color: t.hab }}>
+          <Copy size={12} weight="semibold">
             +{habit.step ?? 1}
           </Copy>
         </Tap>

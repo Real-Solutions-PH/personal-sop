@@ -12,6 +12,7 @@ import { liveMode } from "@/live/config"
 import {
   border,
   Copy,
+  chosen,
   Frame,
   IconTap,
   Line,
@@ -218,7 +219,7 @@ function DayRow({ habit: h, day }: { habit: Habit; day: string }) {
       }}
     >
       <Line style={{ gap: 8 }}>
-        <Copy style={{ color: cell === "done" ? t.hab : t.muted }}>
+        <Copy style={{ color: cell === "done" ? t.text : t.muted }}>
           {cell === "done"
             ? "✓"
             : cell === "skipped"
@@ -296,14 +297,14 @@ function DayRow({ habit: h, day }: { habit: Habit; day: string }) {
                   height: 32,
                   paddingHorizontal: 12,
                   borderRadius: 99,
-                  backgroundColor: x.on ? `${t.hab}26` : t.soft,
+                  ...chosen(t, x.on),
                   justifyContent: "center",
                 }}
               >
                 <Copy
                   size={12}
                   weight="medium"
-                  style={{ color: x.on ? t.hab : t.muted }}
+                  style={{ color: x.on ? t.text : t.muted }}
                 >
                   {x.label}
                 </Copy>

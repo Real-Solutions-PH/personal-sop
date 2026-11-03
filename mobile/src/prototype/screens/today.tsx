@@ -638,12 +638,14 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                     minWidth: 36,
                     height: 36,
                     borderRadius: 18,
-                    backgroundColor: `${t.hab}26`,
+                    borderWidth: 1,
+                    borderColor: t.input,
+                    backgroundColor: t.card,
                     alignItems: "center",
                     justifyContent: "center",
                   }}
                 >
-                  <Copy size={12} weight="semibold" style={{ color: t.hab }}>
+                  <Copy size={12} weight="semibold">
                     +{habit.step ?? 1}
                   </Copy>
                 </Tap>
@@ -652,8 +654,8 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                 <IconTap
                   icon={Play}
                   label={`Start ${habit.name} timer`}
-                  color={t.hab}
-                  background={`${t.hab}26`}
+                  color={t.text}
+                  background={t.soft}
                   onPress={() => go(HA.timerHref(habit.id))}
                 />
               )}
@@ -704,12 +706,12 @@ function AllHabitsDone({ play }: { play: boolean }) {
         marginTop: 4,
         borderRadius: 14,
         overflow: "hidden",
-        backgroundColor: border(t.hab, 0.15),
+        backgroundColor: border(t.good, 0.14),
       }}
     >
       <Line style={{ gap: 8, paddingHorizontal: 12, paddingVertical: 10 }}>
-        <PartyPopper size={18} color={t.hab} />
-        <Copy weight="semibold" style={{ color: t.hab, flex: 1 }}>
+        <PartyPopper size={18} color={t.good} />
+        <Copy weight="semibold" style={{ flex: 1 }}>
           All habits done today
         </Copy>
       </Line>
@@ -986,8 +988,8 @@ function TasksCard() {
             size={32}
             icon={Plus}
             label="Add task"
-            color={t.tsk}
-            background={`${t.tsk}26`}
+            color={t.text}
+            background={t.soft}
             onPress={() => go("/tasks/new")}
           />
         </Line>
@@ -1434,7 +1436,7 @@ function FinanceCard() {
               size={40}
               icon={Plus}
               label="Quick add expense"
-              background={t.fin}
+              background={t.primary}
               color={t.onPrimary}
               onPress={() => setAdding(true)}
             />
