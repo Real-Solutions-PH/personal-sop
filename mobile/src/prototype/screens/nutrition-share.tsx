@@ -1,24 +1,23 @@
 import * as C from "@domain/fitness/calc"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
-import { Check, ShieldCheck, Utensils } from "lucide-react-native"
+import { ShieldCheck, Utensils } from "lucide-react-native"
 import { useState } from "react"
-import { View } from "react-native"
 import { Copy, Frame, Line } from "../native-kit"
 import { fmt, pct } from "../share-format"
 import {
+  Body,
   CardFrame,
   type CardLook,
-  Chip,
+  Change,
   cardInk,
-  type Dot,
-  Dots,
-  Label,
-  Meter,
-  Num,
+  Figures,
+  Hero,
+  Meters,
   ShareComposer,
-  Stats,
-  Words,
+  Stems,
+  Sub,
+  Title,
 } from "../share-kit"
 import { useTheme } from "../theme"
 import { Screen, Toggle } from "../ui"
@@ -31,8 +30,13 @@ export type FoodCardData = {
   meals: number
   totals: Record<Macro, number>
   target: Record<Macro, number> | null
-  /** The last 7 days, oldest first: on = calories within 10% of target. */
-  week: Dot[]
+  /** The last 7 days, oldest first: hit = calories within 10% of target;
+   * ``kcal`` is that day's calories as a share of its target. */
+  week: {
+    day: string
+    verdict: "hit" | "over" | "under" | "none"
+    kcal: number | null
+  }[]
   calorieDays: number
   proteinDays: number
   logged: number
@@ -46,6 +50,10 @@ const MACROS: { key: Macro; label: string; unit: string }[] = [
   { key: "carbs", label: "Carbs", unit: "g" },
   { key: "fat", label: "Fat", unit: "g" },
 ]
+const initial = (day: string) =>
+  new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", {
+    weekday: "short",
+  })
 export function FoodCard({
   kind,
   width,
@@ -58,103 +66,153 @@ export function FoodCard({
   data: FoodCardData
 }) {
   const c = cardInk(look),
-    q = width / 100,
     tall = look.format === "9:16",
     sq = look.format === "1:1",
     nut = c.area("nut"),
     ratio = (k: Macro) => (d.target?.[k] ? d.totals[k] / d.target[k] : null),
-    proteinHit = (ratio("protein") ?? 0) >= 0.9,
-    onTarget = d.week.filter((x) => x === "on").length
-  const body =
-    kind === "day" ? (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <View style={{ gap: 2 * q }}>
-          <Words size={9} weight="semibold">
-            {d.meals === 0
-              ? "Nothing logged yet"
-              : proteinHit
-                ? "Protein goal hit"
-                : `${fmt(d.meals)} ${d.meals === 1 ? "meal" : "meals"} logged`}
-          </Words>
-          {d.proteinStreak > 1 && (
-            <Chip icon={Check} tone={c.good}>
-              {`${fmt(d.proteinStreak)} days of protein in a row`}
-            </Chip>
-          )}
-        </View>
-        <View style={{ gap: (tall ? 3.4 : 2.4) * q }}>
-          {MACROS.slice(0, sq ? 2 : 4).map((m) => (
-            <View key={m.key} style={{ gap: q }}>
-              <Line style={{ justifyContent: "space-between", gap: 2 * q }}>
-                <Label>{m.label}</Label>
-                <View style={{ flexShrink: 1, maxWidth: "70%" }}>
-                  <Num
-                    size={4.4}
-                    align="right"
-                    unit={d.amounts ? m.unit : undefined}
-                  >
-                    {d.amounts
-                      ? d.target
-                        ? `${fmt(Math.round(d.totals[m.key]))} / ${fmt(Math.round(d.target[m.key]))}`
-                        : fmt(Math.round(d.totals[m.key]))
-                      : `${pct(ratio(m.key))} of goal`}
-                  </Num>
-                </View>
-              </Line>
-              <Meter value={ratio(m.key) ?? 0} color={nut} height={2} />
-            </View>
-          ))}
-        </View>
-        {!sq && (
-          <View style={{ gap: 1.4 * q }}>
-            <Label>{`Calories on target ${fmt(onTarget)} of 7 days`}</Label>
-            <Dots cells={d.week} cols={7} color={nut} />
-          </View>
+    protein = ratio("protein"),
+    proteinHit = (protein ?? 0) >= 0.9,
+    onTarget = d.week.filter((x) => x.verdict === "hit").length
+  if (kind === "day") {
+    const rows = MACROS.filter((m) => m.key !== "protein")
+        .slice(0, sq ? 2 : 3)
+        .map((m) => {
+          const r = ratio(m.key),
+            over = (r ?? 0) > 1.1
+          return {
+            name: m.label,
+            // Past the goal the line is full and the tick shows where the goal
+            // sat on it.
+            value: r ?? 0,
+            mark: r && r > 1 ? 1 / r : undefined,
+            color: over ? c.bad : nut,
+            bad: over,
+            label: d.amounts
+              ? d.target
+                ? `${fmt(Math.round(d.totals[m.key]))} / ${fmt(Math.round(d.target[m.key]))} ${m.unit}`
+                : `${fmt(Math.round(d.totals[m.key]))} ${m.unit}`
+              : `${pct(r)} of goal`,
+          }
+        }),
+      kcal = ratio("kcal"),
+      kcalOff =
+        kcal !== null && d.meals > 0 && Math.abs(kcal - 1) > 0.1
+          ? kcal > 1
+            ? `Calories ${fmt(Math.round((kcal - 1) * 100), 5)}% over goal`
+            : `Calories ${fmt(Math.round((1 - kcal) * 100), 5)}% short of goal`
+          : null
+    return (
+      <CardFrame width={width} look={look} accent="nut" date={d.date}>
+        <Title>
+          {d.meals === 0
+            ? "Nothing logged yet"
+            : proteinHit
+              ? "Protein goal hit"
+              : `${fmt(d.meals)} ${d.meals === 1 ? "meal" : "meals"} logged`}
+        </Title>
+        {d.amounts && d.target ? (
+          <Hero
+            value={fmt(Math.round(d.totals.protein))}
+            unit={`of ${fmt(Math.round(d.target.protein))} g protein`}
+            small
+            delta={
+              proteinHit ? (
+                d.proteinStreak > 1 ? (
+                  <Change good>{`${fmt(d.proteinStreak)} days running`}</Change>
+                ) : undefined
+              ) : (
+                <Change good={false}>
+                  {`${fmt(Math.round(d.target.protein - d.totals.protein))} g short`}
+                </Change>
+              )
+            }
+          />
+        ) : (
+          <Hero
+            value={protein === null ? "—" : fmt(Math.round(protein * 100), 5)}
+            unit="% of protein goal"
+            small
+            delta={
+              protein === null ? undefined : proteinHit ? (
+                d.proteinStreak > 1 ? (
+                  <Change good>{`${fmt(d.proteinStreak)} days running`}</Change>
+                ) : undefined
+              ) : (
+                <Change good={false}>
+                  {`${fmt(Math.round((1 - protein) * 100), 5)}% short`}
+                </Change>
+              )
+            }
+          />
         )}
-      </View>
-    ) : (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4 * q }}>
-        <Words size={9} weight="semibold">
-          {`${fmt(onTarget)} of 7 days on target`}
-        </Words>
-        <Dots cells={d.week} cols={7} color={nut} />
-        <Stats
-          items={[
-            {
-              label: "Calorie days",
-              value: pct(d.logged ? d.calorieDays / d.logged : null),
-            },
-            {
-              label: "Protein days",
-              value: pct(d.logged ? d.proteinDays / d.logged : null),
-            },
-            ...(tall
-              ? [
-                  {
-                    label: "Protein streak",
-                    value: fmt(d.proteinStreak),
-                    unit: "d",
-                  },
-                ]
-              : []),
-          ]}
-          cols={tall ? 3 : 2}
-          size={tall ? 7 : 8}
-        />
-        <Words size={3.4} muted>
-          {`Rates over the ${fmt(d.logged)} logged ${d.logged === 1 ? "day" : "days"} this week.`}
-        </Words>
-      </View>
+        {kcalOff ? (
+          <Sub bad>{kcalOff}</Sub>
+        ) : (
+          <Sub>{`Calories on target ${fmt(onTarget)} of 7 days`}</Sub>
+        )}
+        <Body end>
+          <Meters rows={rows} />
+        </Body>
+      </CardFrame>
     )
+  }
+  const over = d.week.filter((x) => x.verdict === "over"),
+    none = d.week.filter((x) => x.verdict === "none"),
+    low = onTarget < 4,
+    missLine = [
+      over.length
+        ? `Over on ${over.map((x) => initial(x.day)).join(", ")}`
+        : "",
+      none.length ? `${none.length} not logged` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ")
   return (
-    <CardFrame
-      width={width}
-      look={look}
-      accent="nut"
-      kicker={kind === "day" ? "Food day" : "Food week"}
-      date={kind === "day" ? d.date : "Last 7 days"}
-    >
-      {body}
+    <CardFrame width={width} look={look} accent="nut" date="Last 7 days">
+      <Hero
+        value={fmt(onTarget)}
+        unit="of 7 days on target"
+        small
+        delta={
+          low ? (
+            <Change good={false}>{`${fmt(7 - onTarget)} off target`}</Change>
+          ) : undefined
+        }
+      />
+      {missLine ? <Sub bad={low}>{missLine}</Sub> : null}
+      <Body end>
+        <Stems
+          values={d.week.map((x) =>
+            x.verdict === "none" ? null : Math.round((x.kcal ?? 0) * 100),
+          )}
+          labels={d.week.map((x) => initial(x.day).slice(0, 1))}
+          on={d.week.length - 1}
+          goal={100}
+          leaf={(_, i) => d.week[i]?.verdict === "hit"}
+          missed={(_, i) => d.week[i]?.verdict === "over"}
+          format={(v) => `${fmt(v, 5)}%`}
+          height={tall ? 140 : sq ? 80 : 108}
+          color={nut}
+          label="Calories by day, as a share of the goal"
+        />
+      </Body>
+      <Figures
+        items={[
+          {
+            label: `Calorie days, of ${fmt(d.logged)} logged`,
+            value: pct(d.logged ? d.calorieDays / d.logged : null),
+          },
+          {
+            label: `Protein days, of ${fmt(d.logged)} logged`,
+            value: pct(d.logged ? d.proteinDays / d.logged : null),
+          },
+          {
+            label: "Protein streak",
+            value: fmt(d.proteinStreak),
+            unit: "days",
+          },
+        ]}
+      />
     </CardFrame>
   )
 }
@@ -196,9 +254,11 @@ export function NutritionShare() {
           fat: target.fat,
         }
       : null,
-    week: week.map((x) =>
-      x.verdict === "hit" ? "on" : x.verdict === "none" ? "none" : "off",
-    ),
+    week: week.map((x) => ({
+      day: x.day,
+      verdict: x.verdict,
+      kcal: x.target?.kcal ? x.totals.kcal / x.target.kcal : null,
+    })),
     calorieDays: logged.filter((x) => x.kcalOk).length,
     proteinDays: logged.filter((x) => x.proteinHit).length,
     logged: logged.length,
@@ -208,7 +268,7 @@ export function NutritionShare() {
   const caption =
     layout === "day"
       ? `Food today: protein ${pct(target?.protein ? totals.protein / target.protein : null)} of goal · Unfurl`
-      : `Food this week: calories on target ${data.week.filter((x) => x === "on").length} of 7 days · Unfurl`
+      : `Food this week: calories on target ${data.week.filter((x) => x.verdict === "hit").length} of 7 days · Unfurl`
   return (
     <Screen title="Share card">
       <ShareComposer

@@ -1,15 +1,21 @@
 import type { HostInstance, ScrollViewInstance } from "react-native"
-// Share cards (ADR-0019, ADR-0028): one family of cards on a gradient, paper
-// or ink ground, with a faint fiddlehead watermark and the flat Unfurl
-// lockup, Geist for words and Geist Mono for numbers. Gradients are allowed
-// here, on the exported artwork's ground (`CardGround`), and nowhere in the
-// interface. Every size is a fraction of the card's width (`q` = 1% of it),
-// so a card reads the same at 180 pt in the privacy check and at 1080 px in
-// the exported PNG.
+// Share cards (ADR-0019, ADR-0028, ADR-0032; the anatomy is the card library,
+// docs/brand/unfurl-card-library.pdf): a gradient, paper or ink ground with
+// the hand-drawn nature motif behind it at about a fifth of its strength, the
+// date at the top, then a title, a hero figure with its change, a win or a
+// miss line, a chart and a few unboxed figures, and the flat Unfurl lockup in
+// the footer. No boxes, chips, kicker or accent bar. Numbers are Geist 600
+// with tabular figures. Gradients are allowed here, on the exported
+// artwork's ground (`CardGround`), and nowhere in the interface. Every size
+// is a fraction of the card's width (`q` = 1% of it; the kit's points are
+// 1/360 of it), so a card reads the same at 180 pt in the privacy check and
+// at 1080 px in the exported PNG.
 
 import { palette } from "@domain/design/tokens"
 import * as Sharing from "expo-sharing"
 import {
+  ArrowDown,
+  ArrowUp,
   Camera,
   Check,
   Copy as CopyIcon,
@@ -17,21 +23,17 @@ import {
   Ellipsis,
   Image as ImageIcon,
   ImagePlus,
-  type LucideIcon,
   Palette,
   PlusCircle,
   Sticker,
-  TrendingDown,
-  TrendingUp,
 } from "lucide-react-native"
 import {
-  cloneElement,
   createContext,
-  isValidElement,
   type ReactNode,
   useContext,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
 } from "react"
@@ -44,26 +46,34 @@ import {
   Text,
   useWindowDimensions,
   View,
-  type ViewStyle,
 } from "react-native"
 import Svg, {
   Circle,
   Defs,
+  G,
   LinearGradient,
-  Polygon,
-  Polyline,
+  Path,
   Rect,
   Stop,
+  Text as SvgText,
 } from "react-native-svg"
 import { captureRef } from "react-native-view-shot"
 import { toast } from "sonner-native"
+import { LineTrack } from "./brand/line"
+import { jitter, type Point, rng, smooth } from "./brand/scribble"
 import { ColorPicker, luminance } from "./color-picker"
-import { FernMark } from "./companion/brand"
 import { useShown } from "./extras"
 import { copyText, pickPhoto } from "./media"
 import { Copy, Line, Segmented, Tap } from "./native-kit"
 import { go } from "./navigation"
-import { signed } from "./share-format"
+import {
+  type DecoKind,
+  decoHeight,
+  decoPath,
+  ribLeaf,
+  SPRIG,
+} from "./share-deco"
+import { fmt } from "./share-format"
 import { CENTRED, frameRatio } from "./social/crop"
 import { framePhoto, keep, prepareImage } from "./social/media"
 import { addStory, deleteStory, type Media, setPostDraft } from "./social/store"
@@ -107,14 +117,15 @@ export type CardInk = {
   dark: boolean
   /** Card ground; ``transparent`` for the sticker. */
   bg: string
-  /** Tiles and chips sitting on the ground. */
+  /** A faint fill on the ground (the profile's initials). */
   panel: string
   line: string
   ink: string
   muted: string
-  /** Empty part of a ring, meter or dot. */
+  /** Empty part of a meter, a dotted track. */
   track: string
-  /** The logo mark: moss on paper, sprout on dark (docs/brand Logos). */
+  /** The logo mark and the nature line: moss on paper, sprout on dark
+   * (docs/brand Logos). */
   mark: string
   good: string
   bad: string
@@ -160,33 +171,107 @@ export function cardInk(look: CardLook): CardInk {
   }
 }
 
-const CardContext = createContext<{ q: number; c: CardInk }>({
+/** One kit point: the card library draws on a 360-wide canvas, and its sizes
+ * are given here in those points, as a share of ``q``. */
+export const P = 100 / 360
+
+const CardContext = createContext<{ q: number; c: CardInk; f: CardFormat }>({
   q: 1,
   c: cardInk({ format: "9:16", backdrop: "dark", photo: null }),
+  f: "9:16",
 })
 /** Where a composer wants the node it exports: the card without its
  * on-screen rounding and border. */
 const CardShotContext = createContext<
   ((v: HostInstance | null) => void) | undefined
 >(undefined)
-/** The open card's scale and colours, for the pieces below. */
+/** The open card's scale, colours and shape, for the pieces below. */
 export const useCard = () => useContext(CardContext)
 
-/** A number in Geist Mono that shrinks to fit its box rather than clip. */
+// ---------- The fit rule ----------
+// A card that runs out of room drops content in one order, never shrinking
+// the title or the hero: list rows first (counted into "+N more", down to
+// two), then the sub line, the figures, the win line, the chart's optional
+// parts, the last list rows, and the chart itself last.
+type Drop = "sub" | "figures" | "win" | "opt" | "chart"
+const STAGE: Record<Drop, number> = {
+  sub: 1,
+  figures: 2,
+  win: 3,
+  opt: 4,
+  chart: 6,
+}
+const DROP_AT: Partial<Record<number, Drop>> = {
+  1: "sub",
+  2: "figures",
+  3: "win",
+  4: "opt",
+  6: "chart",
+}
+type Fit = { stage: number; rows: number }
+type FitParts = Map<Drop | "rows", number>
+/** The next step of the rule from ``f``, skipping kinds the card lacks so
+ * that every step changes the layout. */
+export function nextFit(f: Fit, parts: FitParts): Fit {
+  const left = (parts.get("rows") ?? 0) - f.rows
+  if (f.stage === 0 && left > 2) return { ...f, rows: f.rows + 1 }
+  if (f.stage === 5 && left > 1) return { ...f, rows: f.rows + 1 }
+  for (let s = f.stage + 1; s <= 6; s++) {
+    if (s === 5) {
+      if (left > 1) return { stage: 5, rows: f.rows + 1 }
+      continue
+    }
+    const kind = DROP_AT[s]
+    if (kind && (parts.get(kind) ?? 0) > 0) return { ...f, stage: s }
+  }
+  return f
+}
+/** How long a layout must hold still before the fit rule reads it. */
+export const FIT_SETTLE_MS = 120
+const FitContext = createContext<{
+  fit: Fit
+  part: (kind: Drop | "rows", n: number) => () => void
+  measure: (which: "box" | "inner", height: number) => void
+}>({ fit: { stage: 0, rows: 0 }, part: () => () => {}, measure: () => {} })
+/** Whether a droppable part has been dropped by the fit rule. */
+function useDrop(kind: Drop) {
+  const { fit, part } = useContext(FitContext)
+  useEffect(() => part(kind, 1), [part, kind])
+  return fit.stage >= STAGE[kind]
+}
+/** How many of a list's ``n`` rows still fit. */
+function useRows(n: number) {
+  const { fit, part } = useContext(FitContext)
+  useEffect(() => part("rows", n), [part, n])
+  return Math.max(
+    fit.stage >= 5 ? Math.min(n, 1) : Math.min(n, 2),
+    n - fit.rows,
+  )
+}
+
+/** A number in Geist 600 with tabular figures that shrinks to fit its line
+ * rather than clip or wrap; its unit rides on the same line. */
 export function Num({
   children,
   size,
   unit,
+  unitSize,
   color,
   align = "left",
+  spacing = -0.02,
 }: {
   children: string
   size: number
   unit?: string
+  /** The unit's size in ``q``; about 40% of the number by default. */
+  unitSize?: number
   color?: string
   align?: "left" | "center" | "right"
+  /** Letter spacing as a share of the size (the hero sets −0.045). */
+  spacing?: number
 }) {
   const { q, c } = useCard()
+  const glued = !!unit && /^[%×/]/.test(unit)
   return (
     <Text
       numberOfLines={1}
@@ -194,10 +279,10 @@ export function Num({
       minimumFontScale={0.3}
       allowFontScaling={false}
       style={{
-        fontFamily: fonts.mono,
+        fontFamily: fonts.semibold,
         fontSize: size * q,
         lineHeight: size * q * 1.18,
-        letterSpacing: -0.02 * size * q,
+        letterSpacing: spacing * size * q,
         color: color ?? c.ink,
         textAlign: align,
         fontVariant: ["tabular-nums"],
@@ -207,13 +292,13 @@ export function Num({
       {unit ? (
         <Text
           style={{
-            fontFamily: fonts.monoRegular,
-            fontSize: Math.max(3.4, size * 0.38) * q,
-            letterSpacing: 0,
+            fontFamily: fonts.medium,
+            fontSize: (unitSize ?? Math.max(3.4, size * 0.4)) * q,
+            letterSpacing: -0.03 * (unitSize ?? size * 0.4) * q,
             color: c.muted,
           }}
         >
-          {` ${unit}`}
+          {glued ? unit : ` ${unit}`}
         </Text>
       ) : null}
     </Text>
@@ -251,7 +336,7 @@ export function Words({
         fontFamily: fonts[weight],
         fontSize: size * q,
         lineHeight: size * q * (size >= 8 ? 1.1 : 1.3),
-        letterSpacing: size >= 8 ? -0.02 * size * q : 0,
+        letterSpacing: size >= 5 ? -0.02 * size * q : 0,
         color: color ?? (muted ? c.muted : c.ink),
         textAlign: align,
       }}
@@ -265,340 +350,1013 @@ export function Words({
 export function Label({
   children,
   align,
+  color,
 }: {
   children: ReactNode
   align?: "left" | "center" | "right"
+  color?: string
 }) {
   return (
-    <Words size={3.3} weight="medium" lines={1} align={align} muted>
+    <Words
+      size={12 * P}
+      weight="medium"
+      lines={1}
+      align={align}
+      color={color}
+      muted
+    >
       {children}
     </Words>
   )
 }
 
-/** A pill with an optional icon: a verdict, a badge, a best. */
-export function Chip({
+/** What the card is about: a habit, a workout, a lift. Never dropped. */
+export function Title({ children }: { children: ReactNode }) {
+  const { f } = useCard()
+  return (
+    <Words size={(f === "9:16" ? 28 : 20) * P} weight="semibold" lines={2}>
+      {children}
+    </Words>
+  )
+}
+
+/** A change in words, coloured by what it means and led by an arrow, never
+ * colour alone: green for a gain, red for what it cost. No outline. */
+export function Change({
+  good,
   children,
-  icon: Icon,
-  tone,
 }: {
-  children: ReactNode
-  icon?: LucideIcon
-  tone?: string
+  good: boolean
+  children: string
 }) {
-  const { q, c } = useCard()
+  const { q, c } = useCard(),
+    tone = good ? c.good : c.bad,
+    Icon = good ? ArrowUp : ArrowDown
   return (
     <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        alignSelf: "flex-start",
-        maxWidth: "100%",
-        gap: 1.2 * q,
-        paddingHorizontal: 2.6 * q,
-        paddingVertical: 1.3 * q,
-        borderRadius: 10 * q,
-        backgroundColor: c.panel,
-        borderWidth: 1,
-        borderColor: c.line,
-      }}
+      testID={good ? "card-gain" : "card-cost"}
+      style={{ flexDirection: "row", alignItems: "center", gap: 3 * P * q }}
     >
-      {Icon && <Icon size={3.6 * q} color={tone ?? c.ink} strokeWidth={2} />}
+      <Icon size={15 * P * q} color={tone} strokeWidth={2.4} />
       <View style={{ flexShrink: 1 }}>
-        <Words size={3.3} weight="medium" lines={1}>
+        <Words size={15 * P} weight="medium" lines={1} color={tone}>
           {children}
         </Words>
       </View>
     </View>
   )
 }
-
-/** A change with its direction as an icon and a word, never colour alone. */
+/** A change as a number: "8% vs last push", "7.5 kg vs best". Its sign
+ * picks the arrow and colour unless ``good`` says otherwise (more calories
+ * than planned is a cost). */
 export function Delta({
   n,
   unit = "",
   suffix,
+  good,
 }: {
   n: number | null | undefined
   unit?: string
   suffix: string
+  good?: boolean
 }) {
-  const { q, c } = useCard()
   if (n == null || !Number.isFinite(n) || n === 0) return null
-  const Icon = n > 0 ? TrendingUp : TrendingDown,
-    tone = n > 0 ? c.good : c.bad
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: q }}>
-      <Icon size={3.4 * q} color={tone} strokeWidth={2} />
+    <Change good={good ?? n > 0}>
+      {`${fmt(Math.abs(n), 6, Math.abs(n) % 1 ? 1 : 0)}${unit} ${suffix}`}
+    </Change>
+  )
+}
+
+/** The hero figure: the one number the card is about, with its change
+ * beside it. A unit longer than a word goes on its own line under it. */
+export function Hero({
+  value,
+  unit,
+  delta,
+  small,
+}: {
+  value: string
+  unit?: string
+  delta?: ReactNode
+  /** A long unit line or a crowded card: the smaller tier. */
+  small?: boolean
+}) {
+  const { q, f } = useCard(),
+    tier = small || value.length >= 7 ? 2 : value.length >= 5 ? 1 : 0,
+    size =
+      f === "9:16"
+        ? [96, 76, 56][tier]
+        : f === "1:1"
+          ? [56, 56, 44][tier]
+          : [64, 64, 48][tier],
+    wide = !!unit && unit.length > 6
+  return (
+    <View testID="card-hero" style={{ gap: 4 * P * q }}>
+      <View
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+          columnGap: 10 * P * q,
+          rowGap: 4 * P * q,
+        }}
+      >
+        <View style={{ flexShrink: 1, maxWidth: "100%" }}>
+          <Num
+            size={size * P}
+            unit={wide ? undefined : unit}
+            unitSize={(f === "9:16" ? 32 : 26) * P}
+            spacing={-0.045}
+          >
+            {value}
+          </Num>
+        </View>
+        {delta ? (
+          <View style={{ paddingBottom: size * 0.16 * P * q, flexShrink: 1 }}>
+            {delta}
+          </View>
+        ) : null}
+      </View>
+      {wide && (
+        <Words
+          size={(f === "9:16" ? 20 : 17) * P}
+          weight="medium"
+          lines={2}
+          muted
+        >
+          {unit}
+        </Words>
+      )}
+    </View>
+  )
+}
+
+/** The small hand-drawn sprig that marks a win or a record. */
+function Sprig({ size }: { size: number }) {
+  const { c } = useCard()
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d={SPRIG}
+        fill="none"
+        stroke={c.mark}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  )
+}
+/** A win, said plainly beside a sprig: "Longest streak yet". */
+export function Win({ children }: { children: string }) {
+  const { q } = useCard(),
+    hidden = useDrop("win")
+  if (hidden) return null
+  return (
+    <View
+      testID="card-win"
+      style={{ flexDirection: "row", alignItems: "center", gap: 6 * P * q }}
+    >
+      <Sprig size={20 * P * q} />
       <View style={{ flexShrink: 1 }}>
-        <Words size={3.2} weight="medium" lines={1} color={tone}>
-          {`${signed(n)}${unit} ${suffix}`}
+        <Words size={15 * P} weight="medium" lines={2}>
+          {children}
         </Words>
       </View>
     </View>
   )
 }
-
-/** A value tile: number on top, label under it. */
-export function Stat({
-  value,
-  unit,
-  label,
-  size = 9,
+/** One quiet line of context; a miss is said in the miss colour. */
+export function Sub({
   children,
+  bad = false,
 }: {
-  value: string
-  unit?: string
-  label: string
-  size?: number
-  children?: ReactNode
+  children: string
+  bad?: boolean
+}) {
+  const { c } = useCard(),
+    hidden = useDrop("sub")
+  if (hidden) return null
+  return (
+    <View testID={bad ? "card-miss" : "card-sub"}>
+      <Words size={14 * P} lines={2} color={bad ? c.bad : undefined} muted>
+        {children}
+      </Words>
+    </View>
+  )
+}
+
+/** A few figures in a row, unboxed: the number over its label. */
+export function Figures({
+  items,
+}: {
+  items: { label: string; value: string; unit?: string }[]
+}) {
+  const { q } = useCard(),
+    hidden = useDrop("figures")
+  if (hidden || !items.length) return null
+  return (
+    <View
+      testID="card-figures"
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        columnGap: 22 * P * q,
+        rowGap: 4 * P * q,
+      }}
+    >
+      {items.map((x) => (
+        <View key={x.label} style={{ minWidth: 0, maxWidth: "100%" }}>
+          <Num size={18 * P} unit={x.unit} unitSize={18 * P}>
+            {x.value}
+          </Num>
+          <Label>{x.label}</Label>
+        </View>
+      ))}
+    </View>
+  )
+}
+
+/** The chart's place: it takes the room left between the figures above and
+ * below and tells the fit rule when what it holds is taller than that. */
+export function Body({
+  children,
+  end = false,
+}: {
+  children: ReactNode
+  /** Sit on the bottom of the room (charts), not the top (lists). */
+  end?: boolean
+}) {
+  const { q } = useCard(),
+    { measure } = useContext(FitContext),
+    hidden = useDrop("chart")
+  if (hidden) return null
+  return (
+    <View
+      testID="card-body"
+      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+      onLayout={(e) => measure("box", e.nativeEvent.layout.height)}
+    >
+      <View
+        testID="card-body-fit"
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          ...(end ? { bottom: 0 } : { top: 0 }),
+          gap: 6 * P * q,
+        }}
+        onLayout={(e) => measure("inner", e.nativeEvent.layout.height)}
+      >
+        {children}
+      </View>
+    </View>
+  )
+}
+/** A part of a chart that may go before the chart does (a route, a
+ * legend). */
+export function Optional({ children }: { children: ReactNode }) {
+  const hidden = useDrop("opt")
+  return hidden ? null : children
+}
+/** The line under a chart: what it shows, and its range. */
+export function ChartNote({
+  left,
+  right,
+  bad = false,
+}: {
+  left?: string
+  right?: string
+  /** The left part is a miss ("4 missed: …"). */
+  bad?: boolean
 }) {
   const { q, c } = useCard()
   return (
     <View
       style={{
-        flex: 1,
-        minWidth: 0,
-        padding: 3 * q,
-        gap: 0.6 * q,
-        borderRadius: 3 * q,
-        backgroundColor: c.panel,
-        borderWidth: 1,
-        borderColor: c.line,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 8 * P * q,
       }}
     >
-      <Num size={size} unit={unit}>
-        {value}
-      </Num>
-      <Label>{label}</Label>
-      {children}
+      <View style={{ flexShrink: 1 }}>
+        {!!left && <Label color={bad ? c.bad : undefined}>{left}</Label>}
+      </View>
+      <View style={{ flexShrink: 1 }}>
+        {!!right && <Label align="right">{right}</Label>}
+      </View>
     </View>
   )
 }
 
-/** Tiles in rows of ``cols``; the last row keeps the same tile width. */
-export function Stats({
-  items,
-  cols = items.length,
-  size,
-}: {
-  items: { label: string; value: string; unit?: string; delta?: ReactNode }[]
-  cols?: number
-  size?: number
-}) {
-  const { q } = useCard()
-  if (!items.length) return null
-  const per = Math.max(1, cols),
-    rows: (typeof items)[] = []
-  for (let i = 0; i < items.length; i += per) rows.push(items.slice(i, i + per))
-  return (
-    <View style={{ gap: 2 * q }}>
-      {rows.map((row) => (
-        <View
-          key={row.map((x) => x.label).join("|")}
-          style={{ flexDirection: "row", gap: 2 * q }}
-        >
-          {row.map((x) => (
-            <Stat
-              key={x.label}
-              value={x.value}
-              unit={x.unit}
-              label={x.label}
-              size={size}
-            >
-              {x.delta}
-            </Stat>
-          ))}
-          {Array.from({ length: per - row.length }, (_, i) => (
-            <View key={`gap-${i}`} style={{ flex: 1 }} />
-          ))}
-        </View>
-      ))}
-    </View>
-  )
-}
-
-/** A progress ring in one solid area colour; children sit in its hole and
- * are kept inside it. */
-export function CardRing({
-  value,
-  size,
-  color,
+/** A chart's canvas: 312 kit points wide (the content width), ``h`` tall,
+ * one unit per point. */
+function Viz({
+  h,
+  label,
   children,
 }: {
-  value: number
-  size: number
-  color: string
-  children?: ReactNode
+  h: number
+  label: string
+  children: ReactNode
 }) {
-  const { q, c } = useCard(),
-    px = size * q,
-    stroke = px * 0.08,
-    r = (px - stroke) / 2,
-    around = 2 * Math.PI * r,
-    v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
+  const { q } = useCard(),
+    p = P * q
   return (
-    <View
-      style={{
-        width: px,
-        height: px,
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-      accessible
-      accessibilityLabel={`${Math.round(v * 100)} percent`}
-    >
-      <Svg width={px} height={px} style={{ position: "absolute" }}>
-        <Circle
-          cx={px / 2}
-          cy={px / 2}
-          r={r}
-          stroke={c.track}
-          strokeWidth={stroke}
-          fill="none"
-        />
-        {v > 0 && (
-          <Circle
-            cx={px / 2}
-            cy={px / 2}
-            r={r}
-            stroke={color}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={`${around * v} ${around}`}
-            fill="none"
-            transform={`rotate(-90 ${px / 2} ${px / 2})`}
-          />
-        )}
+    <View accessible accessibilityRole="image" accessibilityLabel={label}>
+      <Svg width={312 * p} height={h * p} viewBox={`0 0 312 ${h}`}>
+        {children}
       </Svg>
-      <View style={{ width: px * 0.62, alignItems: "center" }}>{children}</View>
     </View>
   )
 }
-
-/** A horizontal bar: ``value`` 0–1 of the track filled. */
-export function Meter({
-  value,
+function VizText({
+  x,
+  y,
+  children,
   color,
-  height = 1.8,
+  anchor = "middle",
 }: {
-  value: number
+  x: number
+  y: number
+  children: string
   color: string
-  height?: number
+  anchor?: "start" | "middle" | "end"
 }) {
-  const { q, c } = useCard(),
-    v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
   return (
-    <View
-      style={{
-        height: height * q,
-        borderRadius: height * q,
-        backgroundColor: c.track,
-        overflow: "hidden",
-      }}
+    <SvgText
+      x={x}
+      y={y}
+      fill={color}
+      fontFamily={fonts.medium}
+      fontSize={12}
+      textAnchor={anchor}
     >
-      <View
-        style={{
-          width: `${v * 100}%`,
-          height: "100%",
-          borderRadius: height * q,
-          backgroundColor: color,
-        }}
-      />
-    </View>
+      {children}
+    </SvgText>
+  )
+}
+const f1 = (n: number) => Math.round(n * 10) / 10
+
+/** Columns as hand-drawn stems, its value over each and its label under it.
+ * A leaf grows on the stems that hit the mark; ``goal`` is a dashed line. A
+ * ``null`` is a missed day, drawn as a cross in the miss colour; an
+ * ``undefined`` is a day with nothing to show. */
+export function Stems({
+  values,
+  labels,
+  on,
+  goal,
+  leaf,
+  missed,
+  format = (v) => fmt(v),
+  height,
+  color,
+  label,
+}: {
+  values: (number | null | undefined)[]
+  labels?: string[]
+  /** The column to bring forward (today, this week). */
+  on?: number
+  goal?: number
+  leaf?: (v: number, i: number) => boolean
+  /** Columns that missed the mark: their labels take the miss colour. */
+  missed?: (v: number, i: number) => boolean
+  format?: (v: number) => string
+  height: number
+  color: string
+  label: string
+}) {
+  const { c } = useCard(),
+    n = Math.max(1, values.length),
+    slot = 312 / n,
+    top = 18,
+    bot = height - 18,
+    max = Math.max(
+      1,
+      goal ?? 0,
+      ...values.filter((v): v is number => v != null && v >= 0),
+    ),
+    y = (v: number) => bot - (v / max) * (bot - top - 10)
+  return (
+    <Viz h={height} label={label}>
+      {goal ? (
+        <Path
+          d={`M0 ${f1(y(goal))} H312`}
+          stroke={c.good}
+          strokeWidth={1.2}
+          strokeDasharray="4 4"
+        />
+      ) : null}
+      {values.map((v, i) => {
+        const x = f1(slot * i + slot / 2),
+          lab = labels?.[i] ?? "",
+          lit = on === undefined || i === on
+        if (v === null)
+          return (
+            <G key={i}>
+              <Path
+                d={`M${x - 5} ${bot - 10} l10 10 m0 -10 l-10 10`}
+                stroke={c.bad}
+                strokeWidth={1.8}
+                strokeLinecap="round"
+              />
+              <VizText x={x} y={height - 3} color={c.bad}>
+                {lab}
+              </VizText>
+            </G>
+          )
+        if (v === undefined)
+          return (
+            <VizText key={i} x={x} y={height - 3} color={c.muted}>
+              {lab}
+            </VizText>
+          )
+        const yy = y(v),
+          hit = leaf ? leaf(v, i) : false,
+          miss = missed ? missed(v, i) : false
+        return (
+          <G key={i}>
+            <Path
+              d={smooth(
+                jitter(
+                  [
+                    [x, bot],
+                    [x + 0.8, (bot + yy) / 2],
+                    [x, Math.min(bot - 0.5, yy)],
+                  ],
+                  1.4,
+                  rng(i + 9),
+                ),
+              )}
+              stroke={color}
+              strokeWidth={Math.min(12, slot * 0.3)}
+              strokeLinecap="round"
+              fill="none"
+              opacity={lit ? 1 : 0.5}
+            />
+            {hit ? (
+              <Path
+                d={ribLeaf(x, yy - 3, 11, i % 2 ? -1.0 : -2.15, 0.42, false)}
+                fill={c.mark}
+                stroke={c.mark}
+                strokeWidth={0.8}
+              />
+            ) : null}
+            <VizText
+              x={x}
+              y={f1(yy - (hit ? 16 : 8))}
+              color={i === on ? c.ink : c.muted}
+            >
+              {format(v)}
+            </VizText>
+            <VizText
+              x={x}
+              y={height - 3}
+              color={miss ? c.bad : i === on ? c.ink : c.muted}
+            >
+              {lab}
+            </VizText>
+          </G>
+        )
+      })}
+    </Viz>
   )
 }
 
-/** A still trend line (no reveal motion: it is captured as an image). */
+/** One day on a card: done, partly done, not done, missed (a scheduled day
+ * that went by undone), or before the start. */
+export type Dot = "on" | "part" | "off" | "miss" | "none"
+const hit = (d: Dot | undefined) => d === "on" || d === "part"
+/** The run that a miss ended, when it was longer than the run since:
+ * ``lost`` days, broken at index ``at``. Walking back from the newest cell
+ * (today may still be open), ``breaks`` end a run and the other not-done
+ * cells are passed over (a day the habit was not due). */
+export function endedRun(
+  cells: Dot[],
+  breaks: Dot[] = ["miss"],
+): { lost: number; at: number } | null {
+  const pass = (d: Dot | undefined) =>
+    hit(d) || (d === "off" && !breaks.includes("off"))
+  let i = cells.length - 1
+  if (i >= 0 && !hit(cells[i]) && cells[i] !== "miss") i -= 1
+  let current = 0
+  while (i >= 0 && pass(cells[i])) {
+    if (hit(cells[i])) current += 1
+    i -= 1
+  }
+  if (i < 0 || !breaks.includes(cells[i])) return null
+  const at = i
+  let lost = 0
+  for (i -= 1; i >= 0 && pass(cells[i]); i -= 1) if (hit(cells[i])) lost += 1
+  return lost > current ? { lost, at } : null
+}
+/** ``day`` (YYYY-MM-DD) moved by ``n`` days, at local noon. */
+export function shiftDay(day: string, n: number) {
+  const d = new Date(`${day}T12:00:00`)
+  d.setDate(d.getDate() + n)
+  const two = (v: number) => String(v).padStart(2, "0")
+  return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`
+}
+/** A window of days, day first: "18–24 Oct", "28 Sep – 4 Oct". */
+export function dayRange(from: string, to: string) {
+  const d = (day: string) => new Date(`${day}T12:00:00`),
+    a = d(from),
+    b = d(to),
+    month = (x: Date) => x.toLocaleDateString("en-GB", { month: "short" })
+  return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+    ? `${a.getDate()}–${b.getDate()} ${month(b)}`
+    : `${a.getDate()} ${month(a)} – ${b.getDate()} ${month(b)}`
+}
+/** "Wed 28 Oct". */
+export const dayName = (day: string) =>
+  new Date(`${day}T12:00:00`).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  })
+
+const monday = (day: string) => (new Date(`${day}T12:00:00`).getDay() + 6) % 7
+/** The last ``weeks`` whole weeks of ``cells`` (Monday to Sunday, the last
+ * one ending with the newest cell), and the day the first one falls on. */
+export function weekCells(cells: Dot[], start?: string, weeks?: number) {
+  if (!weeks || !start) return { cells, start }
+  const keep = Math.min(
+    cells.length,
+    weeks * 7 - (6 - monday(shiftDay(start, cells.length - 1))),
+  )
+  return {
+    cells: cells.slice(cells.length - keep),
+    start: shiftDay(start, cells.length - keep),
+  }
+}
+/** A calendar of leaves, Monday first: filled for done, an outline for not
+ * done, a red outline for missed, a dot before the start. ``start`` is the
+ * first cell's day, which sets the weekday labels across the top. */
+export function LeafCal({
+  cells: all,
+  start: first,
+  weeks,
+  rowH,
+  color,
+  label = "Calendar",
+}: {
+  cells: Dot[]
+  start?: string
+  /** Whole weeks to show, Monday to Sunday, ending with the last cell. */
+  weeks?: number
+  rowH: number
+  color: string
+  label?: string
+}) {
+  const { c } = useCard(),
+    cols = 7,
+    { cells, start } = weekCells(all, first, weeks),
+    offset = start ? monday(start) : 0,
+    rows = Math.ceil((cells.length + offset) / cols),
+    cw = 312 / cols,
+    top = start ? 18 : 2,
+    h = top + rows * rowH,
+    L = Math.min(cw * 0.62, rowH * 1.05)
+  return (
+    <Viz h={h} label={label}>
+      {start
+        ? [..."MTWTFSS"].map((l, i) => (
+            <VizText key={i} x={f1(cw * i + cw / 2)} y={12} color={c.muted}>
+              {l}
+            </VizText>
+          ))
+        : null}
+      {cells.map((d, k) => {
+        const i = k + offset,
+          cx = cw * (i % cols) + cw / 2 - L * 0.35,
+          cy = top + Math.floor(i / cols) * rowH + rowH * 0.5 + L * 0.35
+        if (d === "none")
+          return (
+            <Circle
+              key={k}
+              cx={f1(cx + L * 0.35)}
+              cy={f1(cy - L * 0.35)}
+              r={1.6}
+              fill={c.muted}
+              opacity={0.5}
+            />
+          )
+        const leaf = ribLeaf(cx, cy, L, -0.8, 0.46, true)
+        return d === "on" || d === "part" ? (
+          <Path
+            key={k}
+            d={leaf}
+            fill={d === "on" ? color : alpha(color, 0.45)}
+            stroke={color}
+            strokeWidth={1}
+            strokeLinejoin="round"
+          />
+        ) : (
+          <Path
+            key={k}
+            testID={d === "miss" ? "leaf-missed" : undefined}
+            d={leaf}
+            fill="none"
+            stroke={d === "miss" ? c.bad : c.muted}
+            strokeWidth={d === "miss" ? 1.6 : 1}
+            strokeLinejoin="round"
+            opacity={d === "miss" ? 1 : 0.55}
+          />
+        )
+      })}
+    </Viz>
+  )
+}
+
+/** A trend that grows like a vine (ADR-0032's hand-drawn line): leaves at
+ * each point and a bud at the latest. ``best`` draws the previous best as a
+ * dashed line. A still image: no reveal motion, it is captured. */
 export function Spark({
   values,
   height,
   color,
+  best,
+  bestLabel,
+  label = "Trend",
 }: {
   values: number[]
+  /** In kit points. */
   height: number
   color: string
+  best?: number
+  bestLabel?: string
+  label?: string
 }) {
-  const { q } = useCard(),
-    px = height * q
+  const { c } = useCard()
   if (values.length < 2) return null
-  const min = Math.min(...values),
-    span = Math.max(...values) - min || 1,
-    points = values
-      .map(
-        (v, i) =>
-          `${(i / (values.length - 1)) * 100},${px - ((v - min) / span) * (px - 4) - 2}`,
-      )
-      .join(" ")
+  const hi = Math.max(...values, best ?? 0),
+    lo = Math.min(...values),
+    X = (i: number) => 6 + (i * 300) / (values.length - 1),
+    Y = (v: number) => height - 8 - ((v - lo) / (hi - lo || 1)) * (height - 26),
+    points = values.map((v, i): Point => [X(i), Y(v)]),
+    d = smooth(points),
+    last = points[points.length - 1]
   return (
-    <Svg
-      width="100%"
-      height={px}
-      viewBox={`0 0 100 ${px}`}
-      preserveAspectRatio="none"
-    >
-      <Polygon
-        points={`${points} 100,${px} 0,${px}`}
-        fill={alpha(color, 0.16)}
+    <Viz h={height} label={label}>
+      {best !== undefined ? (
+        <G>
+          <Path
+            d={`M6 ${f1(Y(best))} H${f1(last[0] - 12)}`}
+            stroke={c.muted}
+            strokeWidth={1.2}
+            strokeDasharray="3 4"
+          />
+          {bestLabel ? (
+            <VizText x={8} y={f1(Y(best) - 5)} color={c.muted} anchor="start">
+              {bestLabel}
+            </VizText>
+          ) : null}
+        </G>
+      ) : null}
+      <Path
+        d={`${d} L${f1(last[0])} ${height} L6 ${height}Z`}
+        fill={color}
+        opacity={0.1}
       />
-      <Polyline
-        points={points}
-        stroke={color}
-        strokeWidth={2}
-        vectorEffect="non-scaling-stroke"
+      <Path
+        d={d}
         fill="none"
+        stroke={color}
+        strokeWidth={2.6}
+        strokeLinecap="round"
       />
-    </Svg>
+      {points.slice(1, -1).map(([x, y], i) => (
+        <Path
+          key={i}
+          d={ribLeaf(x, y, 9, i % 2 ? -0.9 : -2.25, 0.42, false)}
+          fill={color}
+          stroke={color}
+          strokeWidth={0.8}
+          opacity={0.85}
+        />
+      ))}
+      <Circle cx={f1(last[0])} cy={f1(last[1])} r={4.5} fill={c.mark} />
+      <Path
+        d={ribLeaf(last[0], last[1] - 4, 12, -1.15, 0.42, false)}
+        fill={c.mark}
+        stroke={c.mark}
+        strokeWidth={0.8}
+      />
+    </Viz>
   )
 }
 
-export type Dot = "on" | "part" | "off" | "none"
-/** A day grid: one square per day, ``cols`` to a row. */
-export function Dots({
-  cells,
-  cols,
+/** Progress on one hand-drawn line (ADR-0032): ``value`` 0–1 of the dotted
+ * track drawn, ``mark`` a tick where the target sits. */
+export function Meter({
+  value,
   color,
-  width = "100%",
+  mark,
 }: {
-  cells: Dot[]
-  cols: number
+  value: number
   color: string
-  /** Narrower on short cards, so a tall grid never crowds the header. */
-  width?: `${number}%`
+  mark?: number
 }) {
   const { q, c } = useCard(),
-    rows: Dot[][] = []
-  for (let i = 0; i < cells.length; i += cols)
-    rows.push(cells.slice(i, i + cols))
+    p = P * q,
+    v = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0))
   return (
-    <View style={{ gap: 1.4 * q, width, alignSelf: "center" }}>
-      {rows.map((row, r) => (
-        <View key={r} style={{ flexDirection: "row", gap: 1.4 * q }}>
-          {Array.from({ length: cols }, (_, i) => row[i] ?? null).map(
-            (d, i) => (
-              <View
-                key={i}
-                style={{
-                  flex: 1,
-                  aspectRatio: 1,
-                  borderRadius: q,
-                  backgroundColor:
-                    d === "on"
-                      ? color
-                      : d === "part"
-                        ? alpha(color, 0.45)
-                        : d === "off"
-                          ? c.track
-                          : "transparent",
-                  borderWidth: d === "none" ? 1 : 0,
-                  borderColor: c.line,
-                }}
-              />
-            ),
-          )}
+    <View style={{ height: 6 * p, justifyContent: "center" }}>
+      <LineTrack value={v} color={color} height={5 * p} track={c.muted} />
+      {mark !== undefined && mark > 0 && mark < 1 ? (
+        <View
+          style={{
+            position: "absolute",
+            left: `${mark * 100}%`,
+            top: -4 * p,
+            bottom: -4 * p,
+            width: 2 * p,
+            marginLeft: -p,
+            borderRadius: p,
+            backgroundColor: c.ink,
+          }}
+        />
+      ) : null}
+    </View>
+  )
+}
+/** Progress rows: a name, its value, and its line under them. */
+export function Meters({
+  rows,
+}: {
+  rows: {
+    name: string
+    value: number
+    label: string
+    color: string
+    mark?: number
+    bad?: boolean
+  }[]
+}) {
+  const { q, c } = useCard(),
+    p = P * q
+  return (
+    <View style={{ gap: 9 * p }}>
+      {rows.map((r) => (
+        <View key={r.name} style={{ gap: 4 * p }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              gap: 8 * p,
+            }}
+          >
+            <View style={{ flexShrink: 1 }}>
+              <Words size={14 * P} lines={1}>
+                {r.name}
+              </Words>
+            </View>
+            <View style={{ flexShrink: 1, maxWidth: "70%" }}>
+              <Num
+                size={14 * P}
+                align="right"
+                color={r.bad ? c.bad : undefined}
+              >
+                {r.label}
+              </Num>
+            </View>
+          </View>
+          <Meter value={r.value} color={r.color} mark={r.mark} />
         </View>
       ))}
     </View>
+  )
+}
+
+/** A ranked breakdown: one row per item, a stem whose length is its value.
+ * ``sets`` splits the stem into one segment per set, each ending in a leaf,
+ * so the leaves count the sets. Rows past the room go into "+N more". */
+export function XBars({
+  rows,
+  color,
+  more = 0,
+}: {
+  rows: {
+    key: string
+    name: string
+    value: number
+    label: string
+    sets?: number
+    pr?: boolean
+  }[]
+  color: string
+  /** Rows already left out by the caller, counted into "+N more". */
+  more?: number
+}) {
+  const { q, c } = useCard(),
+    p = P * q,
+    shown = useRows(rows.length),
+    max = Math.max(1, ...rows.map((r) => r.value)),
+    left = rows.length - shown + more
+  return (
+    <View style={{ gap: 6 * p }}>
+      {rows.slice(0, shown).map((r, i) => {
+        const w = Math.max(16, (r.value / max) * 300),
+          random = rng(i * 7 + 3)
+        let stem = "",
+          leaves = ""
+        if (r.sets && r.sets > 0) {
+          const gap = 3,
+            n = Math.min(r.sets, 12),
+            seg = (w - 6 - gap * (n - 1)) / n
+          for (let k = 0; k < n; k++) {
+            const x0 = 6 + k * (seg + gap),
+              x1 = x0 + seg
+            stem += `${smooth(
+              jitter(
+                [
+                  [x0, 9],
+                  [x0 + seg * 0.5, 8.6 + (k % 2) * 0.8],
+                  [x1, 9],
+                ],
+                0.8,
+                random,
+              ),
+            )} `
+            leaves += `${ribLeaf(x1, 8, 7.5, k % 2 ? -0.95 : -2.2, 0.42, false)} `
+          }
+        } else
+          stem = smooth(
+            jitter(
+              [
+                [6, 9],
+                [6 + (w - 6) * 0.33, 8.4],
+                [6 + (w - 6) * 0.66, 9.6],
+                [w, 9],
+              ],
+              1.1,
+              random,
+            ),
+          )
+        return (
+          <View key={r.key} testID="card-row">
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12 * p,
+              }}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 4 * p,
+                }}
+              >
+                <View style={{ flexShrink: 1 }}>
+                  <Words size={14 * P} lines={1}>
+                    {r.name}
+                  </Words>
+                </View>
+                {r.pr ? <Sprig size={16 * p} /> : null}
+              </View>
+              <View style={{ flexShrink: 0, maxWidth: "55%" }}>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                  allowFontScaling={false}
+                  style={{
+                    fontFamily: fonts.medium,
+                    fontSize: 14 * p,
+                    lineHeight: 19 * p,
+                    color: c.ink,
+                    textAlign: "right",
+                    fontVariant: ["tabular-nums"],
+                  }}
+                >
+                  {r.sets ? (
+                    <Text style={{ fontFamily: fonts.body, color: c.muted }}>
+                      {`${fmt(r.sets)} ${r.sets === 1 ? "set" : "sets"} · `}
+                    </Text>
+                  ) : null}
+                  {r.label}
+                </Text>
+              </View>
+            </View>
+            <Svg width={312 * p} height={13 * p} viewBox="0 0 312 13">
+              <Path
+                d="M6 9 H306"
+                stroke={c.track}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeDasharray="1 5"
+              />
+              <Path
+                d={stem}
+                fill="none"
+                stroke={color}
+                strokeWidth={4}
+                strokeLinecap="round"
+              />
+              {leaves ? (
+                <Path
+                  d={leaves}
+                  fill={c.mark}
+                  stroke={c.mark}
+                  strokeWidth={0.8}
+                  strokeLinejoin="round"
+                />
+              ) : null}
+            </Svg>
+          </View>
+        )
+      })}
+      {left > 0 && <Label>{`+${fmt(left)} more`}</Label>}
+    </View>
+  )
+}
+
+/** A path from 0 to the next milestone: a leaf on each one passed, an open
+ * bud on the ones ahead. */
+export function Growth({
+  stops,
+  now,
+  end,
+  unit,
+  height,
+  color,
+}: {
+  stops: number[]
+  now: number
+  end: number
+  unit: string
+  height: number
+  color: string
+}) {
+  const { c } = useCard(),
+    X = (v: number) => 8 + (Math.min(v, end) / Math.max(1, end)) * 286,
+    y = height - 30,
+    done = smooth(
+      jitter(
+        Array.from(
+          { length: 9 },
+          (_, i): Point => [X((now * i) / 8), y + Math.sin(i * 1.3) * 3],
+        ),
+        1.5,
+        rng(31),
+      ),
+    )
+  return (
+    <Viz h={height} label="Progress to the next milestone">
+      <Path
+        d={`M${f1(X(now))} ${y} H${f1(X(end))}`}
+        stroke={c.muted}
+        strokeWidth={1.5}
+        strokeDasharray="2 5"
+        strokeLinecap="round"
+      />
+      {now > 0 ? (
+        <Path
+          d={done}
+          fill="none"
+          stroke={color}
+          strokeWidth={5}
+          strokeLinecap="round"
+        />
+      ) : null}
+      {stops.map((v) => {
+        const x = X(v),
+          passed = v <= now
+        return (
+          <G key={v}>
+            {passed ? (
+              <Path
+                d={ribLeaf(x, y - 3, 22, -1.35, 0.44, true)}
+                fill={c.mark}
+                stroke={c.mark}
+                strokeWidth={0.8}
+              />
+            ) : (
+              <Path
+                d={ribLeaf(x, y - 3, 22, -1.57, 0.44, false)}
+                fill="none"
+                stroke={c.muted}
+                strokeWidth={1.4}
+              />
+            )}
+            <VizText
+              x={f1(v === end ? 312 : x)}
+              y={height - 4}
+              color={v === now ? c.ink : c.muted}
+              anchor={v === end ? "end" : "middle"}
+            >
+              {`${fmt(v)}${v === end ? ` ${unit}` : ""}`}
+            </VizText>
+          </G>
+        )
+      })}
+    </Viz>
   )
 }
 
@@ -641,36 +1399,103 @@ function CardGround({ width, height }: { width: number; height: number }) {
   )
 }
 
-/** A large, faint fiddlehead bleeding off the bottom-right corner. */
-function Watermark() {
-  const { q, c } = useCard()
+/** The hand-drawn motif behind the content, at about a fifth of its
+ * strength: a frond, a vine or a sprig by area, kept to the card's edges. */
+function Deco({
+  kind,
+  width,
+  height,
+}: {
+  kind: DecoKind
+  width: number
+  height: number
+}) {
+  const { c } = useCard(),
+    h = decoHeight(height / width),
+    d = useMemo(() => decoPath(kind, h, 2), [kind, h])
   return (
     <View
-      testID="card-watermark"
+      testID="card-deco"
       pointerEvents="none"
-      style={{ position: "absolute", right: -14 * q, bottom: -10 * q }}
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
     >
-      <FernMark
-        size={70 * q}
-        color={alpha(c.ink, c.dark ? 0.06 : 0.05)}
-        weight={2.2}
-      />
+      <Svg
+        width={width}
+        height={height}
+        viewBox={`0 0 360 ${h}`}
+        preserveAspectRatio="xMidYMid slice"
+        opacity={c.dark ? 0.2 : 0.22}
+      >
+        <Path
+          d={d}
+          fill="none"
+          stroke={c.mark}
+          strokeWidth={1.3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d={d}
+          fill="none"
+          stroke={c.mark}
+          strokeWidth={0.7}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity={0.55}
+          transform="translate(0.9 -0.7) rotate(0.6)"
+        />
+      </Svg>
     </View>
   )
 }
+/** The motif each area is drawn with: fronds for training, vines for habits,
+ * tasks and the journal, sprigs for recaps, money and food. */
+const decoFor = (accent?: Accent): DecoKind =>
+  accent === "fit"
+    ? "frond"
+    : accent === "hab" || accent === "tsk"
+      ? "vine"
+      : "sprig"
 
-/** The flat lockup: fiddlehead plus "unfurl" in Geist Medium, −3%. */
+/** The flat Unfurl mark (docs/brand Logos): the fiddlehead as one stroke. */
+const MARK = [
+  "M7.5 21.5 C7.5 16.5 8.6 12.6 11.6 10.1 C14.2 7.9 18.7 8.4 18.9 12.1 C19.1 15 16 16.4 14 14.9 C12.5 13.8 12.9 11.4 14.8 11.2 C16.1 11.1 16.9 12.3 16.2 13.2",
+  "M8 18 C6.3 17 4.6 17.2 3.6 18.5",
+  "M8.9 14.4 C7.5 13.2 5.8 13 4.7 13.9",
+]
+/** The flat lockup: the mark plus "unfurl" in Geist Medium, −3%. Never
+ * Fern: Fern is the chat character, not the card's signature. */
 export function Lockup({ size }: { size: number }) {
   const { q, c } = useCard()
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 0.6 * q }}>
-      <FernMark size={size * 1.1 * q} color={c.mark} weight={2.2} />
+    <View
+      testID="card-lockup"
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 0.4 * size * q,
+      }}
+    >
+      <Svg width={size * 1.15 * q} height={size * 1.15 * q} viewBox="0 0 24 24">
+        {MARK.map((d) => (
+          <Path
+            key={d}
+            d={d}
+            fill="none"
+            stroke={c.mark}
+            strokeWidth={2.4}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        ))}
+      </Svg>
       <Text
         numberOfLines={1}
         allowFontScaling={false}
         style={{
           fontFamily: fonts.medium,
           fontSize: size * q,
+          lineHeight: size * q * 1.2,
           letterSpacing: -0.03 * size * q,
           color: c.ink,
         }}
@@ -681,179 +1506,174 @@ export function Lockup({ size }: { size: number }) {
   )
 }
 
-/** The card body. It fills the space between header and footer; when what
- * it holds is taller (long names, many rows on a short card), it is scaled
- * down to fit instead of being clipped or drawing over the header. */
-function FitBody({ children }: { children: ReactNode }) {
-  const [box, setBox] = useState(0),
-    [inner, setInner] = useState(0),
-    scale = box > 0 && inner > box + 0.5 ? box / inner : 1
-  return (
-    <View
-      testID="card-body"
-      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
-      onLayout={(e) => setBox(e.nativeEvent.layout.height)}
-    >
-      {/* Absolute, so its height is what the body holds rather than what
-          the card allows; at least the card's height, so short bodies
-          still fill and centre. A taller one is scaled about its centre,
-          then moved up so it starts at the top of the space. */}
-      <View
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          minHeight: box,
-          transform: [{ translateY: -(inner - inner * scale) / 2 }, { scale }],
-        }}
-        testID="card-body-fit"
-        onLayout={(e) => setInner(e.nativeEvent.layout.height)}
-      >
-        {/* Bodies are `flex: 1`; here they size to their content (basis
-            auto) and grow to fill, never shrinking below what they hold. */}
-        {isValidElement<{ style?: ViewStyle }>(children)
-          ? cloneElement(children, {
-              style: [
-                children.props.style,
-                { flex: 0, flexGrow: 1, flexShrink: 0, flexBasis: "auto" },
-              ] as unknown as ViewStyle,
-            })
-          : children}
-      </View>
-    </View>
-  )
-}
 export function CardFrame({
   width,
   look,
-  kicker,
   children,
   date,
   foot,
   mark = true,
   accent,
+  deco,
 }: {
   mark?: boolean
+  /** The card's window ("Sat 1 Nov", "1–31 Oct"): the only thing at the top. */
   date?: string
   foot?: ReactNode
   width: number
   look: CardLook
-  /** The area the card is about: colours the accent bar over the kicker. */
+  /** The area the card is about: picks the background motif. */
   accent?: Accent
-  kicker: string
+  deco?: DecoKind
   children: ReactNode
 }) {
   const q = width / 100,
+    p = P * q,
     c = cardInk(look),
+    f = look.format,
+    tall = f === "9:16",
+    height = width * ratioOf(f),
     shot = useContext(CardShotContext)
+  const [fit, setFit] = useState<Fit>({ stage: 0, rows: 0 }),
+    parts = useRef<FitParts>(new Map()),
+    size = useRef({ box: -1, inner: -1 }),
+    [tick, setTick] = useState(0)
+  const ctx = useMemo(
+    () => ({
+      fit,
+      part: (kind: Drop | "rows", n: number) => {
+        parts.current.set(kind, (parts.current.get(kind) ?? 0) + n)
+        return () => {
+          parts.current.set(kind, (parts.current.get(kind) ?? 0) - n)
+        }
+      },
+      measure: (which: "box" | "inner", h: number) => {
+        if (size.current[which] === h) return
+        size.current[which] = h
+        setTick((t) => t + 1)
+      },
+    }),
+    [fit],
+  )
+  // A new shape or size starts the rule again from the full card.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on a new shape only
+  useEffect(() => {
+    setFit({ stage: 0, rows: 0 })
+  }, [width, f])
+  // One step per settled layout: a first pass (fonts still loading, a
+  // number not yet shrunk to its line) can read taller than the card ends
+  // up, and a step is never taken back.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on each measurement
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const { box, inner } = size.current
+      if (box < 0 || inner < 0 || inner <= box + 0.5) return
+      setFit((cur) => nextFit(cur, parts.current))
+    }, FIT_SETTLE_MS)
+    return () => clearTimeout(timer)
+  }, [tick])
   return (
-    <CardContext.Provider value={{ q, c }}>
-      {/* The rounded corners and hairline are on-screen chrome only. The
-          exported image is the square-cornered card inside, so a shared PNG
-          has no transparent corners for Instagram to fill with notches. */}
-      <View
-        style={{
-          width,
-          aspectRatio: 1 / ratioOf(look.format),
-          borderRadius: 5 * q,
-          overflow: "hidden",
-        }}
-      >
+    <CardContext.Provider value={{ q, c, f }}>
+      <FitContext.Provider value={ctx}>
+        {/* The rounded corners and hairline are on-screen chrome only. The
+            exported image is the square-cornered card inside, so a shared
+            PNG has no transparent corners for Instagram to fill with
+            notches. */}
         <View
-          ref={shot}
-          collapsable={false}
-          testID="card-shot"
           style={{
-            flex: 1,
-            padding: 6.5 * q,
-            gap: 3 * q,
+            width,
+            aspectRatio: 1 / ratioOf(f),
+            borderRadius: 5 * q,
             overflow: "hidden",
-            backgroundColor: c.bg,
           }}
         >
-          <CardGround width={width} height={width * ratioOf(look.format)} />
-          {look.backdrop === "photo" && look.photo && (
-            <>
-              <Image
-                source={{ uri: look.photo }}
-                style={{ position: "absolute", inset: 0 }}
-              />
-              <View
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  backgroundColor: alpha(c.bg, 0.55),
-                }}
-              />
-            </>
-          )}
-          {look.backdrop !== "sticker" && <Watermark />}
-          <Line
+          <View
+            ref={shot}
+            collapsable={false}
+            testID="card-shot"
             style={{
-              gap: 3 * q,
-              justifyContent: "space-between",
-              alignItems: "flex-end",
+              flex: 1,
+              paddingHorizontal: 24 * p,
+              // A story keeps clear of the app's own top and bottom bars.
+              paddingTop: (tall ? 88 : 24) * p,
+              paddingBottom: (tall ? 120 : 24) * p,
+              gap: 12 * p,
+              overflow: "hidden",
+              backgroundColor: c.bg,
             }}
           >
-            <View style={{ flexShrink: 1, gap: 1.6 * q }}>
-              <View
-                testID="card-accent"
-                style={{
-                  width: 8 * q,
-                  height: 1.2 * q,
-                  borderRadius: 0.6 * q,
-                  backgroundColor: accent ? c.area(accent) : c.mark,
-                }}
+            <CardGround width={width} height={height} />
+            {look.backdrop === "photo" && look.photo && (
+              <>
+                <Image
+                  source={{ uri: look.photo }}
+                  style={{ position: "absolute", inset: 0 }}
+                />
+                <View
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    backgroundColor: alpha(c.bg, 0.55),
+                  }}
+                />
+              </>
+            )}
+            {look.backdrop !== "sticker" && look.backdrop !== "photo" && (
+              <Deco
+                kind={deco ?? decoFor(accent)}
+                width={width}
+                height={height}
               />
-              <Words size={3.6} weight="medium" lines={1}>
-                {kicker}
-              </Words>
-            </View>
+            )}
             {!!date && (
-              <View style={{ flexShrink: 1 }}>
-                <Words size={3.3} lines={1} align="right" muted>
-                  {date}
-                </Words>
+              <Words
+                size={13 * P}
+                weight="medium"
+                lines={1}
+                align="right"
+                muted
+              >
+                {date}
+              </Words>
+            )}
+            {children}
+            {(mark || !!foot) && (
+              <View
+                style={{
+                  marginTop: "auto",
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8 * p,
+                }}
+              >
+                {mark ? <Lockup size={14 * P} /> : <View />}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  {typeof foot === "string" ? (
+                    <Words size={13 * P} lines={2} align="right" muted>
+                      {foot}
+                    </Words>
+                  ) : (
+                    foot
+                  )}
+                </View>
               </View>
             )}
-          </Line>
-          <FitBody>{children}</FitBody>
-          {(mark || !!foot) && (
+          </View>
+          {look.backdrop !== "sticker" && (
             <View
+              pointerEvents="none"
               style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "flex-end",
-                gap: 3 * q,
+                position: "absolute",
+                inset: 0,
+                borderRadius: 5 * q,
+                borderWidth: 1,
+                borderColor: c.line,
               }}
-            >
-              <View style={{ flex: 1, minWidth: 0 }}>
-                {typeof foot === "string" ? (
-                  <Words size={3} lines={2} muted>
-                    {foot}
-                  </Words>
-                ) : (
-                  foot
-                )}
-              </View>
-              {mark && <Lockup size={4.8} />}
-            </View>
+            />
           )}
         </View>
-        {look.backdrop !== "sticker" && (
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              inset: 0,
-              borderRadius: 5 * q,
-              borderWidth: 1,
-              borderColor: c.line,
-            }}
-          />
-        )}
-      </View>
+      </FitContext.Provider>
     </CardContext.Provider>
   )
 }

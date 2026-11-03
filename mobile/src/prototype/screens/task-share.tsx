@@ -2,24 +2,30 @@ import { weekday } from "@domain/lib/day"
 import { useStats } from "@domain/tasks/hooks"
 import * as L from "@domain/tasks/logic"
 import { useLocalSearchParams } from "expo-router"
-import { Flame, ShieldCheck, Trophy } from "lucide-react-native"
+import { ShieldCheck } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
-import { View } from "react-native"
 import { Copy, Line, SectionHeading, Segmented } from "../native-kit"
 import { fmt, group, pct } from "../share-format"
 import {
+  Body,
   CardFrame,
   type CardLook,
-  CardRing,
-  Chip,
+  Change,
+  ChartNote,
   cardInk,
   Delta,
-  Label,
-  Num,
+  type Dot,
+  dayName,
+  dayRange,
+  endedRun,
+  Figures,
+  Hero,
+  LeafCal,
   ShareComposer,
-  Stats,
-  useCard,
-  Words,
+  Stems,
+  Sub,
+  Title,
+  Win,
 } from "../share-kit"
 import { useTheme } from "../theme"
 import { Screen } from "../ui"
@@ -71,42 +77,22 @@ export const taskMetrics = (s: TaskCardData) => [
     value: `${group(s.followThrough, 1)}×`,
   },
 ]
-function Bars({ s, tall }: { s: TaskCardData; tall: boolean }) {
-  const { q, c } = useCard(),
-    bars =
-      s.range === "7"
-        ? s.perDay.map((d) => d.done)
-        : s.perDay.reduce<number[]>((a, d, i) => {
-            const w = Math.floor(i / 7)
-            a[w] = (a[w] ?? 0) + d.done
-            return a
-          }, []),
-    max = Math.max(1, ...bars),
-    h = (tall ? 18 : 8) * q
-  return (
-    <Line style={{ gap: q, alignItems: "flex-end" }}>
-      {bars.map((n, i) => (
-        <View key={i} style={{ flex: 1, gap: q }}>
-          <View style={{ height: h, justifyContent: "flex-end" }}>
-            <View
-              style={{
-                height: Math.max(0.6 * q, (n / max) * h),
-                backgroundColor: n ? c.area("tsk") : c.track,
-                borderTopLeftRadius: q,
-                borderTopRightRadius: q,
-              }}
-            />
-          </View>
-          {s.range === "7" && s.perDay[i] && (
-            <Label align="center">
-              {L.WEEKDAYS[weekday(s.perDay[i].day)].slice(0, 1)}
-            </Label>
-          )}
-        </View>
-      ))}
-    </Line>
-  )
+/** Tasks done per day for a week, per week for a month or more. */
+function bars(s: TaskCardData) {
+  if (s.range === "7")
+    return {
+      values: s.perDay.map((d) => d.done),
+      labels: s.perDay.map((d) => L.WEEKDAYS[weekday(d.day)].slice(0, 1)),
+    }
+  const values = s.perDay.reduce<number[]>((a, d, i) => {
+    const w = Math.floor(i / 7)
+    a[w] = (a[w] ?? 0) + d.done
+    return a
+  }, [])
+  return { values, labels: values.map(() => "") }
 }
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${fmt(n)} ${n === 1 ? one : many}`
 export function TaskCard({
   kind,
   width,
@@ -119,140 +105,147 @@ export function TaskCard({
   data: TaskCardData
 }) {
   const c = cardInk(look),
-    q = width / 100,
     tall = look.format === "9:16",
+    sq = look.format === "1:1",
     tsk = c.area("tsk"),
-    ratio = Math.min(1, s.followThrough / 3),
-    best = s.streak > 0 && s.streak >= s.bestStreak
+    best = s.streak > 0 && s.streak >= s.bestStreak,
+    { values, labels } = bars(s),
+    top = Math.max(...values),
+    stems = (
+      <Stems
+        values={values}
+        labels={labels}
+        on={values.length - 1}
+        leaf={(v) => v > 0 && v === top}
+        height={tall ? 130 : sq ? 76 : 100}
+        color={tsk}
+        label={s.range === "7" ? "Tasks done by day" : "Tasks done by week"}
+      />
+    )
   let body: ReactNode
-  if (kind === "summary")
+  if (kind === "summary") {
+    const change = s.prevDone > 0 ? s.done - s.prevDone : 0,
+      down = change < 0
     body = (
-      <View style={{ flex: 1, justifyContent: "center", gap: 4.5 * q }}>
-        <View style={{ gap: 2 * q }}>
-          <Words size={tall ? 8 : 6} weight="semibold" lines={1}>
-            {RANGE_LABEL[s.range].replace(/^./, (x) => x.toUpperCase())}
-          </Words>
-          <View
-            style={{
-              flexDirection: "row",
-              flexWrap: "wrap",
-              gap: 1.6 * q,
-              display: look.format === "1:1" ? "none" : "flex",
-            }}
-          >
-            <Chip icon={Flame} tone={tsk}>
-              {verdict(s.onTimeRate)}
-            </Chip>
-            {best && (
-              <Chip icon={Trophy} tone={tsk}>
-                Best streak
-              </Chip>
-            )}
-          </View>
-        </View>
-        <Line style={{ gap: 5 * q }}>
-          <View style={{ flex: 1, minWidth: 0, gap: q }}>
-            <Label>Tasks done</Label>
-            <Num size={tall ? 24 : 16}>{fmt(s.done)}</Num>
-            {s.prevDone > 0 && (
-              <Delta n={s.done - s.prevDone} suffix="vs last period" />
-            )}
-          </View>
-          <CardRing value={s.onTimeRate ?? 0} size={tall ? 30 : 24} color={tsk}>
-            <Num size={8} align="center">
-              {pct(s.onTimeRate)}
-            </Num>
-            <Label align="center">on time</Label>
-          </CardRing>
-        </Line>
-        {look.format !== "1:1" && <Bars s={s} tall={tall} />}
-        <Stats
-          items={taskMetrics(s).filter(
-            (m) => m.key !== "done" && m.key !== "onTime" && s.shown[m.key],
-          )}
-          size={7}
-        />
-      </View>
-    )
-  else if (kind === "streak")
-    body = (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3 * q,
-        }}
-      >
-        <CardRing
-          value={s.bestStreak ? s.streak / s.bestStreak : 0}
-          size={tall ? 58 : 44}
-          color={tsk}
-        >
-          <Flame size={7 * q} color={tsk} strokeWidth={2} />
-          <Num size={tall ? 18 : 14} align="center">
-            {fmt(s.streak)}
-          </Num>
-          <Label align="center">{s.streak === 1 ? "day" : "days"}</Label>
-        </CardRing>
-        <Words size={5} weight="semibold" align="center">
-          Getting things done, every day
-        </Words>
-        <Chip icon={best ? Trophy : undefined} tone={tsk}>
-          {best ? "Personal best" : `Best ${fmt(s.bestStreak)} days`}
-        </Chip>
-      </View>
-    )
-  else
-    body = (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 3 * q,
-        }}
-      >
-        <Label align="center">Follow-through ratio</Label>
-        <CardRing
-          value={ratio}
-          size={tall ? 56 : look.format === "1:1" ? 34 : 42}
-          color={tsk}
-        >
-          <Num size={tall ? 16 : 12} align="center">
-            {`${group(s.followThrough, 1)}×`}
-          </Num>
-          <Label align="center">per slip</Label>
-        </CardRing>
-        <Chip icon={Flame} tone={tsk}>
-          {verdict(ratio)}
-        </Chip>
-        {look.format !== "1:1" && (
-          <Words size={3.4} align="center" muted>
-            Tasks finished for every one that slipped. Late counts half.
-          </Words>
-        )}
-        {tall && (
-          <View style={{ alignSelf: "stretch", marginTop: 2 * q }}>
-            <Stats
-              items={[
-                { label: "Done", value: fmt(s.done) },
-                { label: "On time", value: pct(s.onTimeRate) },
-                { label: "Streak", value: fmt(s.streak), unit: "d" },
-              ]}
-              size={7}
+      <>
+        <Hero
+          value={fmt(s.done)}
+          unit="done"
+          delta={
+            <Delta
+              n={change}
+              suffix={down ? "fewer than last time" : "more than last time"}
             />
-          </View>
+          }
+        />
+        {down ? (
+          <Sub
+            bad
+          >{`${pct(s.onTimeRate)} on time · ${verdict(s.onTimeRate)}`}</Sub>
+        ) : (
+          <Sub>{`${pct(s.onTimeRate)} on time`}</Sub>
         )}
-      </View>
+        {best && <Win>Best streak yet</Win>}
+        <Body end>{stems}</Body>
+        <Figures
+          items={[
+            ...(s.shown.streak
+              ? [{ label: "Day streak", value: fmt(s.streak), unit: "days" }]
+              : []),
+            ...(s.shown.clear
+              ? [
+                  {
+                    label: "Clear days",
+                    value: `${fmt(s.clearDays)}/${fmt(s.dueDays)}`,
+                  },
+                ]
+              : []),
+            ...(s.shown.followThrough
+              ? [
+                  {
+                    label: "Done per slip",
+                    value: group(s.followThrough, 1),
+                    unit: "×",
+                  },
+                ]
+              : []),
+          ]}
+        />
+      </>
     )
+  } else if (kind === "streak") {
+    const cells: Dot[] = s.perDay.map((d) => (d.done > 0 ? "on" : "off")),
+      first = s.perDay[0]?.day,
+      ended = endedRun(cells, ["off"])
+    body = (
+      <>
+        <Title>Getting things done, every day</Title>
+        <Hero
+          value={fmt(s.streak)}
+          unit={s.streak === 1 ? "day" : "days"}
+          delta={
+            ended ? (
+              <Change
+                good={false}
+              >{`${plural(ended.lost, "day")} lost`}</Change>
+            ) : undefined
+          }
+        />
+        {ended && first ? (
+          <Sub bad>
+            {`Nothing done on ${dayName(s.perDay[ended.at].day)} ended the ${fmt(ended.lost)}-day run.`}
+          </Sub>
+        ) : best ? (
+          <Win>Personal best</Win>
+        ) : (
+          <Sub>{`Best ${plural(s.bestStreak, "day")}`}</Sub>
+        )}
+        <Body end>
+          {cells.length >= 7 ? (
+            <LeafCal
+              cells={cells}
+              start={first}
+              weeks={sq ? 3 : 4}
+              rowH={tall ? 25 : sq ? 19 : 24}
+              color={tsk}
+            />
+          ) : (
+            stems
+          )}
+          <ChartNote
+            left={
+              ended
+                ? `Best ${plural(s.bestStreak, "day")}`
+                : "A leaf for each day with a task done"
+            }
+          />
+        </Body>
+      </>
+    )
+  } else {
+    const low = s.followThrough < 1
+    body = (
+      <>
+        <Title>Follow-through ratio</Title>
+        <Hero value={group(s.followThrough, 1)} unit="× per slip" />
+        {low ? (
+          <Sub
+            bad
+          >{`More slipped than got done. ${verdict(Math.min(1, s.followThrough / 3))}.`}</Sub>
+        ) : (
+          <Win>{verdict(Math.min(1, s.followThrough / 3))}</Win>
+        )}
+        <Sub>Tasks finished for every one that slipped. Late counts half.</Sub>
+        <Body end>{stems}</Body>
+      </>
+    )
+  }
   return (
     <CardFrame
       width={width}
       look={look}
       accent="tsk"
-      kicker="Tasks"
-      date={`${L.fmtDate(s.from)} – ${L.fmtDate(s.to)}`}
+      date={dayRange(s.from, s.to)}
       foot="Counts and rates only"
     >
       {body}
