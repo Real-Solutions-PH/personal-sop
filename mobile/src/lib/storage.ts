@@ -92,11 +92,31 @@ function generateEncryptionKey(): string {
   return hex
 }
 
+// Readable after the first unlock since boot, not only while unlocked: a
+// lock-screen tap (a Live Activity button) starts the app in the background
+// on a locked phone, and a key it cannot read there made the session look
+// signed out, which signed the person out and ended the Live Activity.
+// Keychain lookups do not match on accessibility, so saving again moves a
+// key stored with the old "when unlocked" default over.
+const SESSION_KEY_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+}
+
 async function getOrCreateSessionEncryptionKey(): Promise<string> {
-  const existing = await SecureStore.getItemAsync(SESSION_KEY_ALIAS)
-  if (existing) return existing
+  const existing = await SecureStore.getItemAsync(
+    SESSION_KEY_ALIAS,
+    SESSION_KEY_OPTIONS,
+  )
+  if (existing) {
+    void SecureStore.setItemAsync(
+      SESSION_KEY_ALIAS,
+      existing,
+      SESSION_KEY_OPTIONS,
+    ).catch(() => {})
+    return existing
+  }
   const key = generateEncryptionKey()
-  await SecureStore.setItemAsync(SESSION_KEY_ALIAS, key)
+  await SecureStore.setItemAsync(SESSION_KEY_ALIAS, key, SESSION_KEY_OPTIONS)
   return key
 }
 
@@ -116,6 +136,18 @@ async function openEncryptedNativeStore(): Promise<KVStore> {
 }
 
 let sessionStorePromise: Promise<KVStore> | null = null
+
+/** Whether the session store opens. False while the phone is locked and its
+ * key is still a "when unlocked" one (before the first unlocked launch has
+ * moved it over): the session is then unknown, never signed out. */
+export async function sessionStoreReadable(): Promise<boolean> {
+  try {
+    await getEncryptedSessionStore()
+    return true
+  } catch {
+    return false
+  }
+}
 
 /**
  * The store backing the Supabase auth session. Native: an AES-256-encrypted

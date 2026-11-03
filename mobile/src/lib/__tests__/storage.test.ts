@@ -31,9 +31,13 @@ jest.mock("react-native-mmkv", () => ({
 const mockGetItemAsync = jest.fn()
 const mockSetItemAsync = jest.fn()
 jest.mock("expo-secure-store", () => ({
+  AFTER_FIRST_UNLOCK: 0,
   getItemAsync: (...args: unknown[]) => mockGetItemAsync(...args),
   setItemAsync: (...args: unknown[]) => mockSetItemAsync(...args),
 }))
+// The session key must open on a locked phone (a lock-screen tap starts
+// the app in the background): readable after the first unlock since boot.
+const AFTER_FIRST_UNLOCK = { keychainAccessible: 0 }
 
 const mockGetRandomBytes = jest.fn()
 jest.mock("expo-crypto", () => ({
@@ -42,6 +46,7 @@ jest.mock("expo-crypto", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks()
+  mockSetItemAsync.mockResolvedValue(undefined)
 })
 
 describe("native platforms", () => {
@@ -159,6 +164,7 @@ describe("getEncryptedSessionStore (native, at-rest encryption)", () => {
     expect(mockSetItemAsync).toHaveBeenCalledWith(
       expect.any(String),
       expectedKey,
+      AFTER_FIRST_UNLOCK,
     )
     expect(mockCreateMMKV).toHaveBeenCalledWith({
       id: "supabase-session",
@@ -178,10 +184,42 @@ describe("getEncryptedSessionStore (native, at-rest encryption)", () => {
     await getEncryptedSessionStore()
 
     expect(mockGetRandomBytes).not.toHaveBeenCalled()
-    expect(mockSetItemAsync).not.toHaveBeenCalled()
     expect(mockCreateMMKV).toHaveBeenCalledWith(
       expect.objectContaining({ encryptionKey: stored }),
     )
+    // The same key, saved again: a key from an older build (stored "when
+    // unlocked") moves to "after first unlock".
+    expect(mockSetItemAsync).toHaveBeenCalledTimes(1)
+    expect(mockSetItemAsync).toHaveBeenCalledWith(
+      expect.any(String),
+      stored,
+      AFTER_FIRST_UNLOCK,
+    )
+  })
+
+  it("keeps the stored key when moving it over fails", async () => {
+    const stored = "deadbeefdeadbeefdeadbeefdeadbeef"
+    mockGetItemAsync.mockResolvedValue(stored)
+    mockSetItemAsync.mockRejectedValue(new Error("interaction not allowed"))
+
+    const { getEncryptedSessionStore } = loadStorage("ios")
+    await expect(getEncryptedSessionStore()).resolves.toBeTruthy()
+    expect(mockCreateMMKV).toHaveBeenCalledWith(
+      expect.objectContaining({ encryptionKey: stored }),
+    )
+  })
+
+  it("reports a key the locked phone cannot read as unreadable, never as a new key", async () => {
+    mockGetItemAsync.mockRejectedValueOnce(
+      new Error("User interaction is not allowed"),
+    )
+    const { sessionStoreReadable } = loadStorage("ios")
+    await expect(sessionStoreReadable()).resolves.toBe(false)
+    expect(mockGetRandomBytes).not.toHaveBeenCalled()
+    expect(mockSetItemAsync).not.toHaveBeenCalled()
+    // Unlocked again: the next look opens it.
+    mockGetItemAsync.mockResolvedValue("deadbeefdeadbeefdeadbeefdeadbeef")
+    await expect(sessionStoreReadable()).resolves.toBe(true)
   })
 
   it("opens the key and store exactly once (memoized)", async () => {

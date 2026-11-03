@@ -4,6 +4,7 @@
 // fields; GoTrue's own messages are never shown verbatim.
 
 import type { AuthError as GoTrueError } from "@supabase/supabase-js"
+import { sessionStoreReadable } from "@/lib/storage"
 import { getSupabase } from "@/lib/supabase"
 import type { About } from "@/prototype/onboarding-draft"
 import { ApiError, createHttp, NetworkError, type TokenSource } from "./http"
@@ -26,7 +27,13 @@ export const tokens: TokenSource = {
     const { data, error } = await getSupabase().auth.refreshSession()
     const token = data.session?.access_token ?? null
     // supabase-js names a transport failure AuthRetryableFetchError.
-    if (!token && error?.name !== "AuthRetryableFetchError") sessionLost?.()
+    // A session that could not be read (a locked phone) is not a lost one.
+    if (
+      !token &&
+      error?.name !== "AuthRetryableFetchError" &&
+      (await sessionStoreReadable())
+    )
+      sessionLost?.()
     return token
   },
 }
@@ -201,6 +208,9 @@ export async function deleteAccount(password: string) {
 export async function currentUserId(
   offlineUserId?: string | null,
 ): Promise<string | null> {
+  // Locked phone, key not yet readable: the session is unknown, so keep the
+  // account this device was syncing, as offline does.
+  if (!(await sessionStoreReadable())) return offlineUserId ?? null
   const { data, error } = await getSupabase().auth.getSession()
   if (data.session) return data.session.user.id
   return error?.name === "AuthRetryableFetchError"

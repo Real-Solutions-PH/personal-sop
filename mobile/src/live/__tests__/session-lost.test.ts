@@ -1,6 +1,9 @@
 // A refresh the auth server refuses (session revoked, refresh token spent)
 // reports the session as lost; a network failure does not.
 const mockRefresh = jest.fn()
+// The session store opens (an unlocked phone); auth-locked.test.ts covers
+// a locked one.
+jest.mock("@/lib/storage", () => ({ sessionStoreReadable: async () => true }))
 jest.mock("@/lib/supabase", () => ({
   getSupabase: () => ({ auth: { refreshSession: mockRefresh } }),
 }))
