@@ -526,40 +526,43 @@ function JournalList() {
               </View>
             ))}
           </Line>
-          <Line style={{ alignItems: "flex-start", gap: 4, marginTop: 16 }}>
-            <View style={{ gap: 4 }}>
+          {/* Weekdays across, weeks down (card library, Heatmap). */}
+          <View style={{ gap: 6, marginTop: 16 }}>
+            <Line style={{ gap: 0 }}>
               {["S", "M", "T", "W", "T", "F", "S"].map((label, i) => (
                 <Copy
                   key={`${label}${i}`}
-                  size={9}
+                  size={12}
                   muted
-                  style={{ height: 14, lineHeight: 14, width: 10 }}
+                  style={{ flex: 1, textAlign: "center" }}
                 >
                   {label}
                 </Copy>
               ))}
-            </View>
-            {Array.from({ length: Math.ceil(heat.length / 7) }, (_, col) => (
-              <View key={col} style={{ gap: 4 }}>
-                {heat
-                  .slice(col * 7, col * 7 + 7)
-                  .map((v, i) =>
-                    v === null ? (
-                      <View key={i} style={{ width: 14, height: 14 }} />
-                    ) : (
-                      <DayLeaf
-                        key={i}
-                        on={v === 1}
-                        seed={col * 7 + i}
-                        color={t.life}
-                        faint={t.muted}
-                      />
-                    ),
-                  )}
-              </View>
+            </Line>
+            {Array.from({ length: Math.ceil(heat.length / 7) }, (_, week) => (
+              <Line key={week} style={{ gap: 0 }}>
+                {Array.from({ length: 7 }, (_, d) => {
+                  const v = heat[week * 7 + d] ?? null
+                  return (
+                    <View key={d} style={{ flex: 1, alignItems: "center" }}>
+                      {v === null ? (
+                        <View style={{ width: 22, height: 22 }} />
+                      ) : (
+                        <DayLeaf
+                          on={v === 1}
+                          seed={week * 7 + d}
+                          color={t.life}
+                          faint={t.muted}
+                        />
+                      )}
+                    </View>
+                  )
+                })}
+              </Line>
             ))}
-          </Line>
-          <Copy size={11} muted style={{ marginTop: 4 }}>
+          </View>
+          <Copy size={12} muted style={{ marginTop: 8 }}>
             Last 4 weeks
           </Copy>
           {all.filter((e) => e.mood).length >= 5 && <MoodTrend entries={all} />}
@@ -1137,12 +1140,12 @@ function DayLeaf({
 }) {
   const ang = -Math.PI * (0.62 + ((seed * 37) % 7) * 0.02)
   return (
-    <Svg width={14} height={14} viewBox="0 0 14 14">
+    <Svg width={22} height={22} viewBox="0 0 14 14">
       <Path
         d={leaf(4, 12, 11, ang, 0.42)}
         fill={on ? color : "none"}
         stroke={on ? color : faint}
-        strokeWidth={on ? 0.8 : 0.9}
+        strokeWidth={on ? 0.8 : 0.7}
         opacity={on ? 1 : 0.45}
       />
     </Svg>
