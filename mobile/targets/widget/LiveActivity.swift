@@ -21,9 +21,10 @@ func liveSymbol(_ kind: String, icon: String) -> String {
 extension LiveState {
   var accent: Color { liveAccent(kind) }
   var symbol: String { liveSymbol(kind, icon: icon) }
-  /** The header's name: a workout's own symbol already says what it is, so
-   * its emoji is left out (two icons side by side read as noise). */
-  var heading: String { kind == "workout" || icon.isEmpty ? title : "\(icon) \(title)" }
+  /** The header's name: a workout's or a run's own symbol already says
+   * what it is, so its emoji is left out (two icons side by side read as
+   * noise). */
+  var heading: String { kind == "workout" || kind == "run" || icon.isEmpty ? title : "\(icon) \(title)" }
   /** What comes after the step shown. The same exercise again says which
    * set ("set 2 of 2"); another one is named. Repeating the exercise's name
    * ("Next: Cable Hammer Curl" under Cable Hammer Curl) read as a mistake. */
