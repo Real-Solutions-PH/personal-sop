@@ -21,12 +21,12 @@ import { captureUi } from "@domain/lib/capture"
 import { dayOffset } from "@domain/lib/day"
 import { createStore } from "@domain/lib/store"
 import { usePathname } from "expo-router"
-import { Award } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
 import { AppState } from "react-native"
+import { TrophyBadge } from "./brand/badge"
 import { prototypeMode } from "./mode"
 import { MomentCard, momentSlot } from "./moment"
-import { Copy } from "./native-kit"
+import { border, Copy } from "./native-kit"
 import { go } from "./navigation"
 import { useTheme } from "./theme"
 
@@ -212,8 +212,9 @@ export function TrophyMoment({
           {trophy.detail}
         </Copy>
       }
-      badge={<Award size={22} color={t.onPrimary} strokeWidth={2.2} />}
-      tint={tint}
+      badge={<TrophyBadge type={trophy.type} size={42} color={tint} />}
+      tint={t.good}
+      discColor={border(t.good, 0.14)}
       say={`Trophy earned: ${trophy.title}. ${trophy.detail}`}
       hint={more ? "Opens the Trophy case" : "Opens this trophy"}
       onOpen={onOpen}

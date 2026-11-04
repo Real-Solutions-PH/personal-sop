@@ -68,6 +68,7 @@ import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { TrophyBadge } from "../brand/badge"
 import { CornerMotif } from "../brand/corner"
+import { TROPHY_COLOR } from "../brand/trophy"
 import { Sparkline } from "../chart"
 import { FirstWeekStrip, LeafRow, YesterdayStrip } from "../daily-strips"
 import { CardSkeleton, Deferred, FrameSkeleton } from "../deferred"
@@ -1607,7 +1608,11 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
   const context = evening ? null : fresh ? (
     <Tap onPress={() => go("/stats/trophies")}>
       <Line style={{ gap: 10 }}>
-        <TrophyBadge type={fresh.type} size={44} color={t.life} />
+        <TrophyBadge
+          type={fresh.type}
+          size={44}
+          color={t[TROPHY_COLOR[fresh.type]]}
+        />
         <View style={{ flex: 1 }}>
           <Copy weight="semibold">New: {fresh.title}</Copy>
           <Copy size={12} muted>

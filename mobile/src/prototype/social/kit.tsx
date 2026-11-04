@@ -9,7 +9,6 @@ import {
   Dumbbell,
   Flame,
   Lightbulb,
-  Medal,
   Sparkles,
   Sprout,
   Target,
@@ -41,6 +40,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
+import { TrophyBadge } from "../brand/badge"
 import { Sparkline } from "../chart"
 import { go } from "../navigation"
 import { type Accent, fonts, useTheme } from "../theme"
@@ -960,13 +960,6 @@ export function MediaCarousel({
   )
 }
 
-const trophyIcon = {
-  pr: Medal,
-  streak: Flame,
-  best: Award,
-  goal: Target,
-  first: Sparkles,
-}
 const trophyAccent: Record<Trophy["type"], Accent> = {
   pr: "fit",
   streak: "life",
@@ -976,7 +969,6 @@ const trophyAccent: Record<Trophy["type"], Accent> = {
 }
 export function TrophyChip({ trophy }: { trophy: Trophy }) {
   const t = useTheme()
-  const Icon = trophyIcon[trophy.type]
   const c = t[trophyAccent[trophy.type]]
   return (
     <View
@@ -990,18 +982,7 @@ export function TrophyChip({ trophy }: { trophy: Trophy }) {
         gap: 6,
       }}
     >
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          backgroundColor: `${c}26`,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Icon size={16} color={c} />
-      </View>
+      <TrophyBadge type={trophy.type} size={40} color={c} />
       <Text
         style={{ fontFamily: fonts.display, fontSize: 18, color: t.text }}
         numberOfLines={1}
