@@ -20,7 +20,7 @@ import { elapsedSec, type Live } from "@domain/lib/live"
 import { focusLive } from "@/prototype/focus-live"
 import { group } from "@/prototype/share-format"
 import { displayMass } from "@/prototype/units"
-import type { LiveNext, LiveOther, LiveState } from "./types"
+import type { LiveNext, LiveOther, LiveRestOver, LiveState } from "./types"
 
 // The running routine, workout or habit timer as the lock screen shows it.
 // Built from the same stores the in-app player reads; null when nothing runs.
@@ -193,6 +193,30 @@ function bestLabel(
 
 const withBest = (best: string | undefined) => (best ? { best } : {})
 
+/** What the lock screen says once rest runs out, from the set that is up
+ * next (its `detail` is "Set 3 of 3 · 50 kg × 11" or "Warm-up · …"); with
+ * no set left, it says the workout can end. */
+export function restOverLines(
+  head: { label: string; detail: string },
+  hasSet: boolean,
+): LiveRestOver {
+  if (!hasSet)
+    return {
+      title: "Rest over · finish when you're ready",
+      target: "All sets done",
+    }
+  const which = head.detail.split(" · ")[0]
+  const n = /^Set (\d+) of \d+$/.exec(which)?.[1]
+  return {
+    title: n
+      ? `Rest over · time for set ${n}`
+      : which === "Warm-up"
+        ? "Rest over · time for the warm-up"
+        : "Rest over · time for the next set",
+    target: head.detail,
+  }
+}
+
 function workoutState(
   s: FitnessState,
   live: Live,
@@ -229,7 +253,7 @@ function workoutState(
     paused: false,
     startedAt: ms(w.startedAt),
     elapsedSec: Math.round(elapsed),
-    ...(resting ? { restEndsAt } : {}),
+    ...(resting ? { restEndsAt, restOver: restOverLines(head, !!cur) } : {}),
     restSec: s.settings.restSec,
     next: pending.slice(1, NEXT_MAX + 1).map((p) => ({
       key: `${p.we}/${p.set}`,

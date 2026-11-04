@@ -52,6 +52,43 @@ extension LiveState {
   }
 }
 
+/** Rest is over: a filled check and "Go", where the countdown was. */
+struct RestOverMark: View {
+  var size: CGFloat = 32
+  var label = true
+  var body: some View {
+    VStack(alignment: .trailing, spacing: 0) {
+      Image(systemName: "checkmark.circle.fill")
+        .font(.system(size: size, weight: .semibold))
+        .foregroundStyle(Tone.primary)
+      if label {
+        Text("Go").font(.system(size: 12, weight: .semibold)).foregroundStyle(Tone.primary)
+      }
+    }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel("Rest over")
+  }
+}
+
+/** Rest is over: the next set's target where the rest controls were, so
+ * the lock screen says what to lift now ("Set 3 of 3 · 50 lb × 11"). */
+struct RestOverTarget: View {
+  var over: LiveRestOver
+  var background: Color = Tone.soft
+  var foreground: Color = Tone.text
+  var body: some View {
+    HStack(spacing: 8) {
+      Image(systemName: "arrow.right.circle.fill").foregroundStyle(Tone.primary)
+      Text(over.target).foregroundStyle(foreground).lineLimit(1).minimumScaleFactor(0.85)
+      Spacer(minLength: 0)
+    }
+    .font(.system(size: 14, weight: .semibold).monospacedDigit())
+    .padding(.horizontal, 12)
+    .frame(maxWidth: .infinity, minHeight: 36)
+    .background(Capsule().fill(background))
+  }
+}
+
 /** The clock that matters now: rest, then the step or timer goal counting
  * down, then time since the start counting up. */
 struct LiveClock: View {
@@ -192,6 +229,8 @@ struct StepsLabel: View {
  * clock is rest) the time since the start. Under the bar, what follows. */
 struct LiveLockScreen: View {
   var state: LiveState
+  /** Rest ran out: the finished state replaces the countdown and controls. */
+  var over = false
   var body: some View {
     VStack(alignment: .leading, spacing: 5) {
       HStack(spacing: 6) {
@@ -225,16 +264,25 @@ struct LiveLockScreen: View {
           // The exercise is why the activity exists: a long name wraps.
           Text(state.step).font(.system(size: 19, weight: .semibold)).foregroundStyle(Tone.text)
             .lineLimit(2).minimumScaleFactor(0.85)
-          Text(state.detail).font(.system(size: 14)).foregroundStyle(Tone.text.opacity(0.8))
-            .lineLimit(1).minimumScaleFactor(0.85)
+          if over {
+            Text(state.restOverShown.title).font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(Tone.primary).lineLimit(1).minimumScaleFactor(0.85)
+          } else {
+            Text(state.detail).font(.system(size: 14)).foregroundStyle(Tone.text.opacity(0.8))
+              .lineLimit(1).minimumScaleFactor(0.85)
+          }
         }
         Spacer(minLength: 6)
-        VStack(alignment: .trailing, spacing: 0) {
-          LiveClock(state: state, size: 32).foregroundStyle(state.resting ? state.accent : Tone.text)
-            .frame(maxWidth: 124, alignment: .trailing)
-          Text(LiveClock(state: state).label.uppercased())
-            .font(.system(size: 10, weight: .semibold)).tracking(0.8)
-            .foregroundStyle(state.resting ? state.accent : Tone.muted)
+        if over {
+          RestOverMark()
+        } else {
+          VStack(alignment: .trailing, spacing: 0) {
+            LiveClock(state: state, size: 32).foregroundStyle(state.resting ? state.accent : Tone.text)
+              .frame(maxWidth: 124, alignment: .trailing)
+            Text(LiveClock(state: state).label.uppercased())
+              .font(.system(size: 10, weight: .semibold)).tracking(0.8)
+              .foregroundStyle(state.resting ? state.accent : Tone.muted)
+          }
         }
       }
       LiveProgress(state: state)
@@ -243,7 +291,9 @@ struct LiveLockScreen: View {
         Text(upNext).font(.system(size: 13)).foregroundStyle(Tone.muted)
           .lineLimit(1).truncationMode(.tail)
       }
-      if #available(iOS 17.0, *) {
+      if over {
+        RestOverTarget(over: state.restOverShown).padding(.top, 2)
+      } else if #available(iOS 17.0, *) {
         HStack(spacing: 8) {
           ForEach(state.shownControls.prefix(4), id: \.self) { LiveButton(action: $0, state: state) }
         }
@@ -306,7 +356,15 @@ struct IslandLeading: View {
 
 struct IslandTrailing: View {
   var state: LiveState
+  var over = false
   var body: some View {
+    if over {
+      RestOverMark(size: 24).padding(.trailing, 4)
+    } else {
+      clock
+    }
+  }
+  var clock: some View {
     VStack(alignment: .trailing, spacing: 0) {
       LiveClock(state: state, size: 24).foregroundStyle(state.resting ? state.accent : .white)
         .frame(maxWidth: 96, alignment: .trailing)
@@ -320,12 +378,18 @@ struct IslandTrailing: View {
 
 struct IslandBottom: View {
   var state: LiveState
+  var over = false
   var body: some View {
     VStack(alignment: .leading, spacing: 7) {
       VStack(alignment: .leading, spacing: 1) {
         Text(state.step).font(.system(size: 17, weight: .semibold)).lineLimit(2).minimumScaleFactor(0.85)
         HStack(spacing: 8) {
-          Text(state.detail).font(.system(size: 13)).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
+          if over {
+            Text(state.restOverShown.title).font(.system(size: 13, weight: .semibold))
+              .foregroundStyle(Tone.primary).lineLimit(1)
+          } else {
+            Text(state.detail).font(.system(size: 13)).foregroundStyle(.white.opacity(0.8)).lineLimit(1)
+          }
           if state.kind == "run", let steps = state.steps {
             Spacer(minLength: 4)
             StepsLabel(steps: steps, size: 13, color: .white.opacity(0.8))
@@ -336,7 +400,9 @@ struct IslandBottom: View {
       if let upNext = state.upNext {
         Text(upNext).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
       }
-      if #available(iOS 17.0, *) {
+      if over {
+        RestOverTarget(over: state.restOverShown, background: .white.opacity(0.14), foreground: .white)
+      } else if #available(iOS 17.0, *) {
         HStack(spacing: 8) {
           ForEach(state.shownControls.prefix(3), id: \.self) { LiveButton(action: $0, state: state) }
         }
@@ -356,8 +422,13 @@ struct IslandBottom: View {
  * how far through, around the session's symbol. */
 struct IslandMinimal: View {
   var state: LiveState
+  var over = false
   var body: some View {
-    if state.resting, let rest = state.restEnd {
+    if over {
+      Image(systemName: "checkmark.circle.fill").font(.system(size: 14, weight: .semibold))
+        .foregroundStyle(Tone.primary)
+        .accessibilityLabel("Rest over")
+    } else if state.resting, let rest = state.restEnd {
       Text(timerInterval: Date()...rest, countsDown: true)
         .font(.system(size: 12, weight: .semibold, design: .rounded).monospacedDigit())
         .foregroundStyle(state.accent)
@@ -375,23 +446,31 @@ struct IslandMinimal: View {
 struct UnfurlLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: UnfurlActivityAttributes.self) { context in
-      LiveLockScreen(state: context.state)
+      // The stale date is the rest's end: iOS re-renders then with
+      // isStale set, so the finished state shows with the app suspended.
+      LiveLockScreen(state: context.state, over: context.state.restIsOver(stale: context.isStale))
         .activityBackgroundTint(Tone.card)
         .activitySystemActionForegroundColor(Tone.text)
         .widgetURL(deepLink(context.state.href))
     } dynamicIsland: { context in
       let s = context.state
+      let over = s.restIsOver(stale: context.isStale)
       return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) { IslandLeading(state: s) }
-        DynamicIslandExpandedRegion(.trailing) { IslandTrailing(state: s) }
-        DynamicIslandExpandedRegion(.bottom) { IslandBottom(state: s) }
+        DynamicIslandExpandedRegion(.trailing) { IslandTrailing(state: s, over: over) }
+        DynamicIslandExpandedRegion(.bottom) { IslandBottom(state: s, over: over) }
       } compactLeading: {
         Image(systemName: s.symbol).foregroundStyle(s.accent)
       } compactTrailing: {
-        LiveClock(state: s, size: 14).foregroundStyle(s.resting ? s.accent : .white)
-          .frame(maxWidth: 52)
+        if over {
+          Text("Go").font(.system(size: 14, weight: .semibold)).foregroundStyle(Tone.primary)
+            .accessibilityLabel("Rest over")
+        } else {
+          LiveClock(state: s, size: 14).foregroundStyle(s.resting ? s.accent : .white)
+            .frame(maxWidth: 52)
+        }
       } minimal: {
-        IslandMinimal(state: s)
+        IslandMinimal(state: s, over: over)
       }
       .widgetURL(deepLink(s.href))
       .keylineTint(s.accent)

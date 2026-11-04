@@ -97,6 +97,32 @@ struct WidgetSnapshot: Codable {
   var dayEndsDate: Date? { UnfurlISO.date(dayEnds) }
 }
 
+/** What a workout's Live Activity shows once rest reaches zero (LiveRestOver
+ * in TS): "Rest over · time for set 3" and the next set's target. */
+struct LiveRestOver: Codable, Hashable {
+  var title: String
+  var target: String
+
+  /** The same lines from the set shown, for a state the widget advanced
+   * itself (a lock-screen tap) or from an app that predates the field. */
+  static func from(detail: String, hasSet: Bool) -> LiveRestOver {
+    guard hasSet else {
+      return LiveRestOver(title: "Rest over · finish when you're ready", target: "All sets done")
+    }
+    let which = detail.components(separatedBy: " · ").first ?? detail
+    let parts = which.split(separator: " ")
+    let title: String
+    if parts.count == 4, parts[0] == "Set", parts[2] == "of" {
+      title = "Rest over · time for set \(parts[1])"
+    } else if which == "Warm-up" {
+      title = "Rest over · time for the warm-up"
+    } else {
+      title = "Rest over · time for the next set"
+    }
+    return LiveRestOver(title: title, target: detail)
+  }
+}
+
 struct LiveNext: Codable, Hashable {
   var key: String
   var label: String
@@ -156,11 +182,25 @@ struct LiveState: Codable, Hashable {
   /** Run or walk: steps so far; absent until first read (and from an
    * app that predates it). */
   var steps: Int?
+  /** Workout, while resting: the finished-rest lines. */
+  var restOver: LiveRestOver?
 
   var startDate: Date { Date(timeIntervalSince1970: startedAt / 1000) }
   var stepEnd: Date? { stepEndsAt.map { Date(timeIntervalSince1970: $0 / 1000) } }
   var restEnd: Date? { restEndsAt.map { Date(timeIntervalSince1970: $0 / 1000) } }
   var resting: Bool { (restEndsAt ?? 0) > Date().timeIntervalSince1970 * 1000 }
+  /** The activity's stale date: the end of a rest still running. iOS
+   * re-renders the activity then with `isStale` set, which is what flips it
+   * to "Rest over" while the app is suspended (no push, no JS tick). */
+  var staleAt: Date? { resting ? restEnd : nil }
+  /** The rest ran out (or iOS marked the activity stale at its end) and the
+   * app has not replaced the state since. */
+  func restIsOver(stale: Bool, now: Date = Date()) -> Bool {
+    guard kind == "workout", let end = restEnd else { return false }
+    return stale || end <= now
+  }
+  /** The finished-rest lines, from the app or derived from the set shown. */
+  var restOverShown: LiveRestOver { restOver ?? .from(detail: detail, hasSet: !key.isEmpty) }
   var progress: Double { count > 0 ? min(1, Double(index) / Double(count)) : 0 }
 
   /** The state right after a lock-screen tap, before the app has run: the
@@ -214,12 +254,16 @@ struct LiveState: Codable, Hashable {
         s.best = n.best
         s.key = n.key
       }
-      if s.restSec > 0 { s.restEndsAt = now + s.restSec * 1000 }
+      if s.restSec > 0 {
+        s.restEndsAt = now + s.restSec * 1000
+        s.restOver = .from(detail: s.detail, hasSet: !s.key.isEmpty)
+      }
       s.controls = s.restEndsAt != nil
         ? ["subRest", "addRest", "skipRest", "finish"]
         : (s.key.isEmpty ? [] : ["finishSet"]) + ["finish"]
     case "skipRest":
       s.restEndsAt = nil
+      s.restOver = nil
       s.controls = (s.key.isEmpty ? [] : ["finishSet"]) + ["finish"]
     case "addRest":
       if let end = s.restEndsAt { s.restEndsAt = end + 15_000 }
@@ -382,7 +426,7 @@ enum SurfaceTaps {
       // A second tap on an already-advanced step changes nothing.
       if let key, !key.isEmpty, ["done", "skip", "finishSet"].contains(type), key != current.key { continue }
       if let next = current.applying(type) {
-        await activity.update(ActivityContent(state: next, staleDate: nil))
+        await activity.update(ActivityContent(state: next, staleDate: next.staleAt))
         if ["addRest", "subRest", "skipRest"].contains(type) { await moveRestAlarm(to: next.restEnd) }
       } else {
         await activity.end(ActivityContent(state: current, staleDate: nil), dismissalPolicy: .immediate)
@@ -570,7 +614,7 @@ enum LiveActivities {
     var updated = false
     for a in running {
       if a.attributes.id == state.id && a.attributes.kind == state.kind && !updated {
-        await a.update(ActivityContent(state: state, staleDate: nil))
+        await a.update(ActivityContent(state: state, staleDate: state.staleAt))
         updated = true
       } else {
         await a.end(nil, dismissalPolicy: .immediate)
@@ -585,7 +629,7 @@ enum LiveActivities {
     do {
       _ = try Activity.request(
         attributes: UnfurlActivityAttributes(kind: state.kind, id: state.id),
-        content: ActivityContent(state: state, staleDate: nil),
+        content: ActivityContent(state: state, staleDate: state.staleAt),
         pushType: nil)
       lastError = nil
     } catch {
