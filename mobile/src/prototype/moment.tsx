@@ -39,6 +39,7 @@ export function MomentCard({
   detail,
   badge,
   tint,
+  discColor,
   say,
   hint,
   onOpen,
@@ -54,6 +55,9 @@ export function MomentCard({
   /** What sits in the coloured disc: an icon or an emoji. */
   badge: ReactNode
   tint: string
+  /** The disc's fill when it should not be the full tint (a trophy's
+   * wreath badge sits on a soft disc). */
+  discColor?: string
   /** Read out by VoiceOver as the card lands. */
   say: string
   hint: string
@@ -140,7 +144,7 @@ export function MomentCard({
                   width: 44,
                   height: 44,
                   borderRadius: 22,
-                  backgroundColor: tint,
+                  backgroundColor: discColor ?? tint,
                   alignItems: "center",
                   justifyContent: "center",
                 },

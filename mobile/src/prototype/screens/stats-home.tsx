@@ -18,7 +18,6 @@ import {
   Target,
   TrendingDown,
   TrendingUp,
-  Trophy,
   X,
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
@@ -27,6 +26,7 @@ import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import Svg, { Circle, G } from "react-native-svg"
 import { BigMoment } from "../big-moment"
 import { petalsOf, Rosette } from "../brand/rosette"
+import { TrophyCard } from "../brand/trophy"
 import { Deferred, FrameSkeleton } from "../deferred"
 import { useNoteGoals } from "../goal-ledger"
 import { dismissDrop, momentsSeen, noteLevel } from "../moments-seen"
@@ -1042,30 +1042,16 @@ function StatsBody({
                     }
                     style={{ width: 144 }}
                   >
-                    <Frame>
-                      <View style={{ padding: 12 }}>
-                        <Trophy size={16} color={t.life} />
-                        <Copy
-                          size={20}
-                          weight="display"
-                          style={{ marginTop: 4 }}
-                        >
-                          {tr.value}
-                        </Copy>
-                        <Copy size={12} lines={1}>
-                          {tr.title}
-                        </Copy>
-                        <Copy size={12} muted>
-                          {new Date(`${tr.day}T12:00:00`).toLocaleDateString(
-                            "en-PH",
-                            {
-                              month: "short",
-                              day: "numeric",
-                            },
-                          )}
-                        </Copy>
-                      </View>
-                    </Frame>
+                    <TrophyCard
+                      compact
+                      type={tr.type}
+                      value={tr.value}
+                      title={tr.title}
+                      date={new Date(`${tr.day}T12:00:00`).toLocaleDateString(
+                        "en-PH",
+                        { month: "short", day: "numeric" },
+                      )}
+                    />
                   </Tap>
                 ))}
               </GHScrollView>

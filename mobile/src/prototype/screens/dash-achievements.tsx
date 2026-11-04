@@ -11,13 +11,20 @@ import { dashStore, markTrophiesSeen, noteMiss } from "@domain/dash/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
 import { moveToToday } from "@domain/tasks/actions"
 import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
-import { Award, Lock, Trophy } from "lucide-react-native"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ScrollView, View } from "react-native"
+import Animated, { useReducedMotion, ZoomIn } from "react-native-reanimated"
+import { TrophyBadge } from "../brand/badge"
+import {
+  LockedTrophy,
+  TROPHY_COLOR,
+  TrophyCard,
+  TrophyCounts,
+  TrophyGrid,
+} from "../brand/trophy"
 import { useNoteGoals } from "../goal-ledger"
 import { MissedGoals } from "../missed-goals"
 import {
-  Bar,
   border,
   Copy,
   Frame,
@@ -27,7 +34,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { fonts, useTheme } from "../theme"
+import { useTheme } from "../theme"
 import { Button, Field, Screen, Sheet } from "../ui"
 
 const moduleColor = {
@@ -254,16 +261,10 @@ export function Misses() {
     </Screen>
   )
 }
-const order: TrophyType[] = ["pr", "streak", "best", "goal", "first"],
-  colors = {
-    pr: "fit",
-    streak: "life",
-    best: "hab",
-    goal: "fin",
-    first: "tsk",
-  } as const
+const order: TrophyType[] = ["pr", "streak", "best", "goal", "first"]
 export function Trophies() {
   const t = useTheme(),
+    reduced = useReducedMotion(),
     p = useLocalSearchParams<{ open?: string }>(),
     catalog = useAchievements(),
     trophies = catalog.flatMap((a) => (a.trophy ? [a.trophy] : [])),
@@ -296,36 +297,17 @@ export function Trophies() {
   }, [trophies])
   return (
     <Screen title="Trophy case">
-      {/* Five counts wrap three to a row, so every label stays whole at
-          12 pt instead of breaking mid-word. */}
-      <Line style={{ gap: 6, flexWrap: "wrap" }}>
-        {order.map((type) => {
+      <TrophyCounts
+        items={order.map((type) => {
           const all = catalog.filter((a) => a.type === type)
-          return (
-            <View
-              key={type}
-              style={{
-                flexGrow: 1,
-                flexBasis: "30%",
-                padding: 8,
-                borderRadius: 12,
-                backgroundColor: border(t.soft, 0.5),
-                alignItems: "center",
-              }}
-            >
-              <Copy size={18} weight="semibold">
-                {all.filter((x) => x.trophy).length}
-                <Copy size={12} muted>
-                  /{all.length}
-                </Copy>
-              </Copy>
-              <Copy size={12} muted>
-                {sentence(TROPHY_LABEL[type].split(" ").at(-1) ?? "")}
-              </Copy>
-            </View>
-          )
+          return {
+            key: type,
+            earned: all.filter((x) => x.trophy).length,
+            total: all.length,
+            label: sentence(TROPHY_LABEL[type].split(" ").at(-1) ?? ""),
+          }
         })}
-      </Line>
+      />
       {order.map((type) => {
         const items = catalog
           .filter((a) => a.type === type)
@@ -344,91 +326,35 @@ export function Trophies() {
               {TROPHY_LABEL[type]} · {items.filter((a) => a.trophy).length} /{" "}
               {items.length}
             </SectionHeading>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <TrophyGrid>
               {items.map((a) =>
                 a.trophy ? (
                   <Tap
                     key={a.id}
+                    label={`${a.trophy.title}, ${a.trophy.value}, earned ${fmt(a.trophy.day)}`}
                     onPress={() => setOpen(a.trophy!.id)}
                     style={{ width: "48%" }}
                   >
-                    <View
-                      style={{
-                        backgroundColor: t.card,
-                        padding: 12,
-                        borderRadius: 16,
-                        borderWidth: 1,
-                        borderColor: border(t.line, 0.6),
-                      }}
-                    >
-                      {fresh.has(a.trophy.id) && (
-                        <View
-                          style={{
-                            position: "absolute",
-                            right: 8,
-                            top: 8,
-                            borderRadius: 12,
-                            backgroundColor: t.bad,
-                            paddingHorizontal: 6,
-                          }}
-                        >
-                          <Copy size={12} style={{ color: t.bg }}>
-                            NEW
-                          </Copy>
-                        </View>
-                      )}
-                      <Award size={20} color={t[colors[type]]} />
-                      <Copy
-                        size={24}
-                        style={{ fontFamily: fonts.displayBlack, marginTop: 4 }}
-                      >
-                        {a.trophy.value}
-                      </Copy>
-                      <Copy size={12} weight="medium" lines={2}>
-                        {a.trophy.title}
-                      </Copy>
-                      <Copy size={12} muted style={{ marginTop: 2 }}>
-                        {fmt(a.trophy.day)}
-                      </Copy>
-                    </View>
+                    <TrophyCard
+                      type={type}
+                      value={a.trophy.value}
+                      title={a.trophy.title}
+                      date={fmt(a.trophy.day)}
+                      fresh={fresh.has(a.trophy.id)}
+                    />
                   </Tap>
                 ) : (
-                  <View
-                    key={a.id}
-                    style={{
-                      width: "48%",
-                      padding: 12,
-                      borderRadius: 16,
-                      borderWidth: 1,
-                      borderStyle: "dashed",
-                      borderColor: border(t.line, 0.6),
-                      backgroundColor: border(t.card, 0.4),
-                    }}
-                  >
-                    <Line style={{ gap: 6 }}>
-                      <Lock size={16} color={t.muted} />
-                      <Copy
-                        size={12}
-                        weight="medium"
-                        lines={1}
-                        style={{ flex: 1 }}
-                      >
-                        {a.title}
-                      </Copy>
-                    </Line>
-                    <Copy size={12} muted lines={2} style={{ marginTop: 4 }}>
-                      {a.requirement}
-                    </Copy>
-                    <View style={{ marginTop: 8 }}>
-                      <Bar value={a.progress.pct} color={t.primary} />
-                    </View>
-                    <Copy size={12} muted style={{ marginTop: 4 }}>
-                      {a.progress.text}
-                    </Copy>
+                  <View key={a.id} style={{ width: "48%" }}>
+                    <LockedTrophy
+                      title={a.title}
+                      requirement={a.requirement}
+                      pct={a.progress.pct}
+                      progress={a.progress.text}
+                    />
                   </View>
                 ),
               )}
-            </View>
+            </TrophyGrid>
           </View>
         )
       })}
@@ -444,21 +370,20 @@ export function Trophies() {
       >
         {selected && (
           <View style={{ alignItems: "center" }}>
-            <View
-              style={{
-                backgroundColor: border(t[colors[selected.type]], 0.15),
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+            {/* The badge lands with a spring: the unlock is celebrated. */}
+            <Animated.View
+              entering={reduced ? undefined : ZoomIn.springify().damping(11)}
             >
-              <Trophy size={40} color={t[colors[selected.type]]} />
-            </View>
+              <TrophyBadge
+                type={selected.type}
+                size={128}
+                color={t[TROPHY_COLOR[selected.type]]}
+              />
+            </Animated.View>
             <Copy
-              size={48}
-              style={{ fontFamily: fonts.displayBlack, marginTop: 12 }}
+              size={44}
+              weight="semibold"
+              style={{ marginTop: 8, fontVariant: ["tabular-nums"] }}
             >
               {selected.value}
             </Copy>
@@ -493,12 +418,14 @@ export function Trophies() {
                 </Button>
               </View>
             </Line>
-            <Frame style={{ padding: 16, marginTop: 12 }}>
-              <Copy size={12} muted>
-                Trophies are created by rules from your real data. An edit that
-                breaks the record revokes it quietly.
-              </Copy>
-            </Frame>
+            <Copy
+              size={12}
+              muted
+              style={{ marginTop: 16, textAlign: "center" }}
+            >
+              Trophies are created by rules from your real data. An edit that
+              breaks the record revokes it quietly.
+            </Copy>
           </View>
         )}
       </Sheet>
