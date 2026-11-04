@@ -128,9 +128,7 @@ export function CaptureSummary({
                 }}
               />
               <View style={{ flex: 1 }}>
-                <Copy weight="medium" lines={1}>
-                  {x.title}
-                </Copy>
+                <Copy weight="medium">{x.title}</Copy>
                 <Copy size={12} muted>
                   {tasks.lists.find((l) => l.id === x.listId)?.name ?? "Inbox"}
                   {x.dueDate

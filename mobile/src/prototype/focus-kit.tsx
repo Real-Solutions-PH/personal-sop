@@ -455,17 +455,18 @@ export function ItemPicker({
           ...chosen(t, !!picked),
         }}
       >
-        <Line>
+        {/* A long title wraps and the row grows; the icon stays on its
+            first line. */}
+        <Line style={{ alignItems: "flex-start" }}>
           <Icon
             size={18}
+            style={{ marginTop: 3 }}
             color={
               c.icon === "task" ? t.tsk : c.icon === "habit" ? t.hab : t.muted
             }
           />
           <View style={{ flex: 1 }}>
-            <Copy weight="medium" lines={1}>
-              {c.label}
-            </Copy>
+            <Copy weight="medium">{c.label}</Copy>
             <Copy size={12} muted lines={1}>
               {c.detail}
             </Copy>

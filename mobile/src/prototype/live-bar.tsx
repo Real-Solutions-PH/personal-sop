@@ -288,7 +288,6 @@ function LiveBarRow({ row: r, divided }: { row: LiveRow; divided: boolean }) {
                 }}
               />
               <Text
-                numberOfLines={1}
                 style={{
                   flexShrink: 1,
                   fontFamily: fonts.medium,

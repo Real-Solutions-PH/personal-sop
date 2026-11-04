@@ -384,13 +384,14 @@ function TodayPlan() {
                   label={`${i.time ?? "Anytime"}, ${i.title}`}
                   style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
                 >
-                  <Line style={{ gap: 12 }}>
+                  <Line style={{ gap: 12, alignItems: "flex-start" }}>
                     <Copy
                       size={13}
                       muted={!isNext}
                       weight={isNext ? "semibold" : undefined}
                       style={{
                         width: 48,
+                        marginTop: 3,
                         fontVariant: ["tabular-nums"],
                         color: isNext
                           ? accent(i.module)
@@ -405,13 +406,13 @@ function TodayPlan() {
                       style={{
                         width: 8,
                         height: 8,
+                        marginTop: 8,
                         borderRadius: 4,
                         backgroundColor: accent(i.module),
                       }}
                     />
                     <Copy
                       weight={isNext ? "semibold" : "medium"}
-                      lines={1}
                       style={{ flex: 1 }}
                     >
                       {i.title}
@@ -509,7 +510,6 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
           >
             <Copy
               weight="medium"
-              lines={1}
               style={
                 done
                   ? { color: t.muted, textDecorationLine: "line-through" }
@@ -610,7 +610,6 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
               >
                 <Copy
                   weight="medium"
-                  lines={1}
                   style={
                     done
                       ? { color: t.muted, textDecorationLine: "line-through" }

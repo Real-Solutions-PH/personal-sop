@@ -70,13 +70,13 @@ export function CalendarCard() {
       </Copy>
       {ahead.length ? (
         ahead.slice(0, SHOWN).map((e) => (
-          <Line key={e.id} style={{ gap: 12 }}>
-            <View style={{ width: 64 }}>
+          <Line key={e.id} style={{ gap: 12, alignItems: "flex-start" }}>
+            <View style={{ width: 64, paddingTop: 2 }}>
               <Copy size={13} muted>
                 {e.allDay ? "All day" : time(e.start)}
               </Copy>
             </View>
-            <Copy size={14} style={{ flex: 1 }} lines={1}>
+            <Copy size={14} style={{ flex: 1 }}>
               {e.title}
             </Copy>
           </Line>

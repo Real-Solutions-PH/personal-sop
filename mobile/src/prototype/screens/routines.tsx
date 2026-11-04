@@ -379,7 +379,7 @@ export function RoutineDetail({ id }: { id: string }) {
                   />
                   <Copy size={18}>{h.icon}</Copy>
                   <View style={{ flex: 1, marginLeft: 4 }}>
-                    <Copy size={14} weight="medium" lines={1}>
+                    <Copy size={14} weight="medium">
                       {h.name}
                     </Copy>
                     {h.status === "archived" && (
@@ -986,9 +986,7 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
                 </View>
                 <Copy>{h?.icon}</Copy>
                 <View style={{ flex: 1 }}>
-                  <Copy size={14} lines={1}>
-                    {h?.name ?? "Deleted habit"}
-                  </Copy>
+                  <Copy size={14}>{h?.name ?? "Deleted habit"}</Copy>
                   <Copy muted size={12}>
                     {res?.status === "done"
                       ? `${fmtDuration(res.actualSec)} of ${step.minutes}m`

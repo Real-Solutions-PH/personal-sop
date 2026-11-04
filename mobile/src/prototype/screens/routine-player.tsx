@@ -195,7 +195,7 @@ export function RoutinePlayer({ id }: { id: string }) {
                     {i + 1}
                   </Copy>
                   <Copy size={14}>{h?.icon}</Copy>
-                  <Copy size={14} lines={1} style={{ flex: 1 }}>
+                  <Copy size={14} style={{ flex: 1 }}>
                     {h?.name}
                   </Copy>
                   <Copy size={14} muted>
