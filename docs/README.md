@@ -42,6 +42,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/0031-fern-claude-style-agent-loop.md](adr/0031-fern-claude-style-agent-loop.md) | Fern works each turn as a Claude-style agent loop: every tool, thinking every call, todo, multiple-choice asks (2026-11-03) | Architecture |
 | [adr/0032-hand-drawn-line-in-the-app.md](adr/0032-hand-drawn-line-in-the-app.md) | The brand's hand-drawn line in the app's shared chart parts (progress, rings, small bars, sparklines), amending ADR-0019's flat rule for data marks (2026-11-03) | Design |
 | [adr/0033-recurring-transactions-generated-by-the-job.md](adr/0033-recurring-transactions-generated-by-the-job.md) | Recurring transactions are created by the scheduled auto-log job: interval rules (every N days/weeks/months/years), month-end clamping, one record per occurrence, 60-day catch-up (2026-11-04) | Architecture |
+| [adr/0034-fern-eval-private-store-with-consent.md](adr/0034-fern-eval-private-store-with-consent.md) | Fern eval: other people's chats only with their opt-in ("Help improve Fern"), in a private repository; the public dataset stays Kai-only (2026-11-04) | Testing |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans

@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "Unfurl", "version": "0.1.0" },
+  "info": { "title": "unfurl-test", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -28467,6 +28467,17 @@
             "title": "Push Evening"
           },
           "push_review": { "type": "boolean", "title": "Push Review" },
+          "fern_eval_consent": {
+            "type": "boolean",
+            "title": "Fern Eval Consent"
+          },
+          "fern_eval_consent_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Fern Eval Consent At"
+          },
           "seen_trophies": {
             "items": { "type": "string" },
             "type": "array",
@@ -28544,6 +28555,8 @@
           "push_morning",
           "push_evening",
           "push_review",
+          "fern_eval_consent",
+          "fern_eval_consent_at",
           "seen_trophies",
           "version",
           "updated_at"
@@ -28643,6 +28656,10 @@
           "push_review": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Push Review"
+          },
+          "fern_eval_consent": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Fern Eval Consent"
           },
           "seen_trophies": {
             "anyOf": [

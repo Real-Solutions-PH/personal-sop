@@ -14148,6 +14148,22 @@ export const ProfilePublicSchema = {
             type: 'boolean',
             title: 'Push Review'
         },
+        fern_eval_consent: {
+            type: 'boolean',
+            title: 'Fern Eval Consent'
+        },
+        fern_eval_consent_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fern Eval Consent At'
+        },
         seen_trophies: {
             items: {
                 type: 'string'
@@ -14212,7 +14228,7 @@ export const ProfilePublicSchema = {
         }
     },
     type: 'object',
-    required: ['id', 'name', 'handle', 'photo_media_id', 'since', 'timezone', 'currency', 'day_start_hour', 'evening_start', 'target_threshold', 'appearance', 'privacy_hidden', 'onboarded', 'setup_hidden', 'install_dismissed', 'push_permission', 'push_morning', 'push_evening', 'push_review', 'seen_trophies', 'version', 'updated_at'],
+    required: ['id', 'name', 'handle', 'photo_media_id', 'since', 'timezone', 'currency', 'day_start_hour', 'evening_start', 'target_threshold', 'appearance', 'privacy_hidden', 'onboarded', 'setup_hidden', 'install_dismissed', 'push_permission', 'push_morning', 'push_evening', 'push_review', 'fern_eval_consent', 'fern_eval_consent_at', 'seen_trophies', 'version', 'updated_at'],
     title: 'ProfilePublic'
 } as const;
 
@@ -14416,6 +14432,17 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Push Review'
+        },
+        fern_eval_consent: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Fern Eval Consent'
         },
         seen_trophies: {
             anyOf: [

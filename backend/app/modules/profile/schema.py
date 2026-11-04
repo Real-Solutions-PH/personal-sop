@@ -68,6 +68,8 @@ class ProfilePublic(BaseModel):
     push_morning: str | None
     push_evening: str | None
     push_review: bool
+    fern_eval_consent: bool
+    fern_eval_consent_at: datetime | None
     seen_trophies: list[str]
     occupation: Occupation | None = None
     occupation_detail: str | None = None
@@ -99,6 +101,8 @@ class ProfileUpdate(BaseModel):
     push_morning: str | None = None
     push_evening: str | None = None
     push_review: bool | None = None
+    # When it changes the server stamps fern_eval_consent_at.
+    fern_eval_consent: bool | None = None
     seen_trophies: list[str] | None = Field(default=None, max_length=500)
 
     @field_validator("evening_start", "push_morning", "push_evening")

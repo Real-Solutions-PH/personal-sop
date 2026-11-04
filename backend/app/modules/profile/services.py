@@ -140,6 +140,11 @@ def update_profile(ctx: Ctx, data: ProfileUpdate) -> UserProfile:
         values["seen_trophies"] = sorted(
             set(profile.seen_trophies) | set(values["seen_trophies"] or [])
         )
+    consent = values.get("fern_eval_consent")
+    if consent is not None and consent != profile.fern_eval_consent:
+        # When it was given or withdrawn: the export reads the flag as it
+        # stands, and this says since when (ADR-0034).
+        values["fern_eval_consent_at"] = ctx.now
     owned_repo.apply(profile, values)
     ctx.session.add(profile)
     _flush_unique(ctx)

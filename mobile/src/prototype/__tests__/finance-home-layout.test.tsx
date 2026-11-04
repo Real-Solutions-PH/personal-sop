@@ -257,7 +257,7 @@ test("with no budget at all the card says to set one", () => {
 })
 
 test("with amounts hidden no peso figure shows on the home", () => {
-  privacyStore.set(() => ({ hidden: true }))
+  privacyStore.set((s) => ({ ...s, hidden: true }))
   render(<FinanceHome />, { wrapper })
   expect(allText()).not.toMatch(/₱\s?\d/)
 })

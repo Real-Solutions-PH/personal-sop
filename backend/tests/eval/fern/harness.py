@@ -14,6 +14,7 @@ the trace; ``judge.py`` scores the reply against Kai's ten criteria.
 """
 
 import json
+import os
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -52,6 +53,10 @@ from app.modules.tasks.models import Task
 from app.shared.context import Ctx, make_ctx
 
 CASES = Path(__file__).parent / "cases"
+# Cases from people other than Kai who turned on "Help improve Fern" live in a
+# private repository, never in this one (ADR-0034). A checkout of its cases
+# directory is named here; unset, only the public cases above are loaded.
+PRIVATE_CASES = os.environ.get("FERN_EVAL_PRIVATE_CASES", "")
 
 # The records a case may seed and a turn may write, by table name, in the
 # order they are inserted (parents first).
@@ -181,10 +186,17 @@ class Case(BaseModel):
     rubric: str = ""
 
 
+def case_dirs() -> list[Path]:
+    """The public cases, then the private store's when one is checked out."""
+    return [CASES] + ([Path(PRIVATE_CASES)] if PRIVATE_CASES else [])
+
+
+def case_files() -> list[Path]:
+    return [p for d in case_dirs() for p in sorted(d.glob("*.json"))]
+
+
 def load_cases() -> list[Case]:
-    return [
-        Case.model_validate_json(p.read_text()) for p in sorted(CASES.glob("*.json"))
-    ]
+    return [Case.model_validate_json(p.read_text()) for p in case_files()]
 
 
 # ---------------------------------------------------------------- seeding

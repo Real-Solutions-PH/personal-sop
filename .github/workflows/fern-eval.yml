@@ -4,6 +4,9 @@ name: Fern eval
 # real chat model on every change to the chat agent. A case that passed in
 # baseline.json, and every guard case, must still pass; the score table is in
 # the job summary. Without the NEBIUS_API_KEY secret the job says so and stops.
+# With the FERN_EVAL_PRIVATE_TOKEN secret (read-only on the private cases
+# repository, ADR-0034) the private cases are replayed too; the gate still
+# counts the public ones only.
 
 on:
   pull_request:
@@ -24,6 +27,7 @@ jobs:
     timeout-minutes: 120
     env:
       HAS_KEY: ${{ secrets.NEBIUS_API_KEY != '' }}
+      HAS_PRIVATE: ${{ secrets.FERN_EVAL_PRIVATE_TOKEN != '' }}
     steps:
       - name: No model key
         if: env.HAS_KEY != 'true'
@@ -31,6 +35,14 @@ jobs:
       - name: Checkout
         if: env.HAS_KEY == 'true'
         uses: actions/checkout@v7
+      - name: Checkout the private cases
+        if: env.HAS_KEY == 'true' && env.HAS_PRIVATE == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: Real-Solutions-PH/unfurl-fern-eval-private
+          token: ${{ secrets.FERN_EVAL_PRIVATE_TOKEN }}
+          path: fern-eval-private
+          persist-credentials: false
       - name: Seed .env for CI
         if: env.HAS_KEY == 'true'
         run: cp .env.example .env
@@ -68,6 +80,25 @@ jobs:
         env:
           NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
           REDIS_URL: redis://localhost:6379/0
+      - name: Replay the private cases
+        # This repository is public, and so are its logs, job summaries and
+        # artifacts: the private results stay on the runner (never uploaded),
+        # pytest prints no case detail, and the summary gets counts only.
+        if: env.HAS_KEY == 'true' && env.HAS_PRIVATE == 'true'
+        run: |
+          set +e
+          FERN_EVAL_CASES=$(cd "$FERN_EVAL_PRIVATE_CASES" && ls *.json | sed 's/\.json$//' | paste -sd, -) \
+            FERN_EVAL=1 FERN_EVAL_JUDGE=0 uv run pytest tests/eval/fern/test_fern_replay.py \
+            -p no:cacheprovider -q --tb=no -rN > /dev/null
+          status=$?
+          uv run python -c "import sys; from pathlib import Path; from tests.eval.fern import report as r; s = r.summary(r.load(Path(sys.argv[1]))); print(f\"Private cases: {s['failures_fixed']}/{s['failures']} failures passing, {s['guards_kept']}/{s['guards']} guards kept\")" "$FERN_EVAL_OUT" >> "$GITHUB_STEP_SUMMARY"
+          exit $status
+        working-directory: backend
+        env:
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          REDIS_URL: redis://localhost:6379/0
+          FERN_EVAL_PRIVATE_CASES: ${{ github.workspace }}/fern-eval-private/cases
+          FERN_EVAL_OUT: ${{ github.workspace }}/fern-eval-private-out
       - name: Store results
         if: always() && env.HAS_KEY == 'true'
         uses: actions/upload-artifact@v7

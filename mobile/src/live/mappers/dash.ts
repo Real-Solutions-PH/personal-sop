@@ -205,6 +205,7 @@ export function profileToServer(v: ProfileState): Payload {
     target_threshold: d.targetThreshold,
     appearance: v.appearance.mode,
     privacy_hidden: v.privacy.hidden,
+    fern_eval_consent: v.privacy.fernEval,
     currency: v.currency.code,
     onboarded: d.onboarded,
     setup_hidden: d.setupHidden,
@@ -281,7 +282,11 @@ export function profileFromServer(
       ...cur.appearance,
       mode: pick(APPEARANCES, row.appearance, cur.appearance.mode),
     },
-    privacy: { ...cur.privacy, hidden: Boolean(row.privacy_hidden) },
+    privacy: {
+      ...cur.privacy,
+      hidden: Boolean(row.privacy_hidden),
+      fernEval: Boolean(row.fern_eval_consent),
+    },
     // An unknown code keeps the device's (fail closed: never a blank symbol).
     currency: isCurrency(row.currency) ? { code: row.currency } : cur.currency,
   }

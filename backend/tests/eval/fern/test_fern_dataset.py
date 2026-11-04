@@ -18,11 +18,14 @@ from tests.utils.user import create_auth_user
 from . import harness
 
 CASES = harness.load_cases()
+# The public denylist, plus the private store's own (the names scrubbed
+# from other people's chats are hashed there, not here).
 DENY = {
     line.strip()
-    for line in (Path(__file__).parent / "scrub_denylist.sha256")
-    .read_text()
-    .splitlines()
+    for path in [Path(__file__).parent / "scrub_denylist.sha256"]
+    + [d / "scrub_denylist.sha256" for d in harness.case_dirs()[1:]]
+    if path.exists()
+    for line in path.read_text().splitlines()
     if line.strip() and not line.startswith("#")
 }
 
@@ -51,7 +54,7 @@ def test_no_case_holds_a_scrubbed_term() -> None:
     details scrubbed from the source chats (the terms themselves never
     enter the repository)."""
     assert DENY
-    for p in sorted(harness.CASES.glob("*.json")):
+    for p in harness.case_files():
         hits = [
             g
             for g in _grams(p.read_text())
