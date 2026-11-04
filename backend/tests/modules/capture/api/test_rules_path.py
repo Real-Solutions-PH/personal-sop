@@ -325,8 +325,9 @@ def test_every_card_kind_undo_removes_exactly_what_it_wrote(
         assert len(rows) == len(card["refs"]) >= 1
         assert all(r.deleted_at is None for r in rows)
         if kind == "planned":
-            # "every 5th" is a monthly bill, as in the prototype's engine.
-            assert rows[0].schedule == {"kind": "monthly", "day": 5}
+            # "every 5th" is a monthly bill, as in the prototype's engine
+            # (every month: the interval is stored explicitly).
+            assert rows[0].schedule == {"kind": "monthly", "day": 5, "every": 1}
         api.post(f"/capture/cards/{card['id']}/undo")
         assert all(
             r.deleted_at is not None for r in _module_rows(model, card["refs"])

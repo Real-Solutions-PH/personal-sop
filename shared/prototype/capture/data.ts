@@ -118,6 +118,8 @@ export type Payload =
       amount: number
       /** Monthly on this day of the month… */
       day?: number
+      /** …every this many months (2 = every other month); absent = 1. */
+      every?: number
       /** …or once, due on this date (YYYY-MM-DD). */
       date?: string
       type?: "expense" | "income"

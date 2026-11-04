@@ -9,6 +9,7 @@ import {
   type ImportRow,
   type PlannedItem,
   RAW_HINTS,
+  type Schedule,
   type StatementRow,
   signedFor,
 } from "./data"
@@ -358,6 +359,26 @@ export function avgSpend(s: FinState, ids: string[] | null, months = 3) {
   }
   return n ? sum / n : 0
 }
+const everyOf = (sc: Schedule) => ("every" in sc && sc.every ? sc.every : 1)
+/** Day ``day`` of a month (``m`` 0-based), clamped to its last day: never
+ * rolls over into the next month. */
+const onDay = (y: number, m: number, day: number) =>
+  keyOf(new Date(y, m, Math.min(day, lastDom(y, m)), 12))
+/** The first monthly or yearly day on or after ``start``, ignoring the
+ * interval: every N months / years counts from it. */
+function firstOnOrAfter(
+  sc: Extract<Schedule, { kind: "monthly" | "yearly" }>,
+  start: string,
+) {
+  const s = parseKey(start)
+  const y = s.getFullYear()
+  if (sc.kind === "yearly") {
+    const d = onDay(y, sc.month - 1, sc.day)
+    return d >= start ? d : onDay(y + 1, sc.month - 1, sc.day)
+  }
+  const d = onDay(y, s.getMonth(), sc.day)
+  return d >= start ? d : onDay(y, s.getMonth() + 1, sc.day)
+}
 function occursOn(p: PlannedItem, k: string): boolean {
   const sc = p.schedule
   const d = parseKey(k)
@@ -366,8 +387,22 @@ function occursOn(p: PlannedItem, k: string): boolean {
   switch (sc.kind) {
     case "once":
       return k === sc.date
+    case "daily": {
+      const diff = diffDays(k, p.start)
+      return diff >= 0 && diff % everyOf(sc) === 0
+    }
     case "monthly":
-      return dom === Math.min(sc.day, last)
+    case "yearly": {
+      if (dom !== Math.min(sc.day, last)) return false
+      if (sc.kind === "yearly" && d.getMonth() !== sc.month - 1) return false
+      const every = everyOf(sc)
+      if (every === 1) return true
+      const a = parseKey(firstOnOrAfter(sc, p.start))
+      const years = d.getFullYear() - a.getFullYear()
+      const steps =
+        sc.kind === "yearly" ? years : years * 12 + d.getMonth() - a.getMonth()
+      return steps >= 0 && steps % every === 0
+    }
     case "semimonthly":
       return sc.days.some((x) => dom === Math.min(x, last))
     case "weekly": {
@@ -463,11 +498,15 @@ export function monthlyEq(p: PlannedItem) {
     case "once":
       return 0
     case "monthly":
-      return p.amount
+      return p.amount / everyOf(p.schedule)
     case "semimonthly":
       return p.amount * 2
     case "weekly":
       return (p.amount * 52) / 12 / p.schedule.every
+    case "daily":
+      return (p.amount * 365) / 12 / p.schedule.every
+    case "yearly":
+      return p.amount / 12 / everyOf(p.schedule)
   }
 }
 /** Whether a planned item counts as money out each month: bills and
@@ -504,26 +543,73 @@ export function recurringMonth(s: FinState, on = today()): RecurringMonth {
   const out = sum(outItems)
   return { income, out, net: income - out, incomeItems, outItems }
 }
+const ordinal = (n: number) =>
+  `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`
+const WEEKDAY_NAMES = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+]
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+/** A repeat rule in plain words: "Every 3 months on the 15th", "Monthly on
+ * the last day", "Every 2 weeks on Friday", "Yearly on 4 November". */
+export function repeatLabel(sc: Schedule): string {
+  const every = everyOf(sc)
+  const each = (one: string, many: string) =>
+    every === 1 ? one : `Every ${every} ${many}`
+  switch (sc.kind) {
+    case "once":
+      return `Once · ${shortDate(sc.date)}`
+    case "daily":
+      return each("Daily", "days")
+    case "weekly":
+      return `${each("Weekly", "weeks")} on ${WEEKDAY_NAMES[parseKey(sc.anchor).getDay()]}`
+    case "monthly":
+      return `${each("Monthly", "months")} on the ${sc.day >= 31 ? "last day" : ordinal(sc.day)}`
+    case "semimonthly":
+      return `Semi-monthly · ${ordinal(sc.days[0])} & ${ordinal(sc.days[1])}`
+    case "yearly":
+      return `${each("Yearly", "years")} on ${sc.day} ${MONTH_NAMES[sc.month - 1]}`
+  }
+}
 export function scheduleLabel(p: PlannedItem) {
-  const sc = p.schedule
-  const ord = (n: number) =>
-    `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`
   const end =
     p.end.kind === "count"
       ? ` · ${p.end.n}×`
       : p.end.kind === "date"
         ? ` · until ${shortDate(p.end.date)}`
         : ""
-  switch (sc.kind) {
-    case "once":
-      return `Once · ${shortDate(sc.date)}`
-    case "monthly":
-      return `Monthly on the ${ord(sc.day)}${end}`
-    case "semimonthly":
-      return `Semi-monthly · ${ord(sc.days[0])} & ${ord(sc.days[1])}${end}`
-    case "weekly":
-      return `${sc.every === 1 ? "Weekly" : `Every ${sc.every} weeks`}${end}`
-  }
+  return `${repeatLabel(p.schedule)}${p.schedule.kind === "once" ? "" : end}`
+}
+/** The next occurrence of ``p`` on or after ``on`` that is not yet paid or
+ * skipped, or ``undefined`` when it has ended. */
+export function nextOccurrence(
+  s: FinState,
+  p: PlannedItem,
+  on = today(),
+): string | undefined {
+  const paid = paidIndex(s)
+  // A scan of two years and a day covers the longest interval in one step.
+  return occurrences(p, on, addDays(on, 2 * 366 * everyOf(p.schedule))).find(
+    (d) => !paid.has(`${p.id}|${d}`) && !p.skipped.includes(d),
+  )
 }
 export interface ProjMonth {
   key: string

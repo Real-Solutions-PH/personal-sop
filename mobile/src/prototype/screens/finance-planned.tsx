@@ -1,10 +1,18 @@
 import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
-import type { PlannedItem } from "@domain/finance/data"
+import type { FinState, PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
-import { ArrowLeftRight, Pencil, Plus, Tag, Trash2 } from "lucide-react-native"
+import {
+  ArrowLeftRight,
+  Pause,
+  Pencil,
+  Play,
+  Plus,
+  Tag,
+  Trash2,
+} from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import {
@@ -249,7 +257,9 @@ export function Planned({ id }: { id?: string }) {
     } | null>(null),
     p = s.planned.find((p) => p.id === id),
     today = dayKey(),
-    live = s.planned.filter((p) => !p.archived && !C.hasEnded(p, today)),
+    // Paused items (``archived``: the auto-log job and the calendar skip
+    // them) stay on the list so they can be resumed.
+    live = s.planned.filter((p) => !C.hasEnded(p, today)),
     upcoming = C.occurrencesIn(s, today, C.addDays(today, 30)).filter(
       (o) => o.status !== "paid" && o.status !== "skipped",
     ),
@@ -377,9 +387,13 @@ export function Planned({ id }: { id?: string }) {
           </Line>
           <Line style={{ gap: 6, flexWrap: "wrap" }}>
             <FinPill>{plannedWhere(p, s.accounts, s.categories)}</FinPill>
-            <FinPill tone={p.autoLog ? "fin" : "muted"}>
-              {p.autoLog ? "Auto-logs" : "Asks Paid / Skip"}
-            </FinPill>
+            {p.archived ? (
+              <FinPill>paused</FinPill>
+            ) : (
+              <FinPill tone={p.autoLog ? "fin" : "muted"}>
+                {p.autoLog ? "Auto-logs" : "Asks Paid / Skip"}
+              </FinPill>
+            )}
             {p.isInstallment && <FinPill tone="warn">0% installment</FinPill>}
             {p.isWhatIf && <FinPill tone="warn">what-if draft</FinPill>}
             {!p.inProjection && !p.isWhatIf && (
@@ -427,6 +441,24 @@ export function Planned({ id }: { id?: string }) {
                     }
                   >
                     Make it real
+                  </Button>
+                </View>
+              )}
+              {!p.isWhatIf && p.schedule.kind !== "once" && (
+                <View style={{ flex: 1 }}>
+                  <Button
+                    tone="quiet"
+                    icon={p.archived ? Play : Pause}
+                    onPress={() => {
+                      const paused = !p.archived
+                      A.updatePlanned(p.id, { archived: paused })
+                      undo(
+                        paused ? `Paused ${p.name}` : `Resumed ${p.name}`,
+                        () => A.updatePlanned(p.id, { archived: !paused }),
+                      )
+                    }}
+                  >
+                    {p.archived ? "Resume" : "Pause"}
                   </Button>
                 </View>
               )}
@@ -674,12 +706,19 @@ export function Planned({ id }: { id?: string }) {
                     <Line style={{ gap: 6, flexWrap: "wrap" }}>
                       <Copy weight="medium">{p.name}</Copy>
                       {p.isInstallment && <FinPill>installment</FinPill>}
-                      {p.autoLog && <FinPill tone="fin">auto</FinPill>}
+                      {p.archived ? (
+                        <FinPill>paused</FinPill>
+                      ) : (
+                        p.autoLog && <FinPill tone="fin">auto</FinPill>
+                      )}
                     </Line>
                     <Copy size={14} muted>
                       {C.scheduleLabel(p)} ·{" "}
                       {plannedWhere(p, s.accounts, s.categories)}
                     </Copy>
+                    {!p.archived && p.schedule.kind !== "once" && (
+                      <NextLine s={s} p={p} today={today} />
+                    )}
                   </View>
                   <View>
                     <Copy
@@ -765,5 +804,24 @@ export function Planned({ id }: { id?: string }) {
         />
       )}
     </Screen>
+  )
+}
+
+/** "Next Fri 15 Nov" under a recurring row: the first date not yet paid or
+ * skipped. */
+function NextLine({
+  s,
+  p,
+  today,
+}: {
+  s: FinState
+  p: PlannedItem
+  today: string
+}) {
+  const next = C.nextOccurrence(s, p, today)
+  return (
+    <Copy size={12} muted>
+      {next ? `Next ${C.dayLabel(next)}` : "No more dates"}
+    </Copy>
   )
 }

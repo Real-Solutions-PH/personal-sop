@@ -1252,7 +1252,9 @@ export function BudgetEditor({
 
 // ------------------------------------------------------------------ FIN-21
 
-type SchedKind = Schedule["kind"]
+/** The kinds this web editor offers; a daily or yearly item (made on the
+ * phone) keeps its schedule unless another kind is picked here. */
+type SchedKind = Exclude<Schedule["kind"], "daily" | "yearly">
 
 export function PlannedEditor({
   open,
@@ -1273,7 +1275,10 @@ export function PlannedEditor({
   const [to, setTo] = useState(init.toAccountId ?? "")
   const [cat, setCat] = useState(init.categoryId ?? "")
   const sc = init.schedule
-  const [kind, setKind] = useState<SchedKind>(sc?.kind ?? "monthly")
+  const kept = sc?.kind === "daily" || sc?.kind === "yearly" ? sc : undefined
+  const [kind, setKind] = useState<SchedKind | "kept">(
+    kept || !sc ? (kept ? "kept" : "monthly") : (sc.kind as SchedKind),
+  )
   const [day, setDay] = useState(sc?.kind === "monthly" ? sc.day : 5)
   const [days, setDays] = useState<[number, number]>(
     sc?.kind === "semimonthly" ? sc.days : [15, 30],
@@ -1303,13 +1308,15 @@ export function PlannedEditor({
       return toast.error("Pick a destination account")
     if (type !== "transfer" && !cat) return toast.error("Pick a category")
     const schedule: Schedule =
-      kind === "once"
-        ? { kind, date: once }
-        : kind === "monthly"
-          ? { kind, day }
-          : kind === "semimonthly"
-            ? { kind, days }
-            : { kind, every, anchor: start }
+      kind === "kept" && kept
+        ? kept
+        : kind === "once"
+          ? { kind, date: once }
+          : kind === "monthly"
+            ? { kind, day }
+            : kind === "semimonthly"
+              ? { kind, days }
+              : { kind: "weekly", every, anchor: start }
     const end: EndRule =
       endKind === "date"
         ? { kind: "date", date: endDate }

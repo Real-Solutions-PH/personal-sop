@@ -10,7 +10,7 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useCurrency } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
-import { Trash2 } from "lucide-react-native"
+import { Repeat as RepeatIcon, Trash2 } from "lucide-react-native"
 import { useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
@@ -30,6 +30,13 @@ import {
 } from "../ui"
 import { isDay } from "../validation"
 import { CategoryPicker } from "./finance-category-picker"
+import {
+  followStart,
+  type Repeat,
+  RepeatChooser,
+  repeatText,
+  ruleFrom,
+} from "./finance-repeat-picker"
 export function PlannedEditor(props: {
   id?: string
   prefill?: Partial<PlannedItem>
@@ -72,23 +79,23 @@ function Editor({
   const [picker, setPicker] = useState(false)
   const t = useTheme()
   const sym = useCurrency().symbol
-  const [schedule, setSchedule] = useState<Schedule["kind"]>(
-    init.schedule?.kind ?? (params.date ? "once" : "monthly"),
-  )
   const [date, setDate] = useState(
     init.start ??
       (init.schedule?.kind === "once" ? init.schedule.date : params.date) ??
       dayKey(),
   )
-  const [interval, setInterval] = useState(
-    init.schedule?.kind === "monthly"
-      ? String(init.schedule.day)
-      : init.schedule?.kind === "semimonthly"
-        ? init.schedule.days.join(",")
-        : init.schedule?.kind === "weekly"
-          ? String(init.schedule.every)
-          : "1",
+  // No repeat is a one-off on its date; a new item repeats monthly on the
+  // start's day unless it came from a dated prompt.
+  const [rule, setRule] = useState<Repeat>(
+    init.schedule
+      ? init.schedule.kind === "once"
+        ? null
+        : init.schedule
+      : params.date
+        ? null
+        : ruleFrom("months", 1, date),
   )
+  const [repeatOpen, setRepeatOpen] = useState(false)
   const [endKind, setEndKind] = useState<EndRule["kind"]>(
     init.end?.kind ?? (params.count ? "count" : "never"),
   )
@@ -108,14 +115,30 @@ function Editor({
       title={
         picker
           ? "Category"
-          : p
-            ? "Edit scheduled payment"
-            : "New scheduled payment"
+          : repeatOpen
+            ? "Repeat"
+            : p
+              ? "Edit scheduled payment"
+              : "New scheduled payment"
       }
       open={open}
-      onClose={picker ? () => setPicker(false) : onClose}
+      onClose={
+        picker
+          ? () => setPicker(false)
+          : repeatOpen
+            ? () => setRepeatOpen(false)
+            : onClose
+      }
     >
-      {picker ? (
+      {repeatOpen ? (
+        <RepeatChooser
+          value={rule}
+          start={isDay(date) ? date : dayKey()}
+          semimonthly
+          onPick={setRule}
+          onClose={() => setRepeatOpen(false)}
+        />
+      ) : picker ? (
         <CategoryPicker
           kind={type === "income" ? "income" : "expense"}
           value={category}
@@ -192,51 +215,38 @@ function Editor({
               </Tap>
             </View>
           )}
-          <Choices
-            label="Repeats"
-            value={schedule}
-            onChange={(v) => {
-              setSchedule(v)
-              setInterval(
-                v === "semimonthly" ? "15,30" : v === "monthly" ? "5" : "1",
-              )
-            }}
-            options={["once", "monthly", "semimonthly", "weekly"].map(
-              (value) => ({
-                value: value as Schedule["kind"],
-                label: (
-                  {
-                    once: "Once",
-                    monthly: "Monthly",
-                    semimonthly: "15th & 30th",
-                    weekly: "Weekly",
-                    never: "Never",
-                    date: "On a date",
-                    count: "After N times",
-                  } as Record<string, string>
-                )[value],
-              }),
-            )}
-          />
           <DateField
-            label={schedule === "once" ? "Date" : "Starts"}
+            label={rule ? "Starts" : "Date"}
             value={date}
-            onChangeText={setDate}
+            onChangeText={(d) => {
+              if (isDay(d) && isDay(date)) setRule(followStart(rule, date, d))
+              setDate(d)
+            }}
           />
-          {schedule !== "once" && (
-            <Field
-              label={
-                schedule === "monthly"
-                  ? "Day of month"
-                  : schedule === "semimonthly"
-                    ? "Days of month (e.g. 15,30)"
-                    : "Every N weeks"
-              }
-              value={interval}
-              onChangeText={setInterval}
-            />
-          )}
-          {schedule !== "once" && (
+          <View style={{ gap: 6 }}>
+            <Copy size={12} muted>
+              Repeat
+            </Copy>
+            <Tap
+              label={`Repeat: ${repeatText(rule)}. Change`}
+              onPress={() => setRepeatOpen(true)}
+              style={{
+                padding: 12,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: t.line,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <RepeatIcon size={16} color={t.muted} />
+              <Copy size={14} style={{ flex: 1 }}>
+                {repeatText(rule)}
+              </Copy>
+            </Tap>
+          </View>
+          {rule && (
             <Choices
               label="Ends"
               value={endKind}
@@ -257,19 +267,16 @@ function Editor({
               }))}
             />
           )}
-          {schedule !== "once" && endKind === "date" && (
+          {rule && endKind === "date" && (
             <DateField
               label="End date"
               value={endDay}
               onChangeText={setEndDay}
               minimumDate={isDay(date) ? date : undefined}
-              defaultValue={nextAfterStart(
-                ruleOf(schedule, interval, date),
-                date,
-              )}
+              defaultValue={rule ? nextAfterStart(rule, date) : undefined}
             />
           )}
-          {schedule !== "once" && endKind === "count" && (
+          {rule && endKind === "count" && (
             <Field
               label="Occurrences"
               keyboardType="number-pad"
@@ -332,27 +339,20 @@ function Editor({
                   !account ||
                   (type !== "transfer" && !category) ||
                   !isDay(date) ||
-                  (endKind === "date" && (!isDay(endDay) || endDay < date)) ||
-                  (endKind === "count" &&
+                  (rule &&
+                    endKind === "date" &&
+                    (!isDay(endDay) || endDay < date)) ||
+                  (rule &&
+                    endKind === "count" &&
                     (!Number.isInteger(Number(count)) || Number(count) < 1)) ||
-                  (schedule === "semimonthly" &&
-                    (interval.split(",").length !== 2 ||
-                      interval
-                        .split(",")
-                        .some(
-                          (v) =>
-                            !Number.isInteger(Number(v)) ||
-                            Number(v) < 1 ||
-                            Number(v) > 31,
-                        ))) ||
                   (type === "transfer" && (!to || to === account))
                 ) {
                   toast.error("Check the planned item fields")
                   return
                 }
-                const rule = ruleOf(schedule, interval, date)
-                const endRule: EndRule =
-                  endKind === "date"
+                const endRule: EndRule = !rule
+                  ? { kind: "never" }
+                  : endKind === "date"
                     ? { kind: "date", date: endDay }
                     : endKind === "count"
                       ? { kind: "count", n: Math.max(1, Number(count) || 1) }
@@ -364,7 +364,7 @@ function Editor({
                   accountId: account,
                   toAccountId: type === "transfer" ? to : undefined,
                   categoryId: type === "transfer" ? undefined : category,
-                  schedule: rule,
+                  schedule: rule ?? { kind: "once" as const, date },
                   start: date,
                   end: endRule,
                   estimated,
@@ -387,33 +387,6 @@ function Editor({
   )
 }
 
-/** The schedule the form describes. */
-function ruleOf(
-  kind: Schedule["kind"],
-  interval: string,
-  date: string,
-): Schedule {
-  return kind === "once"
-    ? { kind: "once", date }
-    : kind === "monthly"
-      ? {
-          kind: "monthly",
-          day: Math.max(1, Math.min(31, Number(interval) || 1)),
-        }
-      : kind === "semimonthly"
-        ? {
-            kind: "semimonthly",
-            days: interval
-              .split(",")
-              .map((v) => Math.max(1, Math.min(31, Number(v) || 15)))
-              .slice(0, 2) as [number, number],
-          }
-        : {
-            kind: "weekly",
-            every: Math.max(1, Number(interval) || 1),
-            anchor: date,
-          }
-}
 /** Where an empty end date opens: the payment's next occurrence after the
  * first one on or after the start, so "end after the next one" is a tap. */
 export function nextAfterStart(rule: Schedule, start: string) {

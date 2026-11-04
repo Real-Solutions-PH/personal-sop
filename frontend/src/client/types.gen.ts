@@ -1141,6 +1141,14 @@ export type Daily = {
     kind: "daily";
 };
 
+/**
+ * Every ``every`` days from the item's start.
+ */
+export type DailySchedule = {
+    kind: "daily";
+    every?: number;
+};
+
 export type DayCountPublic = {
     day: string;
     done: number;
@@ -2551,9 +2559,15 @@ export type Monthly = {
     day: number;
 };
 
+/**
+ * Day ``day`` of every ``every`` months, counted from the first such day
+ * on or after the start. A day past a month's end (31 in April, 29–31 in
+ * February) is that month's last day, so 31 means "the last day".
+ */
 export type MonthlySchedule = {
     kind: "monthly";
     day: number;
+    every?: number;
 };
 
 export type MostMissedOut = {
@@ -2897,7 +2911,7 @@ export type PlannedCreate = {
     account_id: string;
     to_account_id?: (string | null);
     category_id?: (string | null);
-    schedule: (OnceSchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule);
+    schedule: (OnceSchedule | DailySchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule | YearlySchedule);
     start?: (string | null);
     end_rule?: ((EndNever | EndDate | EndCount) | null);
     auto_log?: (boolean | null);
@@ -2918,7 +2932,7 @@ export type PlannedFields = {
     account_id?: (string | null);
     to_account_id?: (string | null);
     category_id?: (string | null);
-    schedule?: ((OnceSchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule) | null);
+    schedule?: ((OnceSchedule | DailySchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule | YearlySchedule) | null);
     start?: (string | null);
     end_rule?: ((EndNever | EndDate | EndCount) | null);
     auto_log?: (boolean | null);
@@ -4799,6 +4813,17 @@ export type WriteLogPublic = {
     at: string;
     action: string;
     actor: string;
+};
+
+/**
+ * ``month``/``day`` every ``every`` years; 29 February is the 28th in a
+ * year that has none.
+ */
+export type YearlySchedule = {
+    kind: "yearly";
+    month: number;
+    day: number;
+    every?: number;
 };
 
 export type AiProvidersPresetsResponse = (PresetsOut);

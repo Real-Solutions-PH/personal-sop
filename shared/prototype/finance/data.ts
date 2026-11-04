@@ -84,8 +84,25 @@ export type Schedule =
       date: string
     }
   | {
+      /** Every ``every`` days from the start. */
+      kind: "daily"
+      every: number
+    }
+  | {
+      /** Day ``day`` of every ``every`` months (absent = 1), counted from
+       * the first such day on or after the start. Past a month's end the
+       * day is that month's last day, so 31 means "the last day". */
       kind: "monthly"
       day: number
+      every?: number
+    }
+  | {
+      /** ``month`` (1–12) / ``day`` every ``every`` years (absent = 1); 29
+       * February is the 28th in a year without one. */
+      kind: "yearly"
+      month: number
+      day: number
+      every?: number
     }
   | {
       kind: "semimonthly"

@@ -3883,6 +3883,27 @@ export const DailySchema = {
     title: 'Daily'
 } as const;
 
+export const DailyScheduleSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'daily',
+            title: 'Kind'
+        },
+        every: {
+            type: 'integer',
+            maximum: 365,
+            minimum: 1,
+            title: 'Every',
+            default: 1
+        }
+    },
+    type: 'object',
+    required: ['kind'],
+    title: 'DailySchedule',
+    description: "Every ``every`` days from the item's start."
+} as const;
+
 export const DayCountPublicSchema = {
     properties: {
         day: {
@@ -11331,11 +11352,21 @@ export const MonthlyScheduleSchema = {
             maximum: 31,
             minimum: 1,
             title: 'Day'
+        },
+        every: {
+            type: 'integer',
+            maximum: 24,
+            minimum: 1,
+            title: 'Every',
+            default: 1
         }
     },
     type: 'object',
     required: ['kind', 'day'],
-    title: 'MonthlySchedule'
+    title: 'MonthlySchedule',
+    description: `Day \`\`day\`\` of every \`\`every\`\` months, counted from the first such day
+on or after the start. A day past a month's end (31 in April, 29–31 in
+February) is that month's last day, so 31 means "the last day".`
 } as const;
 
 export const MostMissedOutSchema = {
@@ -12989,6 +13020,9 @@ export const PlannedCreateSchema = {
                     '$ref': '#/components/schemas/OnceSchedule'
                 },
                 {
+                    '$ref': '#/components/schemas/DailySchedule'
+                },
+                {
                     '$ref': '#/components/schemas/MonthlySchedule'
                 },
                 {
@@ -12996,16 +13030,21 @@ export const PlannedCreateSchema = {
                 },
                 {
                     '$ref': '#/components/schemas/WeeklySchedule'
+                },
+                {
+                    '$ref': '#/components/schemas/YearlySchedule'
                 }
             ],
             title: 'Schedule',
             discriminator: {
                 propertyName: 'kind',
                 mapping: {
+                    daily: '#/components/schemas/DailySchedule',
                     monthly: '#/components/schemas/MonthlySchedule',
                     once: '#/components/schemas/OnceSchedule',
                     semimonthly: '#/components/schemas/SemimonthlySchedule',
-                    weekly: '#/components/schemas/WeeklySchedule'
+                    weekly: '#/components/schemas/WeeklySchedule',
+                    yearly: '#/components/schemas/YearlySchedule'
                 }
             }
         },
@@ -13218,6 +13257,9 @@ export const PlannedFieldsSchema = {
                             '$ref': '#/components/schemas/OnceSchedule'
                         },
                         {
+                            '$ref': '#/components/schemas/DailySchedule'
+                        },
+                        {
                             '$ref': '#/components/schemas/MonthlySchedule'
                         },
                         {
@@ -13225,15 +13267,20 @@ export const PlannedFieldsSchema = {
                         },
                         {
                             '$ref': '#/components/schemas/WeeklySchedule'
+                        },
+                        {
+                            '$ref': '#/components/schemas/YearlySchedule'
                         }
                     ],
                     discriminator: {
                         propertyName: 'kind',
                         mapping: {
+                            daily: '#/components/schemas/DailySchedule',
                             monthly: '#/components/schemas/MonthlySchedule',
                             once: '#/components/schemas/OnceSchedule',
                             semimonthly: '#/components/schemas/SemimonthlySchedule',
-                            weekly: '#/components/schemas/WeeklySchedule'
+                            weekly: '#/components/schemas/WeeklySchedule',
+                            yearly: '#/components/schemas/YearlySchedule'
                         }
                     }
                 },
@@ -23234,6 +23281,40 @@ export const WriteLogPublicSchema = {
     type: 'object',
     required: ['id', 'at', 'action', 'actor'],
     title: 'WriteLogPublic'
+} as const;
+
+export const YearlyScheduleSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'yearly',
+            title: 'Kind'
+        },
+        month: {
+            type: 'integer',
+            maximum: 12,
+            minimum: 1,
+            title: 'Month'
+        },
+        day: {
+            type: 'integer',
+            maximum: 31,
+            minimum: 1,
+            title: 'Day'
+        },
+        every: {
+            type: 'integer',
+            maximum: 10,
+            minimum: 1,
+            title: 'Every',
+            default: 1
+        }
+    },
+    type: 'object',
+    required: ['kind', 'month', 'day'],
+    title: 'YearlySchedule',
+    description: `\`\`month\`\`/\`\`day\`\` every \`\`every\`\` years; 29 February is the 28th in a
+year that has none.`
 } as const;
 
 export const app__modules__capture__schema__CaptureInSchema = {
