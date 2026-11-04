@@ -489,6 +489,12 @@ class PlannedArgs(BaseModel):
         description="Only for something that REPEATS every month on this day "
         "(rent, a subscription). Never together with due_date.",
     )
+    every_months: Annotated[int, Field(ge=1, le=24)] | None = Field(
+        default=None,
+        description="With day_of_month only: repeats every N months on that "
+        "day (2 = every other month, 3 = quarterly, 12 = yearly). Omit for "
+        "every month.",
+    )
     type: Literal["expense", "income"] = Field(
         default="expense", description="income for expected money in (salary)."
     )
@@ -1486,6 +1492,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
         a = PlannedArgs(**kw)
         if a.due_date is None and a.day_of_month is None:
             return {"error": "give_due_date_or_day_of_month"}
+        if a.every_months and a.due_date is not None:
+            return {"error": "every_months_needs_day_of_month"}
         if a.due_date is not None and a.due_date < run.ctx.today - timedelta(days=60):
             return {"error": "due_date_is_long_past", "today": str(run.ctx.today)}
         payload = {
@@ -1496,6 +1504,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
             # One-time on its date, else monthly on its day.
             "date": a.due_date.isoformat() if a.due_date else None,
             "day": None if a.due_date else a.day_of_month,
+            "every": a.every_months
+            if a.day_of_month and (a.every_months or 1) > 1
+            else None,
             "account_id": _account_id(run, a.account, default=True),
             # An income plan looks among income categories; looking among
             # expense ones saved every income plan with no category.
@@ -2607,7 +2618,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
             add_planned,
             PlannedArgs,
             "Add a planned payment or expected income: one-time on a due date "
-            "(a bill, an instalment) or monthly on a day (rent, a subscription).",
+            "(a bill, an instalment) or repeating on a day of the month, every "
+            "month or every N months (rent, a subscription, quarterly dues).",
         ),
         (
             create_tasks,

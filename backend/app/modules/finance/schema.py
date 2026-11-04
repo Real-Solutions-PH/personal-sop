@@ -37,9 +37,21 @@ class OnceSchedule(BaseModel):
     date: date
 
 
+class DailySchedule(BaseModel):
+    """Every ``every`` days from the item's start."""
+
+    kind: Literal["daily"]
+    every: int = Field(default=1, ge=1, le=365)
+
+
 class MonthlySchedule(BaseModel):
+    """Day ``day`` of every ``every`` months, counted from the first such day
+    on or after the start. A day past a month's end (31 in April, 29–31 in
+    February) is that month's last day, so 31 means "the last day"."""
+
     kind: Literal["monthly"]
     day: int = Field(ge=1, le=31)
+    every: int = Field(default=1, ge=1, le=24)
 
 
 class SemimonthlySchedule(BaseModel):
@@ -60,8 +72,23 @@ class WeeklySchedule(BaseModel):
     anchor: date
 
 
+class YearlySchedule(BaseModel):
+    """``month``/``day`` every ``every`` years; 29 February is the 28th in a
+    year that has none."""
+
+    kind: Literal["yearly"]
+    month: int = Field(ge=1, le=12)
+    day: int = Field(ge=1, le=31)
+    every: int = Field(default=1, ge=1, le=10)
+
+
 Schedule = Annotated[
-    OnceSchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule,
+    OnceSchedule
+    | DailySchedule
+    | MonthlySchedule
+    | SemimonthlySchedule
+    | WeeklySchedule
+    | YearlySchedule,
     Field(discriminator="kind"),
 ]
 

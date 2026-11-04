@@ -529,14 +529,58 @@ def avg_spend(s: State, ids: list[str] | None, months: int = 3) -> float:
 # ---------------------------------------------------------------------------
 
 
+def _every(sc: dict[str, Any]) -> int:
+    """The interval of a repeating schedule; rows saved before intervals
+    existed have none, which means every one."""
+    return int(sc.get("every", 1))
+
+
+def _on_day(y: int, m: int, day: int) -> date:
+    """Day ``day`` of a month, clamped to its last day: the 31st in a 30-day
+    month and the 29th–31st in February land on that month's last day and
+    never roll over into the next month."""
+    return date(y, m, min(day, last_dom(y, m)))
+
+
+def _first_on_or_after(sc: dict[str, Any], start: date) -> date:
+    """The first monthly or yearly day on or after ``start``, ignoring the
+    interval: every N months / years counts from it."""
+    day = int(sc["day"])
+    if sc["kind"] == "yearly":
+        mo = int(sc["month"])
+        d = _on_day(start.year, mo, day)
+        return d if d >= start else _on_day(start.year + 1, mo, day)
+    d = _on_day(start.year, start.month, day)
+    if d >= start:
+        return d
+    y, m = (start.year + 1, 1) if start.month == 12 else (start.year, start.month + 1)
+    return _on_day(y, m, day)
+
+
 def _occurs_on(p: Plan, k: date) -> bool:
     sc = p.schedule
     kind = sc["kind"]
     last = last_dom(k.year, k.month)
     if kind == "once":
         return k == parse_day(str(sc["date"]))
-    if kind == "monthly":
-        return k.day == min(int(sc["day"]), last)
+    if kind == "daily":
+        diff = diff_days(k, p.start)
+        return diff >= 0 and diff % _every(sc) == 0
+    if kind in ("monthly", "yearly"):
+        if k.day != min(int(sc["day"]), last):
+            return False
+        if kind == "yearly" and k.month != int(sc["month"]):
+            return False
+        every = _every(sc)
+        if every == 1:
+            return True
+        a = _first_on_or_after(sc, p.start)
+        steps = (
+            k.year - a.year
+            if kind == "yearly"
+            else (k.year - a.year) * 12 + k.month - a.month
+        )
+        return steps >= 0 and steps % every == 0
     if kind == "semimonthly":
         return any(k.day == min(int(x), last) for x in sc["days"])
     if kind == "weekly":
@@ -631,11 +675,16 @@ def monthly_eq(p: Plan) -> float:
     kind = p.schedule["kind"]
     if kind == "once":
         return 0
+    every = _every(p.schedule)
     if kind == "monthly":
-        return p.amount
+        return p.amount if every == 1 else p.amount / every
     if kind == "semimonthly":
         return p.amount * 2
-    return p.amount * 52 / 12 / int(p.schedule["every"])
+    if kind == "daily":
+        return p.amount * 365 / 12 / every
+    if kind == "yearly":
+        return p.amount / 12 / every
+    return p.amount * 52 / 12 / every
 
 
 # ---------------------------------------------------------------------------

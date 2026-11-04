@@ -182,6 +182,7 @@ def execute(
             type="income" if p.get("type") == "income" else "expense",
             planned_id=rid(0),
             repeat="once" if once else "monthly",
+            every=int(p.get("every") or 1),
         )
         return Result(
             [str(pl.id)], note="Shows on your Plan calendar and in the projection."

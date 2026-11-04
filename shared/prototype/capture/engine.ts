@@ -313,7 +313,7 @@ function execute(
         categoryId: p.categoryId,
         schedule: p.date
           ? { kind: "once", date: p.date }
-          : { kind: "monthly", day: p.day ?? 1 },
+          : { kind: "monthly", day: p.day ?? 1, every: p.every ?? 1 },
         end: { kind: "never" },
         autoLog: false,
         isWhatIf: false,

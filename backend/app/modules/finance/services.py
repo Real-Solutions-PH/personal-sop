@@ -1332,16 +1332,35 @@ def snooze_occurrence(
     return row
 
 
+# How far back auto-log fills a missed occurrence. Each occurrence is one
+# record keyed by (item, day), so a wider window never doubles anything; the
+# cap bounds what switching Auto-log on for an old item, or a back-dated
+# start, fills in at once.
+AUTO_LOG_CATCH_UP_DAYS = 60
+
+
 def auto_log_due(ctx: Ctx) -> list[FinRecord]:
-    """Log every due or overdue occurrence (today or earlier) of an item set
-    to auto-log, at its planned amount. Idempotent through the derived
-    settle id. Runs on app open (IA: no background execution) and as a job."""
+    """Log every unpaid occurrence of an auto-log item from the last
+    ``AUTO_LOG_CATCH_UP_DAYS`` up to today (the user's business day), at its
+    planned amount. Runs every 15 minutes as a job (``mobile.finance.auto_log``)
+    and on demand.
+
+    Idempotent: the record id is derived from (item, occurrence day) and
+    ``uq_fin_record_planned_occurrence`` holds one live record per pair. An
+    occurrence whose record the person deleted stays deleted: a tombstone
+    under the derived id counts as "handled", where re-settling it would
+    revive the row."""
     s = repo.load_state(ctx)
+    t = ctx.today
     out: list[FinRecord] = []
-    for o in calc.due_now(s):
-        if not o.item.auto_log or o.day > ctx.today:
+    for o in calc.occurrences_in(s, t - timedelta(days=AUTO_LOG_CATCH_UP_DAYS), t):
+        if not o.item.auto_log or o.status not in ("overdue", "due"):
             continue
-        out.append(_settle(ctx, uuid.UUID(o.item.id), o.orig, on=o.day))
+        planned_id = uuid.UUID(o.item.id)
+        rid = settle_record_id(planned_id, o.orig)
+        if owned_repo.get(ctx, FinRecord, rid, include_deleted=True) is not None:
+            continue
+        out.append(_settle(ctx, planned_id, o.orig, on=o.day))
     ctx.commit()
     return out
 

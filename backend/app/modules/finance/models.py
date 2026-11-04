@@ -8,9 +8,11 @@ from sqlalchemy import (
     BigInteger,
     CheckConstraint,
     Float,
+    Index,
     Numeric,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlmodel import Field
 
@@ -128,6 +130,18 @@ class FinRecord(OwnedRow, table=True):
             name="ck_fin_record_orig_positive",
         ),
         CheckConstraint("fx_rate IS NULL OR fx_rate > 0", name="ck_fin_record_fx_rate"),
+        # One live record per scheduled occurrence: the auto-log job, a Paid
+        # tap and a device's optimistic copy all land on the same row.
+        Index(
+            "uq_fin_record_planned_occurrence",
+            "planned_id",
+            "planned_on",
+            unique=True,
+            postgresql_where=text(
+                "planned_id IS NOT NULL AND planned_on IS NOT NULL "
+                "AND deleted_at IS NULL"
+            ),
+        ),
     )
 
     type: str = Field(sa_type=String(8))  # type: ignore
@@ -201,8 +215,9 @@ class BudgetCategory(OwnedRow, table=True):
 
 
 class PlannedItem(OwnedRow, table=True):
-    """A bill, payday, installment or what-if. ``schedule`` is
-    ``{kind: once|monthly|semimonthly|weekly, ...}``; ``end_rule`` is
+    """A bill, payday, installment, what-if or recurring transaction.
+    ``schedule`` is ``{kind: once|daily|weekly|monthly|semimonthly|yearly,
+    ...}`` (see ``schema.Schedule``); ``end_rule`` is
     ``{kind: never|date|count, ...}``."""
 
     __tablename__ = "planned_item"
