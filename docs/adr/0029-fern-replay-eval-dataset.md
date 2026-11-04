@@ -40,7 +40,7 @@ None. This adds a test suite and a CI job; it changes no default.
 ## Consequences
 
 **Positive:**
-- Every change to `companion/`, `capture/` or `ai_providers/` replays 213 real turns: 184 failures and 29 guards (31 of them, 23 failures and 8 guards, added on 2026-11-04 from Kai's chats of 2026-11-02 to 2026-11-04).
+- Every change to `companion/`, `capture/` or `ai_providers/` replays 212 real turns: 184 failures and 28 guards (30 of them, 23 failures and 7 guards, added on 2026-11-04 from Kai's chats of 2026-11-02 to 2026-11-04).
 - The cases are reviewable in the pull request that changes them.
 - CI can run the eval without any secret other than the model key.
 
