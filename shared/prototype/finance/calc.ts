@@ -359,8 +359,7 @@ export function avgSpend(s: FinState, ids: string[] | null, months = 3) {
   }
   return n ? sum / n : 0
 }
-const everyOf = (sc: Schedule) =>
-  "every" in sc && sc.every ? sc.every : 1
+const everyOf = (sc: Schedule) => ("every" in sc && sc.every ? sc.every : 1)
 /** Day ``day`` of a month (``m`` 0-based), clamped to its last day: never
  * rolls over into the next month. */
 const onDay = (y: number, m: number, day: number) =>
