@@ -22,6 +22,7 @@ import {
   TrophyCounts,
   TrophyGrid,
 } from "../brand/trophy"
+import { FernCelebrates } from "../companion/fern-celebrates"
 import { useNoteGoals } from "../goal-ledger"
 import { MissedGoals } from "../missed-goals"
 import {
@@ -379,6 +380,10 @@ export function Trophies() {
                 size={128}
                 color={t[TROPHY_COLOR[selected.type]]}
               />
+              {/* Fern celebrates the unlock, at the badge's side. */}
+              <View style={{ position: "absolute", right: -40, bottom: -6 }}>
+                <FernCelebrates size={64} />
+              </View>
             </Animated.View>
             <Copy
               size={44}

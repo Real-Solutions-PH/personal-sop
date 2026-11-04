@@ -14,6 +14,7 @@ import Animated, {
   ZoomIn,
 } from "react-native-reanimated"
 import { chime } from "./chime"
+import { FernCelebrates } from "./companion/fern-celebrates"
 import { momentSlot } from "./moment"
 import { Cheer, feel } from "./motion"
 import { Copy } from "./native-kit"
@@ -49,6 +50,7 @@ export function BigMoment({
   label: string
   title: string
   detail: ReactNode
+  /** What was won, in the chip on Fern's corner (drawn for a 72 pt disc). */
   badge: ReactNode
   tint: string
   say: string
@@ -120,19 +122,14 @@ export function BigMoment({
               paddingBottom: 20,
             }}
           >
-            <Cheer fire={fire} color={tint} size={80}>
-              <View
-                style={{
-                  width: 72,
-                  height: 72,
-                  borderRadius: 36,
-                  backgroundColor: tint,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 8,
-                }}
-              >
-                {badge}
+            <Cheer fire={fire} color={tint} size={96}>
+              <View style={{ marginBottom: 8 }}>
+                <FernCelebrates
+                  size={96}
+                  badge={badge}
+                  badgeTint={tint}
+                  badgeScale={0.5}
+                />
               </View>
             </Cheer>
             <Copy size={12} weight="medium" style={{ color: tint }}>

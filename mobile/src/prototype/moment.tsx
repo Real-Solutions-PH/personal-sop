@@ -20,6 +20,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { FernCelebrates } from "./companion/fern-celebrates"
 import { feel, MOTION } from "./motion"
 import { Copy } from "./native-kit"
 import { Overlay } from "./overlay"
@@ -45,6 +46,7 @@ export function MomentCard({
   onOpen,
   onClose,
   testID,
+  mood = "celebrating",
 }: {
   /** Holds the slot while this card is up ("trophy", "routine"). */
   kind: string
@@ -52,12 +54,16 @@ export function MomentCard({
   label: string
   title: string
   detail: ReactNode
-  /** What sits in the coloured disc: an icon or an emoji. */
+  /** What was won, in the chip on Fern's corner: an icon or an emoji,
+   * drawn for a 44 pt disc. */
   badge: ReactNode
   tint: string
-  /** The disc's fill when it should not be the full tint (a trophy's
+  /** The chip's fill when it should not be the full tint (a trophy's
    * wreath badge sits on a soft disc). */
   discColor?: string
+  /** Fern celebrates every moment; a miss (a day sealed below target)
+   * consoles instead. */
+  mood?: "celebrating" | "consoling"
   /** Read out by VoiceOver as the card lands. */
   say: string
   hint: string
@@ -138,20 +144,14 @@ export function MomentCard({
               minHeight: 64,
             }}
           >
-            <Animated.View
-              style={[
-                {
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: discColor ?? tint,
-                  alignItems: "center",
-                  justifyContent: "center",
-                },
-                disc,
-              ]}
-            >
-              {badge}
+            <Animated.View style={disc}>
+              <FernCelebrates
+                size={52}
+                mood={mood}
+                badge={badge}
+                badgeTint={discColor ?? tint}
+                badgeScale={0.55}
+              />
             </Animated.View>
             <View style={{ flex: 1, gap: 2 }}>
               <Copy size={12} weight="medium" style={{ color: tint }}>
