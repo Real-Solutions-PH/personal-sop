@@ -28,3 +28,4 @@ Start new ADRs from [template.md](template.md).
 | [0030](0030-record-icons-are-emoji.md) | Icons people pick for their own records are emoji from one catalogue; interface icons stay lucide |
 | [0031](0031-fern-claude-style-agent-loop.md) | Fern works each turn as a Claude-style agent loop (every tool, thinking every call, todo, multiple-choice asks) |
 | [0032](0032-hand-drawn-line-in-the-app.md) | The brand's hand-drawn line in the app's shared chart parts; chrome stays calm |
+| [0033](0033-recurring-transactions-generated-by-the-job.md) | Recurring transactions: the 15-minute job creates one record per occurrence, with interval rules and a 60-day catch-up |
