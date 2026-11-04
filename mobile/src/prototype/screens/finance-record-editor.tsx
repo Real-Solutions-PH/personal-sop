@@ -6,7 +6,11 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { money, useCurrency } from "@domain/lib/money"
 import * as Haptics from "expo-haptics"
-import { Paperclip, TriangleAlert } from "lucide-react-native"
+import {
+  Paperclip,
+  Repeat as RepeatIcon,
+  TriangleAlert,
+} from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
 import { View } from "react-native"
 import { toast } from "sonner-native"
@@ -26,6 +30,12 @@ import { TimeInput } from "../time-input"
 import { Button, Choices, DateField, Field, Sheet, undo } from "../ui"
 import { isDay } from "../validation"
 import { CategoryPicker } from "./finance-category-picker"
+import {
+  followStart,
+  type Repeat,
+  RepeatChooser,
+  repeatText,
+} from "./finance-repeat-picker"
 
 type Props = {
   record?: FinRecord
@@ -76,6 +86,10 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     [refund, setRefund] = useState(!!init.isRefund),
     [receipt, setReceipt] = useState(!!init.receipt),
     [picker, setPicker] = useState(false),
+    // A new expense or income can repeat: saving makes an auto-log
+    // scheduled payment whose first occurrence is this transaction.
+    [rule, setRule] = useState<Repeat>(null),
+    [repeatOpen, setRepeatOpen] = useState(false),
     [tried, setTried] = useState(false),
     // What the last "Save & add another" did to the budgets, until the next
     // amount is typed.
@@ -229,6 +243,65 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         at,
       })
       created = [r.transfer, ...(r.fee ? [r.fee] : [])]
+    } else if (rule) {
+      // The repeat's first date is this transaction's date, so the record
+      // settles that occurrence under the id the server derives for it and
+      // the auto-log job never logs it a second time.
+      const p = A.addPlanned({
+        name:
+          payee.trim() ||
+          chosen?.name ||
+          (type === "income" ? "Income" : "Expense"),
+        type,
+        amount: n,
+        estimated: false,
+        accountId: account,
+        categoryId: category,
+        schedule: rule,
+        start: date,
+        end: { kind: "never" },
+        autoLog: true,
+        isWhatIf: false,
+        inProjection: true,
+      })
+      // A date the rule does not land on (a 15th with "the last day")
+      // starts the repeat but stays a plain transaction.
+      const onRule = C.occurrences(p, date, date).length > 0
+      const r = !onRule
+        ? { record: A.addRecord({ ...input, source: "manual" }) }
+        : A.settleOccurrence(p.id, date, {
+            amount: n,
+            accountId: account,
+            date,
+            at,
+            categoryId: category,
+            payee: payee || undefined,
+            note: note || undefined,
+            receipt,
+            origCurrency: foreign ? inCur : undefined,
+            origAmount: foreign ? typed : undefined,
+            fxRate: foreign ? fx?.rate : undefined,
+          })
+      created = r ? [r.record] : []
+      onSaved?.(created[0])
+      const result = outcome()
+      const next = C.nextOccurrence(finStore.get(), p, C.addDays(date, 1))
+      undo(
+        `Saved ${money(n, cur)} · ${repeatText(rule).toLowerCase()}${next ? `, next ${C.shortDate(next)}` : ""}${result.say}`,
+        () => {
+          A.deleteRecords(created.map((x) => x.id))
+          A.deletePlanned(p.id)
+        },
+      )
+      if (again) {
+        setLanded(result.broke)
+        setAmount("")
+        setPayee("")
+        setNote("")
+        setRule(null)
+        setTried(false)
+      } else onClose()
+      return
     } else created = [A.addRecord({ ...input, source: "manual" })]
     onSaved?.(created[0])
     const result = outcome()
@@ -253,21 +326,29 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       title={
         picker
           ? "Category"
-          : settles
-            ? `Record ${plan?.name ?? "payment"}`
-            : record
-              ? "Edit transaction"
-              : "New transaction"
+          : repeatOpen
+            ? "Repeat"
+            : settles
+              ? `Record ${plan?.name ?? "payment"}`
+              : record
+                ? "Edit transaction"
+                : "New transaction"
       }
       open
       // Choosing a category is a step: back returns to the transaction,
       // close (X, backdrop, drag) closes the whole sheet.
-      onBack={picker ? () => setPicker(false) : undefined}
+      onBack={
+        picker
+          ? () => setPicker(false)
+          : repeatOpen
+            ? () => setRepeatOpen(false)
+            : undefined
+      }
       backLabel="Back to transaction"
       onClose={onClose}
       // Save stays in reach above the keyboard however long the form runs.
       footer={
-        picker ? undefined : (
+        picker || repeatOpen ? undefined : (
           <Line>
             {settles ? null : record ? (
               <Button
@@ -294,7 +375,14 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         )
       }
     >
-      {picker ? (
+      {repeatOpen ? (
+        <RepeatChooser
+          value={rule}
+          start={isDay(date) ? date : dayKey()}
+          onPick={setRule}
+          onClose={() => setRepeatOpen(false)}
+        />
+      ) : picker ? (
         <CategoryPicker
           kind={catKind}
           value={category}
@@ -481,7 +569,15 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
           )}
           <Line style={{ alignItems: "flex-start" }}>
             <View style={{ flex: 1 }}>
-              <DateField label="Date" value={date} onChangeText={setDate} />
+              <DateField
+                label="Date"
+                value={date}
+                onChangeText={(d) => {
+                  if (isDay(d) && isDay(date))
+                    setRule(followStart(rule, date, d))
+                  setDate(d)
+                }}
+              />
             </View>
             {/* The same label, gap and box as the Date field beside it. */}
             <View style={{ flex: 1, gap: 6, marginVertical: 8 }}>
@@ -491,6 +587,33 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               <TimeInput label="Time" value={time} onChange={setTime} field />
             </View>
           </Line>
+          {/* New expenses and income only: a transfer repeats from
+              Scheduled payments, an edit or a settled payment never. */}
+          {!record && !settles && type !== "transfer" && (
+            <View style={{ gap: 6 }}>
+              <Copy size={12} muted weight="medium">
+                Repeat
+              </Copy>
+              <Tap
+                label={`Repeat: ${repeatText(rule)}. Change`}
+                onPress={() => setRepeatOpen(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: t.line,
+                  borderRadius: 12,
+                  padding: 12,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <RepeatIcon size={16} color={rule ? t.text : t.muted} />
+                <Copy size={14} style={{ flex: 1 }}>
+                  {repeatText(rule)}
+                </Copy>
+              </Tap>
+            </View>
+          )}
           <Field
             label="Note"
             value={note}

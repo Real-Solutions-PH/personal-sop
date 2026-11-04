@@ -285,3 +285,68 @@ test("a scheduled payment's chip names what is missing", () => {
     "Maya Black → No account",
   )
 })
+
+test("a new expense set to repeat every 3 months is the first of its own schedule", () => {
+  const acct = finStore.get().accounts[0].id,
+    count = finStore.get().records.length,
+    plans = finStore.get().planned.length
+  render(
+    <RecordEditor
+      open
+      onClose={() => {}}
+      prefill={{
+        type: "expense",
+        amount: 2500,
+        accountId: acct,
+        categoryId: "phone",
+        payee: "Storage unit",
+        at: new Date("2026-11-15T12:00:00").toISOString(),
+      }}
+    />,
+    { wrapper },
+  )
+  fireEvent.press(screen.getByLabelText("Repeat: Never. Change"))
+  fireEvent.press(screen.getByText("Every 3 months"))
+  expect(screen.getByText("Every 3 months on the 15th")).toBeTruthy()
+  fireEvent.press(screen.getByText("Set repeat"))
+  expect(
+    screen.getByLabelText("Repeat: Every 3 months on the 15th. Change"),
+  ).toBeTruthy()
+  fireEvent.press(screen.getByText("Save"))
+  const s = finStore.get()
+  expect(s.planned).toHaveLength(plans + 1)
+  const p = s.planned[s.planned.length - 1]
+  expect(p).toMatchObject({
+    name: "Storage unit",
+    schedule: { kind: "monthly", day: 15, every: 3 },
+    start: "2026-11-15",
+    autoLog: true,
+  })
+  // One record, settling the first date under the id the server derives,
+  // so the auto-log job never logs that date again.
+  expect(s.records).toHaveLength(count + 1)
+  expect(
+    s.records.find(
+      (r) => r.id === derivedId("planned-record", p.id, "2026-11-15"),
+    ),
+  ).toMatchObject({ amount: 2500, plannedId: p.id, plannedOn: "2026-11-15" })
+})
+
+test("a transaction left on Never repeat adds no schedule", () => {
+  const plans = finStore.get().planned.length
+  render(
+    <RecordEditor
+      open
+      onClose={() => {}}
+      prefill={{
+        type: "expense",
+        amount: 120,
+        accountId: finStore.get().accounts[0].id,
+        categoryId: "phone",
+      }}
+    />,
+    { wrapper },
+  )
+  fireEvent.press(screen.getByText("Save"))
+  expect(finStore.get().planned).toHaveLength(plans)
+})
