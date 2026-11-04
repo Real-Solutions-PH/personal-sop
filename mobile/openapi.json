@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
+  "info": { "title": "Unfurl", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -21687,6 +21687,22 @@
         "required": ["kind"],
         "title": "Daily"
       },
+      "DailySchedule": {
+        "properties": {
+          "kind": { "type": "string", "const": "daily", "title": "Kind" },
+          "every": {
+            "type": "integer",
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Every",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": ["kind"],
+        "title": "DailySchedule",
+        "description": "Every ``every`` days from the item's start."
+      },
       "DayCountPublic": {
         "properties": {
           "day": { "type": "string", "format": "date", "title": "Day" },
@@ -26615,11 +26631,19 @@
             "maximum": 31.0,
             "minimum": 1.0,
             "title": "Day"
+          },
+          "every": {
+            "type": "integer",
+            "maximum": 24.0,
+            "minimum": 1.0,
+            "title": "Every",
+            "default": 1
           }
         },
         "type": "object",
         "required": ["kind", "day"],
-        "title": "MonthlySchedule"
+        "title": "MonthlySchedule",
+        "description": "Day ``day`` of every ``every`` months, counted from the first such day\non or after the start. A day past a month's end (31 in April, 29\u201331 in\nFebruary) is that month's last day, so 31 means \"the last day\"."
       },
       "MostMissedOut": {
         "properties": {
@@ -27728,18 +27752,22 @@
           "schedule": {
             "oneOf": [
               { "$ref": "#/components/schemas/OnceSchedule" },
+              { "$ref": "#/components/schemas/DailySchedule" },
               { "$ref": "#/components/schemas/MonthlySchedule" },
               { "$ref": "#/components/schemas/SemimonthlySchedule" },
-              { "$ref": "#/components/schemas/WeeklySchedule" }
+              { "$ref": "#/components/schemas/WeeklySchedule" },
+              { "$ref": "#/components/schemas/YearlySchedule" }
             ],
             "title": "Schedule",
             "discriminator": {
               "propertyName": "kind",
               "mapping": {
+                "daily": "#/components/schemas/DailySchedule",
                 "monthly": "#/components/schemas/MonthlySchedule",
                 "once": "#/components/schemas/OnceSchedule",
                 "semimonthly": "#/components/schemas/SemimonthlySchedule",
-                "weekly": "#/components/schemas/WeeklySchedule"
+                "weekly": "#/components/schemas/WeeklySchedule",
+                "yearly": "#/components/schemas/YearlySchedule"
               }
             }
           },
@@ -27860,17 +27888,21 @@
               {
                 "oneOf": [
                   { "$ref": "#/components/schemas/OnceSchedule" },
+                  { "$ref": "#/components/schemas/DailySchedule" },
                   { "$ref": "#/components/schemas/MonthlySchedule" },
                   { "$ref": "#/components/schemas/SemimonthlySchedule" },
-                  { "$ref": "#/components/schemas/WeeklySchedule" }
+                  { "$ref": "#/components/schemas/WeeklySchedule" },
+                  { "$ref": "#/components/schemas/YearlySchedule" }
                 ],
                 "discriminator": {
                   "propertyName": "kind",
                   "mapping": {
+                    "daily": "#/components/schemas/DailySchedule",
                     "monthly": "#/components/schemas/MonthlySchedule",
                     "once": "#/components/schemas/OnceSchedule",
                     "semimonthly": "#/components/schemas/SemimonthlySchedule",
-                    "weekly": "#/components/schemas/WeeklySchedule"
+                    "weekly": "#/components/schemas/WeeklySchedule",
+                    "yearly": "#/components/schemas/YearlySchedule"
                   }
                 }
               },
@@ -34531,6 +34563,34 @@
         "type": "object",
         "required": ["id", "at", "action", "actor"],
         "title": "WriteLogPublic"
+      },
+      "YearlySchedule": {
+        "properties": {
+          "kind": { "type": "string", "const": "yearly", "title": "Kind" },
+          "month": {
+            "type": "integer",
+            "maximum": 12.0,
+            "minimum": 1.0,
+            "title": "Month"
+          },
+          "day": {
+            "type": "integer",
+            "maximum": 31.0,
+            "minimum": 1.0,
+            "title": "Day"
+          },
+          "every": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Every",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": ["kind", "month", "day"],
+        "title": "YearlySchedule",
+        "description": "``month``/``day`` every ``every`` years; 29 February is the 28th in a\nyear that has none."
       },
       "app__modules__capture__schema__CaptureIn": {
         "properties": {
