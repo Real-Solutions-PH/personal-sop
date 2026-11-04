@@ -18,7 +18,6 @@ import { Text, View } from "react-native"
 import Animated, {
   Easing,
   type SharedValue,
-  useAnimatedProps,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -27,7 +26,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated"
 import Svg, { Path } from "react-native-svg"
-import { FERN_PATHS } from "./companion/brand"
+import { FernCelebrates } from "./companion/fern-celebrates"
 import { feel, MOTION, useCountUp } from "./motion"
 import { Copy, Line } from "./native-kit"
 import { anchor, type Box, Overlay } from "./overlay"
@@ -63,9 +62,6 @@ const LEAVES = 18
 const BURST_MS = 1100
 /** A leaf in a 10 × 16 box. */
 const LEAF = "M5 0 C9 4 9 12 5 16 C1 12 1 4 5 0 Z"
-/** The fiddlehead's strokes are shorter than this in its 24-unit box. */
-const STROKE = 40
-const AnimatedPath = Animated.createAnimatedComponent(Path)
 
 type Leaf = {
   angle: number
@@ -165,43 +161,6 @@ function LeafView({
   )
 }
 
-/** The fiddlehead, its strokes drawing in when ``play`` is on. */
-function UnfurlMark({
-  color,
-  play,
-  size,
-}: {
-  color: string
-  play: boolean
-  size: number
-}) {
-  const offset = useSharedValue(play ? STROKE : 0)
-  useEffect(() => {
-    if (play)
-      offset.value = withTiming(0, {
-        duration: MOTION.reveal,
-        easing: Easing.out(Easing.cubic),
-      })
-  }, [play, offset])
-  const props = useAnimatedProps(() => ({ strokeDashoffset: offset.value }))
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      {FERN_PATHS.map((d) => (
-        <AnimatedPath
-          key={d}
-          d={d}
-          stroke={color}
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeDasharray={[STROKE, STROKE]}
-          animatedProps={props}
-        />
-      ))}
-    </Svg>
-  )
-}
-
 function StatValue({
   label,
   value,
@@ -294,26 +253,25 @@ export function Celebration({
       <View
         style={{
           width: 160,
-          height: 120,
+          height: 136,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         {moving && <Burst colors={[t.fit, t.hab, t.nut, t.tsk, t.fin]} />}
+        {/* Fern celebrates the finish, with what was finished beside it. */}
         <Animated.View
           style={[
             {
-              width: 96,
-              height: 96,
-              borderRadius: 28,
-              backgroundColor: `${accent}1f`,
+              width: 112,
+              height: 112,
               alignItems: "center",
               justifyContent: "center",
             },
             popStyle,
           ]}
         >
-          <UnfurlMark color={accent} play={moving} size={72} />
+          <FernCelebrates size={112} />
           <View
             style={{
               position: "absolute",

@@ -226,6 +226,7 @@ export function DayMomentCard({
     <MomentCard
       kind="day"
       testID="day-moment"
+      mood={short ? "consoling" : "celebrating"}
       label={copy.label}
       title={copy.title}
       detail={

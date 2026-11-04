@@ -47,6 +47,7 @@ import Animated, {
   withTiming,
   ZoomIn,
 } from "react-native-reanimated"
+import { FernCelebrates } from "../companion/fern-celebrates"
 import {
   Burst,
   feel,
@@ -104,6 +105,15 @@ export function ClearRing({
     <Animated.View testID={play ? "tasks-clear" : undefined} style={pulse}>
       {children}
       <Burst fire={play ? 1 : 0} color={t.tsk} size={52} />
+      {/* Fern celebrates the cleared day on the ring's corner. */}
+      {play && (
+        <View
+          pointerEvents="none"
+          style={{ position: "absolute", right: -14, bottom: -12 }}
+        >
+          <FernCelebrates size={30} />
+        </View>
+      )}
     </Animated.View>
   )
 }

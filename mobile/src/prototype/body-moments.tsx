@@ -28,6 +28,7 @@ import {
   goalsReached,
   weighStep,
 } from "./body-rewards"
+import { FernCelebrates } from "./companion/fern-celebrates"
 import { feel, markCompletion } from "./motion"
 import { fonts, useTheme } from "./theme"
 
@@ -147,12 +148,18 @@ export function FlashLine({
     >
       <View
         style={{
-          paddingHorizontal: 8,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4,
+          paddingLeft: tone === "good" ? 2 : 8,
+          paddingRight: 8,
           paddingVertical: 2,
           borderRadius: 99,
           backgroundColor: `${color}1f`,
         }}
       >
+        {/* A goal met is a win: Fern celebrates it. */}
+        {tone === "good" && <FernCelebrates size={20} />}
         <Text
           style={{
             fontFamily: fonts.semibold,

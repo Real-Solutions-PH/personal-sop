@@ -45,7 +45,6 @@ import {
   type LucideIcon,
   Moon,
   MoreHorizontal,
-  PartyPopper,
   Pencil,
   PiggyBank,
   Play,
@@ -70,6 +69,7 @@ import { TrophyBadge } from "../brand/badge"
 import { CornerMotif } from "../brand/corner"
 import { TROPHY_COLOR } from "../brand/trophy"
 import { Sparkline } from "../chart"
+import { FernCelebrates } from "../companion/fern-celebrates"
 import { FirstWeekStrip, LeafRow, YesterdayStrip } from "../daily-strips"
 import { CardSkeleton, Deferred, FrameSkeleton } from "../deferred"
 import { extrasStore } from "../extras"
@@ -711,7 +711,7 @@ function AllHabitsDone({ play }: { play: boolean }) {
       }}
     >
       <Line style={{ gap: 8, paddingHorizontal: 12, paddingVertical: 10 }}>
-        <PartyPopper size={18} color={t.good} />
+        <FernCelebrates size={32} />
         <Copy weight="semibold" style={{ flex: 1 }}>
           All habits done today
         </Copy>

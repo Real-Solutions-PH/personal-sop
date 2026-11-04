@@ -55,6 +55,7 @@ import Svg, {
 import { toast } from "sonner-native"
 import { CornerMotif } from "../brand/corner"
 import { leaf } from "../brand/scribble"
+import { FernCelebrates } from "../companion/fern-celebrates"
 import { feel, StreakChip } from "../motion"
 import {
   border,
@@ -895,8 +896,12 @@ function JournalEditor({ id }: { id?: string }) {
   // The save that starts today's entry grows the streak: the chip by the
   // save line bumps and the phone taps once.
   const lastStreak = useRef(streak)
+  const [grew, setGrew] = useState(false)
   useEffect(() => {
-    if (streak > lastStreak.current) feel.success()
+    if (streak > lastStreak.current) {
+      feel.success()
+      setGrew(true)
+    }
     lastStreak.current = streak
   }, [streak])
   // Debounced autosave: every change restarts the wait.
@@ -1015,6 +1020,8 @@ function JournalEditor({ id }: { id?: string }) {
             <Copy size={12} style={{ color: status.color, flexShrink: 1 }}>
               {status.text}
             </Copy>
+            {/* Today's first entry grew the streak: Fern celebrates it. */}
+            {grew && <FernCelebrates size={26} />}
             {entryId.current && day === dayKey() && (
               <StreakChip streak={streak} />
             )}
