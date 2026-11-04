@@ -168,6 +168,30 @@ export function Projection() {
           excludedAccounts: excluded,
         })
       : null
+  // The point read off the chart, for the chart it was read on: a new
+  // range, horizon or what-if is a new chart and starts with none.
+  const chartKey = range
+    ? `${range.from}~${range.to}`
+    : `${horizon}~${whatIf ? 1 : 0}`
+  const [pin, setPin] = useState<{ key: string; i: number } | null>(null)
+  const inspectAt = pin?.key === chartKey ? pin.i : null
+  const inspect = (readout: (i: number) => React.ReactNode) => ({
+    at: inspectAt,
+    onAt: (i: number | null) =>
+      setPin(i === null ? null : { key: chartKey, i }),
+    readout,
+  })
+  /** The readout's line about the minimum balance, when a point is under it. */
+  const under = (v: number) =>
+    v < floor ? (
+      <Copy
+        size={11}
+        weight="semibold"
+        style={{ color: v < 0 ? t.bad : t.warn }}
+      >
+        {v < 0 ? "Overdrawn" : `Below your ${money(floor)} minimum`}
+      </Copy>
+    ) : null
   const pick = (next: DateRange) => {
     const bad = aheadRangeError(next)
     if (bad) toast.error(bad)
@@ -281,746 +305,814 @@ export function Projection() {
     )
   return (
     <Screen title="Projection">
-      <Segmented
-        value={range ? "custom" : String(horizon)}
-        onChange={(v) => {
-          if (v === "custom") {
-            if (!range)
-              setRange({
-                from: C.today(),
-                to: C.monthRange(
-                  C.monthOf(C.today(), s.settings.monthStartDay),
-                  s.settings.monthStartDay,
-                )[1],
-              })
-            setWhat(false)
-            return
-          }
-          setRange(null)
-          A.updateSettings({ horizon: Number(v) as 6 | 12 | 24 })
-        }}
-        options={[
-          ...[6, 12, 24].map((v) => ({ value: String(v), label: `${v} mo` })),
-          { value: "custom", label: "Custom" },
-        ]}
-      />
-      {range && f && (
-        <>
-          <Frame style={{ padding: 16, gap: 8 }}>
-            {chiprow(
-              quickEnds(s).map((q) => (
-                <FinChip
-                  key={q.label}
-                  label={q.label}
-                  active={range.to === q.to}
-                  onPress={() => pick({ ...range, to: q.to })}
-                />
-              )),
-            )}
-            <Line>
-              <View style={{ flex: 1 }}>
-                <DateField
-                  label="From"
-                  value={range.from}
-                  maximumDate={range.to}
-                  onChangeText={(from) =>
-                    isDayKey(from) && pick({ ...range, from })
-                  }
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <DateField
-                  label="To"
-                  value={range.to}
-                  minimumDate={range.from}
-                  onChangeText={(to) => isDayKey(to) && pick({ ...range, to })}
-                />
-              </View>
-            </Line>
-          </Frame>
-          <Frame
-            style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
-          >
-            <View style={{ paddingHorizontal: 4, gap: 2 }}>
-              <Copy size={12} muted>
-                Available money on {dayMonth(range.to, true)}
-              </Copy>
-              <Copy size={30} weight="displayMedium" fit>
-                {money(f.atTo)}
-              </Copy>
-              {range.from !== C.today() && (
-                <Copy size={12} muted>
-                  {money(f.atFrom)} on {dayMonth(range.from)}
-                </Copy>
+      {/* A touch anywhere but the chart puts away the point read off it.
+          Laid out as the Screen lays out its own rows (8 pt apart). */}
+      <View
+        style={{ gap: 8 }}
+        onTouchStart={() => inspectAt !== null && setPin(null)}
+      >
+        <Segmented
+          value={range ? "custom" : String(horizon)}
+          onChange={(v) => {
+            if (v === "custom") {
+              if (!range)
+                setRange({
+                  from: C.today(),
+                  to: C.monthRange(
+                    C.monthOf(C.today(), s.settings.monthStartDay),
+                    s.settings.monthStartDay,
+                  )[1],
+                })
+              setWhat(false)
+              return
+            }
+            setRange(null)
+            A.updateSettings({ horizon: Number(v) as 6 | 12 | 24 })
+          }}
+          options={[
+            ...[6, 12, 24].map((v) => ({ value: String(v), label: `${v} mo` })),
+            { value: "custom", label: "Custom" },
+          ]}
+        />
+        {range && f && (
+          <>
+            <Frame style={{ padding: 16, gap: 8 }}>
+              {chiprow(
+                quickEnds(s).map((q) => (
+                  <FinChip
+                    key={q.label}
+                    label={q.label}
+                    active={range.to === q.to}
+                    onPress={() => pick({ ...range, to: q.to })}
+                  />
+                )),
               )}
-            </View>
-            <View style={{ gap: 6, paddingHorizontal: 4, marginTop: 12 }}>
-              {[
-                { label: "Expected income", value: `+${money(f.income)}` },
-                { label: "Bills", value: `−${money(f.bills)}` },
-                { label: "Everyday", value: `−${money(f.everyday)}` },
-                {
-                  label: "Net",
-                  value: `${f.net >= 0 ? "+" : "−"}${money(Math.abs(f.net))}`,
-                  color: f.net >= 0 ? t.good : t.bad,
-                },
-              ].map((m) => (
-                <Line
-                  key={m.label}
-                  style={{
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    gap: 12,
-                  }}
-                >
-                  <Copy size={12} muted style={{ flex: 1 }}>
-                    {m.label}
-                  </Copy>
-                  <Copy
-                    size={14}
-                    weight="semibold"
-                    style={{ color: m.color ?? t.text }}
-                  >
-                    {m.value}
-                  </Copy>
-                </Line>
-              ))}
-            </View>
-            <Copy
-              size={12}
-              weight="medium"
+              <Line>
+                <View style={{ flex: 1 }}>
+                  <DateField
+                    label="From"
+                    value={range.from}
+                    maximumDate={range.to}
+                    onChangeText={(from) =>
+                      isDayKey(from) && pick({ ...range, from })
+                    }
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <DateField
+                    label="To"
+                    value={range.to}
+                    minimumDate={range.from}
+                    onChangeText={(to) =>
+                      isDayKey(to) && pick({ ...range, to })
+                    }
+                  />
+                </View>
+              </Line>
+            </Frame>
+            <Frame
               style={{
-                paddingHorizontal: 4,
-                marginTop: 8,
-                color:
-                  f.low.value < 0
-                    ? t.bad
-                    : f.low.value < floor
-                      ? t.warn
-                      : t.muted,
+                paddingHorizontal: 12,
+                paddingTop: 16,
+                paddingBottom: 8,
               }}
             >
-              Lowest point {money(f.low.value)} · {C.shortDate(f.low.day)}
-            </Copy>
-            {(() => {
-              const shown = thin(f.days.filter((x) => x.day >= range.from))
-              const every = Math.max(1, Math.round(shown.length / 5))
-              return shown.length > 1 ? (
-                <FinanceLineChart
-                  height={190}
-                  floor={floor}
-                  zero={f.low.value < 0}
-                  labels={shown.map((x, i) =>
-                    i % every === 0 || i === shown.length - 1
-                      ? C.shortDate(x.day)
-                      : "",
-                  )}
-                  series={[
-                    {
-                      values: shown.map((x) => x.balance),
-                      color: t.fin,
-                      area: true,
-                    },
-                  ]}
-                />
-              ) : (
-                <View style={{ opacity: 0.32 }}>
+              <View style={{ paddingHorizontal: 4, gap: 2 }}>
+                <Copy size={12} muted>
+                  Available money on {dayMonth(range.to, true)}
+                </Copy>
+                <Copy size={30} weight="displayMedium" fit>
+                  {money(f.atTo)}
+                </Copy>
+                {range.from !== C.today() && (
+                  <Copy size={12} muted>
+                    {money(f.atFrom)} on {dayMonth(range.from)}
+                  </Copy>
+                )}
+              </View>
+              <View style={{ gap: 6, paddingHorizontal: 4, marginTop: 12 }}>
+                {[
+                  { label: "Expected income", value: `+${money(f.income)}` },
+                  { label: "Bills", value: `−${money(f.bills)}` },
+                  { label: "Everyday", value: `−${money(f.everyday)}` },
+                  {
+                    label: "Net",
+                    value: `${f.net >= 0 ? "+" : "−"}${money(Math.abs(f.net))}`,
+                    color: f.net >= 0 ? t.good : t.bad,
+                  },
+                ].map((m) => (
+                  <Line
+                    key={m.label}
+                    style={{
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: 12,
+                    }}
+                  >
+                    <Copy size={12} muted style={{ flex: 1 }}>
+                      {m.label}
+                    </Copy>
+                    <Copy
+                      size={14}
+                      weight="semibold"
+                      style={{ color: m.color ?? t.text }}
+                    >
+                      {m.value}
+                    </Copy>
+                  </Line>
+                ))}
+              </View>
+              <Copy
+                size={12}
+                weight="medium"
+                style={{
+                  paddingHorizontal: 4,
+                  marginTop: 8,
+                  color:
+                    f.low.value < 0
+                      ? t.bad
+                      : f.low.value < floor
+                        ? t.warn
+                        : t.muted,
+                }}
+              >
+                Lowest point {money(f.low.value)} · {C.shortDate(f.low.day)}
+              </Copy>
+              {(() => {
+                const shown = thin(f.days.filter((x) => x.day >= range.from))
+                const every = Math.max(1, Math.round(shown.length / 5))
+                return shown.length > 1 ? (
                   <FinanceLineChart
                     height={190}
-                    labels={["", ""]}
+                    floor={floor}
+                    zero={f.low.value < 0}
+                    inspect={inspect((i) => (
+                      <>
+                        <Copy size={11} muted>
+                          {C.shortDate(shown[i].day)}
+                        </Copy>
+                        <Copy size={14} weight="semibold">
+                          {money(shown[i].balance)}
+                        </Copy>
+                        {under(shown[i].balance)}
+                      </>
+                    ))}
+                    labels={shown.map((x, i) =>
+                      i % every === 0 || i === shown.length - 1
+                        ? C.shortDate(x.day)
+                        : "",
+                    )}
                     series={[
                       {
-                        values: [f.atTo, f.atTo],
+                        values: shown.map((x) => x.balance),
                         color: t.fin,
                         area: true,
                       },
                     ]}
                   />
-                </View>
-              )
-            })()}
-          </Frame>
-        </>
-      )}
-      {!range && (
-        <Frame
-          style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
-        >
-          <View style={{ paddingHorizontal: 4, gap: 8 }}>
-            <View>
-              <Copy size={12} muted>
-                Available money by {last ? C.monthLabel(last.key, true) : ""}
-              </Copy>
-              <Copy size={30} weight="displayMedium" fit>
-                {money(last?.end ?? proj.start)}
-              </Copy>
-              {whatIf && last && (
-                <Copy size={12} muted>
-                  vs {money(last.endBase)} without it
-                </Copy>
-              )}
-            </View>
-            <Line style={{ gap: 12, alignItems: "flex-start" }}>
-              <View style={{ flex: 1 }}>
-                <Copy size={12} muted>
-                  Avg left over
-                </Copy>
-                <Copy
-                  size={12}
-                  weight="semibold"
-                  style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}
-                >
-                  {proj.avgSurplus >= 0 ? "+" : "−"}
-                  {money(Math.abs(proj.avgSurplus))} a month
-                </Copy>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Copy size={12} muted>
-                  Lowest point
-                </Copy>
-                <Copy
-                  size={12}
-                  weight="semibold"
-                  style={{ color: proj.low.value < floor ? t.warn : t.text }}
-                >
-                  {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
-                </Copy>
-              </View>
-            </Line>
-          </View>
-          <FinanceLineChart
-            height={190}
-            floor={floor}
-            labels={["Now", ...proj.months.map((m) => C.monthLabel(m.key))]}
-            series={[
-              {
-                values: [proj.start, ...proj.months.map((m) => m.endBase)],
-                color: whatIf ? t.muted : t.fin,
-                area: !whatIf,
-              },
-              ...(whatIf
-                ? [
-                    {
-                      values: [proj.start, ...proj.months.map((m) => m.end)],
-                      color: verdict === "ok" ? t.fin : color,
-                      area: true,
-                    },
-                  ]
-                : []),
-            ]}
-          />
-          <Line style={{ gap: 16, paddingHorizontal: 4 }}>
-            <Copy size={12} muted>
-              ━ Baseline
-            </Copy>
-            {whatIf && (
-              <Copy size={12} muted>
-                ━ With {name || "purchase"}
-              </Copy>
-            )}
-            <Copy size={12} muted>
-              ┄ Minimum balance
-            </Copy>
-          </Line>
-        </Frame>
-      )}
-      <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-        {toggle(
-          "Include average everyday spending",
-          `Food, Grab, shopping… 3-month average of ${money(proj.avgUnplanned)}/mo. Off = planned items only (optimistic).`,
-          s.settings.includeUnplanned,
-          (includeUnplanned) => A.updateSettings({ includeUnplanned }),
+                ) : (
+                  <View style={{ opacity: 0.32 }}>
+                    <FinanceLineChart
+                      height={190}
+                      labels={["", ""]}
+                      series={[
+                        {
+                          values: [f.atTo, f.atTo],
+                          color: t.fin,
+                          area: true,
+                        },
+                      ]}
+                    />
+                  </View>
+                )
+              })()}
+            </Frame>
+          </>
         )}
-      </Frame>
-      {!whatOpen ? (
-        <Button
-          icon={Sparkles}
-          onPress={() => {
-            setRange(null)
-            setWhat(true)
-          }}
-        >
-          What if I buy…
-        </Button>
-      ) : range ? null : (
-        <Frame style={{ padding: 16, borderColor: `${t.fin}66`, gap: 12 }}>
-          <Line style={{ justifyContent: "space-between" }}>
-            <Line style={{ gap: 8 }}>
-              <Sparkles size={16} color={t.fin} />
-              <Copy weight="semibold">Plan a purchase</Copy>
-            </Line>
-            <IconTap
-              icon={X}
-              label="Close what-if"
-              onPress={() => setWhat(false)}
-            />
-          </Line>
-          <Line>
-            <View style={{ flex: 1 }}>
-              <Field label="Item" value={name} onChangeText={setName} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Field
-                label={`Price ${currencySymbol()}`}
-                keyboardType="number-pad"
-                value={amount}
-                onChangeText={(v) => setAmount(v.replace(/[^\d]/g, ""))}
-              />
-            </View>
-          </Line>
-          {chiprow(
-            [10000, 25000, 45000, 100000].map((v) => (
-              <FinChip
-                key={v}
-                label={formatMoney(v)}
-                active={Number(amount) === v}
-                onPress={() => setAmount(String(v))}
-              />
-            )),
-          )}
-          <Copy size={12} muted>
-            When
-          </Copy>
-          {chiprow(
-            Array.from({ length: 12 }, (_, i) => C.addMonths(cur, i)).map(
-              (m) => (
-                <FinChip
-                  key={m}
-                  label={`${C.monthLabel(m)}${m.slice(0, 4) !== cur.slice(0, 4) ? ` '${m.slice(2, 4)}` : ""}`}
-                  active={month === m}
-                  onPress={() => setMonth(m)}
-                />
-              ),
-            ),
-          )}
-          <Copy size={12} muted>
-            How
-          </Copy>
-          <Segmented
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: "lump", label: "Pay in full" },
-              { value: "inst", label: "Installments" },
-            ]}
-          />
-          {mode === "inst" ? (
-            <>
-              <Line style={{ gap: 8, flexWrap: "wrap" }}>
-                {INSTALLMENT_TERMS.map((v) => (
-                  <FinChip
-                    key={v}
-                    label={`${v}×`}
-                    active={custom === null && n === v}
-                    onPress={() => {
-                      setCustom(null)
-                      setN(v)
-                    }}
-                  />
-                ))}
-                <FinChip
-                  label="Custom"
-                  active={custom !== null}
-                  onPress={() => setCustom("")}
-                />
-              </Line>
-              {custom !== null && (
-                <View>
-                  <Field
-                    label="Months to pay"
-                    keyboardType="number-pad"
-                    value={custom}
-                    autoFocus
-                    onChangeText={(v) => {
-                      const digits = v.replace(/[^\d]/g, "").slice(0, 2)
-                      setCustom(digits)
-                      if (Number(digits) >= 1) setN(clampTerm(Number(digits)))
-                    }}
-                    placeholder={String(n)}
-                    onBlur={() => custom && setCustom(String(n))}
-                  />
-                  {(Number(custom) > MAX_TERM || Number(custom) === 1) && (
-                    <Copy size={12} muted>
-                      {Number(custom) === 1
-                        ? "One month is paying in full, so this plans 2."
-                        : `Plans run up to ${MAX_TERM} months, so this plans ${MAX_TERM}.`}
-                    </Copy>
-                  )}
-                </View>
-              )}
-              <MoneyInput
-                label={`Downpayment ${currencySymbol()}`}
-                placeholder="0"
-                value={down}
-                onChange={setDown}
-              />
-              <Line style={{ gap: 12, alignItems: "flex-end" }}>
+        {!range && (
+          <Frame
+            style={{ paddingHorizontal: 12, paddingTop: 16, paddingBottom: 8 }}
+          >
+            <View style={{ paddingHorizontal: 4, gap: 8 }}>
+              <View>
+                <Copy size={12} muted>
+                  Available money by {last ? C.monthLabel(last.key, true) : ""}
+                </Copy>
+                <Copy size={30} weight="displayMedium" fit>
+                  {money(last?.end ?? proj.start)}
+                </Copy>
+                {whatIf && last && (
+                  <Copy size={12} muted>
+                    vs {money(last.endBase)} without it
+                  </Copy>
+                )}
+              </View>
+              <Line style={{ gap: 12, alignItems: "flex-start" }}>
                 <View style={{ flex: 1 }}>
-                  <Stepper
-                    label="Interest"
-                    unit="%"
-                    value={rate}
-                    onChange={setRate}
-                    step={0.25}
-                    max={99}
-                    decimals={2}
-                    compact
-                  />
-                </View>
-                <View style={{ width: 150 }}>
-                  <Segmented
-                    value={per}
-                    onChange={setPer}
-                    options={[
-                      { value: "month", label: "/ month" },
-                      { value: "year", label: "/ year" },
-                    ]}
-                  />
-                </View>
-              </Line>
-              {plan && (
-                <View testID="installment-plan" style={{ gap: 2 }}>
-                  <Copy weight="semibold">
-                    {money(plan.monthlyMinor / 100)}/mo × {n} on{" "}
-                    {card?.name ?? "a credit card"}
+                  <Copy size={12} muted>
+                    Avg left over
                   </Copy>
                   <Copy
                     size={12}
-                    style={{ color: plan.interestMinor ? t.warn : t.good }}
+                    weight="semibold"
+                    style={{ color: proj.avgSurplus >= 0 ? t.good : t.bad }}
                   >
-                    {plan.interestMinor
-                      ? `${money(plan.interestMinor / 100)} interest`
-                      : "No interest"}
-                  </Copy>
-                  <Copy size={12} muted>
-                    {money(plan.totalMinor / 100)} in all
-                    {downMinor > 0
-                      ? ` · ${money(downMinor / 100)} down in ${C.monthLabel(month)}`
-                      : ""}
+                    {proj.avgSurplus >= 0 ? "+" : "−"}
+                    {money(Math.abs(proj.avgSurplus))} a month
                   </Copy>
                 </View>
-              )}
-            </>
-          ) : (
-            chiprow(
-              payable.map((a) => (
-                <FinChip
-                  key={a.id}
-                  label={a.name}
-                  active={acct === a.id}
-                  onPress={() => setAcct(a.id)}
-                />
-              )),
-            )
-          )}
-          {whatIf && (
-            <View
-              style={{
-                borderRadius: 16,
-                padding: 12,
-                backgroundColor: `${color}1a`,
-                gap: 8,
-              }}
-            >
-              <Copy weight="semibold" style={{ color }}>
-                {verdict === "ok"
-                  ? "✓ Affordable"
-                  : verdict === "tight"
-                    ? "Affordable, but dips below your minimum balance"
-                    : "Not affordable — you'd go negative"}
-              </Copy>
-              <Line style={{ gap: 8, alignItems: "flex-start" }}>
-                {[
-                  {
-                    label: "New low",
-                    value: money(proj.low.value),
-                    detail: C.monthLabel(proj.low.key),
-                  },
-                  {
-                    label: "Recovers in",
-                    value:
-                      mode === "inst"
-                        ? "—"
-                        : proj.recoveryMonths === null
-                          ? `>${horizon} mo`
-                          : `${proj.recoveryMonths} mo`,
-                    detail: mode === "inst" ? "spread out" : "to pre-buy level",
-                  },
-                  {
-                    label: "End balance",
-                    value: money(last?.end ?? 0),
-                    detail: `−${money((last?.endBase ?? 0) - (last?.end ?? 0))}`,
-                  },
-                ].map((x) => (
-                  <View key={x.label} style={{ flex: 1 }}>
-                    <Copy size={12} muted>
-                      {x.label}
-                    </Copy>
-                    <Copy size={12} weight="semibold">
-                      {x.value}
-                    </Copy>
-                    <Copy size={12} muted>
-                      {x.detail}
-                    </Copy>
-                  </View>
-                ))}
+                <View style={{ flex: 1 }}>
+                  <Copy size={12} muted>
+                    Lowest point
+                  </Copy>
+                  <Copy
+                    size={12}
+                    weight="semibold"
+                    style={{ color: proj.low.value < floor ? t.warn : t.text }}
+                  >
+                    {money(proj.low.value)} · {C.monthLabel(proj.low.key)}
+                  </Copy>
+                </View>
               </Line>
-              {proj.low.value < floor && (
-                <Copy size={12}>
-                  Your safety floor is {money(floor)}.{" "}
-                  {verdict === "tight"
-                    ? "Try a later month or installments."
-                    : "Consider installments or saving first."}
+            </View>
+            <FinanceLineChart
+              height={190}
+              floor={floor}
+              inspect={inspect((i) => {
+                const m = i > 0 ? proj.months[i - 1] : null
+                const base = m ? m.endBase : proj.start
+                const withIt = m ? m.end : proj.start
+                return (
+                  <>
+                    <Copy size={11} muted>
+                      {m ? `By ${C.monthLabel(m.key, true)}` : "Now"}
+                    </Copy>
+                    {whatIf ? (
+                      <>
+                        <Copy size={14} weight="semibold">
+                          {money(withIt)}
+                        </Copy>
+                        <Copy size={11} muted>
+                          With {name || "purchase"}
+                        </Copy>
+                        <Copy size={12} weight="medium">
+                          {money(base)}{" "}
+                          <Copy size={11} muted>
+                            baseline
+                          </Copy>
+                        </Copy>
+                        {withIt !== base && (
+                          <Copy
+                            size={11}
+                            weight="semibold"
+                            style={{ color: withIt < base ? t.bad : t.good }}
+                          >
+                            {withIt < base ? "−" : "+"}
+                            {money(Math.abs(withIt - base))}
+                          </Copy>
+                        )}
+                      </>
+                    ) : (
+                      <Copy size={14} weight="semibold">
+                        {money(base)}
+                      </Copy>
+                    )}
+                    {under(whatIf ? withIt : base)}
+                  </>
+                )
+              })}
+              labels={["Now", ...proj.months.map((m) => C.monthLabel(m.key))]}
+              series={[
+                {
+                  values: [proj.start, ...proj.months.map((m) => m.endBase)],
+                  color: whatIf ? t.muted : t.fin,
+                  area: !whatIf,
+                },
+                ...(whatIf
+                  ? [
+                      {
+                        values: [proj.start, ...proj.months.map((m) => m.end)],
+                        color: verdict === "ok" ? t.fin : color,
+                        area: true,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+            <Line style={{ gap: 16, paddingHorizontal: 4 }}>
+              <Copy size={12} muted>
+                ━ Baseline
+              </Copy>
+              {whatIf && (
+                <Copy size={12} muted>
+                  ━ With {name || "purchase"}
                 </Copy>
               )}
-            </View>
+              <Copy size={12} muted>
+                ┄ Minimum balance
+              </Copy>
+            </Line>
+          </Frame>
+        )}
+        <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+          {toggle(
+            "Include average everyday spending",
+            `Food, Grab, shopping… 3-month average of ${money(proj.avgUnplanned)}/mo. Off = planned items only (optimistic).`,
+            s.settings.includeUnplanned,
+            (includeUnplanned) => A.updateSettings({ includeUnplanned }),
           )}
-          <Line style={{ gap: 8 }}>
-            <View style={{ flex: 1 }}>
-              <Button disabled={!whatIf} onPress={() => save(false)}>
-                Save as scheduled
-              </Button>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                tone="quiet"
-                disabled={!whatIf}
-                onPress={() => save(true)}
-              >
-                Save as draft
-              </Button>
-            </View>
-          </Line>
-          <Button tone="quiet" onPress={() => setWhat(false)}>
-            Discard
-          </Button>
         </Frame>
-      )}
-      {drafts.length > 0 && (
-        <View style={{ marginTop: -12 }}>
-          <SectionHeading>What-if drafts</SectionHeading>
-          {chiprow(
-            drafts.map((p) => (
-              <FinChip
-                key={p.id}
-                label={`${p.name} · ${money(p.amount)}`}
-                onPress={() => {
-                  setName(p.name.replace(" (draft)", ""))
-                  setAmount(String(p.amount))
-                  if (p.schedule.kind === "once")
-                    setMonth(p.schedule.date.slice(0, 7))
-                  setMode("lump")
-                  setWhat(true)
-                }}
-              />
-            )),
-          )}
-        </View>
-      )}
-      <Line style={{ alignItems: "stretch" }}>
-        <Frame style={{ flex: 1, padding: 16 }}>
-          <Copy size={30} weight="displayMedium" fit>
-            {money(proj.start)}
-          </Copy>
-          <Copy size={12} muted>
-            Available now
-          </Copy>
-        </Frame>
-        <Frame style={{ flex: 1, padding: 16 }}>
-          <Copy
-            size={30}
-            weight="displayMedium"
-            style={{ color: runway >= 3 ? t.fin : t.text }}
-          >
-            {runway.toFixed(1)} mo
-          </Copy>
-          <Copy size={12} muted>
-            Months you could cover
-          </Copy>
-          <Copy
-            size={12}
-            style={{
-              color: runway >= 3 ? t.good : runway >= 1 ? t.warn : t.bad,
+        {!whatOpen ? (
+          <Button
+            icon={Sparkles}
+            onPress={() => {
+              setRange(null)
+              setWhat(true)
             }}
           >
-            {runway >= 3
-              ? "≥ 3 months — healthy"
-              : runway >= 1
-                ? "Aim for 3 months"
-                : "Under 1 month"}
-          </Copy>
-        </Frame>
-      </Line>
-      {range && f ? (
-        <View style={{ marginTop: -12 }}>
-          <SectionHeading>Scheduled in this range</SectionHeading>
-          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-            {f.items.map((x) => (
-              <OutlookRow key={`${x.item.id}-${x.orig}`} x={x} />
-            ))}
-            {!f.items.length && (
-              <View style={{ paddingVertical: 12 }}>
-                <View style={{ opacity: 0.32 }}>
-                  <Line>
-                    <View
-                      style={{
-                        height: 40,
-                        width: 40,
-                        borderRadius: 20,
-                        backgroundColor: t.soft,
+            What if I buy…
+          </Button>
+        ) : range ? null : (
+          <Frame style={{ padding: 16, borderColor: `${t.fin}66`, gap: 12 }}>
+            <Line style={{ justifyContent: "space-between" }}>
+              <Line style={{ gap: 8 }}>
+                <Sparkles size={16} color={t.fin} />
+                <Copy weight="semibold">Plan a purchase</Copy>
+              </Line>
+              <IconTap
+                icon={X}
+                label="Close what-if"
+                onPress={() => setWhat(false)}
+              />
+            </Line>
+            <Line>
+              <View style={{ flex: 1 }}>
+                <Field label="Item" value={name} onChangeText={setName} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Field
+                  label={`Price ${currencySymbol()}`}
+                  keyboardType="number-pad"
+                  value={amount}
+                  onChangeText={(v) => setAmount(v.replace(/[^\d]/g, ""))}
+                />
+              </View>
+            </Line>
+            {chiprow(
+              [10000, 25000, 45000, 100000].map((v) => (
+                <FinChip
+                  key={v}
+                  label={formatMoney(v)}
+                  active={Number(amount) === v}
+                  onPress={() => setAmount(String(v))}
+                />
+              )),
+            )}
+            <Copy size={12} muted>
+              When
+            </Copy>
+            {chiprow(
+              Array.from({ length: 12 }, (_, i) => C.addMonths(cur, i)).map(
+                (m) => (
+                  <FinChip
+                    key={m}
+                    label={`${C.monthLabel(m)}${m.slice(0, 4) !== cur.slice(0, 4) ? ` '${m.slice(2, 4)}` : ""}`}
+                    active={month === m}
+                    onPress={() => setMonth(m)}
+                  />
+                ),
+              ),
+            )}
+            <Copy size={12} muted>
+              How
+            </Copy>
+            <Segmented
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: "lump", label: "Pay in full" },
+                { value: "inst", label: "Installments" },
+              ]}
+            />
+            {mode === "inst" ? (
+              <>
+                <Line style={{ gap: 8, flexWrap: "wrap" }}>
+                  {INSTALLMENT_TERMS.map((v) => (
+                    <FinChip
+                      key={v}
+                      label={`${v}×`}
+                      active={custom === null && n === v}
+                      onPress={() => {
+                        setCustom(null)
+                        setN(v)
                       }}
                     />
-                    <Copy style={{ flex: 1 }}>Rent</Copy>
-                    <Copy>−{money(0)}</Copy>
-                  </Line>
-                </View>
-                <Copy size={12} muted style={{ marginTop: 8 }}>
-                  Nothing scheduled in this range
+                  ))}
+                  <FinChip
+                    label="Custom"
+                    active={custom !== null}
+                    onPress={() => setCustom("")}
+                  />
+                </Line>
+                {custom !== null && (
+                  <View>
+                    <Field
+                      label="Months to pay"
+                      keyboardType="number-pad"
+                      value={custom}
+                      autoFocus
+                      onChangeText={(v) => {
+                        const digits = v.replace(/[^\d]/g, "").slice(0, 2)
+                        setCustom(digits)
+                        if (Number(digits) >= 1) setN(clampTerm(Number(digits)))
+                      }}
+                      placeholder={String(n)}
+                      onBlur={() => custom && setCustom(String(n))}
+                    />
+                    {(Number(custom) > MAX_TERM || Number(custom) === 1) && (
+                      <Copy size={12} muted>
+                        {Number(custom) === 1
+                          ? "One month is paying in full, so this plans 2."
+                          : `Plans run up to ${MAX_TERM} months, so this plans ${MAX_TERM}.`}
+                      </Copy>
+                    )}
+                  </View>
+                )}
+                <MoneyInput
+                  label={`Downpayment ${currencySymbol()}`}
+                  placeholder="0"
+                  value={down}
+                  onChange={setDown}
+                />
+                <Line style={{ gap: 12, alignItems: "flex-end" }}>
+                  <View style={{ flex: 1 }}>
+                    <Stepper
+                      label="Interest"
+                      unit="%"
+                      value={rate}
+                      onChange={setRate}
+                      step={0.25}
+                      max={99}
+                      decimals={2}
+                      compact
+                    />
+                  </View>
+                  <View style={{ width: 150 }}>
+                    <Segmented
+                      value={per}
+                      onChange={setPer}
+                      options={[
+                        { value: "month", label: "/ month" },
+                        { value: "year", label: "/ year" },
+                      ]}
+                    />
+                  </View>
+                </Line>
+                {plan && (
+                  <View testID="installment-plan" style={{ gap: 2 }}>
+                    <Copy weight="semibold">
+                      {money(plan.monthlyMinor / 100)}/mo × {n} on{" "}
+                      {card?.name ?? "a credit card"}
+                    </Copy>
+                    <Copy
+                      size={12}
+                      style={{ color: plan.interestMinor ? t.warn : t.good }}
+                    >
+                      {plan.interestMinor
+                        ? `${money(plan.interestMinor / 100)} interest`
+                        : "No interest"}
+                    </Copy>
+                    <Copy size={12} muted>
+                      {money(plan.totalMinor / 100)} in all
+                      {downMinor > 0
+                        ? ` · ${money(downMinor / 100)} down in ${C.monthLabel(month)}`
+                        : ""}
+                    </Copy>
+                  </View>
+                )}
+              </>
+            ) : (
+              chiprow(
+                payable.map((a) => (
+                  <FinChip
+                    key={a.id}
+                    label={a.name}
+                    active={acct === a.id}
+                    onPress={() => setAcct(a.id)}
+                  />
+                )),
+              )
+            )}
+            {whatIf && (
+              <View
+                style={{
+                  borderRadius: 16,
+                  padding: 12,
+                  backgroundColor: `${color}1a`,
+                  gap: 8,
+                }}
+              >
+                <Copy weight="semibold" style={{ color }}>
+                  {verdict === "ok"
+                    ? "✓ Affordable"
+                    : verdict === "tight"
+                      ? "Affordable, but dips below your minimum balance"
+                      : "Not affordable — you'd go negative"}
                 </Copy>
+                <Line style={{ gap: 8, alignItems: "flex-start" }}>
+                  {[
+                    {
+                      label: "New low",
+                      value: money(proj.low.value),
+                      detail: C.monthLabel(proj.low.key),
+                    },
+                    {
+                      label: "Recovers in",
+                      value:
+                        mode === "inst"
+                          ? "—"
+                          : proj.recoveryMonths === null
+                            ? `>${horizon} mo`
+                            : `${proj.recoveryMonths} mo`,
+                      detail:
+                        mode === "inst" ? "spread out" : "to pre-buy level",
+                    },
+                    {
+                      label: "End balance",
+                      value: money(last?.end ?? 0),
+                      detail: `−${money((last?.endBase ?? 0) - (last?.end ?? 0))}`,
+                    },
+                  ].map((x) => (
+                    <View key={x.label} style={{ flex: 1 }}>
+                      <Copy size={12} muted>
+                        {x.label}
+                      </Copy>
+                      <Copy size={12} weight="semibold">
+                        {x.value}
+                      </Copy>
+                      <Copy size={12} muted>
+                        {x.detail}
+                      </Copy>
+                    </View>
+                  ))}
+                </Line>
+                {proj.low.value < floor && (
+                  <Copy size={12}>
+                    Your safety floor is {money(floor)}.{" "}
+                    {verdict === "tight"
+                      ? "Try a later month or installments."
+                      : "Consider installments or saving first."}
+                  </Copy>
+                )}
               </View>
             )}
-            <Copy
-              size={12}
-              weight="medium"
-              style={{
-                paddingVertical: 12,
-                borderTopWidth: 1,
-                borderColor: border(t.line, 0.6),
-              }}
-            >
-              Expected expenses {dayMonth(range.from)}–{dayMonth(range.to)}:{" "}
-              {money(f.bills + f.everyday)}
+            <Line style={{ gap: 8 }}>
+              <View style={{ flex: 1 }}>
+                <Button disabled={!whatIf} onPress={() => save(false)}>
+                  Save as scheduled
+                </Button>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  tone="quiet"
+                  disabled={!whatIf}
+                  onPress={() => save(true)}
+                >
+                  Save as draft
+                </Button>
+              </View>
+            </Line>
+            <Button tone="quiet" onPress={() => setWhat(false)}>
+              Discard
+            </Button>
+          </Frame>
+        )}
+        {drafts.length > 0 && (
+          <View style={{ marginTop: -12 }}>
+            <SectionHeading>What-if drafts</SectionHeading>
+            {chiprow(
+              drafts.map((p) => (
+                <FinChip
+                  key={p.id}
+                  label={`${p.name} · ${money(p.amount)}`}
+                  onPress={() => {
+                    setName(p.name.replace(" (draft)", ""))
+                    setAmount(String(p.amount))
+                    if (p.schedule.kind === "once")
+                      setMonth(p.schedule.date.slice(0, 7))
+                    setMode("lump")
+                    setWhat(true)
+                  }}
+                />
+              )),
+            )}
+          </View>
+        )}
+        <Line style={{ alignItems: "stretch" }}>
+          <Frame style={{ flex: 1, padding: 16 }}>
+            <Copy size={30} weight="displayMedium" fit>
+              {money(proj.start)}
+            </Copy>
+            <Copy size={12} muted>
+              Available now
             </Copy>
           </Frame>
-        </View>
-      ) : (
-        <View style={{ marginTop: -12 }}>
-          <SectionHeading>Left over each month</SectionHeading>
-          {/* One row per month: the balance it ends on, then what came in,
+          <Frame style={{ flex: 1, padding: 16 }}>
+            <Copy
+              size={30}
+              weight="displayMedium"
+              style={{ color: runway >= 3 ? t.fin : t.text }}
+            >
+              {runway.toFixed(1)} mo
+            </Copy>
+            <Copy size={12} muted>
+              Months you could cover
+            </Copy>
+            <Copy
+              size={12}
+              style={{
+                color: runway >= 3 ? t.good : runway >= 1 ? t.warn : t.bad,
+              }}
+            >
+              {runway >= 3
+                ? "≥ 3 months — healthy"
+                : runway >= 1
+                  ? "Aim for 3 months"
+                  : "Under 1 month"}
+            </Copy>
+          </Frame>
+        </Line>
+        {range && f ? (
+          <View style={{ marginTop: -12 }}>
+            <SectionHeading>Scheduled in this range</SectionHeading>
+            <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+              {f.items.map((x) => (
+                <OutlookRow key={`${x.item.id}-${x.orig}`} x={x} />
+              ))}
+              {!f.items.length && (
+                <View style={{ paddingVertical: 12 }}>
+                  <View style={{ opacity: 0.32 }}>
+                    <Line>
+                      <View
+                        style={{
+                          height: 40,
+                          width: 40,
+                          borderRadius: 20,
+                          backgroundColor: t.soft,
+                        }}
+                      />
+                      <Copy style={{ flex: 1 }}>Rent</Copy>
+                      <Copy>−{money(0)}</Copy>
+                    </Line>
+                  </View>
+                  <Copy size={12} muted style={{ marginTop: 8 }}>
+                    Nothing scheduled in this range
+                  </Copy>
+                </View>
+              )}
+              <Copy
+                size={12}
+                weight="medium"
+                style={{
+                  paddingVertical: 12,
+                  borderTopWidth: 1,
+                  borderColor: border(t.line, 0.6),
+                }}
+              >
+                Expected expenses {dayMonth(range.from)}–{dayMonth(range.to)}:{" "}
+                {money(f.bills + f.everyday)}
+              </Copy>
+            </Frame>
+          </View>
+        ) : (
+          <View style={{ marginTop: -12 }}>
+            <SectionHeading>Left over each month</SectionHeading>
+            {/* One row per month: the balance it ends on, then what came in,
               went out and was left over, each in full. Five columns of full
               amounts do not fit a phone, so the breakdown wraps at its dots
               instead of being cut or abbreviated. */}
-          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-            {proj.months.map((m, i) => (
-              <View
-                key={m.key}
-                style={{
-                  paddingVertical: 10,
-                  marginHorizontal: -16,
-                  paddingHorizontal: 16,
-                  borderTopWidth: i ? 1 : 0,
-                  borderColor: border(t.line, 0.4),
-                  backgroundColor: m.whatIf > 0 ? `${t.fin}0d` : undefined,
-                }}
-              >
-                <Line
+            <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
+              {proj.months.map((m, i) => (
+                <View
+                  key={m.key}
                   style={{
-                    justifyContent: "space-between",
-                    alignItems: "baseline",
-                    gap: 12,
+                    paddingVertical: 10,
+                    marginHorizontal: -16,
+                    paddingHorizontal: 16,
+                    borderTopWidth: i ? 1 : 0,
+                    borderColor: border(t.line, 0.4),
+                    backgroundColor: m.whatIf > 0 ? `${t.fin}0d` : undefined,
                   }}
                 >
-                  <Copy size={14} weight="medium" style={{ flex: 1 }}>
-                    {C.monthLabel(m.key)}
-                    {i === 0 ? " (rest)" : ""}
-                    {m.whatIf > 0 ? " •" : ""}
-                  </Copy>
-                  <Copy
-                    size={14}
-                    weight="semibold"
+                  <Line
                     style={{
-                      color:
-                        m.end < floor ? (m.end < 0 ? t.bad : t.warn) : t.text,
+                      justifyContent: "space-between",
+                      alignItems: "baseline",
+                      gap: 12,
                     }}
                   >
-                    {money(m.end)}
+                    <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                      {C.monthLabel(m.key)}
+                      {i === 0 ? " (rest)" : ""}
+                      {m.whatIf > 0 ? " •" : ""}
+                    </Copy>
+                    <Copy
+                      size={14}
+                      weight="semibold"
+                      style={{
+                        color:
+                          m.end < floor ? (m.end < 0 ? t.bad : t.warn) : t.text,
+                      }}
+                    >
+                      {money(m.end)}
+                    </Copy>
+                  </Line>
+                  <Copy size={12} muted style={{ marginTop: 2 }}>
+                    In <Text style={{ color: t.good }}>{money(m.inflow)}</Text>
+                    {" · "}Out {money(m.planned + m.unplanned + m.whatIf)}
+                    {" · "}Net{" "}
+                    <Text style={{ color: m.net < 0 ? t.bad : t.good }}>
+                      {m.net >= 0 ? "+" : "−"}
+                      {money(Math.abs(m.net))}
+                    </Text>
                   </Copy>
-                </Line>
-                <Copy size={12} muted style={{ marginTop: 2 }}>
-                  In <Text style={{ color: t.good }}>{money(m.inflow)}</Text>
-                  {" · "}Out {money(m.planned + m.unplanned + m.whatIf)}
-                  {" · "}Net{" "}
-                  <Text style={{ color: m.net < 0 ? t.bad : t.good }}>
-                    {m.net >= 0 ? "+" : "−"}
-                    {money(Math.abs(m.net))}
-                  </Text>
-                </Copy>
-              </View>
-            ))}
+                </View>
+              ))}
+            </Frame>
+          </View>
+        )}
+        <Tap onPress={() => setAssump(!assump)}>
+          <Line style={{ justifyContent: "space-between", padding: 4 }}>
+            <Copy size={12} weight="medium" muted style={{ letterSpacing: 1 }}>
+              ASSUMPTIONS
+            </Copy>
+            <ChevronDown
+              size={16}
+              color={t.muted}
+              style={{ transform: [{ rotate: assump ? "180deg" : "0deg" }] }}
+            />
+          </Line>
+        </Tap>
+        {assump && (
+          <Frame style={{ padding: 16 }}>
+            <Copy size={14} weight="medium">
+              Starting from (cash & bank accounts)
+            </Copy>
+            {s.accounts
+              .filter((a) => a.inProjection && !a.archived)
+              .map((a) => (
+                <View key={a.id}>
+                  {toggle(
+                    a.name,
+                    money(bal[a.id]),
+                    !excluded.includes(a.id),
+                    (v) =>
+                      setExcluded(
+                        v
+                          ? excluded.filter((id) => id !== a.id)
+                          : [...excluded, a.id],
+                      ),
+                  )}
+                </View>
+              ))}
+            <Copy size={14} weight="medium">
+              Planned items
+            </Copy>
+            {s.planned
+              .filter((p) => !p.archived && !p.isWhatIf && p.inProjection)
+              .map((p) => (
+                <View key={p.id}>
+                  {toggle(
+                    p.name,
+                    `${money(p.amount)} · ${C.scheduleLabel(p)}`,
+                    !s.settings.projExcludedPlanned.includes(p.id),
+                    (v) =>
+                      A.updateSettings({
+                        projExcludedPlanned: v
+                          ? s.settings.projExcludedPlanned.filter(
+                              (id) => id !== p.id,
+                            )
+                          : [...s.settings.projExcludedPlanned, p.id],
+                      }),
+                  )}
+                </View>
+              ))}
+            <MoneyInput
+              label={`Minimum balance ${currencySymbol()}`}
+              value={floorDraft ?? (floor ? String(floor) : "")}
+              onChange={(v) => {
+                setFloorDraft(v)
+                A.updateSettings({ safetyFloor: Number(v) || 0 })
+              }}
+            />
+            <Copy size={12} muted>
+              Projection uses scheduled income and expenses, starting balances,
+              and your selected everyday spending average. Actual results will
+              vary.
+            </Copy>
           </Frame>
-        </View>
-      )}
-      <Tap onPress={() => setAssump(!assump)}>
-        <Line style={{ justifyContent: "space-between", padding: 4 }}>
-          <Copy size={12} weight="medium" muted style={{ letterSpacing: 1 }}>
-            ASSUMPTIONS
-          </Copy>
-          <ChevronDown
-            size={16}
-            color={t.muted}
-            style={{ transform: [{ rotate: assump ? "180deg" : "0deg" }] }}
-          />
-        </Line>
-      </Tap>
-      {assump && (
-        <Frame style={{ padding: 16 }}>
-          <Copy size={14} weight="medium">
-            Starting from (cash & bank accounts)
-          </Copy>
-          {s.accounts
-            .filter((a) => a.inProjection && !a.archived)
-            .map((a) => (
-              <View key={a.id}>
-                {toggle(
-                  a.name,
-                  money(bal[a.id]),
-                  !excluded.includes(a.id),
-                  (v) =>
-                    setExcluded(
-                      v
-                        ? excluded.filter((id) => id !== a.id)
-                        : [...excluded, a.id],
-                    ),
-                )}
-              </View>
-            ))}
-          <Copy size={14} weight="medium">
-            Planned items
-          </Copy>
-          {s.planned
-            .filter((p) => !p.archived && !p.isWhatIf && p.inProjection)
-            .map((p) => (
-              <View key={p.id}>
-                {toggle(
-                  p.name,
-                  `${money(p.amount)} · ${C.scheduleLabel(p)}`,
-                  !s.settings.projExcludedPlanned.includes(p.id),
-                  (v) =>
-                    A.updateSettings({
-                      projExcludedPlanned: v
-                        ? s.settings.projExcludedPlanned.filter(
-                            (id) => id !== p.id,
-                          )
-                        : [...s.settings.projExcludedPlanned, p.id],
-                    }),
-                )}
-              </View>
-            ))}
-          <MoneyInput
-            label={`Minimum balance ${currencySymbol()}`}
-            value={floorDraft ?? (floor ? String(floor) : "")}
-            onChange={(v) => {
-              setFloorDraft(v)
-              A.updateSettings({ safetyFloor: Number(v) || 0 })
-            }}
-          />
-          <Copy size={12} muted>
-            Projection uses scheduled income and expenses, starting balances,
-            and your selected everyday spending average. Actual results will
-            vary.
-          </Copy>
-        </Frame>
-      )}
+        )}
+      </View>
     </Screen>
   )
 }

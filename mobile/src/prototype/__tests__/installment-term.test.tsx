@@ -29,6 +29,13 @@ jest.mock("react-native-reanimated", () => ({
   runOnJS: (fn: unknown) => fn,
   useReducedMotion: () => true,
 }))
+jest.mock("react-native-gesture-handler", () => {
+  const chain: object = new Proxy({}, { get: () => () => chain })
+  return {
+    Gesture: new Proxy({}, { get: () => () => chain }),
+    GestureDetector: ({ children }: { children: ReactNode }) => children,
+  }
+})
 jest.mock("sonner-native", () => ({
   toast: Object.assign(jest.fn(), {
     success: jest.fn(),
