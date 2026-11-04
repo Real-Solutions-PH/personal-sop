@@ -15,7 +15,9 @@ the same code); ``report.py --gate`` holds the whole run to
 
 import json
 import os
+import signal
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
@@ -35,12 +37,63 @@ OUT = Path(os.environ.get("FERN_EVAL_OUT", Path(__file__).parents[3] / "fern-eva
 ONLY = {c for c in os.environ.get("FERN_EVAL_CASES", "").split(",") if c}
 JUDGE = os.environ.get("FERN_EVAL_JUDGE", "1") == "1"
 REPEATS = int(os.environ.get("FERN_EVAL_REPEATS", "1"))
+# The model under test: the server's provider ("nebius" or "openrouter"),
+# its model id, and a reasoning effort sent as OpenRouter's
+# ``reasoning: {effort}`` ("" leaves the provider's default). Unset, the
+# run uses the server's own defaults, as production does.
+PROVIDER = os.environ.get("FERN_EVAL_PROVIDER", "")
+MODEL = os.environ.get("FERN_EVAL_MODEL", "")
+EFFORT = os.environ.get("FERN_EVAL_REASONING_EFFORT", "")
+# A case still running after this many seconds is stopped and recorded as
+# errored, so one hung model call cannot stall the whole run.
+CASE_TIMEOUT = int(os.environ.get("FERN_EVAL_CASE_TIMEOUT", "600"))
 
 pytestmark = pytest.mark.skipif(
     not LIVE, reason="Fern eval: set FERN_EVAL=1 and NEBIUS_API_KEY"
 )
 
 CASES = [c for c in harness.load_cases() if not ONLY or c.id in ONLY]
+
+
+def _model_name() -> str:
+    if settings.DEFAULT_LLM_PROVIDER == "openrouter":
+        return settings.OPENROUTER_MODEL
+    return settings.NEBIUS_MODEL
+
+
+def _use_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.modules.ai_providers import public as ai_public
+
+    if PROVIDER:
+        monkeypatch.setattr(settings, "DEFAULT_LLM_PROVIDER", PROVIDER)
+    if MODEL:
+        field = "OPENROUTER_MODEL" if PROVIDER == "openrouter" else "NEBIUS_MODEL"
+        monkeypatch.setattr(settings, field, MODEL)
+    if EFFORT:
+        build = ai_public.model_factory
+
+        def with_effort(resolved: Any) -> Any:
+            m: Any = build(resolved)
+            extra = {**(m.extra_body or {}), "reasoning": {"effort": EFFORT}}
+            return m.model_copy(update={"extra_body": extra})
+
+        monkeypatch.setattr(ai_public, "model_factory", with_effort)
+
+
+def _run_with_timeout(
+    session: Session, user: User, case: harness.Case
+) -> harness.Trace:
+    def stop(signum: int, frame: Any) -> None:  # noqa: ARG001
+        raise TimeoutError(f"case ran past {CASE_TIMEOUT} s")
+
+    previous = signal.signal(signal.SIGALRM, stop)
+    signal.alarm(CASE_TIMEOUT)
+    try:
+        # run_case records the TimeoutError as the trace's error.
+        return harness.run_case(session, user, case)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c.id for c in CASES])
@@ -52,9 +105,7 @@ def test_replay(
 ) -> None:
     # The server's key answers, as it does for Kai in production.
     monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
-    model = os.environ.get("FERN_EVAL_MODEL")
-    if model:
-        monkeypatch.setattr(settings, "NEBIUS_MODEL", model)
+    _use_model(monkeypatch)
     runs = []
     for n in range(REPEATS):
         # Each case in its own tenant: the food library is unique per tenant.
@@ -66,7 +117,7 @@ def test_replay(
         db.rollback()
         with Session(engine) as session:
             user = session.get_one(User, user_id)
-            trace = harness.run_case(session, user, case)
+            trace = _run_with_timeout(session, user, case)
         checks = harness.check(case, trace)
         # Judged here, or later over the saved results (report.py --judge).
         verdict = judge(case, trace.public()) if JUDGE else None
@@ -89,7 +140,9 @@ def test_replay(
                 "title": case.title,
                 "criteria": case.criteria,
                 "severity": case.severity,
-                "model": settings.NEBIUS_MODEL,
+                "model": _model_name(),
+                "provider": settings.DEFAULT_LLM_PROVIDER,
+                "reasoning_effort": EFFORT or None,
                 "judge_model": JUDGE_MODEL,
                 "arch": os.environ.get("FERN_ARCH", "baseline"),
                 "passed": passed,

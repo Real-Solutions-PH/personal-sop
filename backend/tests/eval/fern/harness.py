@@ -153,6 +153,9 @@ class Expect(BaseModel):
     replies_max: int | None = None
     reply_any: list[str] = Field(default_factory=list)
     reply_none: list[str] = Field(default_factory=list)
+    # Every tool call succeeds: a call that returns an error shows in the
+    # chat as a step that "couldn't finish", even when a retry then works.
+    no_tool_errors: bool = False
 
 
 class Case(BaseModel):
@@ -624,6 +627,13 @@ def check(case: Case, trace: Trace) -> list[Check]:
                 [7],
             )
         )
+    if e.no_tool_errors:
+        failed = [
+            c.name
+            for c in trace.calls
+            if isinstance(c.result, dict) and c.result.get("error")
+        ]
+        out.append(Check("no tool call failed", not failed, f"failed: {failed}", [6]))
     text = "\n".join(trace.replies).lower()
     for any_of in [e.reply_any] if e.reply_any else []:
         out.append(
