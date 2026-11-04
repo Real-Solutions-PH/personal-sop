@@ -1,119 +1,26 @@
-import {
-  addDays,
-  lastDom,
-  occurrences,
-  parseKey,
-  repeatLabel,
-  shortDate,
-} from "@domain/finance/calc"
-import type { PlannedItem, Schedule } from "@domain/finance/data"
+import { parseKey, repeatLabel, shortDate } from "@domain/finance/calc"
 import { useState } from "react"
 import { View } from "react-native"
+import {
+  isLastDay,
+  type Preset,
+  presetOf,
+  previewDates,
+  type Repeat,
+  ruleFrom,
+  type Unit,
+  unitOf,
+} from "../finance-repeat"
 import { Stepper } from "../fitness-controls"
 import { Copy } from "../native-kit"
 import { Button, Choices, Sheet, Toggle } from "../ui"
 
-/** What the Repeat row can hold: a repeating schedule, or none. */
-export type Repeat = Exclude<Schedule, { kind: "once" }> | null
-
-type Unit = "days" | "weeks" | "months" | "years"
-type Preset =
-  | "never"
-  | "weekly"
-  | "monthly"
-  | "every2"
-  | "every3"
-  | "yearly"
-  | "semimonthly"
-  | "custom"
-
-const isLastDay = (day: string) => {
-  const d = parseKey(day)
-  return d.getDate() === lastDom(d.getFullYear(), d.getMonth())
-}
-
-/** The schedule for "every ``every`` ``unit``" from ``start``: weekly on the
- * start's weekday, monthly on its day (31 = the last day), yearly on its
- * date. */
-export function ruleFrom(
-  unit: Unit,
-  every: number,
-  start: string,
-  lastDay = false,
-): Exclude<Schedule, { kind: "once" | "semimonthly" }> {
-  const d = parseKey(start)
-  const day = lastDay ? 31 : d.getDate()
-  switch (unit) {
-    case "days":
-      return { kind: "daily", every }
-    case "weeks":
-      return { kind: "weekly", every, anchor: start }
-    case "months":
-      return { kind: "monthly", day, every }
-    case "years":
-      return { kind: "yearly", month: d.getMonth() + 1, day, every }
-  }
-}
-
-/** Keeps a rule on the same footing when the start date moves: a weekly
- * anchor and a day of the month that came from the old start follow it. */
-export function followStart(rule: Repeat, from: string, to: string): Repeat {
-  if (!rule || from === to) return rule
-  const was = parseKey(from)
-  const now = parseKey(to)
-  switch (rule.kind) {
-    case "weekly":
-      return rule.anchor === from ? { ...rule, anchor: to } : rule
-    case "monthly":
-      return rule.day === was.getDate() ? { ...rule, day: now.getDate() } : rule
-    case "yearly":
-      return rule.day === was.getDate() && rule.month === was.getMonth() + 1
-        ? { ...rule, month: now.getMonth() + 1, day: now.getDate() }
-        : rule
-    default:
-      return rule
-  }
-}
-
-function presetOf(rule: Repeat): Preset {
-  if (!rule) return "never"
-  const every = "every" in rule && rule.every ? rule.every : 1
-  if (rule.kind === "semimonthly") return "semimonthly"
-  if (rule.kind === "weekly" && every === 1) return "weekly"
-  if (rule.kind === "yearly" && every === 1) return "yearly"
-  if (rule.kind === "monthly")
-    return every === 1
-      ? "monthly"
-      : every === 2
-        ? "every2"
-        : every === 3
-          ? "every3"
-          : "custom"
-  return "custom"
-}
-
-const unitOf = (rule: Repeat): Unit =>
-  rule?.kind === "daily"
-    ? "days"
-    : rule?.kind === "weekly"
-      ? "weeks"
-      : rule?.kind === "yearly"
-        ? "years"
-        : "months"
-
-/** The next few dates a rule lands on from ``start``, for the preview. */
-export function previewDates(rule: Repeat, start: string, n = 3) {
-  if (!rule) return []
-  return occurrences(
-    { schedule: rule, start, end: { kind: "never" } } as PlannedItem,
-    start,
-    addDays(start, 3700),
-  ).slice(0, n)
-}
-
-/** The plain words for the Repeat row: "Never" or "Every 3 months on the
- * 15th". */
-export const repeatText = (rule: Repeat) => (rule ? repeatLabel(rule) : "Never")
+export {
+  followStart,
+  type Repeat,
+  repeatText,
+  ruleFrom,
+} from "../finance-repeat"
 
 /**
  * The Repeat sheet for money: presets (Weekly, Monthly, Every 2 months,

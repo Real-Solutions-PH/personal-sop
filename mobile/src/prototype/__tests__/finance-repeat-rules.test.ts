@@ -157,3 +157,41 @@ describe("repeat rules", () => {
     expect(nextOccurrence(s, p, "2026-11-01")).toBe("2027-03-15")
   })
 })
+
+describe("a repeat follows its start date", () => {
+  const { followStart, ruleFrom } =
+    require("../finance-repeat") as typeof import("../finance-repeat")
+
+  it("moves the day of the month and the weekly anchor with the start", () => {
+    expect(
+      followStart(
+        ruleFrom("months", 3, "2026-11-04"),
+        "2026-11-04",
+        "2026-11-20",
+      ),
+    ).toEqual({ kind: "monthly", day: 20, every: 3 })
+    expect(
+      followStart(
+        ruleFrom("weeks", 2, "2026-11-04"),
+        "2026-11-04",
+        "2026-11-06",
+      ),
+    ).toEqual({ kind: "weekly", every: 2, anchor: "2026-11-06" })
+  })
+
+  it("keeps 'the last day' only while the start is a month's last day", () => {
+    const last = ruleFrom("months", 1, "2026-11-30", true)
+    expect(last).toEqual({ kind: "monthly", day: 31, every: 1 })
+    expect(followStart(last, "2026-11-30", "2027-02-28")).toEqual(last)
+    expect(followStart(last, "2026-11-30", "2026-12-15")).toEqual({
+      kind: "monthly",
+      day: 15,
+      every: 1,
+    })
+  })
+
+  it("leaves a day the person chose apart from the start alone", () => {
+    const rule = { kind: "monthly" as const, day: 5, every: 2 }
+    expect(followStart(rule, "2026-11-04", "2026-11-20")).toBe(rule)
+  })
+})
