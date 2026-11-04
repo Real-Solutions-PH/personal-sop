@@ -25,22 +25,25 @@ import {
   CalendarClock,
   ChartColumn,
   CheckSquare,
-  ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Coffee,
   History,
   Pause,
   Play,
-  Settings2,
+  Plus,
+  Settings,
   SkipForward,
-  Square,
   Target,
   Timer,
+  X,
 } from "lucide-react-native"
 import { useEffect, useMemo, useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useMomentTimer } from "../big-moment"
+import { TrophyBadge } from "../brand/badge"
+import { CornerMotif } from "../brand/corner"
 import {
   FocusTimeline,
   ItemPicker,
@@ -50,7 +53,17 @@ import {
 import { MomentCard } from "../moment"
 import { claimOnce } from "../moments-seen"
 import { AnimatedCheck, markCompletion } from "../motion"
-import { Copy, Frame, IconTap, Line, Segmented, Tap } from "../native-kit"
+import {
+  Bar,
+  border,
+  Copy,
+  chosen,
+  Frame,
+  IconTap,
+  Line,
+  Segmented,
+  Tap,
+} from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Sheet, undo, useNow } from "../ui"
@@ -140,7 +153,6 @@ export function FocusTimer() {
     })
   }
   const item = p?.item ?? session?.item ?? null
-  const accent = p?.kind === "break" ? t.good : t.primary
   const progress = p?.plannedSec
     ? p.elapsed / p.plannedSec
     : p
@@ -186,25 +198,31 @@ export function FocusTimer() {
         paddingBottom: safe.bottom,
       }}
     >
-      <Line style={{ height: 56, paddingHorizontal: 8 }}>
+      {/* The card library's page header: back, the title on the left, the
+          settings gear on the right. */}
+      <Line style={{ height: 56, paddingHorizontal: 8, gap: 4 }}>
         <IconTap
-          size={40}
-          icon={ChevronDown}
-          label={session ? "Minimise, keeps running" : "Close"}
+          size={44}
+          icon={ChevronLeft}
+          label={session ? "Back, the session keeps running" : "Back"}
           color={t.text}
           onPress={() => back("/today")}
         />
-        <Copy
-          size={14}
-          weight="medium"
-          muted
-          style={{ flex: 1, textAlign: "center" }}
+        <Text
+          accessibilityRole="header"
+          style={{
+            flex: 1,
+            fontFamily: fonts.displayMedium,
+            fontSize: 20,
+            lineHeight: 28,
+            color: t.text,
+          }}
         >
           Focus
-        </Copy>
+        </Text>
         <IconTap
           size={40}
-          icon={Settings2}
+          icon={Settings}
           label="Focus settings"
           color={t.text}
           onPress={() => go("/focus/settings")}
@@ -229,17 +247,38 @@ export function FocusTimer() {
               ]}
             />
             {mode === "pomodoro" && (
-              <Segmented
-                value={preset}
-                onChange={setPreset}
-                options={[
+              // Lengths as chips; the chosen one has the ink outline.
+              <Line style={{ gap: 8, flexWrap: "wrap" }}>
+                {[
                   ...(Object.keys(PRESETS) as PresetKey[]).map((k) => ({
                     value: k as PresetChoice,
                     label: `${PRESETS[k].lengths[0]}/${PRESETS[k].lengths[1]}`,
                   })),
                   { value: "custom" as PresetChoice, label: "Custom" },
-                ]}
-              />
+                ].map((o) => (
+                  <Tap
+                    key={o.value}
+                    label={`${o.label}${o.value === "custom" ? "" : " minutes"}`}
+                    selected={preset === o.value}
+                    onPress={() => setPreset(o.value)}
+                    style={{
+                      minHeight: 40,
+                      paddingHorizontal: 14,
+                      borderRadius: 99,
+                      justifyContent: "center",
+                      ...chosen(t, preset === o.value),
+                    }}
+                  >
+                    <Copy
+                      size={14}
+                      weight="medium"
+                      style={{ fontVariant: ["tabular-nums"] }}
+                    >
+                      {o.label}
+                    </Copy>
+                  </Tap>
+                ))}
+              </Line>
             )}
           </View>
         )}
@@ -249,15 +288,21 @@ export function FocusTimer() {
           switching={!!session}
           now={now}
         />
-        <TimerRing value={progress} size={264} stroke={10} color={accent}>
+        <TimerRing
+          value={progress}
+          size={264}
+          stroke={10}
+          color={p?.kind === "break" ? t.good : t.foc}
+        >
           <Copy
-            size={56}
+            size={60}
             lines={1}
+            weight="semibold"
             style={{
-              fontFamily: fonts.mono,
-              lineHeight: 64,
-              letterSpacing: -1,
+              lineHeight: 68,
+              letterSpacing: -1.5,
               paddingHorizontal: 16,
+              fontVariant: ["tabular-nums"],
               color: p?.status === "paused" ? t.muted : t.text,
             }}
           >
@@ -293,108 +338,85 @@ export function FocusTimer() {
             </Line>
           )}
         </TimerRing>
+        {/* Controls after the card library: the one filled moss button in
+            the middle, outlined pills beside it that say what they do. */}
         {!session ? (
           <Tap label="Start focus" onPress={start} style={round(88, t.primary)}>
             <Play size={36} color={t.onPrimary} fill={t.onPrimary} />
           </Tap>
-        ) : p?.status === "waiting" ? (
-          <Line style={{ gap: 16 }}>
-            {p.kind === "break" && (
-              <Tap
-                label="Skip the break"
-                onPress={A.skipBreak}
-                style={round(56, t.soft)}
-              >
-                <SkipForward size={22} color={t.text} />
-              </Tap>
-            )}
-            <Tap
-              label={
-                p.kind === "break"
-                  ? "Start the break"
-                  : `Start set ${p.setIndex + 1}`
-              }
-              onPress={A.nextFocus}
-              style={round(80, accent)}
-            >
-              {p.kind === "break" ? (
-                <Coffee size={30} color={t.bg} />
-              ) : (
-                <Play size={32} color={t.bg} fill={t.bg} />
-              )}
-            </Tap>
-            <Tap
-              label="End session"
-              onPress={() => setEnding(true)}
-              style={round(56, t.soft)}
-            >
-              <Square size={20} color={t.text} fill={t.text} />
-            </Tap>
-          </Line>
         ) : (
-          <Line style={{ gap: 16 }}>
-            {p?.kind === "break" ? (
+          <Line style={{ gap: 16, alignItems: "center" }}>
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              {p?.kind === "break" ? (
+                <SidePill
+                  icon={SkipForward}
+                  label="Skip"
+                  name="Skip the break"
+                  onPress={A.skipBreak}
+                />
+              ) : p?.plannedSec && p.status !== "waiting" ? (
+                <SidePill
+                  icon={Plus}
+                  label="5m"
+                  name="Add 5 minutes"
+                  onPress={() => A.extendFocus(300)}
+                />
+              ) : null}
+            </View>
+            {p?.status === "waiting" ? (
               <Tap
-                label="Skip the break"
-                onPress={A.skipBreak}
-                style={round(56, t.soft)}
+                label={
+                  p.kind === "break"
+                    ? "Start the break"
+                    : `Start set ${p.setIndex + 1}`
+                }
+                onPress={A.nextFocus}
+                style={round(80, t.primary)}
               >
-                <SkipForward size={22} color={t.text} />
-              </Tap>
-            ) : p?.plannedSec ? (
-              <Tap
-                label="Add 5 minutes"
-                onPress={() => {
-                  A.extendFocus(300)
-                }}
-                style={round(56, t.soft)}
-              >
-                <Copy
-                  size={14}
-                  weight="semibold"
-                  style={{ fontFamily: fonts.mono }}
-                >
-                  +5m
-                </Copy>
+                {p.kind === "break" ? (
+                  <Coffee size={30} color={t.onPrimary} />
+                ) : (
+                  <Play size={32} color={t.onPrimary} fill={t.onPrimary} />
+                )}
               </Tap>
             ) : (
-              // A stopwatch has no length to extend.
-              <View style={{ width: 56 }} />
+              <Tap
+                label={p?.status === "paused" ? "Resume" : "Pause"}
+                onPress={() =>
+                  p?.status === "paused" ? A.resumeFocus() : A.pauseFocus()
+                }
+                style={round(80, t.primary)}
+              >
+                {p?.status === "paused" ? (
+                  <Play size={32} color={t.onPrimary} fill={t.onPrimary} />
+                ) : (
+                  <Pause size={32} color={t.onPrimary} fill={t.onPrimary} />
+                )}
+              </Tap>
             )}
-            <Tap
-              label={p?.status === "paused" ? "Resume" : "Pause"}
-              onPress={() =>
-                p?.status === "paused" ? A.resumeFocus() : A.pauseFocus()
-              }
-              style={round(80, accent)}
-            >
-              {p?.status === "paused" ? (
-                <Play size={32} color={t.bg} fill={t.bg} />
-              ) : (
-                <Pause size={32} color={t.bg} fill={t.bg} />
-              )}
-            </Tap>
-            <Tap
-              label="End session"
-              onPress={() => setEnding(true)}
-              style={round(56, t.soft)}
-            >
-              <Square size={20} color={t.text} fill={t.text} />
-            </Tap>
+            <View style={{ flex: 1, alignItems: "flex-start" }}>
+              <SidePill
+                icon={X}
+                label="End"
+                name="End session"
+                onPress={() => setEnding(true)}
+              />
+            </View>
           </Line>
         )}
         {session && blocks.length > 0 && (
-          <View style={{ width: "100%", gap: 6 }}>
+          <Frame style={{ width: "100%", padding: 16, gap: 8 }}>
+            <CornerMotif kind="vine" seed={5} size={96} />
             <SessionStrip blocks={blocks} />
             <Line>
-              <Copy size={12} muted style={{ flex: 1 }}>
+              <Copy size={13} muted style={{ flex: 1 }}>
                 This session · {L.fmtHm(tl ? L.focusSec(tl, now) : 0)} focused
               </Copy>
-              <Copy size={12} muted>
+              <Copy size={13} muted>
                 {pauseLabel(blocks.filter((b) => b.kind === "pause").length)}
               </Copy>
             </Line>
-          </View>
+          </Frame>
         )}
         <TodayGoal sec={todaySec} goal={goal} />
         <View style={{ width: "100%", gap: 8 }}>
@@ -514,8 +536,9 @@ export function FocusTimer() {
               </Copy>
             ) : null
           }
-          badge={<Target size={22} color="#fff" />}
+          badge={<TrophyBadge type="goal" size={42} color={t.foc} />}
           tint={t.good}
+          discColor={border(t.good, 0.14)}
           say={`Daily focus goal reached: ${L.fmtHm(goal)}.${streak > 1 ? ` ${streak}-day goal streak.` : ""}`}
           hint="Opens focus stats"
           onOpen={() => {
@@ -585,8 +608,9 @@ function SessionDone({
           ) : null}
         </Text>
       }
-      badge={<Timer size={22} color="#fff" />}
-      tint={e.goal ? t.good : t.foc}
+      badge={<Timer size={22} color={t.foc} />}
+      tint={t.good}
+      discColor={border(t.foc, 0.14)}
       say={`Focus session done: ${parts.join(", ")}${short ? `, ${short}` : ""}.`}
       hint="Opens focus stats"
       onOpen={() => {
@@ -620,18 +644,21 @@ function ItemChip({
   const [done, setDone] = useState(false)
   const Icon = item?.kind === "habit" ? Target : CheckSquare
   return (
+    // A card row, as in the card library: the check (or the item's icon),
+    // what the session is on, and Switch / Pick in moss on the right.
     <View
       style={{
         flexDirection: "row",
         alignItems: "center",
         gap: 4,
-        paddingLeft: item ? 4 : 14,
+        paddingLeft: item ? 6 : 8,
         paddingRight: 6,
-        minHeight: 44,
-        borderRadius: 22,
+        minHeight: 52,
+        borderRadius: 16,
         borderWidth: 1,
         borderColor: t.line,
-        maxWidth: "100%",
+        backgroundColor: t.card,
+        width: "100%",
       }}
     >
       {item?.kind === "task" ? (
@@ -647,11 +674,11 @@ function ItemChip({
         }
         onPress={onPress}
         style={{
+          flex: 1,
           flexDirection: "row",
           alignItems: "center",
           gap: 8,
-          flexShrink: 1,
-          paddingVertical: 10,
+          paddingVertical: 12,
           paddingHorizontal: 8,
         }}
       >
@@ -660,10 +687,10 @@ function ItemChip({
         ) : null}
         {/* What the session is on: it wraps, never truncates. */}
         <Copy
-          size={14}
+          size={15}
           weight="medium"
           style={{
-            flexShrink: 1,
+            flex: 1,
             ...(done
               ? { color: t.muted, textDecorationLine: "line-through" }
               : {}),
@@ -672,12 +699,7 @@ function ItemChip({
           {item?.title ??
             (switching ? "Nothing in particular" : "What are you working on?")}
         </Copy>
-        <Copy
-          size={12}
-          weight={done ? "semibold" : "body"}
-          muted={!done}
-          style={done ? { color: t.primary } : undefined}
-        >
+        <Copy size={14} weight="medium" style={{ color: t.primary }}>
           {done ? "Next" : switching ? "Switch" : "Pick"}
         </Copy>
       </Tap>
@@ -837,32 +859,70 @@ function HabitCheck({
   )
 }
 
+/** A control beside the main button: an outlined pill with its symbol and
+ * a word ("+ 5m", "× End"); the full name is its accessibility label. */
+function SidePill({
+  icon: Icon,
+  label,
+  name,
+  onPress,
+}: {
+  icon: typeof Plus
+  label: string
+  name: string
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Tap
+      label={name}
+      onPress={onPress}
+      style={{
+        minHeight: 44,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: t.input,
+        backgroundColor: t.card,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      <Icon size={16} color={t.text} />
+      <Copy size={14} weight="medium" style={{ fontVariant: ["tabular-nums"] }}>
+        {label}
+      </Copy>
+    </Tap>
+  )
+}
+
 function TodayGoal({ sec, goal }: { sec: number; goal: number }) {
   const t = useTheme()
   return (
     <Frame style={{ width: "100%", padding: 16, gap: 8 }}>
+      <CornerMotif kind="sprig" seed={8} size={96} />
       <Line>
         <Copy weight="semibold" style={{ flex: 1 }}>
           Today
         </Copy>
-        <Copy style={{ fontFamily: fonts.mono }}>
+        <Copy weight="semibold" style={{ fontVariant: ["tabular-nums"] }}>
           {L.fmtHm(sec)}
-          {goal ? ` / ${L.fmtHm(goal)}` : ""}
+          {goal ? (
+            <Copy muted style={{ fontVariant: ["tabular-nums"] }}>
+              {` / ${L.fmtHm(goal)}`}
+            </Copy>
+          ) : null}
         </Copy>
       </Line>
       {goal > 0 && (
-        <View style={{ height: 8, borderRadius: 4, backgroundColor: t.soft }}>
-          <View
-            style={{
-              height: 8,
-              borderRadius: 4,
-              width: `${Math.min(100, (sec / goal) * 100)}%`,
-              backgroundColor: sec >= goal ? t.good : t.foc,
-            }}
-          />
-        </View>
+        // The hand-drawn line (ADR-0032); green once the goal is reached.
+        <Bar
+          value={Math.min(1, sec / goal)}
+          color={sec >= goal ? t.good : t.foc}
+        />
       )}
-      <Copy size={12} muted>
+      <Copy size={13} muted>
         {!goal
           ? "No daily goal set"
           : sec >= goal
