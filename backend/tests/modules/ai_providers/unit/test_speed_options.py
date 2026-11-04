@@ -40,6 +40,23 @@ def test_families_with_a_switch_get_it() -> None:
     assert public.speed_options(_resolved("openbmb/MiniCPM-V-4_5")) == {}
 
 
+def test_the_server_default_gets_the_deepseek_switch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """V4.1 Flash, the default since 2026-11-05, thinks only when asked,
+    like V4 Flash before it."""
+    assert settings.NEBIUS_MODEL == "deepseek-ai/DeepSeek-V4.1-Flash"
+    default = _resolved(settings.NEBIUS_MODEL)
+    assert public.speed_options(default)["extra_body"] == {
+        "chat_template_kwargs": {"thinking": False}
+    }
+    assert public.thinking_options(default) == {
+        "extra_body": {"chat_template_kwargs": {"thinking": True}}
+    }
+    monkeypatch.setattr(settings, "AI_THINKING", True)
+    assert public.speed_options(default) == {}
+
+
 def test_thinking_stays_on_when_the_setting_says_so(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
