@@ -19,7 +19,7 @@ import {
   Wallet,
 } from "lucide-react-native"
 import { useState } from "react"
-import { Text, View } from "react-native"
+import { ScrollView, Text, View } from "react-native"
 import { Sparkline } from "../chart"
 import {
   Copy,
@@ -35,6 +35,7 @@ import { PrivacyEye } from "../privacy-eye"
 import { useTheme } from "../theme"
 import { Screen } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
+import { AccountCard } from "./finance-account-card"
 import {
   BudgetsSection,
   CashFlowSection,
@@ -378,6 +379,35 @@ export function FinanceHome({
               </Line>
             </Tap>
           </Frame>
+          {/* Where the money is kept, under what it adds up to: one wallet
+              card per account, each opening its account. */}
+          <SectionHeading
+            action={
+              <Tap onPress={() => go("/finance/accounts")}>
+                <Copy size={12} style={{ color: t.fin }}>
+                  All accounts
+                </Copy>
+              </Tap>
+            }
+          >
+            Accounts
+          </SectionHeading>
+          <ScrollView
+            horizontal
+            testID="home-accounts"
+            showsHorizontalScrollIndicator={false}
+            style={{ marginHorizontal: -16 }}
+            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
+          >
+            {accounts.map((a) => (
+              <AccountCard
+                key={a.id}
+                compact
+                account={a}
+                balance={bal[a.id] ?? 0}
+              />
+            ))}
+          </ScrollView>
           <Line style={{ marginTop: 12, gap: 8 }}>
             {[
               { label: "Add", icon: Plus, href: "" },

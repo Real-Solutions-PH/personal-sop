@@ -141,6 +141,7 @@ test("the home's sections come in the agreed order", () => {
   const all = allText()
   const order = [
     "Net worth",
+    "All accounts",
     "What if?",
     "Budgets",
     "Cash flow, ",
@@ -159,12 +160,48 @@ test("the home's sections come in the agreed order", () => {
   expect(at).toEqual([...at].sort((a, b) => a - b))
 })
 
-test("the home has no rest-of-month section, period switcher or accounts carousel", () => {
+test("the home has no rest-of-month section or period switcher", () => {
   render(<FinanceHome />, { wrapper })
   const all = allText()
   expect(all).not.toMatch(/REST OF/i)
   expect(all).not.toMatch(/Last month|3 months|Custom/)
-  expect(all).not.toMatch(/ACCOUNTS\n/)
+})
+
+test("every open account shows under net worth with its balance, and opens it", () => {
+  const { router } = require("expo-router")
+  const open = finStore.get().accounts.filter((a) => !a.archived)
+  expect(open.length).toBeGreaterThan(1)
+  render(<FinanceHome />, { wrapper })
+  const row = within(screen.getByTestId("home-accounts"))
+  for (const a of open)
+    expect(
+      row.getByRole("button", { name: new RegExp(`^${a.name}, `) }),
+    ).toBeTruthy()
+  // Each card says its balance in pesos, grouped.
+  expect(
+    row
+      .getAllByRole("button")
+      .every((b) => /₱[\d,]+(\.\d{2})?/.test(b.props.accessibilityLabel)),
+  ).toBe(true)
+  fireEvent.press(
+    row.getByRole("button", { name: new RegExp(`^${open[0].name}, `) }),
+  )
+  expect(router.push).toHaveBeenCalledWith(`/finance/accounts/${open[0].id}`)
+})
+
+test("an archived account stays off the home row", () => {
+  const [first] = finStore.get().accounts.filter((a) => !a.archived)
+  finStore.set((x) => ({
+    ...x,
+    accounts: x.accounts.map((a) =>
+      a.id === first.id ? { ...a, archived: true } : a,
+    ),
+  }))
+  render(<FinanceHome />, { wrapper })
+  const row = within(screen.getByTestId("home-accounts"))
+  expect(
+    row.queryByRole("button", { name: new RegExp(`^${first.name}, `) }),
+  ).toBeNull()
 })
 
 test("the category donut shows the top category's icon, never the word top", () => {
@@ -230,6 +267,21 @@ test("Reports keeps its periods and the income vs expense card", () => {
   for (const l of ["This month", "Last month", "3 months", "Custom"])
     expect(screen.getByText(l)).toBeTruthy()
   expect(screen.getByText("Income vs expense")).toBeTruthy()
+})
+
+test("the Cash flow page has the monthly bars and writes a loss as −₱", () => {
+  // Only spending this month: the net is a loss.
+  finStore.set((x) => ({
+    ...x,
+    records: x.records.filter(
+      (r) => r.type !== "income" || r.at.slice(0, 7) !== dayKey().slice(0, 7),
+    ),
+  }))
+  render(<Reports kind="cashflow" />, { wrapper })
+  expect(screen.getByTestId("monthly-flow")).toBeTruthy()
+  const all = allText()
+  expect(all).not.toMatch(/₱-/)
+  expect(all).toMatch(/Net\n−₱[\d,]+/)
 })
 
 test("a custom report range applies without a toast and travels in card links", async () => {

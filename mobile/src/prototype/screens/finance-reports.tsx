@@ -29,6 +29,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, DateField, Empty, Screen, Sheet, shareText } from "../ui"
 import { useMoney } from "./finance"
+import { MonthlyFlowBars } from "./finance-monthly-flow"
 import { RecurringNet } from "./finance-monthly-net"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
@@ -425,8 +426,14 @@ export function Reports({ kind }: { kind?: string }) {
               delta: delta(d.flow.spend, d.prev.spend),
               down: true,
             },
-            { label: "Net", value: money(d.flow.income - d.flow.spend) },
+            {
+              label: "Net",
+              // "−₱1,543", as the home's cash flow card writes it, never
+              // "₱-1,543".
+              value: `${d.flow.income - d.flow.spend >= 0 ? "+" : "−"}${money(Math.abs(d.flow.income - d.flow.spend))}`,
+            },
           ])}
+          <MonthlyFlowBars s={s} />
           {/* One row per month: the share saved, then in and out in full.
               Four columns of full amounts do not fit a phone. */}
           <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
