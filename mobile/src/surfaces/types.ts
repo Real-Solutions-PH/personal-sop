@@ -162,6 +162,10 @@ export interface LiveState {
   /** Workout rest countdown. */
   restEndsAt?: number
   restSec: number
+  /** Workout, while resting: what the Live Activity shows once the rest
+   * countdown reaches zero. iOS flips to it at `restEndsAt` (the activity's
+   * stale date) without the app running. */
+  restOver?: LiveRestOver
   next: LiveNext[]
   controls: LiveControl[]
   href: string
@@ -172,6 +176,14 @@ export interface LiveState {
    * a focus session beside both), drawn as one line each under this one.
    * Absent when this is the only one. */
   others?: LiveOther[]
+}
+
+/** The finished-rest state: a headline ("Rest over · time for set 3")
+ * and the next set's target ("Set 3 of 3 · 50 kg × 11"), drawn where the
+ * rest controls were. */
+export interface LiveRestOver {
+  title: string
+  target: string
 }
 
 /** Another running session, as one line under the main one: what it is,
