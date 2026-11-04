@@ -22,10 +22,13 @@ import { TextInput, View } from "react-native"
 import Svg, {
   Circle,
   Defs,
+  G,
+  Path,
   Pattern,
   Rect,
   Line as SvgLine,
 } from "react-native-svg"
+import { strokeAcross } from "./brand/scribble"
 import { Copy, chosen, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
@@ -85,26 +88,45 @@ export function TimerRing({
       }}
     >
       <Svg width={size} height={size} style={{ position: "absolute" }}>
+        {/* The brand's hand-drawn line (ADR-0032): a dotted track, the arc,
+            and a thinner echo just inside it. */}
         <Circle
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke={t.soft}
-          strokeWidth={stroke}
+          stroke={t.muted}
+          strokeWidth={Math.max(1.4, stroke * 0.3)}
+          strokeDasharray={`0.5 ${Math.max(4, stroke * 0.9)}`}
+          strokeLinecap="round"
+          opacity={0.5}
           fill="none"
         />
         {p > 0 && (
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            stroke={color}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={`${c * p} ${c}`}
-            fill="none"
-            transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          />
+          <>
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              stroke={color}
+              strokeWidth={stroke}
+              strokeLinecap="round"
+              strokeDasharray={`${c * p} ${c}`}
+              fill="none"
+              transform={`rotate(-90 ${size / 2} ${size / 2})`}
+            />
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={r - stroke * 0.22}
+              stroke={color}
+              strokeWidth={Math.max(1, stroke * 0.38)}
+              strokeLinecap="round"
+              strokeDasharray={`${c * p * 0.98} ${c}`}
+              opacity={0.5}
+              fill="none"
+              transform={`rotate(-89 ${size / 2} ${size / 2})`}
+            />
+          </>
         )}
       </Svg>
       {children}
@@ -341,42 +363,70 @@ function Hatch({ color }: { color: string }) {
   )
 }
 
-/** The current session as a strip: focus, break and pause in proportion. */
+/** The current session as one hand-drawn line (ADR-0032): focus blocks
+ * drawn in the Focus colour, breaks lighter, pauses left as the dotted
+ * track, each in proportion to its time. */
 export function SessionStrip({ blocks }: { blocks: C.Block[] }) {
   const t = useTheme()
   if (!blocks.length) return null
   const lo = blocks[0].start
   const hi = Math.max(...blocks.map((b) => b.end))
   const span = Math.max(1, hi - lo)
+  const W = 200,
+    H = 12,
+    y = H / 2,
+    x = (ms: number) => 3 + ((ms - lo) / span) * (W - 6)
   return (
-    <View
+    <Svg
       accessibilityElementsHidden
-      style={{
-        flexDirection: "row",
-        height: 10,
-        borderRadius: 5,
-        overflow: "hidden",
-        backgroundColor: t.soft,
-        width: "100%",
-      }}
+      width="100%"
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      preserveAspectRatio="none"
     >
-      {blocks.map((b) => (
-        <View
-          key={`${b.segmentId}-${b.start}`}
-          style={{
-            width: `${((b.end - b.start) / span) * 100}%`,
-            backgroundColor:
-              b.kind === "focus"
-                ? t.foc
-                : b.kind === "break"
-                  ? `${t.foc}40`
-                  : "transparent",
-          }}
-        >
-          {b.kind === "pause" && <Hatch color={t.muted} />}
-        </View>
-      ))}
-    </View>
+      <Path
+        d={`M3 ${y} H${W - 3}`}
+        stroke={t.muted}
+        strokeWidth={1.4}
+        strokeDasharray="1 4"
+        strokeLinecap="round"
+        opacity={0.5}
+        vectorEffect="non-scaling-stroke"
+      />
+      {blocks
+        .filter((b) => b.kind !== "pause" && b.end > b.start)
+        .map((b, i) => {
+          const d = strokeAcross(
+            x(b.start),
+            Math.max(x(b.start) + 1, x(b.end)),
+            y,
+            i + 3,
+          )
+          const focus = b.kind === "focus"
+          return (
+            <G key={`${b.segmentId}-${b.start}`} opacity={focus ? 1 : 0.4}>
+              <Path
+                d={d}
+                stroke={t.foc}
+                strokeWidth={6}
+                strokeLinecap="round"
+                fill="none"
+                vectorEffect="non-scaling-stroke"
+              />
+              <Path
+                d={d}
+                stroke={t.foc}
+                strokeWidth={2.4}
+                strokeLinecap="round"
+                fill="none"
+                opacity={0.5}
+                transform="translate(0.6 -1)"
+                vectorEffect="non-scaling-stroke"
+              />
+            </G>
+          )
+        })}
+    </Svg>
   )
 }
 
