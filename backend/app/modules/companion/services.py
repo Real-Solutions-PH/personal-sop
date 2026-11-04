@@ -61,7 +61,12 @@ from app.modules.companion.schema import (
     SeriesOut,
     TrackerIn,
 )
-from app.modules.companion.turn import NOTHING_WAITING, Step, TurnStream
+from app.modules.companion.turn import (
+    NOTHING_WAITING,
+    Step,
+    TurnStream,
+    kept_steps,
+)
 from app.modules.fitness import public as fitness
 from app.modules.focus import public as focus
 from app.modules.iam.deps import release_connection
@@ -2363,7 +2368,7 @@ def _words_for(
     one that did nothing gets one pass to answer from what the tools
     returned, else an honest line. A blank reply is never sent (seen live:
     a portion question answered with nothing, then "try again")."""
-    did = [s.summary for s in steps if s.summary and s.ok]
+    did = [s.summary for s in kept_steps(steps) if s.summary and s.ok]
     if did:
         return "\n".join(f"• {d}" for d in did) if len(did) > 1 else f"{did[0]}.", []
     if allowed:

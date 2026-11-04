@@ -58,8 +58,20 @@ COUNT_UNITS = {
     "bottles",
     "cup",
     "cups",
+    "scoop",
+    "scoops",
+    "sachet",
+    "sachets",
+    "packet",
+    "packets",
+    "pouch",
+    "stick",
+    "sticks",
 }
 GRAM_UNITS = {"g", "gram", "grams", "gm", "gms"}
+# A weight written into an item's unit or name: "sachet (30g)", "Cooked
+# white rice 150g".
+_SAID_GRAMS = re.compile(r"(\d+(?:\.\d+)?)\s*(?:g|grams?|gms?)\b", re.I)
 # Words that say nothing about which food it is.
 FILLER = {"of", "the", "a", "an", "and", "with", "w", "my", "some", "plain"}
 
@@ -245,6 +257,10 @@ def factor(food: FoodItem, qty: float, unit: str) -> float | None:
     when the two cannot be related (grams of a per-piece food with no piece
     weight)."""
     u = unit.strip().lower()
+    # "serving (2 slices)", "sachet (30g)": the unit is its first word. One
+    # that starts with a number ("30g") is a weight, read by item_grams.
+    if u[:1].isalpha() and u not in GRAM_UNITS:
+        u = re.findall(r"[a-z]+", u)[0]
     if qty <= 0:
         return None
     if u in GRAM_UNITS:
@@ -272,6 +288,18 @@ def scaled(food: FoodItem, qty: float, unit: str) -> dict[str, float] | None:
     return out
 
 
+def item_grams(it: dict[str, Any]) -> float | None:
+    """The weight an item states: its ``grams``, or "N g" in its unit or
+    name."""
+    if it.get("grams"):
+        return float(it["grams"])
+    for text in (str(it.get("unit") or ""), str(it.get("name") or "")):
+        m = _SAID_GRAMS.search(text)
+        if m and float(m.group(1)) > 0:
+            return float(m.group(1))
+    return None
+
+
 def _library_match(
     ctx: Ctx, it: dict[str, Any], rows: list[FoodItem]
 ) -> tuple[FoodItem, dict[str, float]] | None:
@@ -283,6 +311,11 @@ def _library_match(
         if food
         else None
     )
+    if food is not None and values is None and (grams := item_grams(it)):
+        # Seen live 2026-10-22 to 11-04: 39 of Kai's items named a library
+        # food and kept the model's guess, because "1 serving" or "1 cup"
+        # of a per-100 g food could not be scaled; their weight was known.
+        values = scaled(food, grams, "g")
     # A match by shared words only ("pre-workout energy drink" against
     # the alias "pre workout drink" of a 489 kcal shake) is a guess: when
     # the item's own numbers (often read off a label in this very turn)
@@ -301,6 +334,39 @@ def library_hits(ctx: Ctx, items: list[dict[str, Any]]) -> list[bool]:
     only: nothing is counted as used."""
     rows = _live(ctx)
     return [bool(rows) and _library_match(ctx, it, rows) is not None for it in items]
+
+
+def library_candidates(
+    ctx: Ctx, items: list[dict[str, Any]], limit: int = 3
+) -> list[dict[str, Any]]:
+    """Each item the library does not replace whose name and a library
+    food's name (or alias) are one inside the other ("rice" and "White
+    rice, long-grain, cooked"), with up to ``limit`` such foods, most used
+    first. Reads only."""
+    rows = _live(ctx)
+    out: list[dict[str, Any]] = []
+    for it in items:
+        if not rows or _library_match(ctx, it, rows) is not None:
+            continue
+        said = _words(str(it.get("name", "")))
+        near = [
+            r
+            for r in rows
+            if said
+            and any(
+                (w := _words(n)) and (w <= said or said <= w)
+                for n in [r.key, *(r.aliases or [])]
+            )
+        ]
+        if near:
+            near.sort(key=lambda r: (-(r.use_count or 0), r.name))
+            out.append(
+                {
+                    "item": it.get("name"),
+                    "library_foods": [food_public(r) for r in near[:limit]],
+                }
+            )
+    return out
 
 
 def apply_library(
@@ -325,7 +391,11 @@ def apply_library(
         # keeps the item's own estimate. Seen live 2026-11-02: saved foods
         # with calories and macros only wiped the sugar, sodium and
         # saturated fat of every meal that named them.
-        out.append(it | values | {"assumption": f"From your food library: {food.name}"})
+        said = f"From your food library: {food.name}"
+        grams = item_grams(it)
+        if grams and str(it.get("unit") or "").strip().lower() not in GRAM_UNITS:
+            said += f", about {grams:g} g"
+        out.append(it | values | {"assumption": said})
         food.use_count = (food.use_count or 0) + 1
         food.last_used_at = ctx.now
         ctx.session.add(food)

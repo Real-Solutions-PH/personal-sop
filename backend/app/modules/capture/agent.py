@@ -862,7 +862,9 @@ class MealItemArgs(BaseModel):
     )
     assumption: Annotated[str, Field(max_length=120)] | None = Field(
         default=None,
-        description="The portion you assumed, e.g. 'breast quarter with skin'.",
+        description="The portion you assumed and where the numbers came from "
+        "(label, web and the site, or estimate), e.g. 'breast quarter with "
+        "skin · web: fatsecret'.",
     )
     alcohol: Annotated[float, Field(ge=0, le=500)] | None = Field(
         default=None, description="Grams of alcohol, for drinks that have it."
@@ -1361,6 +1363,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
     w = run.world
     # Items sent back once this reply for the values they left out.
     asked_for: set[str] = set()
+    # Items sent back once this reply to be checked against the library.
+    library_offered: set[str] = set()
 
     def log_expense(**kw: Any) -> dict[str, Any]:
         a = ExpenseArgs(**kw)
@@ -2067,6 +2071,27 @@ def capture_tools(run: Run) -> list[BaseTool]:
     def log_meal(**kw: Any) -> dict[str, Any]:
         a = MealArgs(**kw)
         if a.items:
+            # Their library first: its foods are the staples they keep at
+            # home. An item that names one without taking its values goes
+            # back once, with the library foods it is near (Kai, 2026-11-04:
+            # Fern looked in the library in 21 of 82 meal replies).
+            near = [
+                n
+                for n in ports.library_candidates(
+                    run.ctx, [i.model_dump(exclude_none=True) for i in a.items]
+                )
+                if n["item"] not in library_offered
+            ]
+            if near:
+                library_offered.update(n["item"] for n in near)
+                return {
+                    "error": "check_your_library_first",
+                    "items": near,
+                    "instead": "an item that is one of these library foods: "
+                    "send it again under the library food's exact name, with "
+                    "the amount eaten (pieces, servings, or grams); a food "
+                    "that is none of them: send it unchanged",
+                }
             # Every item carries every value the day's goals and limits count
             # (the replay eval: meals were saved with kcal and macros only).
             # Sent back once per reply, nothing saved; the second time it is
@@ -2086,7 +2111,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
             )
             if wrong:
                 return {"error": "fix_these_items_then_call_again", "items": wrong}
-            items = [_stored_item(i) for i in a.items]
+            # Each item's weight goes along to the library match (a library
+            # food per 100 g scales by it), then off before it is stored.
+            items = [
+                _stored_item(i) | ({"grams": i.grams} if i.grams else {})
+                for i in a.items
+            ]
             confidence = a.confidence
         else:
             # The built-in food table knows calories and macros only: a meal
@@ -2103,6 +2133,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         # The person's own food library wins over any estimate; a meal made
         # only of library foods is known, not guessed.
         items, from_library = ports.library_items(run.ctx, items)
+        items = [{k: v for k, v in it.items() if k != "grams"} for it in items]
         if from_library and len(from_library) == len(items):
             confidence = max(confidence, 0.95)
         label = meal_label(a.description)
@@ -2158,6 +2189,22 @@ def capture_tools(run: Run) -> list[BaseTool]:
         a = FoodArgs(**kw)
         if a.basis == "100g" and a.kcal > 900:
             return {"error": "more_than_900_kcal_per_100g_check_the_basis"}
+        # A misread label must not become the values every later meal uses.
+        # Seen live: a sandwich label saved at 312 kcal with 0 g
+        # protein, carbs and fat, and a whey at 36 kcal with 0 g protein.
+        # Numbers the person said stand as said ("290 kcal per pack").
+        wrong = (
+            ports.fitness.nutrient_check.value_problems(a.model_dump())
+            if a.source == "label"
+            else []
+        )
+        if wrong:
+            return {
+                "error": "fix_this_food_then_call_again",
+                "problems": wrong,
+                "instead": "read the label again, or search the web for this "
+                "product's nutrition facts, and send values that agree",
+            }
         food, new = ports.fitness.food_library.save_food(
             run.ctx,
             ports.fitness.FoodDraft(

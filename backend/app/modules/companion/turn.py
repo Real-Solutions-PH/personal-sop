@@ -13,6 +13,7 @@ written.
 """
 
 import json
+import re
 import time
 import uuid
 from collections.abc import Callable
@@ -159,6 +160,30 @@ def _when(t: dict[str, Any]) -> str:
 
 ALREADY_LOGGED = "_already_logged_today_change_it_with_edit_meal"
 
+# Refusals that hand Fern something to fix and send again. In Kai's chats
+# (2026-10-22 to 11-04) every one of them, 26 of 26, was followed in the same
+# reply by the fixed call that saved, yet each stayed in the reply as
+# "Couldn't finish". A refusal the same tool then made good is left out of
+# the finished reply (``kept_steps``); one never made good still shows.
+RETRIED = frozenset(
+    {
+        "send_items_with_every_nutrient",
+        "fix_these_items_then_call_again",
+        "check_your_library_first",
+        "fix_this_food_then_call_again",
+        "need_values_per_100g",
+        "unknown_category",
+    }
+)
+# Guards doing their job: Fern tried what only the person may do (confirm,
+# bring back), or a record they already have. Shown as such, never as an
+# error (13 "they did not confirm" and 7 "already exists" steps showed red).
+GUARDED = {
+    "they_did_not_confirm": "Waiting for your OK before saving",
+    "they_did_not_ask": "Waiting for your OK before saving it again",
+}
+_EXISTS = re.compile(r"^an?_([a-z]+)_with_that_name_exists$")
+
 
 def refused(res: dict[str, Any]) -> str:
     """Why a write was refused, in words the person can act on. Seen live:
@@ -182,7 +207,13 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     res = result if isinstance(result, dict) else {}
     if res.get("error") == "several_match":
         return False, "More than one matches; asking which"
-    if res.get("error"):
+    error = str(res.get("error") or "")
+    if error in GUARDED:
+        return True, GUARDED[error]
+    if exists := _EXISTS.match(error):
+        named = str(args.get("name") or "").strip()
+        return True, f"Already in your records: {named or 'that ' + exists.group(1)}"
+    if error:
         return False, refused(res)
     # A card with a question can't be confirmed until it's answered.
     wait = {
@@ -356,6 +387,16 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     return True, f"{simple.get(name, name.replace('_', ' '))}{wait}"
 
 
+def kept_steps(steps: list["Step"]) -> list["Step"]:
+    """The steps a finished reply keeps: a refusal Fern fixed and sent again
+    goes once the same tool succeeded later in the reply."""
+    return [
+        s
+        for i, s in enumerate(steps)
+        if not (s.retried and any(t.name == s.name and t.ok for t in steps[i + 1 :]))
+    ]
+
+
 @dataclass
 class Step:
     call_id: str
@@ -370,6 +411,8 @@ class Step:
     # The capture the cards sit on, so the app can fetch it when the
     # finished reply's capture never reached it.
     capture_id: str | None = None
+    # Refused with something to fix and send again (``RETRIED``).
+    retried: bool = False
 
     def public(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -651,6 +694,7 @@ class TurnStream(capture.LoopHooks):
         step = next((s for s in self.steps if s.call_id == call_id), None)
         if step is not None:
             step.ok, step.summary = ok, summary
+            step.retried = isinstance(result, dict) and result.get("error") in RETRIED
             if isinstance(result, dict) and result.get("card_id"):
                 step.card_id = str(result["card_id"])
                 step.state = str(result.get("state") or "")
@@ -699,4 +743,4 @@ class TurnStream(capture.LoopHooks):
     def steps_block(self) -> dict[str, Any] | None:
         if not self.steps:
             return None
-        return {"t": "steps", "items": [s.public() for s in self.steps]}
+        return {"t": "steps", "items": [s.public() for s in kept_steps(self.steps)]}

@@ -194,7 +194,8 @@ def test_an_expense_with_an_unknown_category_is_sent_back_to_pick_one(
 ) -> None:
     """Seen live 2026-10-29: "pre-workout" matched no category, so the
     expense asked what it was for though the person had just said. The
-    model is handed their categories and saves it on the retry."""
+    model is handed their categories and saves it on the retry. The refusal
+    was a step on the way, so the reply keeps only the step that saved."""
     from app.modules.finance.models import FinRecord
 
     api = user(client, db)
@@ -206,10 +207,8 @@ def test_an_expense_with_an_unknown_category_is_sent_back_to_pick_one(
         say("Logged ₱240 for your pre-workout."),
     )
     events = stream(api, client, "spent 240 at 7-Eleven for my pre-workout")
-    first, second = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
-    assert not first["ok"]
-    assert first["summary"] == "Couldn't finish: unknown category"
-    assert second["ok"] and second["state"] != "needs_input"
+    [saved] = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert saved["ok"] and saved["state"] != "needs_input"
     assert len(live(rows_of(api, FinRecord))) == 1
 
 
@@ -734,8 +733,9 @@ def test_an_account_name_already_taken_is_refused(
         monkeypatch,
         act("create_account", name="gcash", type="ewallet"),
     )
-    assert not step["ok"]
-    assert step["summary"] == "Couldn't finish: an account with that name exists"
+    # The guard doing its job: an account they already have, not an error.
+    assert step["ok"]
+    assert step["summary"] == "Already in your records: gcash"
     assert len(live(rows_of(api, Account))) == 3
 
 
@@ -1352,7 +1352,9 @@ def test_confirm_needs_the_person_to_have_said_it(
     )
     assert tasks_of(api) == []
     step = events[-1]["result"]["messages"][1]["blocks"][0]["items"][0]
-    assert step["tool"] == "confirm_pending" and not step["ok"]
+    # The guard did its job: shown as waiting for their OK, not as an error.
+    assert step["tool"] == "confirm_pending"
+    assert (step["ok"], step["summary"]) == (True, "Waiting for your OK before saving")
 
 
 def test_what_counts_as_saying_confirm() -> None:

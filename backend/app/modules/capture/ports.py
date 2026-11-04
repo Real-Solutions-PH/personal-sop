@@ -340,6 +340,12 @@ def library_items(
     return fitness.food_library.apply_library(ctx, items)
 
 
+def library_candidates(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Items the library does not replace that are near a library food, as
+    ``{"item": name, "library_foods": [...]}``."""
+    return fitness.food_library.library_candidates(ctx, items)
+
+
 def meal_item_problems(ctx: Ctx, items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """What is wrong with each estimated item (one the food library won't
     replace), as ``{"item": name, "problems": [...]}``; empty when none."""
