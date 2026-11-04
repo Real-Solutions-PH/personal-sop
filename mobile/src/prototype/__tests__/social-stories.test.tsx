@@ -201,3 +201,79 @@ test("a person with no live check-ins: spinner, then an error toast and close", 
   )
   expect(mockBack).toHaveBeenCalled()
 })
+
+// The viewer's frame in these tests: jest's 750-wide window, capped at 520,
+// and 520 × 16/9 tall.
+const FRAME = { width: 520, height: (520 * 16) / 9 }
+const box = () => {
+  const style = screen.getByTestId("story-photo-box").props.style
+  const photo = screen.getByLabelText("Story photo").props.style
+  return {
+    left: style.left as number,
+    top: style.top as number,
+    width: photo.width as number,
+    height: photo.height as number,
+    fit: base().props.contentFit as string,
+  }
+}
+const expectWholeAndCentred = (ratio: number) => {
+  const b = box()
+  expect(b.fit).toBe("contain")
+  expect(b.width / b.height).toBeCloseTo(ratio)
+  expect(b.left).toBeGreaterThanOrEqual(0)
+  expect(b.left + b.width).toBeLessThanOrEqual(FRAME.width + 0.01)
+  expect(b.left).toBeCloseTo((FRAME.width - b.width) / 2)
+  expect(b.top).toBeCloseTo((FRAME.height - b.height) / 2)
+  // Clear of the progress bars, avatar, name, time and close button.
+  expect(b.top).toBeGreaterThanOrEqual(64)
+}
+
+test("a share card posted at 4:5 plays whole and centred, not cropped to the frame", () => {
+  socialStore.set((s) => ({
+    ...s,
+    stories: [{ ...story("card", now - 1000), ratio: 4 / 5 }],
+  }))
+  show()
+  expectWholeAndCentred(4 / 5)
+})
+
+test("a photo of unknown shape is fitted once its size is read", () => {
+  socialStore.set((s) => ({ ...s, stories: [story("card", now - 1000)] }))
+  show()
+  act(() => base().props.onLoad({ source: { width: 1080, height: 1350 } }))
+  expectWholeAndCentred(4 / 5)
+})
+
+test("a story-shaped photo still fills the frame", () => {
+  socialStore.set((s) => ({
+    ...s,
+    stories: [{ ...story("tall", now - 1000), ratio: 9 / 16 }],
+  }))
+  show()
+  expect(box()).toMatchObject({ fit: "cover", left: 0, top: 0, width: 520 })
+})
+
+test("opening someone not in the tray never plays another person's check-ins", async () => {
+  show("ben")
+  await act(async () => {})
+  expect(screen.queryByTestId("remote-image-base")).toBeNull()
+  expect(socialStore.get().seen).not.toContain("s1")
+  expect(toast.error).toHaveBeenCalledWith(
+    "This check-in is no longer available",
+  )
+  expect(mockBack).toHaveBeenCalled()
+})
+
+test("when the open person's check-ins go away, the viewer moves on instead of a dark screen", () => {
+  show("ana")
+  loaded()
+  act(() => socialStore.set((s) => ({ ...s, stories: [] })))
+  expect(mockBack).toHaveBeenCalled()
+})
+
+test("the empty viewer always has a close button", () => {
+  socialStore.set((s) => ({ ...s, stories: [] }))
+  show("ana")
+  fireEvent.press(screen.getByLabelText("Close stories"))
+  expect(mockBack).toHaveBeenCalled()
+})

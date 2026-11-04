@@ -41,8 +41,9 @@ export function RemoteImage({
   variant?: "progressive" | "preview"
   active?: boolean
   accessibilityLabel?: string
-  /** The image the person sees first has rendered (the base layer). */
-  onLoad?: () => void
+  /** The image the person sees first has rendered (the base layer), with
+   * its size in pixels when the platform reports it. */
+  onLoad?: (size?: { width: number; height: number }) => void
   onError?: () => void
 }) {
   const t = useTheme()
@@ -69,7 +70,13 @@ export function RemoteImage({
         cachePolicy="memory-disk"
         recyclingKey={id ?? uri}
         transition={150}
-        onLoad={onLoad}
+        onLoad={(e) =>
+          onLoad?.(
+            e?.source?.width && e.source.height
+              ? { width: e.source.width, height: e.source.height }
+              : undefined,
+          )
+        }
         onError={onError}
         style={{ width: "100%", height: "100%" }}
       />

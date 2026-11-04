@@ -60,6 +60,7 @@ import {
   toggleStoryLike,
   usePerson,
 } from "./store"
+import { storyFit } from "./story-fit"
 
 /** The viewer is always on the dark ground, whatever the app theme. */
 const DARK = palette.dark
@@ -130,6 +131,8 @@ function SlideBody({
   onError,
 }: SlideProps) {
   const media = item.kind === "image" || item.kind === "video"
+  // A photo's shape read off the file, for one that did not come with it.
+  const [measured, setMeasured] = useState<number>()
   // Text and progress slides have nothing to load.
   // biome-ignore lint/correctness/useExhaustiveDependencies: once per slide
   useEffect(() => {
@@ -142,20 +145,33 @@ function SlideBody({
   if (item.kind === "image" && item.uri) {
     // My own story plays from the file on this device; no cache key.
     const local = item.uri.startsWith("file:")
+    // A card posted at 4:5 or square is shown whole, not cropped to 9:16.
+    const box = storyFit(item.ratio ?? measured, width, height)
     return (
-      <RemoteImage
-        media={{
-          id: local ? undefined : item.mediaId,
-          uri: item.uri,
-          previewUri: local ? undefined : item.previewUri,
-          lqip: item.lqip,
-        }}
-        width={width}
-        height={height}
-        accessibilityLabel="Story photo"
-        onLoad={onReady}
-        onError={onError}
-      />
+      <View style={{ width, height, backgroundColor: "#000" }}>
+        <View
+          testID="story-photo-box"
+          style={{ position: "absolute", left: box.left, top: box.top }}
+        >
+          <RemoteImage
+            media={{
+              id: local ? undefined : item.mediaId,
+              uri: item.uri,
+              previewUri: local ? undefined : item.previewUri,
+              lqip: item.lqip,
+            }}
+            width={box.width}
+            height={box.height}
+            fit={box.fit}
+            accessibilityLabel="Story photo"
+            onLoad={(size) => {
+              if (size && !item.ratio) setMeasured(size.width / size.height)
+              onReady()
+            }}
+            onError={onError}
+          />
+        </View>
+      </View>
     )
   }
   if (item.kind === "video" && item.uri)
@@ -231,25 +247,18 @@ export function StoryViewer({ id }: { id: string }) {
   )
   const stories = socialStore.use((s) => s.stories)
   const seen = socialStore.use((s) => s.seen)
-  const [gi, setGi] = useState(() =>
-    Math.max(
-      0,
-      groups.findIndex((g) => g.id === id),
-    ),
-  )
+  // -1 until the person's check-ins are in the tray: never someone else's.
+  const [gi, setGi] = useState(() => groups.findIndex((g) => g.id === id))
   // Opened cold (a link or a reload in live mode): the tray loads after
-  // mount, so take the first snapshot that has stories.
+  // mount, so take the first snapshot that has this person's stories.
   useEffect(() => {
-    if (groups.length || !stories.length) return
+    if (gi >= 0 || !stories.length) return
     const next = storyGroups(socialStore.get()).filter((g) => g.items.length)
+    const at = next.findIndex((g) => g.id === id)
+    if (at < 0) return
     setGroups(next)
-    setGi(
-      Math.max(
-        0,
-        next.findIndex((g) => g.id === id),
-      ),
-    )
-  }, [groups.length, stories.length, id])
+    setGi(at)
+  }, [gi, stories, id])
   // My own check-ins: reload so "Seen by" counts who opened them since.
   useEffect(() => {
     if (id === ME) void loadStoriesLive()
@@ -362,6 +371,12 @@ export function StoryViewer({ id }: { id: string }) {
       }
     })
   }, [])
+  // Every check-in of the open person went away (expired, deleted, or my
+  // own upload failed and was taken back): go on to the next person.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on emptying only
+  useEffect(() => {
+    if (group && !items.length) nextGroup()
+  }, [group, items.length])
   // Keyed on the slide and pause state only; `next` is recreated each render
   // and would restart the timer.
   // biome-ignore lint/correctness/useExhaustiveDependencies: see above
@@ -412,6 +427,20 @@ export function StoryViewer({ id }: { id: string }) {
         {loading && (
           <ActivityIndicator color="#fff" accessibilityLabel="Loading" />
         )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close stories"
+          onPress={close}
+          hitSlop={10}
+          style={{
+            position: "absolute",
+            top: safe.top + 8,
+            right: 8,
+            padding: 6,
+          }}
+        >
+          <X size={26} color="#fff" />
+        </Pressable>
       </View>
     )
   }

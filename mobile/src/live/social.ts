@@ -491,6 +491,11 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     mediaId: w.media?.media_id ?? prev?.mediaId,
     previewUri: w.media?.preview_url ?? prev?.previewUri,
     lqip: w.media?.lqip ?? prev?.lqip,
+    ratio:
+      w.media?.ratio ??
+      (w.media?.width && w.media.height
+        ? w.media.width / w.media.height
+        : prev?.ratio),
     text: w.text ?? undefined,
     bg: w.bg ? [w.bg[0], w.bg[1]] : undefined,
     progress: progressOut(w.progress),

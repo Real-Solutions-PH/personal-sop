@@ -1892,6 +1892,7 @@ export function ShareComposer<K extends string>({
       uri: m.uri,
       previewUri: m.previewUri,
       lqip: m.lqip,
+      ratio: m.ratio,
     })
     // The story ring shows it landed; the toast is only there to take it
     // back.

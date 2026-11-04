@@ -137,6 +137,9 @@ export type StoryItem = {
   /** A photo's preview rendition and inline placeholder. */
   previewUri?: string
   lqip?: string
+  /** A photo's shape (width / height) when known, so the viewer can show a
+   * card that is not story-shaped whole instead of cropping it. */
+  ratio?: number
   likes?: number
   /** Live mode, my own check-ins only: how many people opened it. */
   views?: number
