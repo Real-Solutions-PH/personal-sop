@@ -5,6 +5,7 @@ import type { Exercise, TemplateItem } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import {
   ArrowDown,
+  ArrowLeftRight,
   ArrowUp,
   Check,
   ChevronRight,
@@ -79,6 +80,8 @@ export function Templates({ id }: { id?: string }) {
     exOf = (item: TemplateItem) =>
       s.exercises.find((e) => e.id === item.exerciseId),
     [picker, setPicker] = useState(false),
+    // The row whose exercise the picker swaps, or null when it adds.
+    [swapAt, setSwapAt] = useState<number | null>(null),
     [selected, setSelected] = useState<string[]>([]),
     [creating, setCreating] = useState<string | null>(null),
     // "Create" in the picker: opened once the picker is gone (iOS will not
@@ -91,6 +94,20 @@ export function Templates({ id }: { id?: string }) {
     const next = [...items]
     ;[next[i], next[j]] = [next[j], next[i]]
     setItems(next)
+  }
+  /** Puts ``exerciseId`` in row ``i``'s place: same position, same sets.
+   * A goal time only carries over between two timed exercises. */
+  const swap = (i: number, exerciseId: string) => {
+    const ex = s.exercises.find((e) => e.id === exerciseId)
+    setItems((now) =>
+      now.map((x, j) => {
+        if (j !== i) return x
+        const { targetSec, ...rest } = x
+        return C.isTimed(ex) && targetSec
+          ? { ...rest, exerciseId, targetSec }
+          : { ...rest, exerciseId }
+      }),
+    )
   }
   const save = () => {
     const result = A.upsertTemplate({
@@ -239,9 +256,28 @@ export function Templates({ id }: { id?: string }) {
                     onPress={() => move(i, 1)}
                   />
                 </View>
-                <Copy weight="medium" lines={1} style={{ flex: 1 }}>
-                  {s.exercises.find((e) => e.id === item.exerciseId)?.name}
-                </Copy>
+                <Tap
+                  label={`Swap ${exOf(item)?.name ?? "exercise"}`}
+                  hint="Pick another exercise for this spot; its sets stay"
+                  onPress={() => {
+                    setSwapAt(i)
+                    setQuery("")
+                    setPicker(true)
+                  }}
+                  style={{ flex: 1, minHeight: 44, justifyContent: "center" }}
+                >
+                  <Line style={{ gap: 6 }}>
+                    <ArrowLeftRight size={14} color={t.fit} />
+                    {/* Two lines before it cuts off: a long name reads whole. */}
+                    <Copy
+                      weight="medium"
+                      lines={2}
+                      style={{ flex: 1, flexShrink: 1 }}
+                    >
+                      {exOf(item)?.name}
+                    </Copy>
+                  </Line>
+                </Tap>
                 {C.isTimed(exOf(item)) ? (
                   <GoalStepper
                     item={item}
@@ -309,6 +345,7 @@ export function Templates({ id }: { id?: string }) {
         icon={Plus}
         onPress={() => {
           setSelected([])
+          setSwapAt(null)
           setPicker(true)
         }}
       >
@@ -350,7 +387,11 @@ export function Templates({ id }: { id?: string }) {
         </View>
       )}
       <Sheet
-        title="Add exercises"
+        title={
+          swapAt === null
+            ? "Add exercises"
+            : `Swap ${(items[swapAt] && exOf(items[swapAt])?.name) ?? "exercise"}`
+        }
         open={picker}
         onClose={() => setPicker(false)}
         onClosed={() => {
@@ -384,32 +425,43 @@ export function Templates({ id }: { id?: string }) {
           .map((e) => (
             <Tap
               key={e.id}
-              onPress={() =>
+              label={swapAt === null ? undefined : `Swap to ${e.name}`}
+              onPress={() => {
+                // Swapping is one pick: it lands in the row's place at once.
+                if (swapAt !== null) {
+                  swap(swapAt, e.id)
+                  setPicker(false)
+                  return
+                }
                 setSelected(
                   selected.includes(e.id)
                     ? selected.filter((x) => x !== e.id)
                     : [...selected, e.id],
                 )
-              }
+              }}
               style={{ paddingVertical: 8 }}
             >
               <Line>
-                <View
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: selected.includes(e.id) ? t.fit : t.line,
-                    backgroundColor: selected.includes(e.id)
-                      ? t.fit
-                      : "transparent",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {selected.includes(e.id) && <Check size={16} color={t.bg} />}
-                </View>
+                {swapAt === null && (
+                  <View
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 6,
+                      borderWidth: 1,
+                      borderColor: selected.includes(e.id) ? t.fit : t.line,
+                      backgroundColor: selected.includes(e.id)
+                        ? t.fit
+                        : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {selected.includes(e.id) && (
+                      <Check size={16} color={t.bg} />
+                    )}
+                  </View>
+                )}
                 <View>
                   <Copy weight="medium">{e.name}</Copy>
                   <Copy size={12} muted>
@@ -426,18 +478,20 @@ export function Templates({ id }: { id?: string }) {
             setPicker(false)
           }}
         />
-        <Button
-          disabled={!selected.length}
-          onPress={() => {
-            setItems([
-              ...items,
-              ...selected.map((exerciseId) => ({ exerciseId, sets: 3 })),
-            ])
-            setPicker(false)
-          }}
-        >
-          {`Add ${selected.length || ""} exercises`}
-        </Button>
+        {swapAt === null && (
+          <Button
+            disabled={!selected.length}
+            onPress={() => {
+              setItems([
+                ...items,
+                ...selected.map((exerciseId) => ({ exerciseId, sets: 3 })),
+              ])
+              setPicker(false)
+            }}
+          >
+            {`Add ${selected.length || ""} exercises`}
+          </Button>
+        )}
       </Sheet>
       {creating !== null && (
         <ExerciseEditor
@@ -446,6 +500,11 @@ export function Templates({ id }: { id?: string }) {
           initialName={creating}
           onClose={() => setCreating(null)}
           onSaved={(e) => {
+            // Swapping: the new exercise takes the row's place.
+            if (swapAt !== null) {
+              swap(swapAt, e.id)
+              return
+            }
             // The new exercise joins the template with anything already ticked.
             setItems([
               ...items,

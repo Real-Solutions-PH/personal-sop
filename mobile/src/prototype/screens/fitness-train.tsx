@@ -248,20 +248,31 @@ function Training({ s, onStart }: { s: FitnessState; onStart: () => void }) {
     )
   if (todayTemplate) {
     const last = F.lastOfTemplate(s, todayTemplate.id),
-      items = todayTemplate.items
+      items = todayTemplate.items,
+      // Anywhere on the card but Start opens the routine to edit (swap an
+      // exercise, change sets); Start still starts it.
+      edit = () => go(`/fitness/templates/${todayTemplate.id}`)
     return (
       <>
         <Hero
           eyebrow={eyebrow}
           title={todayTemplate.name}
           detail={`${items.length} exercises · ${last ? `last done ${F.relDay(last.startedAt)}` : "first time"}`}
+          onOpen={edit}
+          openLabel={`Edit ${todayTemplate.name}`}
+          openHint="Opens the routine to swap exercises or change sets"
           action={
             <SmallButton accent="fit" icon={Play} onPress={onStart}>
               Start
             </SmallButton>
           }
         />
-        <View style={{ gap: 6 }}>
+        <Tap
+          label={`Edit ${todayTemplate.name}'s exercises`}
+          hint="Opens the routine to swap exercises or change sets"
+          onPress={edit}
+          style={{ gap: 6 }}
+        >
           {items.slice(0, 3).map((item) => {
             const sug = F.suggestion(s, item.exerciseId),
               ex = s.exercises.find((e) => e.id === item.exerciseId),
@@ -304,7 +315,7 @@ function Training({ s, onStart }: { s: FitnessState; onStart: () => void }) {
               {`+${items.length - 3} more`}
             </Copy>
           )}
-        </View>
+        </Tap>
       </>
     )
   }
@@ -332,6 +343,8 @@ function Hero({
   chip,
   action,
   onOpen,
+  openLabel,
+  openHint,
 }: {
   eyebrow: React.ReactNode
   title: string
@@ -340,6 +353,9 @@ function Hero({
   chip?: React.ReactNode
   action: React.ReactNode
   onOpen?: () => void
+  /** What opening does, for screen readers. */
+  openLabel?: string
+  openHint?: string
 }) {
   const t = useTheme(),
     big = useBigText()
@@ -370,6 +386,8 @@ function Hero({
     >
       {onOpen ? (
         <Tap
+          label={openLabel}
+          hint={openHint}
           onPress={onOpen}
           style={{
             flex: big ? undefined : 1,

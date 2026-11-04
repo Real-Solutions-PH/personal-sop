@@ -152,6 +152,24 @@ test("today's planned workout is one tap from the top", () => {
   expect(screen.getByText("Empty workout")).toBeTruthy()
 })
 
+test("tapping today's workout anywhere but Start opens its routine to edit", () => {
+  const { tpl, schedule } = plan()
+  patch({ schedule: [...schedule], workouts: [], activeId: null })
+  show()
+  const edit = `/fitness/templates/${tpl.id}`
+  fireEvent.press(screen.getByLabelText(`Edit ${tpl.name}`))
+  expect(router.push).toHaveBeenLastCalledWith(edit)
+  jest.mocked(router.push).mockClear()
+  // The exercise list under it opens the same routine.
+  fireEvent.press(screen.getByLabelText(`Edit ${tpl.name}'s exercises`))
+  expect(router.push).toHaveBeenLastCalledWith(edit)
+  jest.mocked(router.push).mockClear()
+  // Start still starts: it opens the start sheet, not the editor.
+  fireEvent.press(screen.getByText("Start"))
+  expect(router.push).not.toHaveBeenCalledWith(edit)
+  expect(screen.getByText("Empty workout")).toBeTruthy()
+})
+
 test("a workout in progress is resumed, not started again", () => {
   const active = workout("live", at(WED, 0, 9), { status: "in_progress" })
   patch({ workouts: [active], activeId: "live" })
