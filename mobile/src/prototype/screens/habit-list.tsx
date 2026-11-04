@@ -102,7 +102,7 @@ const AllRow = memo(function AllRow({
           </View>
           <View style={{ flex: 1 }}>
             <Line style={{ gap: 6 }}>
-              <Copy weight="medium" lines={1} style={{ flexShrink: 1 }}>
+              <Copy weight="medium" style={{ flexShrink: 1 }}>
                 {h.name}
               </Copy>
               {st === "paused" && (

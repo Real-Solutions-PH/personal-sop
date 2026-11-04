@@ -1143,7 +1143,6 @@ export function ProgressContext({ progress }: { progress: Progress }) {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
       <Icon size={13} color={c} />
       <Text
-        numberOfLines={1}
         style={{ flex: 1, fontFamily: fonts.medium, fontSize: 12, color: c }}
       >
         {progress.title}

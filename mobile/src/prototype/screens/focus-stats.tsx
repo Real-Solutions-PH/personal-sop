@@ -126,7 +126,7 @@ export function FocusStats() {
             >
               <View style={{ gap: 4 }}>
                 <Line>
-                  <Copy lines={1} style={{ flex: 1 }}>
+                  <Copy style={{ flex: 1 }}>
                     {x.item?.title ?? "Nothing in particular"}
                   </Copy>
                   <Copy style={{ fontFamily: fonts.mono }}>

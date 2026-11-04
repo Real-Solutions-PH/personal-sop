@@ -260,7 +260,7 @@ function Detail({
                       borderBottomColor: border(t.line, 0.5),
                     }}
                   >
-                    <Copy size={14} lines={1} style={{ flex: 1 }}>
+                    <Copy size={14} style={{ flex: 1 }}>
                       {x.title}
                     </Copy>
                     <Copy size={12} muted>

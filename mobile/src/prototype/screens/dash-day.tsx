@@ -153,14 +153,10 @@ export function Inbox() {
                           />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Copy
-                            size={14}
-                            weight={n.read ? "body" : "semibold"}
-                            lines={1}
-                          >
+                          <Copy size={14} weight={n.read ? "body" : "semibold"}>
                             {n.title}
                           </Copy>
-                          <Copy size={12} muted lines={2}>
+                          <Copy size={12} muted>
                             {n.body}
                           </Copy>
                         </View>
@@ -241,11 +237,13 @@ export function WrapUp() {
         !dismissed.includes(i.id),
     ),
     letGo = items.filter((i) => dismissed.includes(i.id))
-  const dot = (module: keyof typeof colors) => (
+  // `top` sets the dot on the first line of a title that wraps.
+  const dot = (module: keyof typeof colors, top?: boolean) => (
     <View
       style={{
         width: 8,
         height: 8,
+        marginTop: top ? 6 : 0,
         borderRadius: 4,
         backgroundColor: t[colors[module]],
       }}
@@ -370,9 +368,7 @@ export function WrapUp() {
                     >
                       {dot(i.module)}
                       <Tap onPress={() => go(i.href)} style={{ flex: 1 }}>
-                        <Copy size={14} lines={1}>
-                          {i.title}
-                        </Copy>
+                        <Copy size={14}>{i.title}</Copy>
                       </Tap>
                       {!auto && (
                         <IconTap
@@ -432,18 +428,18 @@ export function WrapUp() {
                   style={{ paddingHorizontal: 12, paddingVertical: 8, gap: 6 }}
                 >
                   {letGo.map((i) => (
-                    <Line key={i.id}>
-                      {dot(i.module)}
-                      <Copy size={14} muted style={{ flex: 1 }} lines={1}>
+                    <Line key={i.id} style={{ alignItems: "flex-start" }}>
+                      {dot(i.module, true)}
+                      <Copy size={14} muted style={{ flex: 1 }}>
                         Let go: {i.title}
                       </Copy>
                     </Line>
                   ))}
                   {misses.map((m) => (
                     <Tap key={m.id} onPress={() => go(m.href)}>
-                      <Line>
-                        {dot(m.module)}
-                        <Copy size={14} style={{ flex: 1 }} lines={1}>
+                      <Line style={{ alignItems: "flex-start" }}>
+                        {dot(m.module, true)}
+                        <Copy size={14} style={{ flex: 1 }}>
                           {m.title}
                         </Copy>
                       </Line>

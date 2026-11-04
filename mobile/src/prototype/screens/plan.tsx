@@ -886,9 +886,9 @@ function CalendarPanel() {
     due = occ.filter((o) => o.day === sel)
   const itemRow = (i: CalendarItem) => (
     <Tap key={i.id} onPress={() => go(i.href)} style={{ paddingVertical: 8 }}>
-      <Line style={{ gap: 8 }}>
+      <Line style={{ gap: 8, alignItems: "flex-start" }}>
         {i.time && (
-          <Copy size={12} muted style={{ width: 42 }}>
+          <Copy size={12} muted style={{ width: 42, marginTop: 2 }}>
             {i.time}
           </Copy>
         )}
@@ -896,13 +896,13 @@ function CalendarPanel() {
           style={{
             width: 6,
             height: 6,
+            marginTop: 7,
             borderRadius: 3,
             backgroundColor: t[AREA[i.module].accent],
           }}
         />
         <Copy
           size={14}
-          lines={1}
           style={{
             flex: 1,
             color: i.done ? t.muted : t.text,
@@ -911,7 +911,7 @@ function CalendarPanel() {
         >
           {i.title}
         </Copy>
-        {i.done && <Check size={14} color={t.good} />}
+        {i.done && <Check size={14} color={t.good} style={{ marginTop: 3 }} />}
       </Line>
     </Tap>
   )

@@ -817,15 +817,14 @@ function PlanBlock() {
           <View
             style={{
               width: 4,
-              height: 28,
+              minHeight: 28,
+              alignSelf: "stretch",
               borderRadius: 2,
               backgroundColor: t[x.accent],
             }}
           />
-          <Text
-            numberOfLines={1}
-            style={{ flex: 1, color: t.text, fontFamily: fonts.medium }}
-          >
+          {/* The title wraps and the bar runs its full height. */}
+          <Text style={{ flex: 1, color: t.text, fontFamily: fonts.medium }}>
             {x.title}
           </Text>
           <Text
@@ -1283,7 +1282,6 @@ function StepsBlock({ items, live }: { items: StepItem[]; live?: boolean }) {
               }}
             >
               <Text
-                numberOfLines={1}
                 style={{
                   flex: 1,
                   color: t.muted,

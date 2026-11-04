@@ -269,7 +269,7 @@ export function TaskStats({ embedded = false }: { embedded?: boolean }) {
                 <Tap key={task.id} onPress={() => go(`/tasks/task/${task.id}`)}>
                   <Line style={{ gap: 8 }}>
                     <CalendarClock size={14} color={t.warn} />
-                    <Copy size={14} lines={1} style={{ flex: 1 }}>
+                    <Copy size={14} style={{ flex: 1 }}>
                       {task.title}
                     </Copy>
                     <Copy size={14} style={{ color: t.warn }}>

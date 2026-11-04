@@ -230,7 +230,7 @@ function DayRow({ habit: h, day }: { habit: Habit; day: string }) {
         </Copy>
         <Copy>{h.icon}</Copy>
         <View style={{ flex: 1 }}>
-          <Copy size={14} weight="medium" lines={1}>
+          <Copy size={14} weight="medium">
             {h.name}
           </Copy>
           <Copy size={12} muted>

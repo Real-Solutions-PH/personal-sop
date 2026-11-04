@@ -650,7 +650,6 @@ export function HabitsHome() {
                         <Copy
                           size={14}
                           weight="medium"
-                          lines={1}
                           style={{ flexShrink: 1 }}
                         >
                           {h.name}

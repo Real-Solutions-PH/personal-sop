@@ -179,7 +179,7 @@ export function FocusDay({ day: initial }: { day?: string }) {
               <Copy weight="semibold">By item</Copy>
               {items.map((x) => (
                 <Line key={x.item ? L.itemKey(x.item) : "none"}>
-                  <Copy lines={1} style={{ flex: 1 }}>
+                  <Copy style={{ flex: 1 }}>
                     {x.item?.title ?? "Nothing in particular"}
                   </Copy>
                   <Copy style={{ fontFamily: fonts.mono }}>

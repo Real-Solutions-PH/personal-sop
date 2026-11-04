@@ -373,9 +373,9 @@ function Review({ id }: { id: string }) {
             </Line>
           )}
           {wins.slice(0, 4).map((x) => (
-            <Line key={x.id} style={{ gap: 8 }}>
-              <Trophy size={16} color={t.life} />
-              <Copy size={14} lines={1} style={{ flex: 1 }}>
+            <Line key={x.id} style={{ gap: 8, alignItems: "flex-start" }}>
+              <Trophy size={16} color={t.life} style={{ marginTop: 2 }} />
+              <Copy size={14} style={{ flex: 1 }}>
                 {x.title}
               </Copy>
               <Copy size={12} muted>
@@ -421,7 +421,7 @@ function Review({ id }: { id: string }) {
                 }}
               >
                 {dot(m.module)}
-                <Copy size={14} lines={1} style={{ flex: 1 }}>
+                <Copy size={14} style={{ flex: 1 }}>
                   {m.title}
                 </Copy>
                 <Tap
