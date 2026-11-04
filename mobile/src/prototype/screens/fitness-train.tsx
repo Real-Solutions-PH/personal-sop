@@ -1,3 +1,4 @@
+import * as A from "@domain/fitness/actions"
 import * as F from "@domain/fitness/calc"
 import type { FitnessState, RunSession, Workout } from "@domain/fitness/data"
 import * as RL from "@domain/fitness/run-live"
@@ -26,6 +27,7 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { Text, useWindowDimensions, View } from "react-native"
+import { toast } from "sonner-native"
 import { lastWeekShort } from "../body-rewards"
 import { Sparkline } from "../chart"
 import { GrowBar } from "../motion"
@@ -44,7 +46,7 @@ import { radius, useTheme } from "../theme"
 import { Screen, useNow } from "../ui"
 import { Body } from "./fitness-body"
 import { RUN_HREF, weekRuns } from "./fitness-runs"
-import { StartWorkoutSheet } from "./fitness-start"
+import { StartWorkoutSheet, workoutHref } from "./fitness-start"
 import { LockedPreview } from "./locked-preview"
 import { SleepCard } from "./sleep-card"
 import { StepsCard } from "./steps-card"
@@ -251,7 +253,20 @@ function Training({ s, onStart }: { s: FitnessState; onStart: () => void }) {
       items = todayTemplate.items,
       // Anywhere on the card but Start opens the routine to edit (swap an
       // exercise, change sets); Start still starts it.
-      edit = () => go(`/fitness/templates/${todayTemplate.id}`)
+      edit = () => go(`/fitness/templates/${todayTemplate.id}`),
+      // Start goes straight into today's scheduled routine; the chooser
+      // stays one tap away under the list.
+      startToday = () => {
+        const r = A.startWorkout({
+          from: "template",
+          templateId: todayTemplate.id,
+        })
+        if (!r.ok) {
+          toast.error(r.reason)
+          return
+        }
+        go(workoutHref(!r.workout.exercises.length))
+      }
     return (
       <>
         <Hero
@@ -262,7 +277,7 @@ function Training({ s, onStart }: { s: FitnessState; onStart: () => void }) {
           openLabel={`Edit ${todayTemplate.name}`}
           openHint="Opens the routine to swap exercises or change sets"
           action={
-            <SmallButton accent="fit" icon={Play} onPress={onStart}>
+            <SmallButton accent="fit" icon={Play} onPress={startToday}>
               Start
             </SmallButton>
           }
@@ -315,6 +330,23 @@ function Training({ s, onStart }: { s: FitnessState; onStart: () => void }) {
               {`+${items.length - 3} more`}
             </Copy>
           )}
+        </Tap>
+        <Tap
+          label="Choose another workout"
+          hint="Pick a different template or repeat a past workout"
+          onPress={onStart}
+          style={{
+            alignSelf: "flex-start",
+            minHeight: 44,
+            justifyContent: "center",
+          }}
+        >
+          <Line style={{ gap: 4 }}>
+            <LayoutList size={14} color={t.primary} />
+            <Copy size={13} weight="medium" style={{ color: t.primary }}>
+              Choose another
+            </Copy>
+          </Line>
         </Tap>
       </>
     )
