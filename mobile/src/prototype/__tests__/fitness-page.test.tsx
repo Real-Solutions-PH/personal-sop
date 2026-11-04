@@ -143,11 +143,37 @@ const plan = () => {
   }
 }
 
-test("today's planned workout is one tap from the top", () => {
+test("Start goes straight into today's scheduled routine", () => {
   const { tpl, schedule } = plan()
   patch({ schedule: [...schedule], workouts: [], activeId: null })
   show()
   expect(screen.getByText(tpl.name)).toBeTruthy()
+  fireEvent.press(screen.getByText("Start"))
+  // No chooser: the routine's workout is live and the logger opens.
+  expect(screen.queryByText("Empty workout")).toBeNull()
+  const s = fitStore.get(),
+    live = s.workouts.find((w) => w.id === s.activeId)
+  expect(live?.status).toBe("in_progress")
+  expect(live?.templateId).toBe(tpl.id)
+  expect(router.push).toHaveBeenLastCalledWith("/fitness/workout")
+})
+
+test("Choose another keeps the chooser one tap away", () => {
+  const { schedule } = plan()
+  patch({ schedule: [...schedule], workouts: [], activeId: null })
+  show()
+  fireEvent.press(screen.getByLabelText("Choose another workout"))
+  expect(screen.getByText("Empty workout")).toBeTruthy()
+  expect(fitStore.get().activeId).toBeNull()
+})
+
+test("with nothing scheduled, Start opens the chooser as before", () => {
+  patch({
+    schedule: [null, null, null, null, null, null, null],
+    workouts: [],
+    activeId: null,
+  })
+  show()
   fireEvent.press(screen.getByText("Start"))
   expect(screen.getByText("Empty workout")).toBeTruthy()
 })
@@ -164,10 +190,10 @@ test("tapping today's workout anywhere but Start opens its routine to edit", () 
   fireEvent.press(screen.getByLabelText(`Edit ${tpl.name}'s exercises`))
   expect(router.push).toHaveBeenLastCalledWith(edit)
   jest.mocked(router.push).mockClear()
-  // Start still starts: it opens the start sheet, not the editor.
+  // Start still starts the workout, not the editor.
   fireEvent.press(screen.getByText("Start"))
   expect(router.push).not.toHaveBeenCalledWith(edit)
-  expect(screen.getByText("Empty workout")).toBeTruthy()
+  expect(router.push).toHaveBeenLastCalledWith("/fitness/workout")
 })
 
 test("a workout in progress is resumed, not started again", () => {

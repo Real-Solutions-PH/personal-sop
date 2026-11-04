@@ -21,8 +21,10 @@ import {
   Plus,
   Replace,
   SkipForward,
+  Sparkles,
   Timer,
   Trash2,
+  TrendingDown,
   TrendingUp,
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
@@ -53,6 +55,7 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { finishingHere } from "../routine-done"
+import { meetsGoal, type SetProgress, setProgress } from "../set-progress"
 import { fonts, useTheme } from "../theme"
 import {
   Button,
@@ -131,6 +134,117 @@ function PrBadge({ kind, at }: { kind: C.PrKind; at: number }) {
         <TrendingUp size={11} color={t.good} />
         <Copy size={12} weight="semibold" style={{ color: t.good }}>
           PR
+        </Copy>
+      </View>
+    </Cheer>
+  )
+}
+
+/** A fresh beat cheers once; one from earlier in the workout just sits. */
+const fresh = (at?: string) =>
+  !!at && Date.now() - new Date(at).getTime() < 1500
+
+/** A ticked set against the same set last time: green for more weight or
+ * reps, "New set" for one with no last time, plain when the same, muted
+ * when lower. A fresh gain pops once and never blocks the next tap. */
+function ProgressChip({ p, at }: { p: SetProgress; at?: string }) {
+  const t = useTheme(),
+    [fire, setFire] = useState(0)
+  const up = p.kind === "up" || p.kind === "new"
+  useEffect(() => {
+    if (up && fresh(at)) setFire(Date.now())
+  }, [up, at])
+  const color = p.kind === "up" ? t.good : p.kind === "new" ? t.fit : t.muted
+  const Icon =
+    p.kind === "up"
+      ? TrendingUp
+      : p.kind === "new"
+        ? Sparkles
+        : p.kind === "down"
+          ? TrendingDown
+          : Check
+  return (
+    <Cheer fire={fire} color={color} size={36}>
+      <View
+        testID={`set-progress-${p.kind}`}
+        accessible
+        accessibilityLabel={
+          p.kind === "new"
+            ? "New set: none last time"
+            : p.kind === "same"
+              ? "Same as last time"
+              : `${p.label} on last time`
+        }
+        style={{
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 3,
+          paddingHorizontal: 6,
+          paddingVertical: 1,
+          borderRadius: 99,
+          backgroundColor: up ? border(color, 0.18) : border(t.soft, 0.8),
+        }}
+      >
+        <Icon size={11} color={color} />
+        <Copy
+          size={11}
+          weight={up ? "semibold" : "medium"}
+          lines={2}
+          style={{ color, flexShrink: 1 }}
+        >
+          {p.label}
+        </Copy>
+      </View>
+    </Cheer>
+  )
+}
+
+/** The exercise's goal for today ("+1 rep", "+2.5 kg"): a target until a
+ * set meets it, then a green check that pops once when it lands. */
+function GoalChip({
+  badge,
+  isNew,
+  hitAt,
+}: {
+  badge: string
+  isNew: boolean
+  /** When the first set that met it was ticked; absent: not met yet. */
+  hitAt?: string | null
+}) {
+  const t = useTheme(),
+    hit = hitAt !== undefined,
+    [fire, setFire] = useState(0)
+  useEffect(() => {
+    if (hitAt && fresh(hitAt)) setFire(Date.now())
+  }, [hitAt])
+  return (
+    <Cheer fire={fire} color={t.good} size={36}>
+      <View
+        testID={hit ? "goal-hit" : "goal"}
+        accessible
+        accessibilityLabel={hit ? `Goal ${badge}: hit` : `Goal ${badge}`}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 3,
+          paddingHorizontal: 6,
+          paddingVertical: 2,
+          borderRadius: 99,
+          backgroundColor: hit ? border(t.good, 0.18) : `${t.fit}1a`,
+        }}
+      >
+        {hit ? (
+          <Check size={12} strokeWidth={3} color={t.good} />
+        ) : (
+          !isNew && <TrendingUp size={12} color={t.fit} />
+        )}
+        <Copy
+          size={12}
+          weight={hit ? "semibold" : undefined}
+          style={hit ? { color: t.good } : undefined}
+        >
+          {hit ? `${badge} · hit` : badge}
         </Copy>
       </View>
     </Cheer>
@@ -453,7 +567,16 @@ export function WorkoutLogger() {
           prevWarm = prev?.we.sets.filter((x) => !C.isWorking(x)) ?? [],
           allDone =
             we.sets.some((x) => C.isWorking(x) && C.isDone(x)) &&
-            we.sets.every(C.isDone)
+            we.sets.every(C.isDone),
+          // The goal counts as hit by the first ticked working set that
+          // meets it (weight and reps); only a "+weight" or "+rep" goal can.
+          goalSet =
+            suggestion.kind === "weight" || suggestion.kind === "reps"
+              ? we.sets.find(
+                  (x) =>
+                    C.isWorking(x) && C.isDone(x) && meetsGoal(x, suggestion),
+                )
+              : undefined
         let working = 0,
           warm = 0
         return (
@@ -472,22 +595,11 @@ export function WorkoutLogger() {
                   </Copy>
                 </Tap>
                 <Line style={{ marginTop: 2, gap: 6 }}>
-                  <Line
-                    style={{
-                      gap: 3,
-                      paddingHorizontal: 6,
-                      paddingVertical: 2,
-                      borderRadius: 99,
-                      backgroundColor: `${t.fit}1a`,
-                    }}
-                  >
-                    {suggestion.kind !== "new" && (
-                      <TrendingUp size={12} color={t.fit} />
-                    )}
-                    <Copy size={12}>
-                      {suggestion.kind === "new" ? "New" : suggestion.badge}
-                    </Copy>
-                  </Line>
+                  <GoalChip
+                    badge={suggestion.kind === "new" ? "New" : suggestion.badge}
+                    isNew={suggestion.kind === "new"}
+                    hitAt={goalSet ? (goalSet.completedAt ?? null) : undefined}
+                  />
                   <Copy size={12} muted lines={1} style={{ flex: 1 }}>
                     {suggestion.detail}
                   </Copy>
@@ -598,6 +710,14 @@ export function WorkoutLogger() {
                       {C.isDone(set) && prs[set.id] ? (
                         <View style={{ flex: 1 }}>
                           <PrBadge {...prs[set.id]} />
+                        </View>
+                      ) : C.isDone(set) && !timed && !isWarm ? (
+                        // Ticked: how it went against the same set last time.
+                        <View style={{ flex: 1 }}>
+                          <ProgressChip
+                            p={setProgress(set, ghost, s.settings.units)}
+                            at={set.completedAt}
+                          />
                         </View>
                       ) : (
                         <Copy size={12} muted lines={1} style={{ flex: 1 }}>
