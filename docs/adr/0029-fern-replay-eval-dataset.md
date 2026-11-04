@@ -47,7 +47,7 @@ None. This adds a test suite and a CI job; it changes no default.
 **Negative:**
 - Scrubbing is lossy. Text that named a person or a place reads a little differently from what the model originally saw, though rarely in a way that matters to the failure.
 - The record state is approximate. A row edited after the moment keeps its later values (only creation and deletion times are reconstructed), and a photo turn is replayed with the photo's stored description instead of the image.
-- A public dataset of one person's food and training habits, under a pseudonym, is still a disclosure of habits. It is Kai's data and his call: merging this ADR is that decision. **Nobody else's chats may be added under this ADR.**
+- A public dataset of one person's food and training habits, under a pseudonym, is still a disclosure of habits. It is Kai's data and his call: merging this ADR is that decision. **Nobody else's chats may be added under this ADR.** Other people's chats join the eval only with their consent and only in a private store, never here: see [ADR-0034](0034-fern-eval-private-store-with-consent.md).
 
 **Rejected alternative:** an encrypted dataset in the repository, with the key in Secrets Manager and a GitHub secret. This would give a verbatim, unscrubbed replay, but it adds a key to manage and a secret per environment. It remains the upgrade path if scrub losses start to hide failures.
 

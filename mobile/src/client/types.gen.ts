@@ -3095,6 +3095,8 @@ export type ProfilePublic = {
     push_morning: (string | null);
     push_evening: (string | null);
     push_review: boolean;
+    fern_eval_consent: boolean;
+    fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
     occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
     occupation_detail?: (string | null);
@@ -3129,6 +3131,7 @@ export type ProfileUpdate = {
     push_morning?: (string | null);
     push_evening?: (string | null);
     push_review?: (boolean | null);
+    fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
 };
 

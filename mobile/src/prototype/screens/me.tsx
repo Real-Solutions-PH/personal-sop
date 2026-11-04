@@ -4,7 +4,11 @@ import { startFresh } from "@domain/finance/actions"
 import { fitStore } from "@domain/fitness/store"
 import { habitsStore } from "@domain/habits/store"
 import { DAY_START_HOUR } from "@domain/lib/day"
-import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
+import {
+  privacyStore,
+  toggleFernEval,
+  togglePrivacy,
+} from "@domain/lib/privacy"
 import { resetAll } from "@domain/lib/store"
 import { tasksStore } from "@domain/tasks/store"
 import {
@@ -20,6 +24,7 @@ import {
   Dumbbell,
   Eye,
   Flame,
+  FlaskConical,
   LayoutGrid,
   LogOut,
   Pencil,
@@ -73,10 +78,22 @@ export function Me() {
     score = D.useLifeScore(30),
     target = D.useOnTarget(30),
     hidden = privacyStore.use((s) => s.hidden),
+    fernEval = privacyStore.use((s) => s.fernEval),
     account = sessionStore.use((s) => s.user?.email),
     companionName = companionStore.use((s) => s.name),
     memories = companionStore.use((s) => s.memories),
     shown = extrasStore.use((s) => s)
+  // Turning it on asks first, in plain words; turning it off is immediate
+  // (the next refresh of the test set drops this person's chats).
+  const setFernEval = () =>
+    fernEval
+      ? toggleFernEval()
+      : confirm(
+          `Help improve ${companionName}?`,
+          `Let Unfurl use anonymised copies of your chats to test ${companionName}. They stay private and are never published. You can turn this off any time.`,
+          toggleFernEval,
+          "Turn on",
+        )
   const fresh = () =>
     confirm(
       "Start as a new user?",
@@ -382,6 +399,24 @@ export function Me() {
                 label="Privacy mode"
                 value={hidden}
                 onChange={togglePrivacy}
+                accent="primary"
+              />
+            }
+          />
+          <LinkRow
+            title={`Help improve ${companionName}`}
+            detail={
+              fernEval
+                ? `On: anonymised chats test ${companionName}, privately`
+                : "Off: your chats are never used"
+            }
+            icon={FlaskConical}
+            onPress={setFernEval}
+            right={
+              <Switch
+                label={`Help improve ${companionName}`}
+                value={fernEval}
+                onChange={setFernEval}
                 accent="primary"
               />
             }

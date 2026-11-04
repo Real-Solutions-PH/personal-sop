@@ -72,6 +72,29 @@ def test_update_profile_validates_and_unions_trophies(
             assert value not in r.text
 
 
+def test_fern_eval_consent_is_off_until_given_and_stamped_on_each_change(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    first = client.get(API, headers=h).json()["profile"]
+    assert first["fern_eval_consent"] is False
+    assert first["fern_eval_consent_at"] is None
+    given = client.patch(API, headers=h, json={"fern_eval_consent": True}).json()
+    assert given["fern_eval_consent"] is True
+    assert given["fern_eval_consent_at"] is not None
+    # The same value again (a device resending its whole row) keeps the time.
+    again = client.patch(API, headers=h, json={"fern_eval_consent": True}).json()
+    assert again["fern_eval_consent_at"] == given["fern_eval_consent_at"]
+    withdrawn = client.patch(API, headers=h, json={"fern_eval_consent": False}).json()
+    assert withdrawn["fern_eval_consent"] is False
+    assert withdrawn["fern_eval_consent_at"] > given["fern_eval_consent_at"]
+    # The time is the server's to set.
+    forged = client.patch(
+        API, headers=h, json={"fern_eval_consent_at": "2020-01-01T00:00:00Z"}
+    ).json()
+    assert forged["fern_eval_consent_at"] == withdrawn["fern_eval_consent_at"]
+
+
 def test_handle_claim_is_unique_and_reserved_names_are_taken(
     client: TestClient, db: Session
 ) -> None:

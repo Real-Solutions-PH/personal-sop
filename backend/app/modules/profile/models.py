@@ -93,6 +93,13 @@ class UserProfile(OwnedRow, table=True):
     push_morning: str | None = Field(default="07:00", max_length=5)
     push_evening: str | None = Field(default="21:00", max_length=5)
     push_review: bool = True
+    # Opt-in, off by default: anonymised copies of this person's chats may
+    # be used to test Fern, kept in a private store and never published
+    # (ADR-0034). When it was last turned on or off, set by the server.
+    fern_eval_consent: bool = Field(
+        default=False, sa_column_kwargs={"server_default": "false"}
+    )
+    fern_eval_consent_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
     seen_trophies: list[str] = Field(
         default_factory=list,
         sa_type=JSONB,

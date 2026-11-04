@@ -29,6 +29,17 @@ Deployment is a deliberate, manual promotion — single environment, no auto-dep
 - First superuser is created by `backend/scripts/prestart.sh` (`FIRST_SUPERUSER` env var) — runs automatically via the `prestart` compose service.
 - Mailcatcher (dev SMTP inbox): `http://localhost:1080`.
 
+## Fern eval export
+
+The replay eval's cases are rebuilt from a read-only export of production (ADR-0029, ADR-0034). It reads Kai's chats and those of people with **Help improve Fern** on at that moment, and nobody else's.
+
+1. Run `python scripts/fern_eval_export.py --since <the last case's moment, ISO>` as a one-off task on the API's task definition (ECS Exec is off on the services):
+   - `aws ecs run-task --cluster unfurl --launch-type FARGATE --task-definition <the api service's current revision>`, with the service's subnets and security group and `assignPublicIp=ENABLED`.
+   - `--overrides '{"containerOverrides":[{"name":"api","command":["python","scripts/fern_eval_export.py","--since","..."]}]}'`.
+   - Use the profile `unfurl`, region ap-southeast-1, and run `aws` with `env -u HTTPS_PROXY -u HTTP_PROXY`.
+2. Read the `EXP` lines from the task's log stream (`api/api/<task id>` in the API log group), join them in order, base64-decode and gunzip. Owners marked `public` (Kai) go to `backend/tests/eval/fern/cases/`; owners marked `private` go to the private repository only.
+3. Keep the export and the case builder in a scratch directory outside every repository, and delete them once the cases are committed. The log stream expires with the group's 30-day retention.
+
 ## Error monitoring & uptime
 
 ### GlitchTip (error monitoring, Sentry-SDK compatible)

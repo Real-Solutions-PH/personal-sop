@@ -4,6 +4,7 @@
 import { MODULE_KEYS } from "@domain/dash/data"
 import { dashStore } from "@domain/dash/store"
 import { dayKey } from "@domain/lib/day"
+import { privacyStore } from "@domain/lib/privacy"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
@@ -151,4 +152,29 @@ test("Today drops Community and Weather when they are off", () => {
   expect(screen.queryByLabelText(/^Community/)).toBeNull()
   off.unmount()
   jest.useRealTimers()
+})
+
+test("Help improve Fern starts off, turns on only after the prompt, and off at once", () => {
+  expect(privacyStore.get().fernEval).toBe(false)
+  const declined = jest.spyOn(Alert, "alert").mockImplementation(() => {})
+  render(<Me />, { wrapper })
+  const toggle = () => screen.getByRole("switch", { name: "Help improve Fern" })
+  fireEvent.press(toggle())
+  expect(declined).toHaveBeenCalledTimes(1)
+  expect(declined.mock.calls[0][1]).toMatch(
+    /anonymised copies of your chats.*never published/,
+  )
+  expect(privacyStore.get().fernEval).toBe(false)
+  declined.mockRestore()
+  const accepted = jest
+    .spyOn(Alert, "alert")
+    .mockImplementation((_t, _m, buttons) =>
+      buttons?.find((b) => b.text === "Turn on")?.onPress?.(),
+    )
+  fireEvent.press(toggle())
+  expect(privacyStore.get().fernEval).toBe(true)
+  expect(toggle().props.accessibilityState).toMatchObject({ checked: true })
+  fireEvent.press(toggle())
+  expect(accepted).toHaveBeenCalledTimes(1)
+  expect(privacyStore.get().fernEval).toBe(false)
 })

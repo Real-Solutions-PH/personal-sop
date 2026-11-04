@@ -15,7 +15,7 @@ from pathlib import Path
 from statistics import mean
 from typing import Any
 
-from .harness import CRITERIA, load_cases
+from .harness import CASES, CRITERIA, load_cases
 
 HERE = Path(__file__).parent
 DEFAULT_OUT = HERE.parents[2] / "fern-eval-out"
@@ -23,6 +23,13 @@ DEFAULT_OUT = HERE.parents[2] / "fern-eval-out"
 
 def load(out: Path) -> list[dict[str, Any]]:
     return [json.loads(p.read_text()) for p in sorted(out.glob("*.json"))]
+
+
+def public_only(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The results of the public cases: ``baseline.json`` and the gate count
+    these alone, so private cases (ADR-0034) never move the bar."""
+    ids = {p.stem for p in CASES.glob("*.json")}
+    return [r for r in results if r["id"] in ids]
 
 
 def _judged(r: dict[str, Any]) -> dict[int, float]:
@@ -171,7 +178,7 @@ def main(argv: list[str]) -> None:
             judge_all(o)
     path = HERE / "baseline.json"
     if write_baseline:
-        s = summary(load(outs[0]))
+        s = summary(public_only(load(outs[0])))
         kept = json.loads(path.read_text()) if path.exists() else {}
         path.write_text(
             json.dumps(
@@ -188,7 +195,7 @@ def main(argv: list[str]) -> None:
     sys.stdout.write((one(outs[0]) if len(outs) == 1 else compare(outs)) + "\n")
     if "--gate" in argv:
         base = json.loads(path.read_text())
-        s = summary(load(outs[0]))
+        s = summary(public_only(load(outs[0])))
         low = s["failures_fixed"] < base["failures_passing"] - base["margin"]
         worse = (s["judge"] or 0) < base["judge"] - base["judge_margin"]
         if low or worse:

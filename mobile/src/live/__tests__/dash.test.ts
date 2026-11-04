@@ -108,7 +108,7 @@ beforeEach(() => {
   dashIdStore.set({ owner: "", ids: {} })
   dashStore.set(blank())
   appearanceStore.set({ mode: "system" })
-  privacyStore.set({ hidden: false })
+  privacyStore.set({ hidden: false, fernEval: false })
   currencyStore.set({ code: "PHP" })
 })
 
@@ -194,7 +194,7 @@ test("identity round trip keeps order and the goal link", () => {
 
 test("profile round trip covers the dash, appearance, privacy and currency fields", () => {
   appearanceStore.set({ mode: "dark" })
-  privacyStore.set({ hidden: true })
+  privacyStore.set({ hidden: true, fernEval: true })
   setCurrency("USD")
   setPush({ permission: "granted", morning: "06:30", evening: "21:15" })
   const cur = {
@@ -209,6 +209,7 @@ test("profile round trip covers the dash, appearance, privacy and currency field
     handle: "kai.sop",
     appearance: "dark",
     privacy_hidden: true,
+    fern_eval_consent: true,
     currency: "USD",
     push_review: true,
   })

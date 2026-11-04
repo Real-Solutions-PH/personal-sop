@@ -9,6 +9,7 @@
       "target_threshold": 0.8,
       "appearance": "system",
       "privacy_hidden": false,
+      "fern_eval_consent": false,
       "currency": "PHP",
       "onboarded": true,
       "setup_hidden": false,
