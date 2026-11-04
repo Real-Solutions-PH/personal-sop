@@ -2,7 +2,7 @@
 never enters the library, and a refusal Fern fixes in the same reply is not
 left in the reply as an error.
 
-Seen in Kai's chats 2026-10-22 to 11-04: of 152 items Fern logged, 31 took
+Seen in recent chats 2026-10-22 to 11-04: of 152 items Fern logged, 31 took
 their values from the library. 39 more named a library food and kept the
 model's guess, because their amount could not be scaled to the food's basis
 ("1 serving" of a per-100 g rice with its 150 g known, "1 sachet" of a
@@ -24,9 +24,9 @@ from tests.modules.companion.api.test_fern_agent import act, live, rows_of, stre
 from tests.modules.companion.api.test_fern_fitness import fern, tool_result
 from tests.utils.mobile import ctx_for
 
-# The library entries as Kai's library holds them: USDA FDC 168878 (white
+# The library entries as the library held them: USDA FDC 168878 (white
 # rice, long-grain, cooked: 130 kcal, 2.69 g protein, 28.2 g carbs, 0.28 g
-# fat per 100 g); a whey from its label, per 30 g sachet; Kai's fried egg,
+# fat per 100 g); a whey from its label, per 30 g sachet; a house fried egg,
 # per piece, with no piece weight.
 RICE = L.FoodDraft(
     name="White rice, long-grain, cooked",
@@ -40,7 +40,7 @@ RICE = L.FoodDraft(
     verified=True,
 )
 WHEY = L.FoodDraft(
-    name="Prothin Whey",
+    name="Whey sachet",
     basis="serving",
     unit_grams=30,
     kcal=115,
@@ -51,7 +51,7 @@ WHEY = L.FoodDraft(
     verified=True,
 )
 EGG = L.FoodDraft(
-    name="Fried egg in olive oil (Kai's standard)",
+    name="Fried egg in olive oil (house standard)",
     aliases=["egg", "fried egg", "itlog"],
     basis="piece",
     kcal=112,
@@ -123,11 +123,11 @@ def test_a_counted_unit_of_a_per_serving_food_is_servings(
     api = fern(client, db)
     _library(api, WHEY)
     whey = full(
-        {"name": "Prothin Whey", "qty": 1, "unit": unit, "kcal": 110, "protein": 24}
+        {"name": "Whey sachet", "qty": 1, "unit": unit, "kcal": 110, "protein": 24}
     )
     model = install(monkeypatch, say("", _logs(whey)), say("Logged."))
     stream(api, client, "had my prothin whey")
-    assert tool_result(model)["from_library"] == ["Prothin Whey"]
+    assert tool_result(model)["from_library"] == ["Whey sachet"]
     [item] = _meal_items(api)
     assert (item["kcal"], item["protein"]) == (115.0, 25.0)
 
@@ -135,7 +135,7 @@ def test_a_counted_unit_of_a_per_serving_food_is_servings(
 def test_an_item_near_a_library_food_is_sent_back_once_with_it(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Live 2026-10-31 and 11-01: "Fried egg, unsalted, 46 g" named Kai's
+    """Live 2026-10-31 and 11-01: "Fried egg, unsalted, 46 g" named the
     standard egg, kept per piece, and the model's own 86 kcal was saved.
     Now the item goes back with the library egg; sent as 1 piece it takes
     the library's values, and the reply keeps only the step that saved."""
@@ -203,7 +203,7 @@ def test_a_misread_label_is_refused_before_it_enters_the_library(
     protein, carbs and fat, so every later meal with it counted no macros."""
     api = fern(client, db)
     misread = {
-        "name": "Fresh Tuna Cheesemelt",
+        "name": "Tuna melt sandwich",
         "basis": "serving",
         "kcal": 312,
         "source": "label",
@@ -214,7 +214,7 @@ def test_a_misread_label_is_refused_before_it_enters_the_library(
         monkeypatch,
         say("", act("save_food", **misread)),
         say("", act("save_food", **read)),
-        say("Saved the Fresh Tuna Cheesemelt to your library."),
+        say("Saved the Tuna melt sandwich to your library."),
     )
     events = stream(api, client, "save this label")
     first = tool_result(model)

@@ -2179,7 +2179,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         if a.basis == "100g" and a.kcal > 900:
             return {"error": "more_than_900_kcal_per_100g_check_the_basis"}
         # A misread label must not become the values every later meal uses.
-        # Seen live: "Fresh Tuna Cheesemelt" saved at 312 kcal with 0 g
+        # Seen live: a sandwich label saved at 312 kcal with 0 g
         # protein, carbs and fat, and a whey at 36 kcal with 0 g protein.
         # Numbers the person said stand as said ("290 kcal per pack").
         wrong = (
