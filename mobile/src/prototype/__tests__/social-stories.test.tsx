@@ -31,10 +31,27 @@ jest.mock("expo-image", () => {
   const { View } = require("react-native")
   return { Image: (props: object) => <View {...props} /> }
 })
+// Each gesture keeps its handlers by name, so a test can fire the story's
+// tap as the device would: on a tap anywhere in the frame, the close button
+// included.
+const mockGestures: Record<string, Record<string, (e: object) => void>> = {}
 jest.mock("react-native-gesture-handler", () => {
-  const chain: object = new Proxy({}, { get: () => () => chain })
+  const make = (kind: string) => {
+    const handlers: Record<string, (e: object) => void> = {}
+    mockGestures[kind] = handlers
+    const g: object = new Proxy(
+      {},
+      {
+        get: (_, key: string) => (fn: unknown) => {
+          if (typeof fn === "function") handlers[key] = fn as never
+          return g
+        },
+      },
+    )
+    return g
+  }
   return {
-    Gesture: chain,
+    Gesture: new Proxy({}, { get: (_, kind: string) => () => make(kind) }),
     GestureDetector: ({ children }: { children: ReactNode }) => children,
   }
 })
@@ -276,4 +293,40 @@ test("the empty viewer always has a close button", () => {
   show("ana")
   fireEvent.press(screen.getByLabelText("Close stories"))
   expect(mockBack).toHaveBeenCalled()
+})
+
+// One friend with one check-in: the close button sits inside the story's
+// tap area, so a tap on it is also a tap on the story, and on the last slide
+// that tap closes too. Going back twice left Community for Today.
+const tapStory = (x: number) => act(() => mockGestures.Tap.onEnd({ x }))
+const lone = () =>
+  socialStore.set((s) => ({ ...s, stories: [story("s1", now - 1000)] }))
+
+test("closing a lone friend's check-in goes back once, to Community", () => {
+  lone()
+  show()
+  loaded()
+  fireEvent.press(screen.getByLabelText("Close stories"))
+  tapStory(500)
+  expect(mockBack).toHaveBeenCalledTimes(1)
+})
+
+test("a lone check-in that plays to its end goes back once", () => {
+  lone()
+  show()
+  loaded()
+  act(() => jest.advanceTimersByTime(5100))
+  tapStory(500)
+  fireEvent.press(screen.getByLabelText("Close stories"))
+  expect(mockBack).toHaveBeenCalledTimes(1)
+})
+
+test("swiping a lone check-in down goes back once", () => {
+  lone()
+  show()
+  loaded()
+  act(() => mockGestures.Pan.onUpdate({ translationX: 0, translationY: 200 }))
+  act(() => mockGestures.Pan.onEnd({ translationY: 200, velocityY: 0 }))
+  tapStory(500)
+  expect(mockBack).toHaveBeenCalledTimes(1)
 })

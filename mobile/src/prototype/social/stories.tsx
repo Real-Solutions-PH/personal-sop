@@ -295,7 +295,16 @@ export function StoryViewer({ id }: { id: string }) {
   const dx = useSharedValue(0)
   const dy = useSharedValue(0)
   const input = useRef<TextInputInstance>(null)
-  const close = () => back("/social")
+  // Closing pops this viewer and nothing else. The close button sits inside
+  // the story's tap area, and the last slide's tap, timer or swipe also
+  // closes, so one gesture can ask twice; a second back left Community for
+  // whatever was under it (Today).
+  const closed = useRef(false)
+  const close = () => {
+    if (closed.current) return
+    closed.current = true
+    back("/social")
+  }
   // Live mode shows the server's count; the prototype has no viewers to
   // count, so it shows a stand-in.
   const viewers = liveMode
