@@ -211,6 +211,9 @@ def estimate(ctx: Ctx, text: str) -> F.Estimate | None:
     resolved = _resolve(ctx)
     if resolved is None:
         return None
+    # Sums in the box are added up first, so the resolved weight is what the
+    # model reads and what the item shows ("209+25-27g" is 207 g).
+    text = F.add_up_amounts(text)
     answer = ask(ctx, resolved, PROMPT + text[:2000])
     got = _items(answer)
     if got is None:

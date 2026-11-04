@@ -168,3 +168,70 @@ def test_thinking_before_the_json_is_ignored(model: Model) -> None:
     model.answers.extend(['<think>{"items": "maybe"}</think>Here: ' + _answer(RICE)])
     est = meal_ai.estimate(CTX, "rice")
     assert est is not None and est.items[0].kcal == 205
+
+
+# A described meal seen live (2026-11): a weight worked out as a sum in the
+# box, a misspelt dish, and 100 g of soup. The food table read the soup as
+# 100 bowls of pork sinigang (32,000 kcal) and the chicken as 27 g.
+SEEN = "209+25-27g chicken breast meat sinigagn, 100g sinigang soup"
+# USDA FoodData Central 171477 (chicken breast, meat only, roasted): 165
+# kcal, 31.0 g protein, 3.6 g fat per 100 g; 207 g is about 342 kcal, 64 g
+# protein, 7.5 g fat. Clear sinigang broth: about 10-25 kcal per 100 g.
+SEEN_CHICKEN = {
+    "name": "Chicken breast meat (sinigang)",
+    "qty": 207,
+    "unit": "g",
+    "grams": 207,
+    "kcal": 342,
+    "protein": 64,
+    "carbs": 0,
+    "fat": 7.5,
+}
+SEEN_BROTH = {
+    "name": "Sinigang broth",
+    "qty": 100,
+    "unit": "g",
+    "grams": 100,
+    "kcal": 15,
+    "protein": 1,
+    "carbs": 2.5,
+    "fat": 0.3,
+}
+
+
+def test_a_sum_in_the_box_is_added_up_before_the_model_reads_it(
+    model: Model,
+) -> None:
+    model.answers.extend([_answer(SEEN_CHICKEN, SEEN_BROTH)])
+    est = meal_ai.estimate(CTX, SEEN)
+    assert model.sent[0].endswith(
+        "Meal: 207g chicken breast meat sinigagn, 100g sinigang soup"
+    )
+    assert est is not None
+    assert [(i.qty, i.unit) for i in est.items] == [(207, "g"), (100, "g")]
+    assert sum(i.kcal for i in est.items) == 357
+
+
+def test_the_table_reads_the_same_meal_within_bounds() -> None:
+    """The offline fallback: the weight is the sum, and grams on a food
+    served in bowls are one bowl, never a hundred."""
+    est = F.parse_meal_text(SEEN)
+    assert est is not None
+    got = {i.name: (i.qty, i.unit, i.kcal) for i in est.items}
+    # 207 g of the table's 150 g breast (260 kcal): 260 * 207 / 150 = 358.8.
+    assert got["Chicken inasal (breast)"] == (207, "g", 359)
+    assert got["Sinigang na baboy"] == (1, "bowl", 320)
+
+
+@pytest.mark.parametrize(
+    ("said", "read"),
+    [
+        ("209+25-27g chicken", "207g chicken"),
+        ("1.5+0.5 cups rice", "2 cups rice"),
+        ("2-3 eggs", "2-3 eggs"),  # a range, not a sum
+        ("10+2.5 g", "12.5 g"),
+        ("5-10+1 pcs", "5-10+1 pcs"),  # adds up below zero: left as said
+    ],
+)
+def test_add_up_amounts(said: str, read: str) -> None:
+    assert F.add_up_amounts(said) == read

@@ -278,12 +278,12 @@
           "items": [
             {
               "name": "Beef tapa",
-              "qty": 2000,
+              "qty": 25,
               "unit": "g",
-              "kcal": 5000,
-              "protein": 480,
-              "carbs": 160,
-              "fat": 280,
+              "kcal": 63,
+              "protein": 6,
+              "carbs": 2,
+              "fat": 4,
               "assumption": "~100 g, pan-fried"
             }
           ],
@@ -863,6 +863,130 @@
             }
           ],
           "confidence": 0.84,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "209+25-27g chicken breast meat, 100g sinigang soup",
+        "result": {
+          "items": [
+            {
+              "name": "Chicken inasal (breast)",
+              "qty": 207,
+              "unit": "g",
+              "kcal": 359,
+              "protein": 63,
+              "carbs": 3,
+              "fat": 10,
+              "assumption": "~150 g grilled breast, no skin"
+            },
+            {
+              "name": "Sinigang na baboy",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 320,
+              "protein": 22,
+              "carbs": 10,
+              "fat": 21,
+              "assumption": "1 bowl, pork belly + kangkong, radish"
+            }
+          ],
+          "confidence": 0.76,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "100g sinigang",
+        "result": {
+          "items": [
+            {
+              "name": "Sinigang na baboy",
+              "qty": 1,
+              "unit": "bowl",
+              "kcal": 320,
+              "protein": 22,
+              "carbs": 10,
+              "fat": 21,
+              "assumption": "1 bowl, pork belly + kangkong, radish"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "180g garlic rice",
+        "result": {
+          "items": [
+            {
+              "name": "Garlic rice (sinangag)",
+              "qty": 1,
+              "unit": "cup",
+              "kcal": 280,
+              "protein": 5,
+              "carbs": 50,
+              "fat": 6,
+              "assumption": "~1 cup, 180 g"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "60 g skyflakes",
+        "result": {
+          "items": [
+            {
+              "name": "SkyFlakes crackers",
+              "qty": 2.4,
+              "unit": "pack",
+              "kcal": 312,
+              "protein": 7,
+              "carbs": 46,
+              "fat": 12,
+              "assumption": "1 pack (25 g)"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "2-3 eggs",
+        "result": {
+          "items": [
+            {
+              "name": "Fried egg",
+              "qty": 3,
+              "unit": "pc",
+              "kcal": 270,
+              "protein": 18,
+              "carbs": 0,
+              "fat": 21,
+              "assumption": "1 large egg, fried in oil"
+            }
+          ],
+          "confidence": 0.6799999999999999,
+          "followUp": null
+        }
+      },
+      {
+        "raw": "1.5+0.5 cups rice",
+        "result": {
+          "items": [
+            {
+              "name": "Steamed rice",
+              "qty": 2,
+              "unit": "cup",
+              "kcal": 410,
+              "protein": 8,
+              "carbs": 90,
+              "fat": 0,
+              "assumption": "~1 cup cooked, 160 g"
+            }
+          ],
+          "confidence": 0.6799999999999999,
           "followUp": null
         }
       }
