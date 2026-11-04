@@ -257,7 +257,9 @@ class Settings(BaseSettings):
     NEBIUS_BASE_URL: str = "https://api.tokenfactory.nebius.com/v1/"
     # Server defaults on the Nebius key (app.modules.ai_providers.catalog lists
     # what a user may pick instead): text for chat/capture, vision for photos.
-    NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4-Flash-0731"
+    # DeepSeek V4.1 Flash since 2026-11-05: on Fern's replay eval it kept all
+    # 28 guards and fixed 78/184 failures (V4 Flash: 59), at 2.7x the cost.
+    NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4.1-Flash"
     NEBIUS_VISION_MODEL: str = "Qwen/Qwen3.8-27B"
     # Photos on the server key are read by several vision models at once and
     # each label number is decided by majority, so one misread digit never
