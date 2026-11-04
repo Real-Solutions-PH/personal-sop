@@ -519,6 +519,13 @@ test("meal estimator", async () => {
 		"10 skyflakes",
 		"coke",
 		"oats with banana and whey",
+		// A weight worked out as a sum, and a weight on a food served in bowls.
+		"209+25-27g chicken breast meat, 100g sinigang soup",
+		"100g sinigang",
+		"180g garlic rice",
+		"60 g skyflakes",
+		"2-3 eggs",
+		"1.5+0.5 cups rice",
 	];
 	const strip = (items: { id: string }[]) =>
 		items.map(({ id: _id, ...rest }) => rest);

@@ -252,6 +252,9 @@ export interface Food extends Macros {
   unit: string
   assumption: string
   aliases: string[]
+  /** Grams in one serving (``qty`` ``unit``), where the serving states it:
+   * "180 g of garlic rice" scales by it. */
+  grams?: number
 }
 export const FOODS: Food[] = [
   {
@@ -264,6 +267,7 @@ export const FOODS: Food[] = [
     carbs: 50,
     fat: 6,
     assumption: "~1 cup, 180 g",
+    grams: 180,
     aliases: ["garlic rice", "sinangag"],
   },
   {
@@ -276,6 +280,7 @@ export const FOODS: Food[] = [
     carbs: 45,
     fat: 0,
     assumption: "~1 cup cooked, 160 g",
+    grams: 160,
     aliases: ["rice", "kanin"],
   },
   {
@@ -468,6 +473,7 @@ export const FOODS: Food[] = [
     carbs: 3,
     fat: 2,
     assumption: "1 scoop (30 g) in water",
+    grams: 30,
     aliases: ["whey", "protein shake", "shake"],
   },
   {
@@ -552,6 +558,7 @@ export const FOODS: Food[] = [
     carbs: 19,
     fat: 5,
     assumption: "1 pack (25 g)",
+    grams: 25,
     aliases: ["skyflakes", "crackers"],
   },
   {

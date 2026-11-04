@@ -26,6 +26,8 @@ import {
 import { useState } from "react"
 import { TextInput, type TextInputProps, View } from "react-native"
 import { toast } from "sonner-native"
+import { liveMode } from "@/live/config"
+import { estimateMealLive } from "@/live/meal-estimate"
 import type { LibraryFood } from "@/live/nutrition-foods"
 import { mealSaved } from "../body-moments"
 import { dayIntake } from "../body-rewards"
@@ -604,6 +606,7 @@ export function ManualMeal() {
     [time, setTime] = useState(new Date().toTimeString().slice(0, 5)),
     [text, setText] = useState(""),
     [err, setErr] = useState(false),
+    [estimating, setEstimating] = useState(false),
     [items, setItems] = useState<MealItem[]>([]),
     [custom, setCustom] = useState({ name: "", ...C.zero() }),
     [recipeName, setRecipeName] = useState(""),
@@ -758,10 +761,29 @@ export function ManualMeal() {
           </Copy>
         )}
         <Button
-          disabled={!text.trim()}
-          onPress={() => {
+          disabled={!text.trim() || estimating}
+          onPress={async () => {
             const eatenAt = stamp()
             if (!eatenAt) return
+            // Signed in live, the AI model estimates it on the server; the
+            // device's food table only when the server can't be reached.
+            if (liveMode) {
+              setEstimating(true)
+              const got = await estimateMealLive({
+                id: uid(),
+                text,
+                eatenAt,
+                label,
+              }).finally(() => setEstimating(false))
+              if (got.ok) {
+                replace(`/nutrition/meals/${got.id}`)
+                return
+              }
+              if (got.reason === "unrecognised") {
+                setErr(true)
+                return
+              }
+            }
             const m = A.estimateMeal(text, { source: "text", eatenAt, label })
             if (!m) {
               setErr(true)

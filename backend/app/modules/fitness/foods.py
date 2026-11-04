@@ -26,6 +26,9 @@ class Food:
     fat: float
     assumption: str
     aliases: tuple[str, ...]
+    # Grams in one serving, where the serving states it ("180 g of garlic
+    # rice" scales by it).
+    grams: float | None = None
 
 
 FOODS: tuple[Food, ...] = (
@@ -40,6 +43,7 @@ FOODS: tuple[Food, ...] = (
         6,
         "~1 cup, 180 g",
         ("garlic rice", "sinangag"),
+        180,
     ),
     Food(
         "rice",
@@ -52,6 +56,7 @@ FOODS: tuple[Food, ...] = (
         0,
         "~1 cup cooked, 160 g",
         ("rice", "kanin"),
+        160,
     ),
     Food("tapa", "Beef tapa", 100, "g", 250, 24, 8, 14, "~100 g, pan-fried", ("tapa",)),
     Food(
@@ -213,6 +218,7 @@ FOODS: tuple[Food, ...] = (
         2,
         "1 scoop (30 g) in water",
         ("whey", "protein shake", "shake"),
+        30,
     ),
     Food(
         "banana",
@@ -286,6 +292,7 @@ FOODS: tuple[Food, ...] = (
         5,
         "1 pack (25 g)",
         ("skyflakes", "crackers"),
+        25,
     ),
     Food(
         "softdrink",
@@ -398,7 +405,7 @@ _SILOG = (
 )
 # ``$`` in JavaScript (no ``m`` flag) is end of input: ``\Z`` in Python.
 _NUM = re.compile(
-    r"([0-9]+(?:\.[0-9]+)?)\s*(?:x|pcs?|cups?|scoops?|g|bowls?|plates?|cans?)?"
+    r"([0-9]+(?:\.[0-9]+)?)\s*(x|pcs?|cups?|scoops?|g|bowls?|plates?|cans?)?"
     r"\s*(?:na|of)?\s*\Z"
 )
 _WORD = re.compile(
@@ -412,10 +419,32 @@ _ALIASES: tuple[tuple[str, Food], ...] = tuple(
 RICE_FOLLOW_UP = FollowUp("How much rice?", ("1 cup", "1.5 cups", "2 cups"))
 
 
+_SUM = re.compile(r"[0-9]+(?:\.[0-9]+)?(?:\s*[+-]\s*[0-9]+(?:\.[0-9]+)?)+")
+_TERM = re.compile(r"[+-]?\s*[0-9]+(?:\.[0-9]+)?")
+
+
+def _add_up(m: re.Match[str]) -> str:
+    expr = m.group(0)
+    if "+" not in expr:
+        return expr
+    total = sum(float(t.replace(" ", "")) for t in _TERM.findall(expr))
+    if total <= 0:
+        return expr
+    out = js_round(total * 100) / 100
+    return str(int(out)) if out == int(out) else str(out)
+
+
+def add_up_amounts(text: str) -> str:
+    """ "209+25-27g" is 207 g: a sum the person worked out in the box is
+    added up before reading. Only with a "+" in it, so a range ("2-3 eggs")
+    stays as written (``addUpAmounts``)."""
+    return _SUM.sub(_add_up, text)
+
+
 def parse_meal_text(raw: str) -> Estimate | None:
     """Itemise a free-text meal description, or ``None`` when nothing in it
     is a known food."""
-    text = raw.lower()
+    text = add_up_amounts(raw).lower()
     for short, long in _SILOG:
         text = text.replace(short, long)
     items: list[ItemDraft] = []
@@ -435,7 +464,12 @@ def parse_meal_text(raw: str) -> Estimate | None:
         elif word:
             qty_given = WORD_NUM[word.group(1)]
         mult = 1.0
-        if qty_given is not None:
+        # A weight scales by the serving's grams; a food with no stated
+        # weight stays one serving. "100g sinigang" read as 100 bowls.
+        grams = f.qty if f.unit == "g" else f.grams
+        if qty_given is not None and num and num.group(2) == "g":
+            mult = qty_given / grams if grams else 1.0
+        elif qty_given is not None:
             if f.unit == "g":
                 mult = qty_given / f.qty if qty_given > 20 else qty_given
             else:

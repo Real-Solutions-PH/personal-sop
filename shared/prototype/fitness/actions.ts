@@ -805,12 +805,25 @@ const WORD_NUM: Record<string, number> = {
   three: 3,
   tatlong: 3,
 }
+/** "209+25-27g" is 207 g: a sum the person worked out in the box is
+ * added up before reading. Only with a "+" in it, so a range ("2-3 eggs")
+ * stays as written. */
+export function addUpAmounts(text: string): string {
+  return text.replace(/\d+(?:\.\d+)?(?:\s*[+-]\s*\d+(?:\.\d+)?)+/g, (expr) => {
+    if (!expr.includes("+")) return expr
+    const total = (expr.match(/[+-]?\s*\d+(?:\.\d+)?/g) ?? []).reduce(
+      (sum, n) => sum + Number(n.replace(/\s/g, "")),
+      0,
+    )
+    return total > 0 ? String(Math.round(total * 100) / 100) : expr
+  })
+}
 export function parseMealText(raw: string): {
   items: MealItem[]
   confidence: number
   followUp?: Meal["followUp"]
 } | null {
-  const text = raw
+  const text = addUpAmounts(raw)
     .toLowerCase()
     .replace(/tapsilog/g, "tapa, garlic rice, egg")
     .replace(/longsilog/g, "longganisa, garlic rice, egg")
@@ -828,14 +841,19 @@ export function parseMealText(raw: string): {
     used.add(f.key)
     const before = rest.slice(Math.max(0, i - 14), i)
     const num = before.match(
-      /(\d+(?:\.\d+)?)\s*(?:x|pcs?|cups?|scoops?|g|bowls?|plates?|cans?)?\s*(?:na|of)?\s*$/,
+      /(\d+(?:\.\d+)?)\s*(x|pcs?|cups?|scoops?|g|bowls?|plates?|cans?)?\s*(?:na|of)?\s*$/,
     )
     const word = before.match(
       /(half|kalahati|one|isang|two|dalawang|three|tatlong)\s*(?:cups?|na|of)?\s*$/,
     )
     let mult = 1
     const qtyGiven = num ? Number(num[1]) : word ? WORD_NUM[word[1]] : undefined
-    if (qtyGiven !== undefined)
+    // A weight scales by the serving's grams; a food with no stated weight
+    // stays one serving. "100g sinigang" read as 100 bowls (32,000 kcal).
+    const grams = f.unit === "g" ? f.qty : f.grams
+    if (qtyGiven !== undefined && num?.[2] === "g")
+      mult = grams ? qtyGiven / grams : 1
+    else if (qtyGiven !== undefined)
       mult =
         f.unit === "g"
           ? qtyGiven > 20

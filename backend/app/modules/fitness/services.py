@@ -19,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
 from app.modules.fitness import calc as C
-from app.modules.fitness import catalog, repo
+from app.modules.fitness import catalog, meal_ai, repo
 from app.modules.fitness import foods as F
 from app.modules.fitness.models import (
     Exercise,
@@ -1409,12 +1409,13 @@ def estimate_meal(
     source: str = "text",
     meal_id: uuid.UUID | None = None,
 ) -> Meal:
-    """Estimate a described meal with the built-in food table; the meal
-    waits in ``estimated`` for the user to confirm it."""
+    """Estimate a described meal with the user's AI model, or the built-in
+    food table when none answers; the meal waits in ``estimated`` for the
+    user to confirm it."""
     existing = _existing_meal(ctx, meal_id)
     if existing is not None:
         return existing
-    est = F.parse_meal_text(text)
+    est = meal_ai.estimate(ctx, text) or F.parse_meal_text(text)
     if est is None:
         raise invalid(
             "meal_not_recognised",
@@ -1490,10 +1491,14 @@ def apply_estimate(
 
 
 def reestimate_meal(*, ctx: Ctx, meal_id: uuid.UUID, hint: str | None = None) -> Meal:
-    """Run the built-in estimator over the meal's description (or a hint the
-    user added). A pending photo with nothing readable stays pending."""
+    """Estimate the meal's description again, with the hint the user added
+    as a correction (the AI model, or the built-in table over the hint
+    alone). A pending photo with nothing readable stays pending."""
     m = _meal(ctx, meal_id)
-    est = F.parse_meal_text(hint if hint is not None else m.raw_input)
+    said = m.raw_input if hint is None else f"{m.raw_input}\nCorrection: {hint}"
+    est = meal_ai.estimate(ctx, said) or F.parse_meal_text(
+        hint if hint is not None else m.raw_input
+    )
     if est is None:
         raise invalid(
             "meal_not_recognised",
