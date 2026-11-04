@@ -268,9 +268,10 @@ export function Templates({ id }: { id?: string }) {
                 >
                   <Line style={{ gap: 6 }}>
                     <ArrowLeftRight size={14} color={t.fit} />
+                    {/* Two lines before it cuts off: a long name reads whole. */}
                     <Copy
                       weight="medium"
-                      lines={1}
+                      lines={2}
                       style={{ flex: 1, flexShrink: 1 }}
                     >
                       {exOf(item)?.name}
