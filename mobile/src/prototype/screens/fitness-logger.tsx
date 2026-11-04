@@ -62,6 +62,7 @@ import {
   confirm,
   Empty,
   Field,
+  PinnedFooter,
   Screen,
   Sheet,
   SwipeRow,
@@ -1259,50 +1260,52 @@ export function SetEditor({
           )}
         </View>
       ))}
-      <Button
-        onPress={() => {
-          if (timed) {
-            const m = Number(mins || 0),
-              sec = Number(rest || 0),
-              total = Math.round(m * 60 + sec),
-              kmh = speed === "" ? undefined : Number(speed)
-            if (
-              !Number.isFinite(total) ||
-              total <= 0 ||
-              total > 86400 ||
-              sec >= 60 ||
-              (kmh !== undefined && !(kmh >= 0 && kmh <= 60)) ||
-              !Number.isFinite(Number(weight))
-            ) {
-              toast.error("Enter a time, and seconds under 60")
+      <PinnedFooter>
+        <Button
+          onPress={() => {
+            if (timed) {
+              const m = Number(mins || 0),
+                sec = Number(rest || 0),
+                total = Math.round(m * 60 + sec),
+                kmh = speed === "" ? undefined : Number(speed)
+              if (
+                !Number.isFinite(total) ||
+                total <= 0 ||
+                total > 86400 ||
+                sec >= 60 ||
+                (kmh !== undefined && !(kmh >= 0 && kmh <= 60)) ||
+                !Number.isFinite(Number(weight))
+              ) {
+                toast.error("Enter a time, and seconds under 60")
+                return
+              }
+              onSave({
+                kind,
+                reps: 0,
+                durationSec: total,
+                weight: exercise?.track === "weight" ? kg(weight) : set.weight,
+                ...(exercise?.track === "weight" ? { unit } : {}),
+                ...(exercise?.track === "speed" ? { speedKmh: kmh } : {}),
+              })
+              onClose()
               return
             }
-            onSave({
-              kind,
-              reps: 0,
-              durationSec: total,
-              weight: exercise?.track === "weight" ? kg(weight) : set.weight,
-              ...(exercise?.track === "weight" ? { unit } : {}),
-              ...(exercise?.track === "speed" ? { speedKmh: kmh } : {}),
-            })
+            if (
+              !Number.isFinite(Number(weight)) ||
+              Number(weight) < 0 ||
+              !Number.isInteger(Number(reps)) ||
+              Number(reps) < 0
+            ) {
+              toast.error("Enter valid weight and reps")
+              return
+            }
+            onSave({ weight: kg(weight), reps: Number(reps), kind, unit })
             onClose()
-            return
-          }
-          if (
-            !Number.isFinite(Number(weight)) ||
-            Number(weight) < 0 ||
-            !Number.isInteger(Number(reps)) ||
-            Number(reps) < 0
-          ) {
-            toast.error("Enter valid weight and reps")
-            return
-          }
-          onSave({ weight: kg(weight), reps: Number(reps), kind, unit })
-          onClose()
-        }}
-      >
-        Save
-      </Button>
+          }}
+        >
+          Save
+        </Button>
+      </PinnedFooter>
       <Button
         tone="danger"
         onPress={() => {

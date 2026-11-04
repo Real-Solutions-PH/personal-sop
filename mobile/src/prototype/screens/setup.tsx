@@ -43,10 +43,12 @@ import {
   X,
 } from "lucide-react-native"
 import { useState } from "react"
-import { ScrollView, TextInput, View } from "react-native"
+import { TextInput, View } from "react-native"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
+import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
 import {
   border,
   Copy,
@@ -240,7 +242,9 @@ export function Setup() {
   }
   return (
     <View style={{ flex: 1, paddingTop: safe.top, backgroundColor: t.bg }}>
-      <ScrollView
+      <KeyboardAwareScrollView
+        {...formScrollProps}
+        bottomOffset={FIELD_CLEARANCE}
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: 20,
@@ -418,7 +422,7 @@ export function Setup() {
             </View>
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   )
 }

@@ -10,7 +10,7 @@ import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
 import { Copy, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
-import { Button, Field, Sheet } from "../ui"
+import { Button, Field, PinnedFooter, Sheet } from "../ui"
 import { FitnessTrain } from "./fitness-train"
 export function FitnessHome() {
   // Old links still carry ?tab=eat|body. Eating is Nutrition's page now
@@ -297,44 +297,46 @@ export function ExerciseEditor({
           Rep min is above rep max.
         </Copy>
       )}
-      <Line style={{ gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Button
-            tone={f.id ? "danger" : "quiet"}
-            onPress={() => {
-              if (f.id) A.setExerciseArchived(f.id, !f.archived)
-              onClose()
-            }}
-          >
-            {f.id ? (f.archived ? "Unarchive" : "Archive") : "Cancel"}
-          </Button>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button
-            disabled={!f.name?.trim() || (f.repMin ?? 0) > (f.repMax ?? 0)}
-            onPress={() => {
-              if (
-                !f.name?.trim() ||
-                !Number.isFinite(f.repMin) ||
-                !Number.isFinite(f.repMax) ||
-                !Number.isInteger(f.repMin) ||
-                !Number.isInteger(f.repMax) ||
-                f.repMin! < 1 ||
-                f.repMax! > 100 ||
-                f.repMin! > f.repMax!
-              ) {
-                toast.error("Check the name and rep range")
-                return
-              }
-              const saved = A.upsertExercise({ ...f, name: f.name.trim() })
-              onClose()
-              onSaved?.(saved)
-            }}
-          >
-            Save exercise
-          </Button>
-        </View>
-      </Line>
+      <PinnedFooter>
+        <Line style={{ gap: 8 }}>
+          <View style={{ flex: 1 }}>
+            <Button
+              tone={f.id ? "danger" : "quiet"}
+              onPress={() => {
+                if (f.id) A.setExerciseArchived(f.id, !f.archived)
+                onClose()
+              }}
+            >
+              {f.id ? (f.archived ? "Unarchive" : "Archive") : "Cancel"}
+            </Button>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              disabled={!f.name?.trim() || (f.repMin ?? 0) > (f.repMax ?? 0)}
+              onPress={() => {
+                if (
+                  !f.name?.trim() ||
+                  !Number.isFinite(f.repMin) ||
+                  !Number.isFinite(f.repMax) ||
+                  !Number.isInteger(f.repMin) ||
+                  !Number.isInteger(f.repMax) ||
+                  f.repMin! < 1 ||
+                  f.repMax! > 100 ||
+                  f.repMin! > f.repMax!
+                ) {
+                  toast.error("Check the name and rep range")
+                  return
+                }
+                const saved = A.upsertExercise({ ...f, name: f.name.trim() })
+                onClose()
+                onSaved?.(saved)
+              }}
+            >
+              Save exercise
+            </Button>
+          </View>
+        </Line>
+      </PinnedFooter>
     </Sheet>
   )
 }

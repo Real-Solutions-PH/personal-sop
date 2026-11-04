@@ -357,7 +357,10 @@ describe("the habit editor", () => {
     fireEvent.press(
       screen.getByRole("switch", { name: "Completes from screen time" }),
     )
-    fireEvent.press(screen.getByText("Save changes"))
+    // The editor saves itself once the edit pauses.
+    act(() => {
+      jest.advanceTimersByTime(1000)
+    })
     expect(habitsStore.get().habits[0].rule).toBeUndefined()
   })
 })

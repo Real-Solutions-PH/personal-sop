@@ -2,6 +2,7 @@ import "../../global.css"
 import * as Sentry from "@sentry/react-native"
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
+import { KeyboardProvider } from "react-native-keyboard-controller"
 import { useReducedMotion } from "react-native-reanimated"
 import { scrubSentryEvent } from "@/lib/sentry-scrub"
 import { prototypeMode } from "@/prototype/mode"
@@ -67,10 +68,12 @@ function RootLayout() {
     ? PrototypeProviders
     : require("@/components/providers").Providers
   return (
-    <Providers>
-      <ThemedStatusBar />
-      <RootStack />
-    </Providers>
+    <KeyboardProvider>
+      <Providers>
+        <ThemedStatusBar />
+        <RootStack />
+      </Providers>
+    </KeyboardProvider>
   )
 }
 

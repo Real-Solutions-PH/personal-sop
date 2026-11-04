@@ -19,7 +19,7 @@ import {
 import { pickPhoto } from "../media"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { useTheme } from "../theme"
-import { Button, Empty, Field, Screen } from "../ui"
+import { Button, Empty, Field, PinnedFooter, Screen } from "../ui"
 
 /** A number with thousands separators, one decimal at most. */
 export const fmt = (v: number) =>
@@ -530,12 +530,17 @@ function FoodBody({ food }: { food: LibraryFood }) {
               {outcome.text}
             </Copy>
           )}
-          <Button
-            disabled={!dirty || !valid || edits.save.isPending}
-            onPress={save}
-          >
-            {edits.save.isPending ? "Saving…" : "Save changes"}
-          </Button>
+          {/* A shared-library edit stays one deliberate save, kept on screen. */}
+          <PinnedFooter>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+              <Button
+                disabled={!dirty || !valid || edits.save.isPending}
+                onPress={save}
+              >
+                {edits.save.isPending ? "Saving…" : "Save changes"}
+              </Button>
+            </View>
+          </PinnedFooter>
         </>
       ) : (
         <ReadOnly food={food} outcome={outcome?.text} />

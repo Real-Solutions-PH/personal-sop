@@ -89,7 +89,7 @@ beforeEach(() => {
 const nameOf = (id: string) =>
   fitStore.get().exercises.find((e) => e.id === id)?.name ?? ""
 
-test("a tap on an exercise swaps it in place, keeping its spot and sets", () => {
+test("a tap on an exercise swaps it in place, keeping its spot and sets", async () => {
   const tpl = fitStore.get().templates[0]
   expect(tpl.items.length).toBeGreaterThan(2)
   // Give the second row a set count of its own, to see it kept.
@@ -133,7 +133,8 @@ test("a tap on an exercise swaps it in place, keeping its spot and sets", () => 
   )
   expect(screen.getByText("5 sets")).toBeTruthy()
 
-  fireEvent.press(screen.getByText("Save"))
+  // Editing an existing routine saves itself after a pause.
+  await act(() => new Promise((r) => setTimeout(r, 700)))
   const saved = fitStore.get().templates.find((x) => x.id === tpl.id)?.items
   expect(saved?.map((it) => it.exerciseId)).toEqual(
     before.map((it, i) => (i === 1 ? replacement.id : it.exerciseId)),
@@ -142,7 +143,7 @@ test("a tap on an exercise swaps it in place, keeping its spot and sets", () => 
   expect(saved).toHaveLength(before.length)
 })
 
-test("Add exercise still adds at the end, several at a time", () => {
+test("Add exercise still adds at the end, several at a time", async () => {
   const tpl = fitStore.get().templates[0]
   const before = tpl.items
   const spare = fitStore
@@ -156,7 +157,8 @@ test("Add exercise still adds at the end, several at a time", () => {
   expect(screen.getAllByText("Add exercises").length).toBeGreaterThan(0)
   for (const e of spare) fireEvent.press(screen.getByText(e.name))
   fireEvent.press(screen.getByText("Add 2 exercises"))
-  fireEvent.press(screen.getByText("Save"))
+  // Editing an existing routine saves itself after a pause.
+  await act(() => new Promise((r) => setTimeout(r, 700)))
   const saved = fitStore.get().templates.find((x) => x.id === tpl.id)?.items
   expect(saved?.map((it) => it.exerciseId)).toEqual([
     ...before.map((it) => it.exerciseId),

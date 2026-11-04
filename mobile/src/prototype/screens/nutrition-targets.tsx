@@ -55,7 +55,81 @@ export function MacroTargets() {
   const inputs = planIn ?? planInputsFrom(s),
     notes = inputs ? planNotes({ ...t, fiberG: limits.fiberGoal }, inputs) : []
   return (
-    <Screen title="Macro targets">
+    <Screen
+      title="Macro targets"
+      // A target change is a dated entry ("effective today"), so it is one
+      // deliberate Save, pinned on screen, not a write on every stepper tap.
+      footer={
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+          <Button
+            onPress={() => {
+              if (
+                ![t.kcal, t.protein, t.carbs, t.fat].every(Number.isFinite) ||
+                t.kcal < 500 ||
+                t.kcal > TARGET_MAX.kcal ||
+                t.protein < 0 ||
+                t.protein > TARGET_MAX.protein ||
+                t.carbs < 0 ||
+                t.carbs > TARGET_MAX.carbs ||
+                t.fat < 0 ||
+                t.fat > TARGET_MAX.fat
+              ) {
+                toast.error("Enter targets within the supported range")
+                return
+              }
+              if (
+                ![
+                  limits.satFatMax,
+                  limits.sugarMax,
+                  limits.sodiumMax,
+                  limits.fiberGoal,
+                  limits.fiberSolubleGoal,
+                  limits.fiberInsolubleGoal,
+                ].every((n) => Number.isFinite(n) && n >= 0)
+              ) {
+                toast.error("Enter limits of zero or more")
+                return
+              }
+              if (
+                limits.fiberSolubleGoal + limits.fiberInsolubleGoal >
+                limits.fiberGoal
+              ) {
+                toast.error(
+                  "Soluble and insoluble goals add up to more than the fiber goal",
+                )
+                return
+              }
+              // A limit left at its default is stored as unset, so it keeps
+              // following the default.
+              const own: NutrientLimits = {
+                satFatMax:
+                  limits.satFatMax === DAILY_LIMITS.satFat
+                    ? undefined
+                    : limits.satFatMax,
+                sugarMax:
+                  limits.sugarMax === DAILY_LIMITS.sugar
+                    ? undefined
+                    : limits.sugarMax,
+                sodiumMax:
+                  limits.sodiumMax === DAILY_LIMITS.sodium
+                    ? undefined
+                    : limits.sodiumMax,
+                fiberGoal:
+                  limits.fiberGoal === FIBER_GOAL
+                    ? undefined
+                    : limits.fiberGoal,
+                fiberSolubleGoal: limits.fiberSolubleGoal || undefined,
+                fiberInsolubleGoal: limits.fiberInsolubleGoal || undefined,
+              }
+              setMacroTarget({ ...t, ...own })
+              replace("/nutrition")
+            }}
+          >
+            Save · effective today
+          </Button>
+        </View>
+      }
+    >
       {!current && (
         <Frame style={{ padding: 16 }}>
           <Copy size={14}>
@@ -352,72 +426,6 @@ export function MacroTargets() {
             </Copy>
           )}
         </Frame>
-      </View>
-      <View style={{ marginTop: 12, paddingVertical: 12 }}>
-        <Button
-          onPress={() => {
-            if (
-              ![t.kcal, t.protein, t.carbs, t.fat].every(Number.isFinite) ||
-              t.kcal < 500 ||
-              t.kcal > TARGET_MAX.kcal ||
-              t.protein < 0 ||
-              t.protein > TARGET_MAX.protein ||
-              t.carbs < 0 ||
-              t.carbs > TARGET_MAX.carbs ||
-              t.fat < 0 ||
-              t.fat > TARGET_MAX.fat
-            ) {
-              toast.error("Enter targets within the supported range")
-              return
-            }
-            if (
-              ![
-                limits.satFatMax,
-                limits.sugarMax,
-                limits.sodiumMax,
-                limits.fiberGoal,
-                limits.fiberSolubleGoal,
-                limits.fiberInsolubleGoal,
-              ].every((n) => Number.isFinite(n) && n >= 0)
-            ) {
-              toast.error("Enter limits of zero or more")
-              return
-            }
-            if (
-              limits.fiberSolubleGoal + limits.fiberInsolubleGoal >
-              limits.fiberGoal
-            ) {
-              toast.error(
-                "Soluble and insoluble goals add up to more than the fiber goal",
-              )
-              return
-            }
-            // A limit left at its default is stored as unset, so it keeps
-            // following the default.
-            const own: NutrientLimits = {
-              satFatMax:
-                limits.satFatMax === DAILY_LIMITS.satFat
-                  ? undefined
-                  : limits.satFatMax,
-              sugarMax:
-                limits.sugarMax === DAILY_LIMITS.sugar
-                  ? undefined
-                  : limits.sugarMax,
-              sodiumMax:
-                limits.sodiumMax === DAILY_LIMITS.sodium
-                  ? undefined
-                  : limits.sodiumMax,
-              fiberGoal:
-                limits.fiberGoal === FIBER_GOAL ? undefined : limits.fiberGoal,
-              fiberSolubleGoal: limits.fiberSolubleGoal || undefined,
-              fiberInsolubleGoal: limits.fiberInsolubleGoal || undefined,
-            }
-            setMacroTarget({ ...t, ...own })
-            replace("/nutrition")
-          }}
-        >
-          Save · effective today
-        </Button>
       </View>
     </Screen>
   )

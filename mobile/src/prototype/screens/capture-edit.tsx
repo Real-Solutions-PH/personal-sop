@@ -11,7 +11,15 @@ import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
-import { Button, Choices, DateField, Field, Sheet, Toggle } from "../ui"
+import {
+  Button,
+  Choices,
+  DateField,
+  Field,
+  PinnedFooter,
+  Sheet,
+  Toggle,
+} from "../ui"
 import { AreaPicker } from "./journal"
 import { MoodPicker } from "./mood-picker"
 
@@ -608,33 +616,35 @@ export function CaptureEdit({
         {saved ? "saved — changes update the entry" : "not saved yet"}
       </Copy>
       <PayloadForm p={p} set={set} />
-      <Line>
-        {saved && (
-          <Button
-            tone="danger"
-            onPress={() => {
-              undoCard(card.id)
-              onClose()
-            }}
-          >
-            Delete
-          </Button>
-        )}
-        <View style={{ flex: 1 }}>
-          <Button
-            onPress={() => {
-              if (!validPayload(p)) {
-                toast.error("Check the required fields")
-                return
-              }
-              editCard(card.id, p)
-              onClose()
-            }}
-          >
-            Save
-          </Button>
-        </View>
-      </Line>
+      <PinnedFooter>
+        <Line>
+          {saved && (
+            <Button
+              tone="danger"
+              onPress={() => {
+                undoCard(card.id)
+                onClose()
+              }}
+            >
+              Delete
+            </Button>
+          )}
+          <View style={{ flex: 1 }}>
+            <Button
+              onPress={() => {
+                if (!validPayload(p)) {
+                  toast.error("Check the required fields")
+                  return
+                }
+                editCard(card.id, p)
+                onClose()
+              }}
+            >
+              Save
+            </Button>
+          </View>
+        </Line>
+      </PinnedFooter>
     </Sheet>
   )
 }

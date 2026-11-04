@@ -31,6 +31,7 @@ import {
   Field,
   Label,
   ListScreen,
+  PinnedFooter,
   Row,
   Screen,
   Sheet,
@@ -327,28 +328,30 @@ export function HabitLog({
         </Button>
       </Actions>
       <Field label="Note" value={note} onChangeText={setNote} multiline />
-      <Button
-        onPress={() => {
-          if (
-            !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-            !Number.isFinite(Number(value)) ||
-            Number(value) < 0
-          ) {
-            toast.error("Enter a valid day and non-negative value")
-            return
-          }
-          A.logHabit({
-            habitId: habit.id,
-            day: date,
-            status,
-            value: habit.type === "check" ? undefined : Number(value),
-            note,
-          })
-          onClose()
-        }}
-      >
-        Save log
-      </Button>
+      <PinnedFooter>
+        <Button
+          onPress={() => {
+            if (
+              !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+              !Number.isFinite(Number(value)) ||
+              Number(value) < 0
+            ) {
+              toast.error("Enter a valid day and non-negative value")
+              return
+            }
+            A.logHabit({
+              habitId: habit.id,
+              day: date,
+              status,
+              value: habit.type === "check" ? undefined : Number(value),
+              note,
+            })
+            onClose()
+          }}
+        >
+          Save log
+        </Button>
+      </PinnedFooter>
       <Actions>
         <Button
           tone="quiet"

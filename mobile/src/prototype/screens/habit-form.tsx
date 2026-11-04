@@ -13,6 +13,7 @@ import { CalendarClock, ChevronRight } from "lucide-react-native"
 import { useMemo, useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { SavedMark, useAutosave } from "../autosave"
 import { Stepper } from "../fitness-controls"
 import { IconField } from "../icon-picker"
 import { Copy, Frame, Line, Segmented, Tap } from "../native-kit"
@@ -79,14 +80,9 @@ export function HabitForm({
     ),
     [maxMin, setMaxMin] = useState(h?.rule?.maxMin || 30),
     [scheduleOpen, setScheduleOpen] = useState(false),
-    [tried, setTried] = useState(false),
+    // Editing shows what blocks a save at once: there is no Save to press.
+    [tried, setTried] = useState(!!old),
     [failed, setFailed] = useState(p.state === "save-error")
-  if (id && !old)
-    return (
-      <Screen prototypeLayout title={routine ? "Routine" : "Habit"}>
-        <Empty title={`${routine ? "Routine" : "Habit"} not found`} />
-      </Screen>
-    )
   const inputStyle = {
     height: 48,
     borderRadius: 12,
@@ -115,18 +111,26 @@ export function HabitForm({
       <Switch label={label} value={value} onChange={onChange} accent="hab" />
     </Line>
   )
-  const save = () => {
+  const invalid = !name.trim()
+    ? "Name it to save"
+    : !validSchedule(schedule)
+      ? "Pick a day to save"
+      : !routine && !auto && type !== "check" && !(Number(target) > 0)
+        ? "Set a target to save"
+        : auto && !groups.some((g) => g.id === groupId)
+          ? "Pick an app group to save"
+          : undefined
+  /** Writes the form; ``leave`` also moves on (a create, or the walkthrough). */
+  const save = (leave = true) => {
     setTried(true)
-    if (
-      !name.trim() ||
-      !validSchedule(schedule) ||
-      (!routine && !auto && type !== "check" && !(Number(target) > 0)) ||
-      (auto && !groups.some((g) => g.id === groupId))
-    )
-      return
+    if (invalid) return
     if (failed) {
       setFailed(false)
-      toast.error("Couldn't save — your changes are kept. Tap Save to retry.")
+      toast.error(
+        old
+          ? "Couldn't save — your changes are kept. Edit again to retry."
+          : "Couldn't save — your changes are kept. Tap Create to retry.",
+      )
       return
     }
     const common = {
@@ -138,7 +142,7 @@ export function HabitForm({
     if (routine) {
       if (r) {
         A.updateRoutine(r.id, common)
-        back()
+        if (leave) back()
       } else {
         const created = A.createRoutine(common)
         go(`/habits/routines/${created.id}?add=1`)
@@ -174,7 +178,7 @@ export function HabitForm({
     if (auto || h?.rule) void syncScreenTime()
     if (h) {
       A.updateHabit(h.id, data)
-      back()
+      if (leave) back()
       return
     }
     const created = A.createHabit(data),
@@ -190,10 +194,57 @@ export function HabitForm({
       go(`/habits/routines/${parent.id}`)
     } else go(`/habits/${created.id}`)
   }
+  // An existing habit or routine saves as you edit it (not after Archive:
+  // leaving flushes a waiting edit, and an archived one stays archived).
+  const saved = useAutosave(
+    {
+      name,
+      icon,
+      type,
+      target,
+      unit,
+      step,
+      schedule,
+      reminder,
+      linked,
+      nag,
+      auto,
+      groupId,
+      limited,
+      maxMin,
+    },
+    () => {
+      const live = habitsStore.get()
+      if (
+        old &&
+        (r
+          ? live.routines.some((x) => x.id === r.id)
+          : live.habits.some((x) => x.id === h?.id && x.status !== "archived"))
+      )
+        save(false)
+    },
+    { invalid },
+  )
+  if (id && !old)
+    return (
+      <Screen prototypeLayout title={routine ? "Routine" : "Habit"}>
+        <Empty title={`${routine ? "Routine" : "Habit"} not found`} />
+      </Screen>
+    )
   return (
     <Screen
       prototypeLayout
       title={`${id ? "Edit" : "New"} ${routine ? "routine" : "habit"}`}
+      actions={old ? <SavedMark state={saved} /> : undefined}
+      footer={
+        old ? undefined : (
+          <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+            <Button onPress={() => save()}>
+              {routine ? "Create & add steps" : "Create habit"}
+            </Button>
+          </View>
+        )
+      }
     >
       <View style={{ gap: 20, paddingTop: 8 }}>
         {failed && (
@@ -419,13 +470,6 @@ export function HabitForm({
               setLinked,
             )}
         </Frame>
-        <Button onPress={save}>
-          {old
-            ? "Save changes"
-            : routine
-              ? "Create & add steps"
-              : "Create habit"}
-        </Button>
         {h && (
           <Line>
             <View style={{ flex: 1 }}>

@@ -18,7 +18,16 @@ import { MoneyInput } from "../money-input"
 import { Copy, Segmented, Tap } from "../native-kit"
 import { back } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, Choices, DateField, Field, Sheet, Toggle, undo } from "../ui"
+import {
+  Button,
+  Choices,
+  DateField,
+  Field,
+  PinnedFooter,
+  Sheet,
+  Toggle,
+  undo,
+} from "../ui"
 import { isDay } from "../validation"
 import { CategoryPicker } from "./finance-category-picker"
 export function PlannedEditor(props: {
@@ -314,62 +323,64 @@ function Editor({
               Delete
             </Button>
           )}
-          <Button
-            onPress={() => {
-              if (
-                !name.trim() ||
-                !(Number(amount) > 0) ||
-                !account ||
-                (type !== "transfer" && !category) ||
-                !isDay(date) ||
-                (endKind === "date" && (!isDay(endDay) || endDay < date)) ||
-                (endKind === "count" &&
-                  (!Number.isInteger(Number(count)) || Number(count) < 1)) ||
-                (schedule === "semimonthly" &&
-                  (interval.split(",").length !== 2 ||
-                    interval
-                      .split(",")
-                      .some(
-                        (v) =>
-                          !Number.isInteger(Number(v)) ||
-                          Number(v) < 1 ||
-                          Number(v) > 31,
-                      ))) ||
-                (type === "transfer" && (!to || to === account))
-              ) {
-                toast.error("Check the planned item fields")
-                return
-              }
-              const rule = ruleOf(schedule, interval, date)
-              const endRule: EndRule =
-                endKind === "date"
-                  ? { kind: "date", date: endDay }
-                  : endKind === "count"
-                    ? { kind: "count", n: Math.max(1, Number(count) || 1) }
-                    : { kind: "never" }
-              const input = {
-                name,
-                type,
-                amount: Number(amount),
-                accountId: account,
-                toAccountId: type === "transfer" ? to : undefined,
-                categoryId: type === "transfer" ? undefined : category,
-                schedule: rule,
-                start: date,
-                end: endRule,
-                estimated,
-                autoLog: auto,
-                isWhatIf: whatIf,
-                inProjection: !whatIf && proj,
-                isInstallment: type === "transfer" && inst,
-              }
-              if (p) A.updatePlanned(p.id, input)
-              else A.addPlanned(input)
-              onClose()
-            }}
-          >
-            Save
-          </Button>
+          <PinnedFooter>
+            <Button
+              onPress={() => {
+                if (
+                  !name.trim() ||
+                  !(Number(amount) > 0) ||
+                  !account ||
+                  (type !== "transfer" && !category) ||
+                  !isDay(date) ||
+                  (endKind === "date" && (!isDay(endDay) || endDay < date)) ||
+                  (endKind === "count" &&
+                    (!Number.isInteger(Number(count)) || Number(count) < 1)) ||
+                  (schedule === "semimonthly" &&
+                    (interval.split(",").length !== 2 ||
+                      interval
+                        .split(",")
+                        .some(
+                          (v) =>
+                            !Number.isInteger(Number(v)) ||
+                            Number(v) < 1 ||
+                            Number(v) > 31,
+                        ))) ||
+                  (type === "transfer" && (!to || to === account))
+                ) {
+                  toast.error("Check the planned item fields")
+                  return
+                }
+                const rule = ruleOf(schedule, interval, date)
+                const endRule: EndRule =
+                  endKind === "date"
+                    ? { kind: "date", date: endDay }
+                    : endKind === "count"
+                      ? { kind: "count", n: Math.max(1, Number(count) || 1) }
+                      : { kind: "never" }
+                const input = {
+                  name,
+                  type,
+                  amount: Number(amount),
+                  accountId: account,
+                  toAccountId: type === "transfer" ? to : undefined,
+                  categoryId: type === "transfer" ? undefined : category,
+                  schedule: rule,
+                  start: date,
+                  end: endRule,
+                  estimated,
+                  autoLog: auto,
+                  isWhatIf: whatIf,
+                  inProjection: !whatIf && proj,
+                  isInstallment: type === "transfer" && inst,
+                }
+                if (p) A.updatePlanned(p.id, input)
+                else A.addPlanned(input)
+                onClose()
+              }}
+            >
+              Save
+            </Button>
+          </PinnedFooter>
         </>
       )}
     </Sheet>

@@ -38,7 +38,7 @@ import {
   Tap,
 } from "../native-kit"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Screen, Sheet } from "../ui"
+import { Button, confirm, PinnedFooter, Screen, Sheet } from "../ui"
 
 const suggest = (e: BookEntry | undefined, cmp: "gte" | "lte") => {
   if (!e || e.n === null) return 0
@@ -164,52 +164,54 @@ export function GoalEditor({
               Suggested: last period {cmp === "gte" ? "+10%" : "−10%"}, rounded.
             </Copy>
           </View>
-          <Line style={{ gap: 8 }}>
-            {goal && (
-              <IconTap
-                size={44}
-                icon={Trash2}
-                label="Delete goal"
-                color={t.bad}
-                onPress={() =>
-                  confirm(
-                    "Delete this goal?",
-                    "Its progress history goes with it. Archive instead to keep it.",
-                    () => {
-                      deleteGoal(goal.id)
-                      onClose()
-                    },
-                  )
-                }
-              />
-            )}
-            <View style={{ flex: 1 }}>
-              <Button tone="quiet" onPress={onClose}>
-                Cancel
-              </Button>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                disabled={!valid}
-                onPress={() => {
-                  if (!entry || !valid) return
-                  saveGoal({
-                    id: goal?.id,
-                    metric: ref,
-                    label: entry.label,
-                    target: Number(target),
-                    unit: entry.unit,
-                    comparator: cmp,
-                    period,
-                    via: goal?.via ?? "manual",
-                  })
-                  onClose()
-                }}
-              >
-                Save goal
-              </Button>
-            </View>
-          </Line>
+          <PinnedFooter>
+            <Line style={{ gap: 8 }}>
+              {goal && (
+                <IconTap
+                  size={44}
+                  icon={Trash2}
+                  label="Delete goal"
+                  color={t.bad}
+                  onPress={() =>
+                    confirm(
+                      "Delete this goal?",
+                      "Its progress history goes with it. Archive instead to keep it.",
+                      () => {
+                        deleteGoal(goal.id)
+                        onClose()
+                      },
+                    )
+                  }
+                />
+              )}
+              <View style={{ flex: 1 }}>
+                <Button tone="quiet" onPress={onClose}>
+                  Cancel
+                </Button>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  disabled={!valid}
+                  onPress={() => {
+                    if (!entry || !valid) return
+                    saveGoal({
+                      id: goal?.id,
+                      metric: ref,
+                      label: entry.label,
+                      target: Number(target),
+                      unit: entry.unit,
+                      comparator: cmp,
+                      period,
+                      via: goal?.via ?? "manual",
+                    })
+                    onClose()
+                  }}
+                >
+                  Save goal
+                </Button>
+              </View>
+            </Line>
+          </PinnedFooter>
         </View>
       </Sheet>
       <Sheet

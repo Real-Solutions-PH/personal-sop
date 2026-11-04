@@ -16,6 +16,7 @@ import { SyncEngine } from "@/live/engine"
 import type { Http } from "@/live/http"
 import { habitsMappers } from "@/live/mappers/habits"
 import { createOutbox, type SyncOp } from "@/live/outbox"
+import { AUTOSAVE_MS } from "../autosave"
 import { HabitForm } from "../screens/habits"
 import { deferWrite, WRITE_DELAY_MS } from "../storage"
 
@@ -126,15 +127,18 @@ afterEach(() => jest.useRealTimers())
 const habitOf = (id: string) =>
   habitsStore.get().habits.find((h) => h.id === id) as Habit
 
-test("an edit saved offline is in the store the moment Save is pressed", () => {
+test("an edit saved offline is in the store the moment typing pauses", () => {
   const net = network()
   const h = A.createHabit({ name: "Walk", icon: "🚶" })
   render(<HabitForm id={h.id} />, { wrapper })
   fireEvent.changeText(screen.getByLabelText("Name"), "Long walk")
   fireEvent.press(screen.getByRole("switch", { name: "Reminder" }))
   fireEvent.press(screen.getByText("# Count"))
-  fireEvent.press(screen.getByText("Save changes"))
-  // No timer advanced and no request made: the save is local and synchronous.
+  // The editor saves itself once typing pauses.
+  act(() => {
+    jest.advanceTimersByTime(AUTOSAVE_MS)
+  })
+  // No request made: the save is local.
   expect(habitOf(h.id)).toMatchObject({
     name: "Long walk",
     reminder: !h.reminder,
@@ -158,8 +162,11 @@ test("an offline edit is written to storage after the beat and pushed once onlin
   jest.advanceTimersByTime(1000)
   render(<HabitForm id={h.id} />, { wrapper })
   fireEvent.changeText(screen.getByLabelText("Name"), "Evening walk")
-  fireEvent.press(screen.getByText("Save changes"))
-  // Not written inside the tap; written once the beat passes.
+  // The editor saves itself once typing pauses.
+  act(() => {
+    jest.advanceTimersByTime(AUTOSAVE_MS)
+  })
+  // Not written with the save; written once the beat passes.
   expect(savedHabits(store.saved)?.habits?.[0]?.name).not.toBe("Evening walk")
   jest.advanceTimersByTime(WRITE_DELAY_MS)
   expect(savedHabits(store.saved).habits[0].name).toBe("Evening walk")
@@ -197,7 +204,10 @@ test("rapid edits and ticks lose nothing and are written once", () => {
   render(<HabitForm id={habits[0].id} />, { wrapper })
   const name = screen.getByLabelText("Name")
   for (let i = 0; i < 40; i++) fireEvent.changeText(name, `Name ${i}`)
-  fireEvent.press(screen.getByText("Save changes"))
+  // The editor saves itself once typing pauses.
+  act(() => {
+    jest.advanceTimersByTime(AUTOSAVE_MS)
+  })
   // A burst of ticks across habits and days, some undone again.
   for (let d = 0; d < 10; d++)
     for (const h of habits) A.checkHabit(h.id, dayOffset(-d))
