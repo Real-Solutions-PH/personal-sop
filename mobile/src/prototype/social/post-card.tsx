@@ -245,6 +245,7 @@ export function SendSheet({
                     ? {
                         kind: "image",
                         uri: post.media[0].uri,
+                        ratio: post.media[0].ratio,
                         // My own photo is already on the server: no upload.
                         mediaId: post.by === ME ? post.media[0].id : undefined,
                       }

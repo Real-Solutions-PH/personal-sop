@@ -174,6 +174,7 @@ export function StoryNew() {
               uri: media.uri,
               previewUri: media.previewUri,
               lqip: media.lqip,
+              ratio: media.ratio,
               progress: check,
               audience,
             }
@@ -192,6 +193,7 @@ export function StoryNew() {
         uri: media.uri,
         previewUri: media.previewUri,
         lqip: media.lqip,
+        ratio: media.ratio,
         audience,
       })
     else if (progress) addStory({ kind: "progress", progress, audience })

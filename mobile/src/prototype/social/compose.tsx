@@ -201,6 +201,7 @@ export function Compose() {
           : {
               kind: media[0].kind === "video" ? "video" : "image",
               uri: media[0].uri,
+              ratio: media[0].ratio,
             },
       )
     haptic.done()
