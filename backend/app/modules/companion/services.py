@@ -310,6 +310,27 @@ def _thread_where() -> list[ColumnElement[bool]]:
     return [col(CompanionMessage.thread_id) == t.id] if t is not None else []
 
 
+# companion_message.text is varchar(8000). A model can write more than that
+# (one did, over 8,000 characters, in a model comparison) and the insert then
+# fails the whole turn, so the stored text is cut to fit instead.
+MESSAGE_TEXT_MAX = 8000
+CUT_MARK = "…"
+
+
+def fit_message_text(text: str | None, limit: int = MESSAGE_TEXT_MAX) -> str | None:
+    """``text`` unchanged when it fits; otherwise cut at the last whitespace
+    that leaves room for a visible "…", so the person can see the reply
+    was shortened. A run with no whitespace near the end is cut mid-word."""
+    if text is None or len(text) <= limit:
+        return text
+    head = text[: limit - len(CUT_MARK)]
+    cut = max(head.rfind(" "), head.rfind("\n"), head.rfind("\t"))
+    # Only fall back to the word boundary when it keeps most of the reply.
+    if cut > limit // 2:
+        head = head[:cut]
+    return head.rstrip() + CUT_MARK
+
+
 def _message(
     ctx: Ctx,
     role: str,
@@ -317,6 +338,7 @@ def _message(
     blocks: list[dict[str, Any]],
     row_id: uuid.UUID,
 ) -> CompanionMessage:
+    text = fit_message_text(text)
     t = _THREAD.get()
     if t is not None:
         if t.title is None and role == "me" and text and text.strip():
