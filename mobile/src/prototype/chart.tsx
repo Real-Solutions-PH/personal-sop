@@ -1,7 +1,10 @@
 import { compact } from "@domain/finance/calc"
 import { num } from "@domain/lib/num"
 import { privacyStore } from "@domain/lib/privacy"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { Pressable, Text, View } from "react-native"
+import { Gesture, GestureDetector } from "react-native-gesture-handler"
+import { runOnJS } from "react-native-reanimated"
 import Svg, {
   Circle,
   G,
@@ -13,9 +16,10 @@ import Svg, {
 } from "react-native-svg"
 import { LineStem } from "./brand/line"
 import { type Point, smooth } from "./brand/scribble"
-import { GrowBar, Reveal } from "./motion"
+import { pointAt, pointX, readoutLeft } from "./chart-inspect"
+import { feel, GrowBar, Reveal } from "./motion"
 import { BAR_HEIGHT } from "./native-kit"
-import { fonts, useTheme } from "./theme"
+import { fonts, radius, useTheme } from "./theme"
 
 export function Trend({
   values,
@@ -281,12 +285,21 @@ export function Sparkline({
   )
 }
 
+/** Touch to read a point: the point shown (null for none), its setter,
+ * and what the readout over the marker says about it. */
+export type ChartInspect = {
+  at: number | null
+  onAt: (i: number | null) => void
+  readout: (i: number) => ReactNode
+}
+
 export function FinanceLineChart({
   series,
   labels,
   floor,
   height = 170,
   zero = false,
+  inspect,
 }: {
   /** A series shorter than the longest one stops early on the same x
    * scale, so an actual line can end at today under a full-month plan. */
@@ -300,6 +313,9 @@ export function FinanceLineChart({
   floor?: number
   height?: number
   zero?: boolean
+  /** Opt in to touch: a finger on the chart picks the nearest point and
+   * shows a marker and a readout. Without it the chart is unchanged. */
+  inspect?: ChartInspect
 }) {
   const t = useTheme(),
     hidden = privacyStore.use((s) => s.hidden),
@@ -344,7 +360,8 @@ export function FinanceLineChart({
     shown.add(i)
     next = x(i)
   }
-  return (
+  const at = inspect?.at ?? null
+  const chart = (
     // A fixed box: Reveal fills its parent's height, and a parent sized by
     // its content made the chart grow without end on iOS.
     <View style={{ height }}>
@@ -450,9 +467,132 @@ export function FinanceLineChart({
               </SvgText>
             ) : null,
           )}
+          {at !== null && (
+            <G>
+              <Line
+                x1={x(at)}
+                x2={x(at)}
+                y1={10}
+                y2={height - 20}
+                stroke={t.text}
+                strokeWidth={1}
+                opacity={0.4}
+              />
+              {series.map((s, k) =>
+                s.values[at] === undefined ? null : (
+                  <Circle
+                    key={k}
+                    cx={x(at)}
+                    cy={y(s.values[at])}
+                    r={4}
+                    fill={s.color}
+                    stroke={t.card}
+                    strokeWidth={1.5}
+                  />
+                ),
+              )}
+            </G>
+          )}
         </Svg>
       </Reveal>
     </View>
+  )
+  if (!inspect) return chart
+  return (
+    <Inspectable n={n} height={height} inspect={inspect}>
+      {chart}
+    </Inspectable>
+  )
+}
+
+/** The touch layer over an inspectable chart. A tap or a drag picks the
+ * nearest point; the marker snaps from point to point (no in-between
+ * values are made up), with a light tick each time it moves on. Letting go
+ * keeps the point; the screen clears it on a touch anywhere else, so this
+ * box keeps its own touches from reaching the screen. */
+function Inspectable({
+  n,
+  height,
+  inspect,
+  children,
+}: {
+  n: number
+  height: number
+  inspect: ChartInspect
+  children: ReactNode
+}) {
+  const t = useTheme()
+  const [width, setWidth] = useState(0)
+  const [readoutW, setReadoutW] = useState(0)
+  const shown = useRef(inspect.at)
+  useEffect(() => {
+    shown.current = inspect.at
+  }, [inspect.at])
+  const pick = (px: number) => {
+    const i = pointAt(px, width, height, height, n)
+    if (i === shown.current) return
+    shown.current = i
+    feel.select()
+    inspect.onAt(i)
+  }
+  const step = (d: 1 | -1) => {
+    const from = shown.current ?? (d > 0 ? -1 : n)
+    const i = Math.min(n - 1, Math.max(0, from + d))
+    shown.current = i
+    inspect.onAt(i)
+  }
+  // Sideways drags are the chart's; up and down still scroll the page.
+  const pan = Gesture.Pan()
+    .activeOffsetX([-4, 4])
+    .failOffsetY([-12, 12])
+    .onStart((e) => runOnJS(pick)(e.x))
+    .onUpdate((e) => runOnJS(pick)(e.x))
+  const tap = Gesture.Tap().onEnd((e) => runOnJS(pick)(e.x))
+  const at = inspect.at
+  return (
+    <GestureDetector gesture={Gesture.Race(pan, tap)}>
+      <View
+        collapsable={false}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        onTouchStart={(e) => e.stopPropagation()}
+        accessible
+        accessibilityRole="adjustable"
+        accessibilityLabel="Chart"
+        accessibilityHint="Touch or drag to read the expected money on a date"
+        accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
+        onAccessibilityAction={(e) =>
+          step(e.nativeEvent.actionName === "increment" ? 1 : -1)
+        }
+      >
+        {children}
+        {at !== null && width > 0 && (
+          <View
+            pointerEvents="none"
+            accessibilityLiveRegion="polite"
+            onLayout={(e) => setReadoutW(e.nativeEvent.layout.width)}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: readoutLeft(
+                pointX(at, width, height, height, n),
+                readoutW,
+                width,
+              ),
+              opacity: readoutW ? 1 : 0,
+              paddingHorizontal: 10,
+              paddingVertical: 8,
+              gap: 2,
+              borderRadius: radius.control,
+              borderWidth: 1,
+              borderColor: t.line,
+              backgroundColor: t.card,
+            }}
+          >
+            {inspect.readout(at)}
+          </View>
+        )}
+      </View>
+    </GestureDetector>
   )
 }
 
