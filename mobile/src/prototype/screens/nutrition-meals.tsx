@@ -945,6 +945,16 @@ export function ManualMeal() {
               value={recipeName}
               onChangeText={setRecipeName}
               placeholder="Name (e.g. Iced coffee)"
+              // The button sits under the keyboard while typing: Return saves.
+              returnKeyType="done"
+              onSubmitEditing={() => {
+                if (!recipeName.trim()) return
+                A.saveRecipe(
+                  recipeName,
+                  items.map(({ id: _id, ...rest }) => rest),
+                )
+                setRecipeName("")
+              }}
             />
             <Button
               icon={Plus}

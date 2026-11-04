@@ -15,7 +15,9 @@ import {
   createContext,
   type ReactNode,
   useCallback,
+  useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -24,6 +26,7 @@ import {
   Alert,
   AppState,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -40,6 +43,11 @@ import {
 } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Swipeable from "react-native-gesture-handler/ReanimatedSwipeable"
+import {
+  KeyboardAwareScrollView,
+  KeyboardStickyView,
+  useKeyboardState,
+} from "react-native-keyboard-controller"
 import Animated, {
   FadeIn,
   FadeOut,
@@ -57,6 +65,10 @@ import { toast } from "sonner-native"
 import { screenShown } from "./boot/first-screen"
 import { formatPick, parseDay, startOf, toClock, toDay } from "./date-pick"
 import { useFollowBottom } from "./follow"
+import { FIELD_CLEARANCE, formScrollProps } from "./form-scroll"
+
+export { formScrollProps }
+
 import { feel } from "./motion"
 import { back, go } from "./navigation"
 import { Switch } from "./switch"
@@ -135,6 +147,9 @@ export function Button({
         disabled={disabled}
         onPress={() => {
           void Haptics.selectionAsync().catch(() => {})
+          // A full button ends editing, as on iOS: whatever it opens or saves
+          // must not sit under a keyboard left up by the last field.
+          Keyboard.dismiss()
           if (href) go(href)
           else onPress?.()
         }}
@@ -616,10 +631,19 @@ export function Screen({
   // A hairline appears under the header once content scrolls beneath it.
   const [scrolled, setScrolled] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [footerHeight, setFooterHeight] = useState(0)
+  const slot = useRef<FooterSlotStore>(null)
+  if (!slot.current) slot.current = footerSlot()
   const view = useRef({ top: 0, height: 0 })
+  // The keyboard now covers the bottom of the page instead of shrinking it
+  // (see KeyboardAwareScrollView below), so what shows is the page less it.
+  const keyboard = useKeyboardState((k) => (k.isVisible ? k.height : 0))
+  const covered = useRef(0)
+  covered.current = scrollToEnd ? 0 : keyboard
   const reveal = useCallback((y: number) => {
-    const { top, height } = view.current
-    if (!height || y <= top + height) return
+    const { top } = view.current
+    const height = view.current.height - covered.current
+    if (height <= 0 || y <= top + height) return
     view.current.top = y - height
     scroller.current?.scrollTo({ y: y - height, animated: false })
   }, [])
@@ -634,12 +658,18 @@ export function Screen({
     }
   }
   return (
+    // A chat page (scrollToEnd) keeps its composer footer on the keyboard by
+    // shrinking, so the newest message stays in view; a form page instead
+    // scrolls the focused field above the keyboard (KeyboardAwareScrollView).
     <KeyboardAvoidingView
+      enabled={scrollToEnd}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
       onLayout={screenShown}
     >
-      <View
+      <Pressable
+        accessible={false}
+        onPress={Keyboard.dismiss}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -711,7 +741,7 @@ export function Screen({
           )}
         </View>
         {actions}
-      </View>
+      </Pressable>
       {pinned != null && pinned !== false && (
         <View
           testID="screen-pinned"
@@ -728,8 +758,11 @@ export function Screen({
         </View>
       )}
       <View style={{ flex: 1 }}>
-        <ScrollView
-          ref={scroller}
+        <KeyboardAwareScrollView
+          ref={scroller as never}
+          enabled={!scrollToEnd}
+          bottomOffset={FIELD_CLEARANCE + footerHeight}
+          {...formScrollProps}
           scrollEnabled={!locked}
           scrollEventThrottle={64}
           // Content growing above what the reader sees (an earlier reply
@@ -773,7 +806,6 @@ export function Screen({
             if (onEndReached && view.current.height && h < view.current.height)
               onEndReached()
           }}
-          keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: prototypeLayout ? 0 : 8,
@@ -783,17 +815,40 @@ export function Screen({
           }}
         >
           <ScrollLock.Provider value={setLocked}>
-            <PageScroll.Provider value={reveal}>{children}</PageScroll.Provider>
+            <PageScroll.Provider value={reveal}>
+              <PinnedFooterContext.Provider value={slot.current}>
+                {children}
+              </PinnedFooterContext.Provider>
+            </PageScroll.Provider>
           </ScrollLock.Provider>
-        </ScrollView>
+        </KeyboardAwareScrollView>
         {scrollToEnd && latest.away && (
           <JumpToLatest unread={latest.unread} onPress={latest.jump} />
         )}
       </View>
-      {footer}
+      <FooterSlot
+        store={slot.current}
+        fallback={footer}
+        render={(node) => (
+          <KeyboardStickyView
+            enabled={!scrollToEnd}
+            // Clear of the home indicator; on the keyboard, that inset is gone.
+            offset={{ opened: scrollToEnd ? 0 : safe.bottom }}
+            onLayout={(e) =>
+              setFooterHeight(
+                e.nativeEvent.layout.height - (scrollToEnd ? 0 : safe.bottom),
+              )
+            }
+            style={{ paddingBottom: scrollToEnd ? 0 : safe.bottom }}
+          >
+            {node}
+          </KeyboardStickyView>
+        )}
+      />
     </KeyboardAvoidingView>
   )
 }
+
 /** Back to the newest message of a chat the reader scrolled up in; the dot
  * says something arrived meanwhile. */
 export function JumpToLatest({
@@ -869,13 +924,15 @@ export function ListScreen<T>({
 }) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
+  const [footerHeight, setFooterHeight] = useState(0)
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <View
       style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
       onLayout={screenShown}
     >
-      <View
+      <Pressable
+        accessible={false}
+        onPress={Keyboard.dismiss}
         style={{
           paddingHorizontal: 8,
           height: 56,
@@ -909,7 +966,7 @@ export function ListScreen<T>({
           {title}
         </Text>
         {actions}
-      </View>
+      </Pressable>
       <FlatList
         data={data}
         keyExtractor={(item, index) =>
@@ -922,10 +979,22 @@ export function ListScreen<T>({
           paddingHorizontal: 16,
           paddingBottom: safe.bottom + 64,
         }}
-        keyboardShouldPersistTaps="handled"
+        {...formScrollProps}
+        renderScrollComponent={(props) => (
+          <KeyboardAwareScrollView
+            {...props}
+            bottomOffset={FIELD_CLEARANCE + footerHeight}
+          />
+        )}
       />
-      {footer}
-    </KeyboardAvoidingView>
+      {footer != null && footer !== false && (
+        <KeyboardStickyView
+          onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+        >
+          {footer}
+        </KeyboardStickyView>
+      )}
+    </View>
   )
 }
 // iOS will not present a modal while another is still being dismissed: a
@@ -942,6 +1011,71 @@ function sheetGone() {
     show()
   }
 }
+type FooterSlotStore = {
+  node: ReactNode
+  set: (node: ReactNode) => void
+  listen: (fn: () => void) => () => void
+}
+function footerSlot(): FooterSlotStore {
+  const fns = new Set<() => void>()
+  const store: FooterSlotStore = {
+    node: null,
+    set(node) {
+      store.node = node
+      for (const fn of fns) fn()
+    },
+    listen(fn) {
+      fns.add(fn)
+      return () => {
+        fns.delete(fn)
+      }
+    },
+  }
+  return store
+}
+const PinnedFooterContext = createContext<FooterSlotStore | null>(null)
+/** Only the slot re-renders when a form hands it new actions. */
+function FooterSlot({
+  store,
+  fallback,
+  render,
+}: {
+  store: FooterSlotStore
+  fallback: ReactNode
+  render: (node: ReactNode) => ReactNode
+}) {
+  const [, bump] = useState(0)
+  const node = store.node ?? fallback
+  const shown = useRef(store.node)
+  shown.current = store.node
+  // A form's PinnedFooter sets its actions in a layout effect that runs
+  // before this one subscribes: catch up on that first hand-off too.
+  useLayoutEffect(() => {
+    const off = store.listen(() => bump((n) => n + 1))
+    if (store.node !== shown.current) bump((n) => n + 1)
+    return off
+  }, [store])
+  return node == null || node === false ? null : render(node)
+}
+/**
+ * A form's primary action, wherever the form sits inside a Sheet or Screen:
+ * shown pinned under the content and riding on the keyboard, so Save is
+ * never scrolled out of reach. Outside either it renders in place.
+ */
+export function PinnedFooter({ children }: { children: ReactNode }) {
+  const store = useContext(PinnedFooterContext)
+  // Every render: the actions close over the form's latest state.
+  useLayoutEffect(() => {
+    store?.set(children)
+  })
+  useLayoutEffect(
+    () => () => {
+      store?.set(null)
+    },
+    [store],
+  )
+  return store ? null : children
+}
 export function Sheet({
   title,
   open,
@@ -950,6 +1084,7 @@ export function Sheet({
   backLabel = "Back",
   onClosed,
   fill,
+  footer,
   children,
 }: {
   title: string
@@ -964,12 +1099,19 @@ export function Sheet({
   /** Once the sheet is fully gone (its modal dismissed): the moment to open
    * the next one, which iOS would refuse while this one is still leaving. */
   onClosed?: () => void
+  /** The sheet's primary action: pinned under the content and riding on
+   * the keyboard, so it is never scrolled out of reach. */
+  footer?: ReactNode
   children: ReactNode
 }) {
   const t = useTheme()
   const safe = useSafeAreaInsets()
   const reduced = useReducedMotion()
   const { height: screen } = useWindowDimensions()
+  const [footerHeight, setFooterHeight] = useState(0)
+  const bottom = Math.max(safe.bottom, 16)
+  const slot = useRef<FooterSlotStore>(null)
+  if (!slot.current) slot.current = footerSlot()
   // Stay mounted through the exit animation, then unmount.
   const [mounted, setMounted] = useState(open)
   const y = useSharedValue(screen)
@@ -1038,8 +1180,14 @@ export function Sheet({
     closing.current = false
     y.value = reduced ? 0 : withSpring(0, { damping: 22, stiffness: 260 })
   }, [asked])
+  // A plain JS function for the gestures below: a worklet must not capture
+  // the Keyboard module itself.
+  const endEditing = () => Keyboard.dismiss()
   // Drag the grabber/header down to dismiss, like a native sheet.
   const drag = Gesture.Pan()
+    .onStart(() => {
+      runOnJS(endEditing)()
+    })
     .onUpdate((e) => {
       y.value = Math.max(0, e.translationY) + Math.min(0, e.translationY) * 0.15
     })
@@ -1062,7 +1210,10 @@ export function Sheet({
       onRequestClose={dismiss}
       onDismiss={Platform.OS === "ios" ? gone : undefined}
     >
+      {/* A full-height sheet shrinks above the keyboard; any other grows
+          with it (see the ScrollView below). */}
       <KeyboardAvoidingView
+        enabled={!!fill}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={{ flex: 1, justifyContent: "flex-end" }}
       >
@@ -1089,12 +1240,20 @@ export function Sheet({
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               paddingHorizontal: 16,
-              paddingBottom: Math.max(safe.bottom, 16),
+              paddingBottom: bottom,
             },
             sheetStyle,
           ]}
         >
-          <GestureDetector gesture={drag}>
+          <GestureDetector
+            gesture={Gesture.Exclusive(
+              drag,
+              // A tap on the header ends editing, as anywhere outside a field.
+              Gesture.Tap().onEnd(() => {
+                runOnJS(endEditing)()
+              }),
+            )}
+          >
             <View collapsable={false}>
               <View
                 style={{
@@ -1165,17 +1324,40 @@ export function Sheet({
               </View>
             </View>
           </GestureDetector>
-          {fill ? (
-            <View style={{ flex: 1 }}>{children}</View>
-          ) : (
-            <ScrollView
-              keyboardShouldPersistTaps="handled"
-              bounces={false}
-              contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
-            >
-              {children}
-            </ScrollView>
-          )}
+          <PinnedFooterContext.Provider value={slot.current}>
+            {fill ? (
+              <View style={{ flex: 1 }}>{children}</View>
+            ) : (
+              // Layout mode: the keyboard's space is real content, so a short
+              // sheet grows by the keyboard's height and rises with it rather
+              // than vanishing behind it; a tall one scrolls the focused field
+              // into view above the keyboard (and the pinned footer).
+              <KeyboardAwareScrollView
+                {...formScrollProps}
+                mode="layout"
+                bottomOffset={FIELD_CLEARANCE + footerHeight}
+                extraKeyboardSpace={-bottom}
+                bounces={false}
+                contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+              >
+                {children}
+              </KeyboardAwareScrollView>
+            )}
+          </PinnedFooterContext.Provider>
+          <FooterSlot
+            store={slot.current}
+            fallback={footer}
+            render={(node) => (
+              <KeyboardStickyView
+                enabled={!fill}
+                offset={{ opened: bottom }}
+                onLayout={(e) => setFooterHeight(e.nativeEvent.layout.height)}
+                style={{ paddingTop: 12, backgroundColor: t.bg }}
+              >
+                {node}
+              </KeyboardStickyView>
+            )}
+          />
         </Animated.View>
       </KeyboardAvoidingView>
     </Modal>

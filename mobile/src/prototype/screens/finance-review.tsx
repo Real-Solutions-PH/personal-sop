@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { ScrollView, View } from "react-native"
+import { SavedMark, useAutosave } from "../autosave"
 import {
   Bar,
   Copy,
@@ -97,6 +98,20 @@ export function FinanceReview() {
       ...d.ns.days.map((x) => (x.free ? 1 : 0)),
     ]
   useEffect(() => setNote(saved?.note ?? ""), [saved?.note])
+  // The note saves itself as you write, like a journal entry; switching
+  // periods loads that period's note, which is not an edit.
+  const noteSaved = useAutosave(
+    note,
+    (text) => {
+      if (text === (saved?.note ?? "")) return
+      A.saveLookBack(custom ? `${from}_${to}` : period, text, {
+        savingsRate: d.rate,
+        income: d.flow.income,
+        spend: d.flow.spend,
+      })
+    },
+    { invalid: note.trim() || saved ? undefined : "Write a note to save" },
+  )
   const win = (Icon: LucideIcon, title: string, body: string) => (
     <Frame key={title} style={{ padding: 16 }}>
       <Line>
@@ -564,21 +579,9 @@ export function FinanceReview() {
           onChangeText={setNote}
           style={{ height: 96, textAlignVertical: "top" }}
         />
-        <Line style={{ gap: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Button
-              onPress={() => {
-                A.saveLookBack(custom ? `${from}_${to}` : period, note, {
-                  savingsRate: d.rate,
-                  income: d.flow.income,
-                  spend: d.flow.spend,
-                })
-              }}
-            >
-              {saved ? "Update review" : "Save review"}
-            </Button>
-          </View>
-        </Line>
+        <View style={{ alignSelf: "flex-end", marginTop: -8 }}>
+          <SavedMark state={noteSaved} />
+        </View>
       </View>
       <Sheet title="Share card" open={share} onClose={() => setShare(false)}>
         <Copy size={14} muted>

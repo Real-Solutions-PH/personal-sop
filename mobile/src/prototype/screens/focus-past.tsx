@@ -18,7 +18,7 @@ import { Stepper } from "../fitness-controls"
 import { Copy, Line, Segmented } from "../native-kit"
 import { useTheme } from "../theme"
 import { TimeInput } from "../time-input"
-import { Button, DateField, Field, Sheet, undo } from "../ui"
+import { Button, DateField, Field, PinnedFooter, Sheet, undo } from "../ui"
 
 const pad = (n: number) => String(n).padStart(2, "0")
 const dateOf = (t: number) => {
@@ -255,9 +255,11 @@ export function PastSessionSheet({
           maxLength={80}
         />
         <View style={{ gap: 8, marginTop: 8 }}>
-          <Button icon={Clock} onPress={save}>
-            {editId ? "Save changes" : "Log session"}
-          </Button>
+          <PinnedFooter>
+            <Button icon={Clock} onPress={save}>
+              {editId ? "Save changes" : "Log session"}
+            </Button>
+          </PinnedFooter>
           {editId && (
             <Button icon={Trash2} tone="danger" onPress={remove}>
               Delete session

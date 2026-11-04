@@ -27,7 +27,7 @@ import { useState } from "react"
 import { View } from "react-native"
 import { Copy, Line, Tap } from "../native-kit"
 import { AccentContext, useTheme } from "../theme"
-import { Button, Choices, Field, Sheet } from "../ui"
+import { Button, Choices, Field, PinnedFooter, Sheet } from "../ui"
 import { PayloadForm, validPayload } from "./capture-edit"
 
 const types = [
@@ -437,27 +437,29 @@ function QuickForm({ type, onDone }: { type: string; onDone: () => void }) {
       ) : (
         <PayloadForm p={p} set={set} />
       )}
-      <Line>
-        {type === "expense" && (
-          <Button tone="quiet" onPress={() => save(true)}>
-            Save & add another
-          </Button>
-        )}
-        <View style={{ flex: 1 }}>
-          <Button
-            disabled={
-              type === "meal"
-                ? !est
-                : type === "task"
-                  ? !text.trim()
-                  : !validPayload(p)
-            }
-            onPress={() => save()}
-          >
-            Save
-          </Button>
-        </View>
-      </Line>
+      <PinnedFooter>
+        <Line>
+          {type === "expense" && (
+            <Button tone="quiet" onPress={() => save(true)}>
+              Save & add another
+            </Button>
+          )}
+          <View style={{ flex: 1 }}>
+            <Button
+              disabled={
+                type === "meal"
+                  ? !est
+                  : type === "task"
+                    ? !text.trim()
+                    : !validPayload(p)
+              }
+              onPress={() => save()}
+            >
+              Save
+            </Button>
+          </View>
+        </Line>
+      </PinnedFooter>
     </View>
   )
 }

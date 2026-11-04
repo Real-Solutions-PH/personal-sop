@@ -34,7 +34,15 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, DateField, Field, Screen, Sheet, undo } from "../ui"
+import {
+  Button,
+  DateField,
+  Field,
+  PinnedFooter,
+  Screen,
+  Sheet,
+  undo,
+} from "../ui"
 import { isDay } from "../validation"
 import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 import { StatsShell } from "./stats-shell"
@@ -196,7 +204,11 @@ export function WeighInEditor({
         keyboardType="decimal-pad"
       />
       <Field label="Note (optional)" value={note} onChangeText={setNote} />
-      <Button onPress={save}>{entry ? "Save changes" : "Log weigh-in"}</Button>
+      <PinnedFooter>
+        <Button onPress={save}>
+          {entry ? "Save changes" : "Log weigh-in"}
+        </Button>
+      </PinnedFooter>
       {entry && (
         <Button
           tone="quiet"

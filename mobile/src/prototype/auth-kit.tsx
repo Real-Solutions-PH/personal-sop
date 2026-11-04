@@ -20,16 +20,15 @@ import {
 import type { TextInputInstance } from "react-native"
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   type TextInputProps,
   View,
   type ViewStyle,
 } from "react-native"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import Animated, {
   Easing,
   FadeIn,
@@ -46,6 +45,7 @@ import Svg, { Path } from "react-native-svg"
 import { liveMode } from "@/live/config"
 import { screenShown } from "./boot/first-screen"
 import { FernMark } from "./companion/brand"
+import { FIELD_CLEARANCE, formScrollProps } from "./form-scroll"
 import { back } from "./navigation"
 import { passwordStrength } from "./session"
 import { fonts, radius, space, useTheme } from "./theme"
@@ -184,11 +184,7 @@ export function AuthScreen({
   const t = useTheme()
   const safe = useSafeAreaInsets()
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: t.bg }}
-      onLayout={screenShown}
-    >
+    <View style={{ flex: 1, backgroundColor: t.bg }} onLayout={screenShown}>
       <View
         style={{
           paddingTop: safe.top,
@@ -216,9 +212,10 @@ export function AuthScreen({
           </Pressable>
         )}
       </View>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+      {/* The focused field scrolls up to sit just above the keyboard. */}
+      <KeyboardAwareScrollView
+        {...formScrollProps}
+        bottomOffset={FIELD_CLEARANCE}
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: space.lg,
@@ -259,8 +256,8 @@ export function AuthScreen({
         {children}
         <View style={{ flexGrow: 1, minHeight: 16 }} />
         {footer && <Rise i={8}>{footer}</Rise>}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   )
 }
 

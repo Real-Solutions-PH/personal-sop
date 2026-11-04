@@ -10,7 +10,15 @@ import { MoneyInput } from "../money-input"
 import { Copy, Line, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import { Button, confirm, DateField, Field, Sheet, undo } from "../ui"
+import {
+  Button,
+  confirm,
+  DateField,
+  Field,
+  PinnedFooter,
+  Sheet,
+  undo,
+} from "../ui"
 import { isDay } from "../validation"
 import { ACCOUNT_COLORS, accountColorKey } from "./finance-account-card"
 import { FinChip } from "./finance-projection"
@@ -269,83 +277,85 @@ export function AccountEditor({
           account screen.
         </Copy>
       )}
-      <Line style={{ gap: 8 }}>
-        {ex && (
-          <Button
-            tone="danger"
-            onPress={() =>
-              confirm(
-                `${count ? "Archive" : "Delete"} ${ex.name}?`,
-                count
-                  ? `This account has ${count} transactions, so it can't be deleted. Archive hides it everywhere but keeps its history.`
-                  : "It has no transactions, so it can be deleted permanently.",
-                () => {
-                  if (count) {
-                    A.updateAccount(ex.id, { archived: true })
-                    undo(`${ex.name} archived`, () =>
-                      A.updateAccount(ex.id, { archived: false }),
-                    )
-                  } else A.deleteAccount(ex.id)
-                  onClose()
-                },
-              )
-            }
-          >
-            {count ? "Archive" : "Delete"}
-          </Button>
-        )}
-        <View style={{ flex: 1 }}>
-          <Button
-            onPress={() => {
-              setTried(true)
-              if (!name.trim()) return
-              if (
-                !isDay(date) ||
-                !Number.isFinite(Number(opening)) ||
-                !Number.isFinite(Number(limit))
-              ) {
-                toast.error("Check the balance and date")
-                return
+      <PinnedFooter>
+        <Line style={{ gap: 8 }}>
+          {ex && (
+            <Button
+              tone="danger"
+              onPress={() =>
+                confirm(
+                  `${count ? "Archive" : "Delete"} ${ex.name}?`,
+                  count
+                    ? `This account has ${count} transactions, so it can't be deleted. Archive hides it everywhere but keeps its history.`
+                    : "It has no transactions, so it can be deleted permanently.",
+                  () => {
+                    if (count) {
+                      A.updateAccount(ex.id, { archived: true })
+                      undo(`${ex.name} archived`, () =>
+                        A.updateAccount(ex.id, { archived: false }),
+                      )
+                    } else A.deleteAccount(ex.id)
+                    onClose()
+                  },
+                )
               }
-              const savings = type !== "credit"
-              if (
-                savings &&
-                (!(Number(rate) >= 0 && Number(rate) <= 100) ||
-                  !(Number(goal) >= 0) ||
-                  (deposit && !isDay(matures)) ||
-                  (goal && dated && !isDay(goalBy)))
-              ) {
-                toast.error("Check the interest, goal and dates")
-                return
-              }
-              const input = {
-                name: name.trim(),
-                type,
-                opening:
-                  Number(opening || 0) *
-                  (type === "credit" && Number(opening) > 0 ? -1 : 1),
-                openingDate: date,
-                limit: type === "credit" ? Number(limit || 0) : undefined,
-                color,
-                inNetWorth: nw,
-                inProjection:
-                  type === "credit" || type === "investment" ? false : proj,
-                manual: type === "investment",
-                rate: savings && rate ? Number(rate) : undefined,
-                maturesOn: savings && deposit ? matures : undefined,
-                goal: savings && Number(goal) > 0 ? Number(goal) : undefined,
-                goalBy:
-                  savings && Number(goal) > 0 && dated ? goalBy : undefined,
-              }
-              if (ex) A.updateAccount(ex.id, input)
-              else A.addAccount(input)
-              onClose()
-            }}
-          >
-            Save
-          </Button>
-        </View>
-      </Line>
+            >
+              {count ? "Archive" : "Delete"}
+            </Button>
+          )}
+          <View style={{ flex: 1 }}>
+            <Button
+              onPress={() => {
+                setTried(true)
+                if (!name.trim()) return
+                if (
+                  !isDay(date) ||
+                  !Number.isFinite(Number(opening)) ||
+                  !Number.isFinite(Number(limit))
+                ) {
+                  toast.error("Check the balance and date")
+                  return
+                }
+                const savings = type !== "credit"
+                if (
+                  savings &&
+                  (!(Number(rate) >= 0 && Number(rate) <= 100) ||
+                    !(Number(goal) >= 0) ||
+                    (deposit && !isDay(matures)) ||
+                    (goal && dated && !isDay(goalBy)))
+                ) {
+                  toast.error("Check the interest, goal and dates")
+                  return
+                }
+                const input = {
+                  name: name.trim(),
+                  type,
+                  opening:
+                    Number(opening || 0) *
+                    (type === "credit" && Number(opening) > 0 ? -1 : 1),
+                  openingDate: date,
+                  limit: type === "credit" ? Number(limit || 0) : undefined,
+                  color,
+                  inNetWorth: nw,
+                  inProjection:
+                    type === "credit" || type === "investment" ? false : proj,
+                  manual: type === "investment",
+                  rate: savings && rate ? Number(rate) : undefined,
+                  maturesOn: savings && deposit ? matures : undefined,
+                  goal: savings && Number(goal) > 0 ? Number(goal) : undefined,
+                  goalBy:
+                    savings && Number(goal) > 0 && dated ? goalBy : undefined,
+                }
+                if (ex) A.updateAccount(ex.id, input)
+                else A.addAccount(input)
+                onClose()
+              }}
+            >
+              Save
+            </Button>
+          </View>
+        </Line>
+      </PinnedFooter>
     </Sheet>
   )
 }

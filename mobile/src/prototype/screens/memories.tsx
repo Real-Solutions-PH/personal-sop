@@ -32,7 +32,16 @@ import {
 } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import { Button, Choices, confirm, Field, Screen, Sheet, undo } from "../ui"
+import {
+  Button,
+  Choices,
+  confirm,
+  Field,
+  PinnedFooter,
+  Screen,
+  Sheet,
+  undo,
+} from "../ui"
 import { LockedPreview } from "./locked-preview"
 
 const MAX_TEXT = 500
@@ -346,7 +355,11 @@ function MemoryEditor({
             />
           )}
         </Line>
-        <Button onPress={save}>{memory ? "Save changes" : "Add memory"}</Button>
+        <PinnedFooter>
+          <Button onPress={save}>
+            {memory ? "Save changes" : "Add memory"}
+          </Button>
+        </PinnedFooter>
         {memory && (
           <Button tone="danger" onPress={remove}>
             Forget this memory

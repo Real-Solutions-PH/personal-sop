@@ -11,7 +11,7 @@ import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import { Button, Field, Sheet, undo } from "../ui"
+import { Button, Field, PinnedFooter, Sheet, undo } from "../ui"
 import { useMoney } from "./finance"
 import { FinPill } from "./finance-planned"
 export function BudgetEditor({
@@ -166,66 +166,68 @@ export function BudgetEditor({
               onChange={setRollover}
             />
           </Line>
-          <Line style={{ gap: 8 }}>
-            {ex && (
-              <>
+          <PinnedFooter>
+            <Line style={{ gap: 8 }}>
+              {ex && (
+                <>
+                  <Button
+                    tone="danger"
+                    onPress={() => {
+                      A.updateBudget(ex.id, { archived: true })
+                      undo(`${ex.name} archived`, () =>
+                        A.updateBudget(ex.id, { archived: false }),
+                      )
+                      onClose()
+                    }}
+                  >
+                    Archive
+                  </Button>
+                  <Button
+                    tone="quiet"
+                    onPress={() => {
+                      A.deleteBudget(ex.id)
+                      onClose()
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </>
+              )}
+              <View style={{ flex: 1 }}>
                 <Button
-                  tone="danger"
                   onPress={() => {
-                    A.updateBudget(ex.id, { archived: true })
-                    undo(`${ex.name} archived`, () =>
-                      A.updateBudget(ex.id, { archived: false }),
-                    )
+                    if (!(Number(limit) > 0)) {
+                      toast.error("Set a limit")
+                      return
+                    }
+                    if (!all && !ids.length) {
+                      toast.error("Pick at least one category")
+                      return
+                    }
+                    const input = {
+                      name:
+                        name.trim() ||
+                        (all
+                          ? "Monthly spend"
+                          : ids
+                              .map(
+                                (id) =>
+                                  s.categories.find((c) => c.id === id)?.name,
+                              )
+                              .join(" + ")),
+                      categoryIds: all ? null : ids,
+                      limit: Number(limit),
+                      rollover,
+                    }
+                    ex ? A.updateBudget(ex.id, input) : A.addBudget(input)
                     onClose()
                   }}
                 >
-                  Archive
+                  Save
                 </Button>
-                <Button
-                  tone="quiet"
-                  onPress={() => {
-                    A.deleteBudget(ex.id)
-                    onClose()
-                  }}
-                >
-                  Delete
-                </Button>
-              </>
-            )}
-            <View style={{ flex: 1 }}>
-              <Button
-                onPress={() => {
-                  if (!(Number(limit) > 0)) {
-                    toast.error("Set a limit")
-                    return
-                  }
-                  if (!all && !ids.length) {
-                    toast.error("Pick at least one category")
-                    return
-                  }
-                  const input = {
-                    name:
-                      name.trim() ||
-                      (all
-                        ? "Monthly spend"
-                        : ids
-                            .map(
-                              (id) =>
-                                s.categories.find((c) => c.id === id)?.name,
-                            )
-                            .join(" + ")),
-                    categoryIds: all ? null : ids,
-                    limit: Number(limit),
-                    rollover,
-                  }
-                  ex ? A.updateBudget(ex.id, input) : A.addBudget(input)
-                  onClose()
-                }}
-              >
-                Save
-              </Button>
-            </View>
-          </Line>
+              </View>
+            </Line>
+          </PinnedFooter>
         </>
       )}
     </Sheet>

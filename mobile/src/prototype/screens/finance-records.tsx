@@ -33,6 +33,7 @@ import {
   confirm,
   DateField,
   Empty,
+  PinnedFooter,
   Screen,
   Sheet,
   SwipeRow,
@@ -549,24 +550,26 @@ export function Records({ accountId }: { accountId?: string }) {
             value={draft.pendingOnly}
             onChange={(pendingOnly) => setDraft({ ...draft, pendingOnly })}
           />
-          <Line>
-            <Button tone="quiet" onPress={() => setDraft(blank)}>
-              Reset
-            </Button>
-            <Button tone="quiet" onPress={() => viewStore.set(draft)}>
-              Save default
-            </Button>
-            <View style={{ flex: 1 }}>
-              <Button
-                onPress={() => {
-                  setFilter(draft)
-                  setFilterOpen(false)
-                }}
-              >
-                Apply
+          <PinnedFooter>
+            <Line>
+              <Button tone="quiet" onPress={() => setDraft(blank)}>
+                Reset
               </Button>
-            </View>
-          </Line>
+              <Button tone="quiet" onPress={() => viewStore.set(draft)}>
+                Save default
+              </Button>
+              <View style={{ flex: 1 }}>
+                <Button
+                  onPress={() => {
+                    setFilter(draft)
+                    setFilterOpen(false)
+                  }}
+                >
+                  Apply
+                </Button>
+              </View>
+            </Line>
+          </PinnedFooter>
         </View>
       </Sheet>
       <Sheet title="Category" open={recat} onClose={() => setRecat(false)}>

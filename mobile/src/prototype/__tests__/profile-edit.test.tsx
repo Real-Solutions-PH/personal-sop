@@ -94,21 +94,35 @@ beforeEach(() => {
   })
 })
 
-test("Save persists the dash store once and goes back to Me", () => {
+// Edit profile saves itself: a pause in typing writes the dash store once.
+const pause = () => act(() => new Promise((r) => setTimeout(r, 700)))
+
+test("a pause after an edit persists the dash store once, with no Save button", async () => {
   show()
+  expect(screen.queryByText("Save")).toBeNull()
+  fireEvent.changeText(screen.getByLabelText("Name"), "Kai No")
   fireEvent.changeText(screen.getByLabelText("Name"), "Kai Noah")
-  fireEvent.press(screen.getByText("Save"))
+  expect(dashWrites()).toHaveLength(0)
+  await pause()
   expect(dashWrites()).toHaveLength(1)
   expect(dashStore.get().profile.name).toBe("Kai Noah")
-  expect(mockRouter.back).toHaveBeenCalledTimes(1)
-  expect(mockRouter.push).not.toHaveBeenCalled()
+  expect(screen.getByLabelText("Saved")).toBeTruthy()
+  expect(mockRouter.back).not.toHaveBeenCalled()
   expect(toast.success).not.toHaveBeenCalled()
 })
 
-test("the one write carries the photo file, never image data, and no photo work", () => {
+test("leaving mid-edit still saves what was typed", () => {
+  const { unmount } = show()
+  fireEvent.changeText(screen.getByLabelText("Name"), "Kai Noah")
+  unmount()
+  expect(dashStore.get().profile.name).toBe("Kai Noah")
+  expect(dashWrites()).toHaveLength(1)
+})
+
+test("the one write carries the photo file, never image data, and no photo work", async () => {
   show()
   fireEvent.changeText(screen.getByLabelText("Name"), "Kai Noah")
-  fireEvent.press(screen.getByText("Save"))
+  await pause()
   const [write] = dashWrites()
   expect(write.value).toContain(FILE)
   expect(write.value).not.toContain("data:")
@@ -116,27 +130,30 @@ test("the one write carries the photo file, never image data, and no photo work"
   expect(pickAvatar).not.toHaveBeenCalled()
 })
 
-test("Save with no changes writes nothing and goes back", () => {
-  show()
-  fireEvent.press(screen.getByText("Save"))
+test("opening and leaving with no changes writes nothing", async () => {
+  const { unmount } = show()
+  await pause()
+  unmount()
   expect(dashWrites()).toHaveLength(0)
-  expect(mockRouter.back).toHaveBeenCalledTimes(1)
 })
 
-test("the handle is lowercased with spaces stripped, rules shown inline", () => {
+test("the handle is lowercased with spaces stripped, rules shown inline", async () => {
   show()
   fireEvent.changeText(screen.getByLabelText("Handle"), "Kai Noah")
   expect(screen.getByLabelText("Handle").props.value).toBe("kainoah")
   fireEvent.changeText(screen.getByLabelText("Handle"), "k!")
-  expect(screen.getByText("Use at least 3 characters")).toBeTruthy()
+  expect(
+    screen.getAllByText("Use at least 3 characters").length,
+  ).toBeGreaterThan(0)
   fireEvent.changeText(screen.getByLabelText("Handle"), "")
-  expect(screen.getByText("Use at least 3 characters")).toBeTruthy()
-  fireEvent.press(screen.getByText("Save"))
+  expect(
+    screen.getAllByText("Use at least 3 characters").length,
+  ).toBeGreaterThan(0)
+  await pause()
   expect(dashWrites()).toHaveLength(0)
-  expect(mockRouter.back).not.toHaveBeenCalled()
 })
 
-test("a taken handle disables Save; unknown (offline) allows it", async () => {
+test("a taken handle is not saved; unknown (offline) is", async () => {
   jest.mocked(checkUsername).mockResolvedValueOnce("taken")
   show()
   fireEvent.changeText(screen.getByLabelText("Handle"), "ana.lifts")
@@ -144,15 +161,15 @@ test("a taken handle disables Save; unknown (offline) allows it", async () => {
     () => expect(screen.getByText("@ana.lifts is already taken")).toBeTruthy(),
     { timeout: 10_000 },
   )
-  fireEvent.press(screen.getByText("Save"))
-  expect(mockRouter.back).not.toHaveBeenCalled()
+  expect(screen.getByText("Handle taken")).toBeTruthy()
+  await pause()
+  expect(dashStore.get().profile.handle).toBe("@kai")
 
   jest.mocked(checkUsername).mockResolvedValueOnce("unknown")
   fireEvent.changeText(screen.getByLabelText("Handle"), "kai.offline")
   await act(() => new Promise((r) => setTimeout(r, 450)))
-  fireEvent.press(screen.getByText("Save"))
+  await pause()
   expect(dashStore.get().profile.handle).toBe("@kai.offline")
-  expect(mockRouter.back).toHaveBeenCalledTimes(1)
 })
 
 test("the current handle is not checked", async () => {
@@ -162,10 +179,10 @@ test("the current handle is not checked", async () => {
   expect(checkUsername).not.toHaveBeenCalled()
 })
 
-test("a name under 2 characters shows an error and keeps the old name", () => {
+test("a name under 2 characters shows an error and keeps the old name", async () => {
   show()
   fireEvent.changeText(screen.getByLabelText("Name"), "K")
-  expect(screen.getByText("Enter your name")).toBeTruthy()
-  fireEvent.press(screen.getByText("Save"))
+  expect(screen.getAllByText("Enter your name").length).toBeGreaterThan(0)
+  await pause()
   expect(dashStore.get().profile.name).toBe("Kai")
 })

@@ -38,7 +38,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Empty, Screen, Sheet, Toggle, undo } from "../ui"
+import { Button, Empty, PinnedFooter, Screen, Sheet, Toggle, undo } from "../ui"
 import { LockedPreview } from "./locked-preview"
 import { TaskRow } from "./tasks"
 
@@ -220,58 +220,60 @@ export function ListEditor({
           </Line>
         </View>
       ) : (
-        <Line style={{ marginTop: 8, marginBottom: 12, gap: 8 }}>
-          {list && (
-            <>
+        <PinnedFooter>
+          <Line style={{ marginTop: 8, marginBottom: 12, gap: 8 }}>
+            {list && (
+              <>
+                <Button
+                  tone="quiet"
+                  onPress={() => {
+                    A.setListArchived(list.id, !list.archivedAt)
+                    onClose()
+                  }}
+                >
+                  {list.archivedAt ? "Unarchive" : "Archive"}
+                </Button>
+                <Button
+                  tone="danger"
+                  onPress={() => {
+                    if (count) setConfirm(true)
+                    else {
+                      A.deleteList(list.id, "inbox")
+                      onClose()
+                    }
+                  }}
+                >
+                  Delete
+                </Button>
+              </>
+            )}
+            <View style={{ flex: 1 }}>
               <Button
-                tone="quiet"
+                disabled={!name.trim()}
                 onPress={() => {
-                  A.setListArchived(list.id, !list.archivedAt)
+                  const input = {
+                    name: name.trim(),
+                    kind: shopping
+                      ? ("shopping" as const)
+                      : ("standard" as const),
+                    color,
+                    icon,
+                  }
+                  if (list) A.updateList(list.id, input)
+                  else {
+                    // Create first: an optional call skips its arguments, so
+                    // with no listener the list would never be made.
+                    const made = A.createList(input)
+                    onCreated?.(made)
+                  }
                   onClose()
                 }}
               >
-                {list.archivedAt ? "Unarchive" : "Archive"}
+                {list ? "Save" : "Create list"}
               </Button>
-              <Button
-                tone="danger"
-                onPress={() => {
-                  if (count) setConfirm(true)
-                  else {
-                    A.deleteList(list.id, "inbox")
-                    onClose()
-                  }
-                }}
-              >
-                Delete
-              </Button>
-            </>
-          )}
-          <View style={{ flex: 1 }}>
-            <Button
-              disabled={!name.trim()}
-              onPress={() => {
-                const input = {
-                  name: name.trim(),
-                  kind: shopping
-                    ? ("shopping" as const)
-                    : ("standard" as const),
-                  color,
-                  icon,
-                }
-                if (list) A.updateList(list.id, input)
-                else {
-                  // Create first: an optional call skips its arguments, so
-                  // with no listener the list would never be made.
-                  const made = A.createList(input)
-                  onCreated?.(made)
-                }
-                onClose()
-              }}
-            >
-              {list ? "Save" : "Create list"}
-            </Button>
-          </View>
-        </Line>
+            </View>
+          </Line>
+        </PinnedFooter>
       )}
     </Sheet>
   )

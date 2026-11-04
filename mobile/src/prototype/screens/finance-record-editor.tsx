@@ -265,6 +265,34 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       onBack={picker ? () => setPicker(false) : undefined}
       backLabel="Back to transaction"
       onClose={onClose}
+      // Save stays in reach above the keyboard however long the form runs.
+      footer={
+        picker ? undefined : (
+          <Line>
+            {settles ? null : record ? (
+              <Button
+                tone="danger"
+                onPress={() => {
+                  const gone = A.deleteRecords([record.id])
+                  onClose()
+                  undo("Transaction deleted", () => A.restoreRecords(gone))
+                }}
+              >
+                Delete
+              </Button>
+            ) : (
+              <Button tone="quiet" onPress={() => save(true)}>
+                Save & add another
+              </Button>
+            )}
+            <View style={{ flex: 1 }}>
+              <Button onPress={() => save()}>
+                {settles ? (type === "income" ? "Received" : "Paid") : "Save"}
+              </Button>
+            </View>
+          </Line>
+        )
+      }
     >
       {picker ? (
         <CategoryPicker
@@ -320,8 +348,16 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
             }}
             placeholder="0"
             error={tried ? amountError : undefined}
+            // The 30pt figure gets the whole box to sit in (no vertical
+            // padding: a fixed 56pt box with 10pt padding left the text a
+            // 36pt strip, and Kai saw its top cut off), and the box grows
+            // with the iOS text size instead of clipping.
+            maxFontSizeMultiplier={1.4}
             style={{
-              height: 56,
+              minHeight: 56,
+              paddingVertical: 0,
+              includeFontPadding: false,
+              textAlignVertical: "center",
               borderWidth: 1,
               borderColor: t.line,
               borderRadius: 12,
@@ -475,29 +511,6 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               </Line>
             </Tap>
           )}
-          <Line>
-            {settles ? null : record ? (
-              <Button
-                tone="danger"
-                onPress={() => {
-                  const gone = A.deleteRecords([record.id])
-                  onClose()
-                  undo("Transaction deleted", () => A.restoreRecords(gone))
-                }}
-              >
-                Delete
-              </Button>
-            ) : (
-              <Button tone="quiet" onPress={() => save(true)}>
-                Save & add another
-              </Button>
-            )}
-            <View style={{ flex: 1 }}>
-              <Button onPress={() => save()}>
-                {settles ? (type === "income" ? "Received" : "Paid") : "Save"}
-              </Button>
-            </View>
-          </Line>
         </>
       )}
     </Sheet>

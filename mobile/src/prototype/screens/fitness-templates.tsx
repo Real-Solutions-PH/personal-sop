@@ -19,6 +19,7 @@ import {
 import { useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
+import { SavedMark, useAutosave } from "../autosave"
 import {
   border,
   Copy,
@@ -117,6 +118,22 @@ export function Templates({ id }: { id?: string }) {
     })
     return result
   }
+  // Editing a routine that exists saves as you go; a new one waits for
+  // the header's Save (it is not a routine until it is saved once).
+  const saved = useAutosave(
+    { name, items },
+    () => {
+      // Not after Delete: leaving flushes a waiting edit.
+      if (
+        existing &&
+        fitStore.get().templates.some((x) => x.id === existing.id)
+      )
+        save()
+    },
+    {
+      invalid: items.length ? undefined : "Add an exercise to save",
+    },
+  )
   if (!id)
     return (
       <Screen
@@ -188,16 +205,20 @@ export function Templates({ id }: { id?: string }) {
     <Screen
       title={existing ? "Edit template" : "New template"}
       actions={
-        <Button
-          small
-          disabled={!items.length}
-          onPress={() => {
-            save()
-            go("/fitness/templates")
-          }}
-        >
-          Save
-        </Button>
+        existing ? (
+          <SavedMark state={saved} />
+        ) : (
+          <Button
+            small
+            disabled={!items.length}
+            onPress={() => {
+              save()
+              go("/fitness/templates")
+            }}
+          >
+            Save
+          </Button>
+        )
       }
     >
       <TextInput
@@ -394,6 +415,25 @@ export function Templates({ id }: { id?: string }) {
         }
         open={picker}
         onClose={() => setPicker(false)}
+        // Pinned on the keyboard: searching never hides the way out.
+        footer={
+          swapAt === null && (
+            <Button
+              disabled={!selected.length}
+              onPress={() => {
+                setItems([
+                  ...items,
+                  ...selected.map((exerciseId) => ({ exerciseId, sets: 3 })),
+                ])
+                setPicker(false)
+              }}
+            >
+              {selected.length
+                ? `Add ${selected.length} exercise${selected.length === 1 ? "" : "s"}`
+                : "Add exercises"}
+            </Button>
+          )
+        }
         onClosed={() => {
           if (handoff === null) return
           setCreating(handoff)
@@ -478,20 +518,6 @@ export function Templates({ id }: { id?: string }) {
             setPicker(false)
           }}
         />
-        {swapAt === null && (
-          <Button
-            disabled={!selected.length}
-            onPress={() => {
-              setItems([
-                ...items,
-                ...selected.map((exerciseId) => ({ exerciseId, sets: 3 })),
-              ])
-              setPicker(false)
-            }}
-          >
-            {`Add ${selected.length || ""} exercises`}
-          </Button>
-        )}
       </Sheet>
       {creating !== null && (
         <ExerciseEditor

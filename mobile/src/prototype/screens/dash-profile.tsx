@@ -38,6 +38,7 @@ import {
 import { useEffect, useState } from "react"
 import { Platform, ScrollView, Text, TextInput, View } from "react-native"
 import { liveMode } from "@/live/config"
+import { SavedMark, useAutosave } from "../autosave"
 import { EXTRAS, type Extra, extrasStore, setShown } from "../extras"
 import { pickAvatar } from "../media"
 import {
@@ -51,7 +52,7 @@ import {
   Segmented,
   Tap,
 } from "../native-kit"
-import { back, go } from "../navigation"
+import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
 import { ReorderList } from "../reorder-list"
@@ -167,22 +168,33 @@ export function Profile() {
   const handleError =
     handle === current ? undefined : (usernameError(handle) ?? undefined)
   const nameError = name.trim().length < 2 ? "Enter your name" : undefined
-  const blocked = !!handleError || availability === "taken"
-  const save = () => {
-    const next = {
-      name: nameError ? p.name : name.trim(),
-      handle: handle ? `@${handle}` : p.handle,
-      identities: ids.filter((i) => i.text.trim()).slice(0, 3),
-    }
-    const changed =
-      next.name !== p.name ||
-      next.handle !== p.handle ||
-      JSON.stringify(next.identities) !== JSON.stringify(p.identities)
-    // One store write (each one persists the whole dash store), and back to
-    // the Me screen this was opened from rather than a second one on top.
-    if (changed) saveProfileEdits(next)
-    back("/me")
+  const draft = {
+    name: name.trim(),
+    handle: handle ? `@${handle}` : p.handle,
+    identities: ids.filter((i) => i.text.trim()).slice(0, 3),
   }
+  // Saves as you type (one store write per pause: each one persists the
+  // whole dash store); a bad name or handle is held back and said why.
+  const saved = useAutosave(
+    draft,
+    (next) => {
+      const changed =
+        next.name !== p.name ||
+        next.handle !== p.handle ||
+        JSON.stringify(next.identities) !== JSON.stringify(p.identities)
+      if (changed) saveProfileEdits(next)
+    },
+    {
+      invalid:
+        nameError ??
+        handleError ??
+        (availability === "taken"
+          ? "Handle taken"
+          : availability === "checking"
+            ? "Checking handle…"
+            : undefined),
+    },
+  )
   const input = {
     height: 48,
     borderRadius: 12,
@@ -195,7 +207,7 @@ export function Profile() {
     color: t.text,
   }
   return (
-    <Screen title="Edit profile">
+    <Screen title="Edit profile" actions={<SavedMark state={saved} />}>
       <View style={{ alignItems: "center", paddingVertical: 8 }}>
         <Tap label="Change profile photo" onPress={() => setPhoto(true)}>
           <ProfileAvatar size={88} />
@@ -368,11 +380,6 @@ export function Profile() {
             </Button>
           )}
         </View>
-      </View>
-      <View style={{ marginTop: 12 }}>
-        <Button disabled={blocked} onPress={save}>
-          Save
-        </Button>
       </View>
       <Frame
         style={{ marginTop: 12, paddingHorizontal: 8, paddingVertical: 4 }}

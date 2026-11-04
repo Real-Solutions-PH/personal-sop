@@ -268,16 +268,20 @@ test("a plain tap still opens details and the check still checks", () => {
   ).toBe("done")
 })
 
-test("saving an edit saves the habit without a toast; an invalid save does not save", () => {
+test("an edit saves itself without a toast; an invalid draft is not saved", () => {
   const h = walk()
   render(<HabitForm id={h.id} />, { wrapper })
+  expect(screen.queryByText("Save changes")).toBeNull()
   fireEvent.changeText(screen.getByLabelText("Name"), "")
-  fireEvent.press(screen.getByText("Save changes"))
-  expect(toast.success).not.toHaveBeenCalled()
+  settle()
+  expect(habitsStore.get().habits.find((x) => x.id === h.id)?.name).toBe(h.name)
+  // The header says why it is not saved.
+  expect(screen.getByText("Name it to save")).toBeTruthy()
   fireEvent.changeText(screen.getByLabelText("Name"), "Long walk")
-  fireEvent.press(screen.getByText("Save changes"))
+  settle()
   expect(toast.success).not.toHaveBeenCalled()
   expect(habitsStore.get().habits.find((x) => x.id === h.id)?.name).toBe(
     "Long walk",
   )
+  expect(screen.getByLabelText("Saved")).toBeTruthy()
 })

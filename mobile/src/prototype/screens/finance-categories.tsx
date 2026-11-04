@@ -20,7 +20,16 @@ import {
 import { go } from "../navigation"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import { Button, Choices, confirm, Field, Screen, Sheet, undo } from "../ui"
+import {
+  Button,
+  Choices,
+  confirm,
+  Field,
+  PinnedFooter,
+  Screen,
+  Sheet,
+  undo,
+} from "../ui"
 import { FinChip } from "./finance-projection"
 
 /** What Suggested offers before the name matches anything. */
@@ -249,52 +258,55 @@ export function CategoryForm({
               />
             </Line>
           )}
-          <Line style={{ gap: 8 }}>
-            {ex && (
-              <Button tone="danger" onPress={remove}>
-                Delete
-              </Button>
-            )}
-            <View style={{ flex: 1 }}>
-              <Button
-                onPress={() => {
-                  if (!name.trim()) {
-                    toast.error("Give it a name")
-                    return
-                  }
-                  const twin = s.categories.find(
-                    (c) =>
-                      c.id !== id &&
-                      !c.archived &&
-                      c.kind === kind &&
-                      (c.parentId ?? "") === parent &&
-                      c.name.trim().toLowerCase() === name.trim().toLowerCase(),
-                  )
-                  if (twin) {
-                    toast.error(`You already have “${twin.name}” here`)
-                    return
-                  }
-                  const input = {
-                    name: name.trim(),
-                    kind,
-                    parentId: parent || undefined,
-                    icon,
-                    discretionary: kind === "expense" && disc,
-                  }
-                  if (ex) A.updateCategory(ex.id, input)
-                  else {
-                    // Create first: an optional call skips its arguments, so
-                    // with no listener the category would never be added.
-                    const added = A.addCategory(input)
-                    onAdded?.(added.id)
-                  }
-                  onClose()
-                }}
-              >
-                Save
-              </Button>
-            </View>
-          </Line>
+          <PinnedFooter>
+            <Line style={{ gap: 8 }}>
+              {ex && (
+                <Button tone="danger" onPress={remove}>
+                  Delete
+                </Button>
+              )}
+              <View style={{ flex: 1 }}>
+                <Button
+                  onPress={() => {
+                    if (!name.trim()) {
+                      toast.error("Give it a name")
+                      return
+                    }
+                    const twin = s.categories.find(
+                      (c) =>
+                        c.id !== id &&
+                        !c.archived &&
+                        c.kind === kind &&
+                        (c.parentId ?? "") === parent &&
+                        c.name.trim().toLowerCase() ===
+                          name.trim().toLowerCase(),
+                    )
+                    if (twin) {
+                      toast.error(`You already have “${twin.name}” here`)
+                      return
+                    }
+                    const input = {
+                      name: name.trim(),
+                      kind,
+                      parentId: parent || undefined,
+                      icon,
+                      discretionary: kind === "expense" && disc,
+                    }
+                    if (ex) A.updateCategory(ex.id, input)
+                    else {
+                      // Create first: an optional call skips its arguments, so
+                      // with no listener the category would never be added.
+                      const added = A.addCategory(input)
+                      onAdded?.(added.id)
+                    }
+                    onClose()
+                  }}
+                >
+                  Save
+                </Button>
+              </View>
+            </Line>
+          </PinnedFooter>
         </>
       )}
     </>

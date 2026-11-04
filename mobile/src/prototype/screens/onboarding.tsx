@@ -36,15 +36,10 @@ import {
   Zap,
 } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-} from "react-native"
+import { Pressable, TextInput, View } from "react-native"
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back, go, replace } from "../navigation"
 import {
@@ -283,10 +278,7 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
   // The account form is its own screen, keyboard handling included.
   if (step === "account") return <AccountForm onBack={goBack} />
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}
-    >
+    <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <View style={{ paddingHorizontal: 20 }}>
         <Line style={{ height: 56, gap: 12 }}>
           {index > 0 ? (
@@ -356,7 +348,9 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
           )}
         </Line>
       </View>
-      <ScrollView
+      <KeyboardAwareScrollView
+        {...formScrollProps}
+        bottomOffset={FIELD_CLEARANCE}
         contentContainerStyle={{
           flexGrow: 1,
           paddingHorizontal: 20,
@@ -922,8 +916,8 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
             </>
           )}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   )
 }
 

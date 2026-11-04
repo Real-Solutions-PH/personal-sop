@@ -14,3 +14,8 @@ jest.mock("react-native-worklets", () =>
 
 // react-native-gesture-handler 3 ships its own Jest mocks for the native module.
 require("react-native-gesture-handler/jestSetup")
+
+// react-native-keyboard-controller is a native module; use its own mock.
+jest.mock("react-native-keyboard-controller", () =>
+  require("react-native-keyboard-controller/jest"),
+)
