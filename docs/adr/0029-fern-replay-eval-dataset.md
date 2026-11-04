@@ -25,9 +25,9 @@ Those conversations are Kai's personal data: what he eats, his money, his work, 
    - **People and the user:** the user becomes "Sam", and other people get stock first names.
    - **Organisations:** employers, clients and projects become generic names ("Acme Studio", "Client B", "ProjectD").
    - **Health:** medication becomes a generic supplement.
-   - **Money:** bank and wallet names become "Wallet", "Savings", "Credit Card", "Bank A" and "Bank B". Salary figures are replaced in both the text and the records.
+   - **Money:** bank and wallet names become "Wallet", "Savings", "Credit Card", "Bank A", "Bank B" and "Bank C", and an insurer becomes "Insurer A". Salary figures are replaced in both the text and the records.
    - **Places and assets:** the home town, the barangay, a land purchase and a car purchase become generic terms.
-   - **Receipt text read from photos:** card digits, numbers of nine or more digits, tax and registration ids, and email addresses are masked.
+   - **Receipt text read from photos:** card digits, numbers of nine or more digits, reference and payment ids, phone numbers, tax and registration ids, and email addresses are masked.
    - **Kept as they were:** foods, brands, times and nutrition numbers. The failures are made of them, and they do not identify anyone.
 4. **A guard test keeps it scrubbed.** `scrub_denylist.sha256` holds SHA-256 hashes of the scrubbed terms, never the terms themselves. `test_fern_dataset.py` fails if any one-, two- or three-word sequence in a case hashes to one of them. This runs in every backend test run.
 5. **The raw export never enters the repository.** It came from a read-only transaction in production (`SET TRANSACTION READ ONLY`, run as a one-off ECS task, read from the task's log). It and the case builder lived in one session's scratch directory, which was deleted when the dataset was committed. Rebuilding the dataset means repeating that read-only export.
@@ -40,7 +40,7 @@ None. This adds a test suite and a CI job; it changes no default.
 ## Consequences
 
 **Positive:**
-- Every change to `companion/`, `capture/` or `ai_providers/` replays 182 real turns: 161 failures and 21 guards.
+- Every change to `companion/`, `capture/` or `ai_providers/` replays 213 real turns: 184 failures and 29 guards (31 of them, 23 failures and 8 guards, added on 2026-11-04 from Kai's chats of 2026-11-02 to 2026-11-04).
 - The cases are reviewable in the pull request that changes them.
 - CI can run the eval without any secret other than the model key.
 
