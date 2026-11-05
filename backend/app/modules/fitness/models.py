@@ -464,7 +464,18 @@ class FitnessSettings(OwnedRow, table=True):
 
 FOOD_BASES = ("100g", "piece", "serving")
 FOOD_STATES = ("raw", "cooked", "as_sold")
-FOOD_SOURCES = ("label", "brand", "philfct", "usda", "recipe", "said", "import")
+# ``off``: Open Food Facts (crowd-sourced, ODbL); ``usda``: USDA FoodData
+# Central (lab-analysed, public domain).
+FOOD_SOURCES = (
+    "label",
+    "brand",
+    "philfct",
+    "usda",
+    "recipe",
+    "said",
+    "import",
+    "off",
+)
 
 
 class FoodItem(OwnedRow, table=True):
@@ -512,6 +523,19 @@ class FoodItem(OwnedRow, table=True):
         CheckConstraint(
             "unit_grams IS NULL OR unit_grams > 0", name="ck_food_item_unit_grams"
         ),
+        Index(
+            "ix_food_item_tenant_barcode",
+            "tenant_id",
+            "barcode",
+            postgresql_where=text("barcode IS NOT NULL AND deleted_at IS NULL"),
+        ),
+        # Lookups read the foods sharing a word with what was said
+        # (``food_library.SEARCH_DOC``, the same expression).
+        Index(
+            "ix_food_item_search",
+            text("to_tsvector('simple'::regconfig, key || ' ' || aliases::text)"),
+            postgresql_using="gin",
+        ),
     )
 
     name: str = Field(max_length=160)
@@ -539,6 +563,8 @@ class FoodItem(OwnedRow, table=True):
     # Where an imported row came from (a Notion page URL), so a re-import
     # updates it instead of adding a second copy.
     external_ref: str | None = Field(default=None, max_length=200)
+    # A packaged product's EAN/UPC barcode, digits only.
+    barcode: str | None = Field(default=None, max_length=14)
     notes: str | None = Field(default=None, max_length=500)
     photo_media_id: uuid.UUID | None = Field(
         default=None, foreign_key="media_object.id", ondelete="SET NULL"

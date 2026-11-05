@@ -1,0 +1,24 @@
+Third-party data
+================
+
+Unfurl's shared food library can be loaded from these public food databases
+(backend/app/modules/fitness/food_import.py). The databases themselves are not
+part of this repository; the importer downloads them.
+
+USDA FoodData Central
+  U.S. Department of Agriculture, Agricultural Research Service.
+  FoodData Central (Foundation Foods; SR Legacy). https://fdc.nal.usda.gov/
+  Public domain (CC0 1.0 Universal).
+
+Open Food Facts
+  Contains information from Open Food Facts (https://world.openfoodfacts.org/),
+  which is made available here under the Open Database License (ODbL) v1.0,
+  https://opendatacommons.org/licenses/odbl/1-0/. Individual contents of the
+  database are available under the Database Contents License,
+  https://opendatacommons.org/licenses/dbcl/1-0/. Product images are not used.
+  The app credits Open Food Facts wherever a food from it shows its source.
+
+Philippine Food Composition Tables (PhilFCT)
+  Food and Nutrition Research Institute, Department of Science and Technology
+  (FNRI-DOST). Loaded only from a file FNRI has given permission to use; none
+  is loaded today.

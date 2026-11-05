@@ -9,7 +9,11 @@ import { BadgeCheck, Camera, ChevronRight, CloudOff } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { View } from "react-native"
 import { liveMode } from "@/live/config"
-import { type LibraryFood, useFoods } from "@/live/nutrition-foods"
+import {
+  type LibraryFood,
+  useFoods,
+  verifiedLabel,
+} from "@/live/nutrition-foods"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
@@ -223,7 +227,7 @@ function FoodRow({ food: f, first }: { food: LibraryFood; first: boolean }) {
                 <BadgeCheck
                   size={14}
                   color={t.good}
-                  accessibilityLabel="Read from a label"
+                  accessibilityLabel={verifiedLabel(f)}
                 />
               )}
             </Line>
