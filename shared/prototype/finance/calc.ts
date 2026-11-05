@@ -530,7 +530,14 @@ export function upcomingWeek(s: FinState, days = UPCOMING_DAYS): UpcomingWeek {
   const sum = (xs: Occurrence[]) => xs.reduce((n, o) => n + o.item.amount, 0)
   return {
     overdue,
-    days: [...byDay].map(([day, items]) => ({ day, items })),
+    // Within a day what is still to pay comes first; paid rows sink.
+    days: [...byDay].map(([day, items]) => ({
+      day,
+      items: [
+        ...items.filter((o) => o.status !== "paid"),
+        ...items.filter((o) => o.status === "paid"),
+      ],
+    })),
     dueTotal: sum(unpaid.filter((o) => o.item.type !== "income")),
     incomeTotal: sum(unpaid.filter((o) => o.item.type === "income")),
     count: overdue.length + [...byDay.values()].flat().length,
@@ -555,7 +562,10 @@ export function countdown(
     const end = parseKey(addDays(t, 1))
     end.setHours(DAY_START_HOUR, 0, 0, 0)
     const h = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 3600000))
-    return { state: "today", label: h <= 1 ? "Due now" : `Due today · ${h} h left` }
+    return {
+      state: "today",
+      label: h <= 1 ? "Due now" : `Due today · ${h} h left`,
+    }
   }
   if (n === 1) return { state: "soon", label: "Due tomorrow" }
   return { state: n === 2 ? "soon" : "later", label: `In ${n} days` }

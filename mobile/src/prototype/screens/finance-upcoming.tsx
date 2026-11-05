@@ -172,7 +172,12 @@ function Heading({ total }: { total?: string }) {
     <SectionHeading
       action={
         <Tap onPress={() => go("/finance/planned")} label="All scheduled">
-          <Copy size={12} style={{ color: t.fin }}>
+          {/* The week's total is a figure, not good news: neutral ink. */}
+          <Copy
+            size={12}
+            weight={total ? "semibold" : "body"}
+            style={{ color: total ? t.text : t.fin }}
+          >
             {total ?? "All scheduled"}
           </Copy>
         </Tap>

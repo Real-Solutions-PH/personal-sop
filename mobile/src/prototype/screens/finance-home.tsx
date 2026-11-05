@@ -42,7 +42,6 @@ import {
   SavingsSection,
 } from "./finance-home-cards"
 import { FinPill } from "./finance-planned"
-import { UpcomingWeek } from "./finance-upcoming"
 import {
   BudgetHistoryCard,
   CategoryCard,
@@ -52,6 +51,7 @@ import {
   TopPayeesCard,
   WeekdayCard,
 } from "./finance-report-cards"
+import { UpcomingWeek } from "./finance-upcoming"
 import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 
 export const sourceLabel = (source: FinRecord["source"]) =>

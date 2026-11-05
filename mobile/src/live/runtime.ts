@@ -216,7 +216,10 @@ export function startLive(
   const interval = setInterval(() => void engine.sync(), 60_000)
   const stopSocial = startSocialLive(userId, onServerEvent)
   void engine.sync().finally(() =>
-    syncReady.setState({ ready: true, failed: !isNew && !reached && !pulledBefore() }),
+    syncReady.setState({
+      ready: true,
+      failed: !isNew && !reached && !pulledBefore(),
+    }),
   )
   void registerPushDevice({ http })
   active = {

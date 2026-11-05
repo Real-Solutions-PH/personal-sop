@@ -169,13 +169,21 @@ describe("the window", () => {
   test("every 3 months lands only on its own months", () => {
     const s = state([
       // 10 Aug, 10 Nov, 10 Feb: Tue 10 Nov is in the window.
-      item("quarterly from Aug", { kind: "monthly", day: 10, every: 3 }, {
-        start: "2026-08-10",
-      }),
+      item(
+        "quarterly from Aug",
+        { kind: "monthly", day: 10, every: 3 },
+        {
+          start: "2026-08-10",
+        },
+      ),
       // 10 Sep, 10 Dec: nothing this week.
-      item("quarterly from Sep", { kind: "monthly", day: 10, every: 3 }, {
-        start: "2026-09-10",
-      }),
+      item(
+        "quarterly from Sep",
+        { kind: "monthly", day: 10, every: 3 },
+        {
+          start: "2026-09-10",
+        },
+      ),
     ])
     expect(ids(s).days).toEqual([["2026-11-10", ["quarterly from Aug"]]])
   })
@@ -230,6 +238,7 @@ describe("the window", () => {
     const w = upcomingWeek(s)
     expect([w.dueTotal, w.incomeTotal, w.count]).toEqual([19500, 40000, 4])
     expect(w.days[0].items[0].status).toBe("paid")
+    expect(w.days[1].items.map((o) => o.item.id)).toEqual(["rent"])
   })
 })
 
@@ -245,10 +254,18 @@ describe("the countdown", () => {
       label: "Due today · 18 h left",
     })
     expect(countdown("2026-11-07").state).toBe("soon")
-    expect(countdown("2026-11-08")).toEqual({ state: "soon", label: "In 2 days" })
-    expect(countdown("2026-11-13")).toEqual({ state: "later", label: "In 7 days" })
+    expect(countdown("2026-11-08")).toEqual({
+      state: "soon",
+      label: "In 2 days",
+    })
+    expect(countdown("2026-11-13")).toEqual({
+      state: "later",
+      label: "In 7 days",
+    })
     // 03:30 on the next morning: half an hour of the business day left.
-    expect(countdown("2026-11-06", new Date("2026-11-07T03:30:00+08:00"))).toEqual({
+    expect(
+      countdown("2026-11-06", new Date("2026-11-07T03:30:00+08:00")),
+    ).toEqual({
       state: "today",
       label: "Due now",
     })
@@ -284,6 +301,29 @@ describe("the section", () => {
     expect(mockGo).toHaveBeenCalledWith("/finance/planned/Rent")
   })
 
+  test("on one day, what is still to pay comes before what is paid", () => {
+    const s = state(
+      [on("Paid first", "2026-11-07"), on("Still due", "2026-11-07")],
+      [
+        {
+          id: "r1",
+          type: "expense",
+          amount: 1000,
+          accountId: "wallet",
+          at: "2026-11-06T09:00:00+08:00",
+          source: "planned",
+          plannedId: "Paid first",
+          plannedOn: "2026-11-07",
+          status: "cleared",
+        },
+      ],
+    )
+    expect(upcomingWeek(s).days[0].items.map((o) => o.item.id)).toEqual([
+      "Still due",
+      "Paid first",
+    ])
+  })
+
   test("more than five rows fold behind Show N more", () => {
     state(
       Array.from({ length: 12 }, (_, i) =>
@@ -312,7 +352,9 @@ describe("the section", () => {
     expect(screen.getByTestId("upcoming-week-loading")).toBeTruthy()
     act(() => syncReady.setState({ ready: true, failed: true }))
     r.rerender(<UpcomingWeek />)
-    expect(screen.getByText("Couldn’t load your scheduled payments")).toBeTruthy()
+    expect(
+      screen.getByText("Couldn’t load your scheduled payments"),
+    ).toBeTruthy()
     act(() => syncReady.setState({ ready: true, failed: false }))
     r.rerender(<UpcomingWeek />)
     expect(screen.getByTestId("upcoming-week-empty")).toBeTruthy()
