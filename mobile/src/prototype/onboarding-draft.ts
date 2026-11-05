@@ -23,6 +23,7 @@ import {
 } from "@domain/dash/store"
 import { createStore, uid } from "@domain/lib/store"
 import { setShown } from "./extras"
+import { type HeldCapture, holdFirstCapture } from "./first-capture"
 import { setSetupFirst } from "./setup-first"
 
 export const OCCUPATIONS = [
@@ -50,7 +51,7 @@ export type ReferralSource = (typeof REFERRALS)[number]["value"]
 export const REFERRAL_DETAIL: readonly ReferralSource[] = ["friend", "other"]
 export const DETAIL_MAX = 80
 
-export type MobileStep = Step | "about" | "account"
+export type MobileStep = Step | "about" | "capture" | "account"
 
 /** The extras onboarding offers beside the scored modules; Weather and
  * Calendar stay as they are (on) and are switched in Settings. */
@@ -68,6 +69,8 @@ export type OnboardingDraft = {
   /** Journal and Community; a draft saved before they were offered has
    * none (read it through extrasOf). */
   extras?: Record<DraftExtra, boolean>
+  /** "Say one thing from today": held until the account exists. */
+  firstCapture?: HeldCapture | null
   /** Whether the person changed the module step themself; until then it
    * follows the identity picks (and occupation). */
   modulesTouched?: boolean
@@ -220,6 +223,8 @@ export function applyDraft(): number {
   for (const k of DRAFT_EXTRAS) setShown(k, extras[k])
   // First-run setup asks about the top one or two of these.
   setSetupFirst(priorityOf(d))
+  // Sent through the capture path once live mode starts (session.ts).
+  holdFirstCapture(d.firstCapture ?? null)
   setPush({ morning: d.pushMorning, evening: d.pushEvening })
   if (d.identities.length)
     setIdentities(d.identities.map((text) => ({ id: uid(), text })))

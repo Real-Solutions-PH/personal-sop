@@ -174,6 +174,31 @@ describe("onboarding before the account exists", () => {
     expect(getDraft()).toMatchObject({ occupation: null, referralSource: null })
   })
 
+  test("the first capture: typed, held as a win, and skippable", () => {
+    editDraft({ step: "capture" })
+    pre()
+    expect(screen.getByText("Say one thing from today")).toBeTruthy()
+    expect(screen.getByText("Say one thing first")).toBeTruthy()
+    fireEvent.changeText(
+      screen.getByLabelText("One thing from today"),
+      "spent 250 on lunch",
+    )
+    fireEvent.press(screen.getByText("Log it"))
+    expect(getDraft()?.firstCapture).toEqual({
+      text: "spent 250 on lunch",
+      source: "text",
+    })
+    expect(screen.getByText("Got it — your first log is ready")).toBeTruthy()
+    fireEvent.press(screen.getByText("Next"))
+    expect(getDraft()?.step).toBe("targets")
+    // Back, and Skip from the header holds nothing.
+    fireEvent.press(screen.getByLabelText("Back"))
+    expect(getDraft()?.step).toBe("capture")
+    fireEvent.press(screen.getByText("Skip"))
+    expect(getDraft()?.firstCapture).toBeNull()
+    expect(getDraft()?.step).toBe("targets")
+  })
+
   test("only what the identity picks stand for starts ticked; Screen time only records the choice", () => {
     editDraft({ identities: ["I'm someone who trains"], step: "modules" })
     pre()

@@ -186,6 +186,35 @@ test("sign-up keeps the modules most wanted first for setup", async () => {
   ])
 })
 
+test("the first capture is held through sign-up and sent once live starts", async () => {
+  const FC = require("../first-capture") as typeof import("../first-capture")
+  const engine = require("@domain/capture/engine")
+  const send = jest.spyOn(engine, "sendCapture").mockReturnValue("cap-9")
+  D.editDraft({ firstCapture: { text: "ran 5k", source: "text" } })
+  await session.completeSignUp()
+  // startLiveSession runs after sign-up returns.
+  await new Promise((r) => setTimeout(r, 0))
+  expect(send).toHaveBeenCalledWith({ text: "ran 5k", source: "text" })
+  expect(FC.firstCaptureStore.get()).toEqual({ pending: null, sentId: "cap-9" })
+  send.mockRestore()
+})
+
+test("signing in to an existing account never sends a held capture", async () => {
+  const FC = require("../first-capture") as typeof import("../first-capture")
+  const engine = require("@domain/capture/engine")
+  const send = jest.spyOn(engine, "sendCapture").mockReturnValue("cap-x")
+  FC.holdFirstCapture({ text: "from an unfinished sign-up", source: "text" })
+  mockSignIn.mockResolvedValueOnce(undefined)
+  await session.signIn({
+    email: "old@example.test",
+    password: "Pass-word1",
+    remember: false,
+  })
+  expect(send).not.toHaveBeenCalled()
+  expect(FC.firstCaptureStore.get().pending).toBeNull()
+  send.mockRestore()
+})
+
 test("a draft saved before Journal and Community were offered keeps both on", () => {
   const { extras: _gone, ...old } = D.newDraft()
   expect(D.extrasOf(old)).toEqual({ journal: true, social: true })

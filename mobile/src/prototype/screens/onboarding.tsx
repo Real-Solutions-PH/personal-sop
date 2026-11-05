@@ -23,6 +23,7 @@ import {
   Fingerprint,
   LayoutGrid,
   ListChecks,
+  MessageCircle,
   Moon,
   Repeat2,
   Rocket,
@@ -41,6 +42,7 @@ import { useEffect, useRef, useState } from "react"
 import { Pressable, TextInput, View } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
+import { firstCaptureStore } from "../first-capture"
 import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back, go, replace } from "../navigation"
@@ -65,6 +67,7 @@ import { SETUP_TIME } from "../setup-first"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { AccountForm } from "./auth-sign-up"
+import { FirstCaptureResult, FirstCaptureStep } from "./onboarding-capture"
 
 // Before the account exists (`/get-started`) every answer goes into the
 // onboarding draft, and the last step creates the account. After it
@@ -75,6 +78,7 @@ const PRE_ACCOUNT: readonly MobileStep[] = [
   "identity",
   "about",
   "modules",
+  "capture",
   "targets",
   "when",
   "building",
@@ -83,7 +87,7 @@ const PRE_ACCOUNT: readonly MobileStep[] = [
 ]
 const POST_ACCOUNT: readonly MobileStep[] = ["notifications", "done"]
 // Steps a person can skip from the header.
-const SKIPPABLE: readonly MobileStep[] = ["about"]
+const SKIPPABLE: readonly MobileStep[] = ["about", "capture"]
 const PASSING: readonly MobileStep[] = PASS_THROUGH
 
 const modules = {
@@ -150,6 +154,7 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
       pre
         ? editDraft(key === "morning" ? { pushMorning: v } : { pushEvening: v })
         : setPush({ [key]: v }),
+    firstSent = firstCaptureStore.use((s) => s.sentId !== null),
     [building, setBuilding] = useState(0),
     [holding, setHolding] = useState(false),
     timer = useRef<ReturnType<typeof setTimeout> | null>(null),
@@ -258,6 +263,11 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
         title: "What do you want to track?",
         body: "Ticked from who you're becoming. Each one you add asks a quick setup, so start with what matters. Add the rest anytime.",
       },
+      capture: {
+        icon: MessageCircle,
+        title: "Say one thing from today",
+        body: "Tell Fern anything you did, ate, spent or need to do, in your own words. Fern sorts it into the right place.",
+      },
       targets: {
         icon: Target,
         title: "Pick your pace",
@@ -337,15 +347,20 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
             ))}
           </Line>
           {pre && SKIPPABLE.includes(step) && (
-            // Skipping "about you" leaves both answers unanswered.
             <Tap
               onPress={() => {
-                editDraft({
-                  occupation: null,
-                  occupationDetail: "",
-                  referralSource: null,
-                  referralDetail: "",
-                })
+                // Skipping "about you" leaves both answers unanswered;
+                // skipping the first capture holds nothing.
+                editDraft(
+                  step === "capture"
+                    ? { firstCapture: null }
+                    : {
+                        occupation: null,
+                        occupationDetail: "",
+                        referralSource: null,
+                        referralDetail: "",
+                      },
+                )
                 next()
               }}
               style={{ padding: 8 }}
@@ -662,6 +677,14 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
               )}
             </>
           )}
+          {step === "capture" && (
+            <FirstCaptureStep
+              held={d.firstCapture ?? null}
+              onHold={(c) => editDraft({ firstCapture: c })}
+              onNext={next}
+              button={button}
+            />
+          )}
           {step === "targets" && (
             <>
               <Line style={{ gap: 8, marginBottom: 12, alignItems: "stretch" }}>
@@ -963,6 +986,7 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
           )}
           {step === "done" && (
             <>
+              <FirstCaptureResult />
               <Frame style={{ padding: 16, marginBottom: 16 }}>
                 <Line
                   style={{ justifyContent: "space-between", marginBottom: 8 }}
@@ -988,7 +1012,9 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                   ))}
                 </Line>
                 <Copy size={12} muted style={{ marginTop: 8 }}>
-                  Log one thing today to light up day 1.
+                  {firstSent
+                    ? "Your first log already counts toward day 1."
+                    : "Log one thing today to light up day 1."}
                 </Copy>
               </Frame>
               {button("Set up my workspace", finish)}
