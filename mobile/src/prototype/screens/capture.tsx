@@ -2,6 +2,8 @@ import * as A from "@domain/capture/actions"
 import type { Capture, RecordCard, ReplyItem } from "@domain/capture/data"
 import { resumeStuck } from "@domain/capture/engine"
 import { captureStore, useOnline } from "@domain/capture/store"
+import { AREA } from "@domain/dash/data"
+import { dashStore } from "@domain/dash/store"
 import { finStore } from "@domain/finance/store"
 import { closeCapture } from "@domain/lib/capture"
 import {
@@ -16,6 +18,8 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { AppState, TextInput, View } from "react-native"
+import { isModuleKey, turnModuleOn } from "../module-switch"
+import { feel } from "../motion"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
@@ -519,6 +523,7 @@ export function Reply({
   capture: Capture
 }) {
   const money = useMoney()
+  const enabled = dashStore.use((s) => s.enabled)
   if (item.t === "record") return <RecordReply card={item} />
   if (item.t === "answer")
     return (
@@ -546,23 +551,35 @@ export function Reply({
       <Title>{item.title}</Title>
       <Label>{item.body}</Label>
       <Actions>
-        {item.actions.map((action, i) => (
-          <Button
-            key={i}
-            small
-            tone="quiet"
-            onPress={() => {
-              if (action.href) go(action.href)
-              else if (action.do === "retry") A.retryCapture(capture.id)
-              else if (action.do === "journal")
-                A.addJournalEntry({ body: capture.text })
-              else if (action.prompt) A.sendCapture({ text: action.prompt })
-              else go("/tasks/new")
-            }}
-          >
-            {action.label}
-          </Button>
-        ))}
+        {item.actions.map((action, i) =>
+          action.do === "module_on" &&
+          isModuleKey(action.module) &&
+          enabled[action.module] ? (
+            <Label key={i}>
+              {AREA[action.module].label} is on. It shows on Today again.
+            </Label>
+          ) : (
+            <Button
+              key={i}
+              small
+              tone="quiet"
+              onPress={() => {
+                // Turned on in place; the link is for an app too old for it.
+                if (action.do === "module_on" && isModuleKey(action.module)) {
+                  feel.tap()
+                  turnModuleOn(action.module)
+                } else if (action.href) go(action.href)
+                else if (action.do === "retry") A.retryCapture(capture.id)
+                else if (action.do === "journal")
+                  A.addJournalEntry({ body: capture.text })
+                else if (action.prompt) A.sendCapture({ text: action.prompt })
+                else go("/tasks/new")
+              }}
+            >
+              {action.label}
+            </Button>
+          ),
+        )}
       </Actions>
     </Card>
   )

@@ -6,6 +6,10 @@ coach, insights) draw from the user's records on the device, so a tool that
 shows one also returns the same facts here; without them the model would
 describe a card it cannot see, and invent it.
 
+A module the person switched off in Settings is left out (only its name
+goes in, under ``modules_off``): a summary never brings it up, and asking
+about it directly still reaches its tools.
+
 Every section is best effort: a module that cannot answer leaves its key out,
 and the prompt tells the model that a missing fact is unknown, not zero.
 """
@@ -17,6 +21,7 @@ from app.modules.fitness import public as fitness
 from app.modules.focus import public as focus
 from app.modules.habits import public as habits
 from app.modules.nutrition import public as nutrition
+from app.modules.profile import public as profile
 from app.modules.stats import public as stats
 from app.modules.tasks import public as tasks
 from app.shared.context import Ctx
@@ -124,13 +129,19 @@ def _tasks_due(ctx: Ctx) -> tuple[list[dict[str, Any]], list[dict[str, Any]], in
 def plan(ctx: Ctx) -> list[dict[str, Any]]:
     """The plan card's items, in its order: habits due and not done, then up
     to two overdue tasks and today's tasks (five tasks at most), by time,
-    seven at most. Mirrors ``PlanBlock`` so the text and the card agree."""
-    hs = [
-        {"what": h["habit"], "kind": "habit", "time": h["time"]}
-        for h in _habits_due(ctx)
-        if h["status"] not in ("done", "skipped")
-    ]
-    overdue, due, _ = _tasks_due(ctx)
+    seven at most. Mirrors ``PlanBlock`` so the text and the card agree.
+    A module switched off adds nothing."""
+    shut = profile.modules_off(ctx)
+    hs = (
+        []
+        if "habits" in shut
+        else [
+            {"what": h["habit"], "kind": "habit", "time": h["time"]}
+            for h in _habits_due(ctx)
+            if h["status"] not in ("done", "skipped")
+        ]
+    )
+    overdue, due, _ = _tasks_due(ctx) if "tasks" not in shut else ([], [], 0)
     ts = [
         {"what": t["task"], "kind": "task", "time": t["time"], "due": t["due"]}
         for t in (overdue[:OVERDUE_IN_PLAN] + due)[:DUE_IN_PLAN]
@@ -148,34 +159,47 @@ def snapshot(ctx: Ctx) -> dict[str, Any]:
         "currency": f"{cur.code} ({cur.symbol})",
     }
     out.update(scores(ctx))
-    hs = _habits_due(ctx)
-    out["habits_due_today"] = hs
-    out["habits_left_today"] = _left(hs)
+    shut = profile.modules_off(ctx)
+    if shut:
+        out["modules_off"] = [profile.MODULE_LABEL[k] for k in shut]
+    if "habits" not in shut:
+        hs = _habits_due(ctx)
+        out["habits_due_today"] = hs
+        out["habits_left_today"] = _left(hs)
     # Named, so the model knows what is left: the ring's fitness count alone
     # read as "nothing due" whenever no habit or task was.
-    out["fitness_due_today"] = [
-        {"item": item, "done": done} for item, done in fitness.items_due_today(ctx)
-    ]
-    out["nutrition_due_today"] = [
-        {"item": item, "done": done} for item, done in nutrition.items_due_today(ctx)
-    ]
-    overdue, due, open_total = _tasks_due(ctx)
-    out["tasks_overdue"] = overdue[:5]
-    out["tasks_overdue_count"] = len(overdue)
-    out["tasks_due_today"] = due[:5]
-    out["tasks_due_today_count"] = len(due)
-    # Only the first OPEN_TASKS_SCANNED are read; past that the count is a floor.
-    key = (
-        "open_tasks_total" if open_total < OPEN_TASKS_SCANNED else "open_tasks_at_least"
-    )
-    out[key] = open_total
-    # What lists exist, so a task can be filed into one by name.
-    out["task_lists"] = tasks.active_list_names(ctx, limit=TASK_LISTS_SHOWN)
+    if "fitness" not in shut:
+        out["fitness_due_today"] = [
+            {"item": item, "done": done} for item, done in fitness.items_due_today(ctx)
+        ]
+    if "nutrition" not in shut:
+        out["nutrition_due_today"] = [
+            {"item": item, "done": done}
+            for item, done in nutrition.items_due_today(ctx)
+        ]
+    if "tasks" not in shut:
+        overdue, due, open_total = _tasks_due(ctx)
+        out["tasks_overdue"] = overdue[:5]
+        out["tasks_overdue_count"] = len(overdue)
+        out["tasks_due_today"] = due[:5]
+        out["tasks_due_today_count"] = len(due)
+        # Only the first OPEN_TASKS_SCANNED are read; past that the count is
+        # a floor.
+        key = (
+            "open_tasks_total"
+            if open_total < OPEN_TASKS_SCANNED
+            else "open_tasks_at_least"
+        )
+        out[key] = open_total
+        # What lists exist, so a task can be filed into one by name.
+        out["task_lists"] = tasks.active_list_names(ctx, limit=TASK_LISTS_SHOWN)
     # Today's food against the macro target, and the latest weigh-in, so
     # "what's my macro status?" is answered from the user's own data.
-    out["nutrition_today"] = fitness.nutrition_today(ctx)
+    if "nutrition" not in shut:
+        out["nutrition_today"] = fitness.nutrition_today(ctx)
     # Focused time today against the goal, and the focus timer if it runs.
-    out["focus_today"] = focus.today_line(ctx)
+    if "focus" not in shut:
+        out["focus_today"] = focus.today_line(ctx)
     # A workout on the Live bar: sets said now belong to it, not a new log.
     live = fitness.chat.active_workout(ctx)
     if live is not None:

@@ -30,6 +30,18 @@ class ModuleSetting:
     weight: int
 
 
+# How a person reads each module's name (the app's ``AREA`` labels).
+MODULE_LABEL: dict[str, str] = {
+    "habits": "Habits",
+    "tasks": "Tasks",
+    "fitness": "Fitness",
+    "nutrition": "Nutrition",
+    "focus": "Focus",
+    "finance": "Finance",
+    "screen": "Screen time",
+}
+
+
 def get_profile(ctx: Ctx) -> UserProfile:
     """The caller's profile, created with defaults on first access."""
     row = owned_repo.find_one(ctx, UserProfile, include_deleted=True)
@@ -134,3 +146,11 @@ def end_live(ctx: Ctx, *, kind: str, ref_id: object) -> None:
     live = get_live(ctx)
     if live is not None and live.kind == kind and live.ref_id == ref_id:
         owned_repo.soft_delete(ctx, live)
+
+
+def modules_off(ctx: Ctx) -> list[str]:
+    """The modules switched off in Settings, in ``DEFAULT_WEIGHTS`` order.
+    Off means off: their cards, stats, reminders and Fern's summaries
+    leave them out; what is logged into one is still kept."""
+    ms = module_settings(ctx)
+    return [k for k in DEFAULT_WEIGHTS if not ms[k].enabled]

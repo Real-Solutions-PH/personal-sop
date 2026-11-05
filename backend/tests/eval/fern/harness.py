@@ -49,6 +49,7 @@ from app.modules.fitness.models import (
 from app.modules.habits.models import Habit, HabitLog
 from app.modules.iam.users.models import User
 from app.modules.profile import public as profile
+from app.modules.profile.models import ModulePref
 from app.modules.tasks.models import Task
 from app.shared.context import Ctx, make_ctx
 
@@ -79,6 +80,8 @@ TABLES: dict[str, type[SQLModel]] = {
     "workout_set": WorkoutSet,
     "weigh_in": WeighIn,
     "memory": Memory,
+    # Modules switched on or off in Settings (absent: on).
+    "module_pref": ModulePref,
     # Entries still waiting for the person's Confirm at that moment.
     "capture": Capture,
     "record_card": RecordCard,
@@ -158,6 +161,8 @@ class Expect(BaseModel):
     replies_max: int | None = None
     reply_any: list[str] = Field(default_factory=list)
     reply_none: list[str] = Field(default_factory=list)
+    # Render blocks (by ``t``) the reply must carry, e.g. "module_off".
+    blocks_all: list[str] = Field(default_factory=list)
     # Every tool call succeeds: a call that returns an error shows in the
     # chat as a step that "couldn't finish", even when a retry then works.
     no_tool_errors: bool = False
@@ -658,4 +663,7 @@ def check(case: Case, trace: Trace) -> list[Check]:
         )
     for s in e.reply_none:
         out.append(Check(f"reply avoids {s!r}", s.lower() not in text, "", [1, 4]))
+    shown = {b.get("t") for bs in trace.blocks for b in bs}
+    for t in e.blocks_all:
+        out.append(Check(f"reply shows a {t} block", t in shown, f"{shown}", [1]))
     return out

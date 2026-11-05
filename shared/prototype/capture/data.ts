@@ -260,14 +260,23 @@ export interface AnswerCard {
 export interface InfoCard {
   t: "info"
   id: string
-  tone: "fallback" | "error" | "journal-suggest" | "handoff" | "advice"
+  tone:
+    | "fallback"
+    | "error"
+    | "journal-suggest"
+    | "handoff"
+    | "advice"
+    /** Saved into a module switched off in Settings. */
+    | "module_off"
   title: string
   body?: string
   actions: {
     label: string
-    do: "quickadd" | "retry" | "journal" | "link" | "prompt"
+    do: "quickadd" | "retry" | "journal" | "link" | "prompt" | "module_on"
     href?: string
     prompt?: string
+    /** For ``module_on``: the module to switch back on. */
+    module?: string
   }[]
 }
 export type ReplyItem = RecordCard | AnswerCard | InfoCard

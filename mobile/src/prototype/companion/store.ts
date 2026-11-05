@@ -1,3 +1,4 @@
+import type { ModuleKey } from "@domain/contract"
 import { createStore, uid } from "@domain/lib/store"
 import { create } from "zustand"
 
@@ -29,6 +30,9 @@ export type Block =
   /** The model's thinking while it works on a reply, streamed as written
    * and folded away; ``done`` once the answer (or a tool) has started. */
   | { t: "thinking"; text: string; done?: boolean }
+  /** Fern logged into a module switched off: the line to show, and the
+   * module its "Turn on" button switches back on. */
+  | { t: "module_off"; module: ModuleKey; text: string }
   /** The day's food against the target, as Fern pulled it up. */
   | { t: "nutrition"; day: string }
   /** Photos sent with a message: media ids, and links when known (local
