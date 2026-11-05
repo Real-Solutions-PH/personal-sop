@@ -99,16 +99,23 @@ export function logFunnel(e: FunnelEvent, at = new Date()) {
     ...s,
     queue: [...s.queue, { ...e, at: at.toISOString() }].slice(-QUEUE_LIMIT),
   }))
+  // The client is looked up now, while the caller is running, never from
+  // the timer: a module loaded from a timer can outlive its test.
+  const send = sender()
+  if (!send) return
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => {
     timer = null
-    flushFunnel().catch(() => {})
+    flushFunnel(send).catch(() => {})
   }, 1500)
+  // Never keeps the process alive on its own (Node; a no-op elsewhere).
+  ;(timer as { unref?: () => void }).unref?.()
 }
 
 /** Sends what is queued, a batch at a time; stops at the first failure. */
-export async function flushFunnel(): Promise<number> {
-  const send = sender()
+export async function flushFunnel(
+  send: Post | null = sender(),
+): Promise<number> {
   if (!send || sending) return 0
   sending = true
   let sent = 0
