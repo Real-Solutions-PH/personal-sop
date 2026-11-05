@@ -25,7 +25,7 @@ import {
 } from "@/prototype/companion/store"
 import { installLiveCapture, type LiveCaptureDeps } from "../capture"
 import { SyncEngine } from "../engine"
-import { type Http, NetworkError } from "../http"
+import { ApiError, type Http, NetworkError } from "../http"
 import {
   companionMappers,
   memoryFromServer,
@@ -544,6 +544,56 @@ test("a refused ask is kept as failed and Retry sends it again", async () => {
   ])
 })
 
+test("Retry while Fern is answering waits its turn and never hides the reply in progress", async () => {
+  // Kai's 2026-11-05 22:40: an old failed photo message was sent again 13 s
+  // into a slow reply to new photos. It took over the "replying" state,
+  // failed, and cleared it, so the reply still being written looked gone
+  // and he sent his message a second time.
+  const answers: ((r: Response) => void)[] = []
+  let refuse = true
+  const { post } = install(async () => {
+    if (refuse) return { ok: false, status: 503 } as Response
+    return new Promise<Response>((done) => answers.push(done))
+  })
+  ask("old message")
+  await flush()
+  const [old] = companionStore.get().messages
+  expect(old).toMatchObject({ text: "old message", status: "failed" })
+  refuse = false
+  ask("for breakfast")
+  await flush()
+  const now = companionStore
+    .get()
+    .messages.find((m) => m.text === "for breakfast")
+  expect(replying.getState().id).toBe(now?.id)
+  expect(thinking.getState().on).toBe(true)
+
+  retryAsk(old.id)
+  await flush()
+  // The retried message waits; the reply in progress still shows.
+  expect(
+    companionStore.get().messages.find((m) => m.id === old.id)?.status,
+  ).toBe("queued")
+  expect(post).toHaveBeenCalledTimes(2)
+  expect(replying.getState().id).toBe(now?.id)
+  expect(thinking.getState().on).toBe(true)
+  // A reconnect meanwhile does not send it either.
+  reconnect()
+  await flush()
+  expect(post).toHaveBeenCalledTimes(2)
+
+  // The reply ends; the waiting message goes next.
+  answers[0](sseResponse([ended]))
+  await flush()
+  expect(post).toHaveBeenCalledTimes(3)
+  expect(post.mock.calls[2][1]).toMatchObject({
+    id: old.id,
+    text: "old message",
+  })
+  answers[1](sseResponse([ended]))
+  await flush()
+})
+
 test("a network failure mid-ask keeps the question to retry", async () => {
   install(async () => {
     throw new NetworkError("Network request failed")
@@ -665,6 +715,84 @@ test("photos sent with a message upload first, show at once, and go as media_ids
   const [path, body] = post.mock.calls[0] as unknown as [string, Row]
   expect(path).toBe("/companion/ask/stream")
   expect(body).toMatchObject({ text: "log this receipt", media_ids: uploads })
+})
+
+test("photos an earlier try finished are used as they are when Retry sends again", async () => {
+  // Four photos on a phone network: one /complete outlived the request
+  // timeout, so the ask never went, while the server finished all four.
+  // The server refuses a second ticket for a finished id; every Retry
+  // failed on that refusal until the finished uploads were used.
+  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+  const finished = new Set<string>()
+  let slow: string | null = null
+  const reads: string[] = []
+  const post = jest.fn(async () => ({ ok: false }) as unknown as Response)
+  installLiveCapture({
+    http: {
+      request: async <T>(method: string, path: string, body?: unknown) => {
+        if (method === "POST" && path === "/media/uploads") {
+          const id = String((body as Row).id)
+          if (finished.has(id))
+            throw new ApiError(
+              422,
+              "media_already_uploaded",
+              "That upload is already complete",
+            )
+          return {
+            id,
+            upload_url: "https://store.example/put",
+            expires_in: 600,
+            headers: {},
+          } as T
+        }
+        const done = /^\/media\/(.+)\/complete$/.exec(path)
+        if (method === "POST" && done) {
+          finished.add(done[1])
+          slow ??= done[1]
+          if (slow === done[1]) throw new NetworkError("timeout")
+          return { id: done[1], kind: "image", state: "ready", url: null } as T
+        }
+        const read = /^\/media\/([^/]+)$/.exec(path)
+        if (method === "GET" && read) {
+          reads.push(read[1])
+          return {
+            id: read[1],
+            kind: "image",
+            mime: "image/jpeg",
+            state: "ready",
+            url: null,
+          } as T
+        }
+        throw new Error(`unexpected ${method} ${path}`)
+      },
+      raw: async () => {
+        throw new Error("unused")
+      },
+    },
+    post: post as LiveCaptureDeps["post"],
+    fetch: async () => new Response("{}", { status: 200 }),
+    online: () => true,
+    kick: jest.fn(),
+    cats: categoryIds(USER),
+  })
+  ask("log this meal", undefined, [photo, photo, photo, photo])
+  await flush()
+  expect(post).not.toHaveBeenCalled()
+  const failed = companionStore.get().messages.at(-1)
+  expect(failed).toMatchObject({ role: "me", status: "failed" })
+  expect(toasts).toContain(
+    "Couldn't upload the photos. Tap Retry to send them again.",
+  )
+  expect(finished.size).toBe(4)
+
+  retryAsk(String(failed?.id))
+  await flush()
+  // No new upload: all four were finished, so each is read and used.
+  expect(reads.sort()).toEqual([...finished].sort())
+  expect(post).toHaveBeenCalledTimes(1)
+  const [path, body] = post.mock.calls[0] as unknown as [string, Row]
+  expect(path).toBe("/companion/ask/stream")
+  expect((body.media_ids as string[]).sort()).toEqual([...finished].sort())
 })
 
 test("narration before a tool call streams, then gives way to the answer", async () => {

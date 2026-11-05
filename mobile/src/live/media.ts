@@ -10,7 +10,15 @@
 // ``media_id``). A network failure is a NetworkError so callers can keep the
 // item queued and retry; a refusal is an ApiError or MediaRejected.
 
-import { ApiError, type Fetch, type Http, NetworkError } from "./http"
+import { ApiError, type Fetch, type Http, NetworkError, timed } from "./http"
+
+/** How long one upload may take, by its size. A phone on a weak mobile
+ * network moves a 600 KB photo in well over the 15 s other requests get
+ * (one of four photos sent together finished after 38 s), so the limit
+ * allows 30 s plus 16 KB/s, up to 5 minutes. */
+export function uploadTimeoutMs(bytes: number): number {
+  return Math.min(30_000 + Math.ceil(bytes / 16), 300_000)
+}
 
 export type MediaKind = "image" | "video" | "audio" | "file"
 
@@ -20,7 +28,8 @@ export interface UploadInput {
   bytes?: Uint8Array
   uri?: string
   mime?: string
-  /** Client-minted id: a retried upload reuses the same media row. */
+  /** Client-minted id: a retried upload reuses the same media row, and one
+   * an earlier try already finished is used as it is. */
   id?: string
   width?: number
   height?: number
@@ -127,34 +136,70 @@ export async function uploadMedia(
   deps: { http: Http; fetch: Fetch },
 ): Promise<UploadedMedia> {
   const { mime, bytes } = await read(input, deps.fetch)
-  const ticket = await deps.http.request<Ticket>("POST", "/media/uploads", {
-    ...(input.id ? { id: input.id } : {}),
-    kind: input.kind,
-    mime,
-    size_bytes: bytes.byteLength,
-    ...(input.width ? { width: Math.round(input.width) } : {}),
-    ...(input.height ? { height: Math.round(input.height) } : {}),
-    ...(input.durationSec !== undefined
-      ? { duration_sec: input.durationSec }
-      : {}),
-    ...(input.previewId ? { preview_id: input.previewId } : {}),
-    ...(input.lqip ? { lqip: input.lqip } : {}),
-  })
-  let put: Response
+  let ticket: Ticket
   try {
-    put = await deps.fetch(ticket.upload_url, {
-      method: "PUT",
-      headers: ticket.headers,
-      body: bytes as unknown as BodyInit,
+    ticket = await deps.http.request<Ticket>("POST", "/media/uploads", {
+      ...(input.id ? { id: input.id } : {}),
+      kind: input.kind,
+      mime,
+      size_bytes: bytes.byteLength,
+      ...(input.width ? { width: Math.round(input.width) } : {}),
+      ...(input.height ? { height: Math.round(input.height) } : {}),
+      ...(input.durationSec !== undefined
+        ? { duration_sec: input.durationSec }
+        : {}),
+      ...(input.previewId ? { preview_id: input.previewId } : {}),
+      ...(input.lqip ? { lqip: input.lqip } : {}),
     })
   } catch (error) {
+    // A retry after an earlier try finished this upload but failed later
+    // (a slow photo among several on a phone network): the server refuses a
+    // second ticket for a finished id, so every Retry failed the same way.
+    // The finished upload is the one we want: use it.
+    if (
+      input.id &&
+      error instanceof ApiError &&
+      error.code === "media_already_uploaded"
+    ) {
+      const row = await deps.http.request<MediaRow>("GET", `/media/${input.id}`)
+      if (row.state === "ready")
+        return {
+          id: row.id,
+          kind: row.kind,
+          mime: row.mime,
+          state: "ready",
+          url: row.url ?? null,
+        }
+      throw new MediaRejected(input.id)
+    }
+    throw error
+  }
+  const limit = uploadTimeoutMs(bytes.byteLength)
+  let put: Response
+  try {
+    // Bounded: a dead connection used to leave the send waiting forever.
+    put = await timed(limit, (signal) =>
+      deps.fetch(ticket.upload_url, {
+        method: "PUT",
+        headers: ticket.headers,
+        body: bytes as unknown as BodyInit,
+        signal,
+      }),
+    )
+  } catch (error) {
+    if (error instanceof NetworkError) throw error
     throw new NetworkError(String(error))
   }
   if (!put.ok)
     throw new ApiError(put.status, "upload_failed", "The upload did not finish")
+  // The server reads the stored file back before it answers: on a busy
+  // server that has taken longer than 15 s, and the send failed though the
+  // photo was in. It gets the upload's limit.
   const done = await deps.http.request<MediaRow>(
     "POST",
     `/media/${ticket.id}/complete`,
+    undefined,
+    { timeoutMs: limit },
   )
   if (done.state !== "ready") throw new MediaRejected(ticket.id)
   return {

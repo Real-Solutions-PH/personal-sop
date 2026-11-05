@@ -47,6 +47,12 @@ import { attachFiles, CapturePhoto } from "./capture-photo"
 import { QuickAdd } from "./capture-quick"
 import { CaptureVoice } from "./capture-voice"
 
+/** Photos one Fern message carries. Each goes up as its own upload over a
+ * phone network and is read on its own before Fern answers: six covers a
+ * meal across several shots or a few receipts, and keeps the send and the
+ * reading well inside their time limits (the server takes up to 10). */
+export const FERN_MAX_PHOTOS = 6
+
 const hints = [
   { v: "meal", label: "Meal", icon: Utensils },
   { v: "expense", label: "Expense", icon: Wallet },
@@ -123,9 +129,16 @@ export function ThreadComposer({
   useEffect(() => {
     if (inputKey && refocus.current) input.current?.focus()
   }, [inputKey])
-  const MAX_PHOTOS = 10
   const addPhotos = (more: string[]) =>
-    setPhotos((cur) => [...cur, ...more].slice(0, MAX_PHOTOS))
+    setPhotos((cur) => [...cur, ...more].slice(0, FERN_MAX_PHOTOS))
+  // Room for more photos, or why there is none (the picker reads a limit
+  // of 0 as "no limit").
+  const roomForPhotos = () => {
+    const room = FERN_MAX_PHOTOS - photos.length
+    if (room <= 0)
+      toast.error(`${FERN_MAX_PHOTOS} photos is the most for one message.`)
+    return room
+  }
   const canSend = Boolean(text.trim()) || (Boolean(onText) && photos.length > 0)
   // Fern's composer dictates: what was said lands in the box to review and
   // send (ADR-0015). The capture screen's composer keeps voice captures.
@@ -467,14 +480,16 @@ export function ThreadComposer({
         <QuickAdd
           onClose={() => setQuick(false)}
           attach={{
-            camera: () =>
-              onText
-                ? void pickPhoto(true).then((v) => v && addPhotos([v]))
-                : setMode("photo"),
-            photos: () =>
-              onText
-                ? void pickPhotos(MAX_PHOTOS - photos.length).then(addPhotos)
-                : setMode("photo"),
+            camera: () => {
+              if (!onText) return setMode("photo")
+              if (roomForPhotos() > 0)
+                void pickPhoto(true).then((v) => v && addPhotos([v]))
+            },
+            photos: () => {
+              if (!onText) return setMode("photo")
+              const room = roomForPhotos()
+              if (room > 0) void pickPhotos(room).then(addPhotos)
+            },
             files: () => void attachFiles(onSent),
           }}
         />

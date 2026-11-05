@@ -1,12 +1,15 @@
+import io
 import uuid
+from typing import Any
 
 import httpx
 import pytest
+from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
-from app.modules.media import public
+from app.modules.media import public, storage
 from tests.modules.media.test_sniff import JPEG, PDF
 from tests.utils.mobile import ctx_for, signed_in
 
@@ -103,3 +106,54 @@ def test_another_users_media_is_invisible(client: TestClient, db: Session) -> No
             "http"
         )
     del alice
+
+
+class _Bucket:
+    """Object storage behind ``media.storage.client()``, the media module's
+    one substitution point: presigned URLs are inert strings and the bytes
+    the app would PUT are placed directly."""
+
+    def __init__(self) -> None:
+        self.objects: dict[str, bytes] = {}
+
+    def generate_presigned_url(self, op: str, Params: dict[str, Any], **kw: Any) -> str:  # noqa: N803
+        del kw
+        return f"https://bucket.test/{op}/{Params['Key']}"
+
+    def head_object(self, *, Bucket: str, Key: str) -> dict[str, Any]:  # noqa: N803
+        del Bucket
+        if Key not in self.objects:
+            raise ClientError({"Error": {"Code": "404"}}, "HeadObject")
+        return {"ContentLength": len(self.objects[Key])}
+
+    def get_object(self, *, Bucket: str, Key: str, **kw: Any) -> dict[str, Any]:  # noqa: N803
+        del Bucket, kw
+        return {"Body": io.BytesIO(self.objects[Key])}
+
+
+def test_a_client_minted_id_retries_until_done_then_is_refused(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The app's retry contract (mobile ``uploadMedia``): a ticket for an id
+    still pending is issued again; once the upload finished, a new ticket is
+    refused with ``media_already_uploaded`` and the app reads the finished
+    row instead of failing the message that carries it."""
+    bucket = _Bucket()
+    monkeypatch.setattr(storage, "client", lambda: bucket)
+    monkeypatch.setattr(storage, "_public_client", lambda: bucket)
+    monkeypatch.setattr(storage, "ensure_bucket", lambda: None)
+    user, h = signed_in(db)
+    mid = str(uuid.uuid4())
+    body = {"id": mid, "kind": "image", "mime": "image/jpeg", "size_bytes": len(JPEG)}
+    first = client.post(f"{API}/uploads", headers=h, json=body)
+    again = client.post(f"{API}/uploads", headers=h, json=body)
+    assert first.status_code == again.status_code == 200, again.text
+    assert first.json()["id"] == again.json()["id"] == mid
+    bucket.objects[f"u/{user.id}/{mid}"] = JPEG
+    done = client.post(f"{API}/{mid}/complete", headers=h)
+    assert done.status_code == 200 and done.json()["state"] == "ready", done.text
+    refused = client.post(f"{API}/uploads", headers=h, json=body)
+    assert refused.status_code == 422
+    assert refused.json()["code"] == "media_already_uploaded"
+    row = client.get(f"{API}/{mid}", headers=h)
+    assert row.status_code == 200 and row.json()["state"] == "ready"
