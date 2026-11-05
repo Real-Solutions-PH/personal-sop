@@ -3,7 +3,9 @@
 // never the UTC calendar; overdue bills lead; paused, ended, skipped and
 // what-if items stay off. Every expected day below is read off a calendar
 // for November 2026 (Fri 6 Nov is "today"), not computed with the code.
-process.env.TZ = "Asia/Manila"
+// Every instant is a local wall-clock time, so the file holds in any zone
+// the runner uses (CI is UTC, a dev Mac is Manila); setting process.env.TZ
+// here would not work, since Jest hands each file its own copy of env.
 
 import { countdown, upcomingWeek } from "@domain/finance/calc"
 import type { FinState, PlannedItem, Schedule } from "@domain/finance/data"
@@ -56,8 +58,8 @@ jest.mock("expo-audio", () => ({}))
 const { UpcomingWeek } =
   require("../screens/finance-upcoming") as typeof import("../screens/finance-upcoming")
 
-/** 10:00 on Fri 6 Nov 2026 in Manila. */
-const NOW = new Date("2026-11-06T10:00:00+08:00")
+/** 10:00 local on Fri 6 Nov 2026. */
+const NOW = new Date(2026, 10, 6, 10, 0)
 
 beforeEach(() => {
   configureStorage({
@@ -143,7 +145,7 @@ describe("the window", () => {
   test("before 04:00 it is still yesterday's business day", () => {
     // 03:30 Fri 6 Nov: the day is Thu 5 Nov, so Friday's bill is tomorrow
     // and Thursday's is today, not late.
-    jest.setSystemTime(new Date("2026-11-06T03:30:00+08:00"))
+    jest.setSystemTime(new Date(2026, 10, 6, 3, 30))
     const s = state([on("thu", "2026-11-05"), on("fri", "2026-11-06")])
     expect(ids(s)).toEqual({
       overdue: [],
@@ -155,14 +157,36 @@ describe("the window", () => {
     expect(countdown("2026-11-06").label).toBe("Due tomorrow")
   })
 
-  test("the local day, not the UTC calendar, sets the window", () => {
-    // 04:30 Fri 6 Nov in Manila is 20:30 Thu 5 Nov in UTC. A UTC window
-    // would call Thursday's bill today and stop at Thu 12 Nov.
-    jest.setSystemTime(new Date("2026-11-05T20:30:00Z"))
-    const s = state([on("thu", "2026-11-05"), on("next fri", "2026-11-13")])
+  test("the local business day, not the UTC calendar, sets the window", () => {
+    // Two instants whose UTC date differs from the business day: the first
+    // in any zone from UTC−2 to UTC+2, the second east of UTC+4:30. A
+    // UTC-derived window fails this both in CI (UTC) and in Manila.
+    const s = state([
+      on("thu", "2026-11-05"),
+      on("fri", "2026-11-06"),
+      on("next thu", "2026-11-12"),
+      on("next fri", "2026-11-13"),
+    ])
+    // 02:00 local Fri 6 Nov: still Thursday's business day.
+    jest.setSystemTime(new Date(2026, 10, 6, 2, 0))
+    expect(ids(s)).toEqual({
+      overdue: [],
+      days: [
+        ["2026-11-05", ["thu"]],
+        ["2026-11-06", ["fri"]],
+        ["2026-11-12", ["next thu"]],
+      ],
+    })
+    // 04:30 local Fri 6 Nov: Friday, so Thursday is late and the window
+    // reaches the next Friday.
+    jest.setSystemTime(new Date(2026, 10, 6, 4, 30))
     expect(ids(s)).toEqual({
       overdue: ["thu"],
-      days: [["2026-11-13", ["next fri"]]],
+      days: [
+        ["2026-11-06", ["fri"]],
+        ["2026-11-12", ["next thu"]],
+        ["2026-11-13", ["next fri"]],
+      ],
     })
   })
 
@@ -263,9 +287,7 @@ describe("the countdown", () => {
       label: "In 7 days",
     })
     // 03:30 on the next morning: half an hour of the business day left.
-    expect(
-      countdown("2026-11-06", new Date("2026-11-07T03:30:00+08:00")),
-    ).toEqual({
+    expect(countdown("2026-11-06", new Date(2026, 10, 7, 3, 30))).toEqual({
       state: "today",
       label: "Due now",
     })
