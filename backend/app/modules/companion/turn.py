@@ -181,6 +181,7 @@ RETRIED = frozenset(
 GUARDED = {
     "they_did_not_confirm": "Waiting for your OK before saving",
     "they_did_not_ask": "Waiting for your OK before saving it again",
+    "search_limit_reached": "Stopped searching; went with what was found",
 }
 _EXISTS = re.compile(r"^an?_([a-z]+)_with_that_name_exists$")
 
@@ -465,6 +466,18 @@ def _note_prefix(rest: str) -> str:
 HOLD_CHARS = 80
 
 
+# What the stored tool log keeps of each call (characters of JSON): enough
+# for the facts a later turn needs (a search's snippets, a write's id and
+# state), short enough that a reply's log stays a few kilobytes.
+LOG_ARGS = 400
+LOG_RESULT = 900
+
+
+def _cut(value: Any, limit: int) -> str:
+    text = json.dumps(value, ensure_ascii=False, default=str)
+    return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
 @dataclass
 class TurnStream(capture.LoopHooks):
     """The AG-UI side of one turn. ``sink`` receives every event in order;
@@ -498,6 +511,10 @@ class TurnStream(capture.LoopHooks):
     _think_id: str | None = None
     _think_buf: str = ""
     _think_at: float = 0.0
+    # Every tool call of the turn with its arguments and result, cut to fit,
+    # stored with the reply (``CompanionMessage.tool_log``) so a later turn
+    # ("continue") knows what this one already looked up and wrote.
+    log: list[dict[str, Any]] = field(default_factory=list)
 
     # ---------------------------------------------------------- run
 
@@ -667,6 +684,7 @@ class TurnStream(capture.LoopHooks):
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
         self._args[call_id] = args
+        self.log.append({"id": call_id, "tool": name, "args": _cut(args, LOG_ARGS)})
         # Tools that run once a turn: a repeat call answers from the first
         # (see `recall_memories`) and shows no second step line.
         if name in ONCE_A_TURN and any(s.name == name for s in self.steps):
@@ -686,6 +704,10 @@ class TurnStream(capture.LoopHooks):
         self.sink(ToolCallEndEvent(tool_call_id=call_id))
 
     def tool_finished(self, call_id: str, name: str, result: Any) -> None:
+        for entry in reversed(self.log):
+            if entry["id"] == call_id and "result" not in entry:
+                entry["result"] = _cut(result, LOG_RESULT)
+                break
         if call_id in self._quiet:
             self._quiet.discard(call_id)
             self._args.pop(call_id, None)

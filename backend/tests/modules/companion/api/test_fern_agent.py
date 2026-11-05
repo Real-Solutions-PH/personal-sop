@@ -227,7 +227,9 @@ def test_tool_calls_past_the_reply_cap_are_refused(
     )
     events = stream(api, client, "add three tasks one at a time")
     items = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
-    assert [i["ok"] for i in items] == [True, True, False]
+    # The third call never runs: the budget is spent, so the model is asked
+    # to answer instead (``services.LAST_WORD``) and no refused step shows.
+    assert [i["ok"] for i in items] == [True, True]
     assert sorted(t.title for t in tasks_of(api)) == ["One", "Two"]
 
 

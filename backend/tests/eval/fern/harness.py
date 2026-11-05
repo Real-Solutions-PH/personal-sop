@@ -166,6 +166,13 @@ class Expect(BaseModel):
     # Every tool call succeeds: a call that returns an error shows in the
     # chat as a step that "couldn't finish", even when a retry then works.
     no_tool_errors: bool = False
+    # Loop guards: at most this many tool calls across the case's turns, and
+    # at most this many calls of a given tool (Fern looping on searches and
+    # reads until the step cap cut the reply off, 2026-11-05).
+    calls_max: int | None = None
+    tool_max: dict[str, int] = Field(default_factory=dict)
+    # No turn may end cut off: its last model call still asking for tools.
+    not_cut_off: bool = False
 
 
 class Case(BaseModel):
@@ -304,6 +311,9 @@ class Trace:
     # Wall-clock seconds of each message's turn, and tool calls per round.
     turn_seconds: list[float] = field(default_factory=list)
     rounds: list[int] = field(default_factory=list)
+    # Turns whose last model call still asked for tools: the step or tool
+    # budget ended them, not the model.
+    cut_off: int = 0
     error: str | None = None
 
     def names(self) -> list[str]:
@@ -333,6 +343,7 @@ class Trace:
             "seconds": round(self.seconds, 2),
             "turn_seconds": [round(x, 2) for x in self.turn_seconds],
             "rounds": self.rounds,
+            "cut_off": self.cut_off,
             "error": self.error,
         }
 
@@ -413,6 +424,7 @@ def run_case(session: Session, user: User, case: Case) -> Trace:
             break
         trace.turn_seconds.append(time.monotonic() - turn_started)
         trace.rounds.extend(stream.rounds)
+        trace.cut_off += bool(stream.rounds and stream.rounds[-1])
         trace.calls.extend(stream.calls)
         for m in out.messages:
             if m.role == "sol":
@@ -651,6 +663,22 @@ def check(case: Case, trace: Trace) -> list[Check]:
             if isinstance(c.result, dict) and c.result.get("error")
         ]
         out.append(Check("no tool call failed", not failed, f"failed: {failed}", [6]))
+    if e.calls_max is not None:
+        out.append(
+            Check(
+                f"at most {e.calls_max} tool calls",
+                len(names) <= e.calls_max,
+                f"{len(names)} calls",
+                [6, 9],
+            )
+        )
+    for tool, n in e.tool_max.items():
+        got = names.count(tool)
+        out.append(Check(f"at most {n} {tool}", got <= n, f"{got} calls", [6, 9]))
+    if e.not_cut_off:
+        out.append(
+            Check("no turn cut off", not trace.cut_off, f"{trace.cut_off} cut", [6])
+        )
     text = "\n".join(trace.replies).lower()
     for any_of in [e.reply_any] if e.reply_any else []:
         out.append(

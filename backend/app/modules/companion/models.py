@@ -73,6 +73,10 @@ class CompanionMessage(OwnedRow, table=True):
     role: str = Field(sa_type=String(3))  # type: ignore
     text: str | None = Field(default=None, max_length=8000)
     blocks: list[dict[str, object]] = Field(default_factory=list, sa_type=JSONB)
+    # A reply's tool calls with their arguments and results, cut to fit
+    # (``turn.TurnStream.log``). Never sent to the app: later turns read it
+    # so "continue" picks up instead of looking everything up again.
+    tool_log: list[dict[str, object]] | None = Field(default=None, sa_type=JSONB)
 
 
 class Tracker(OwnedRow, table=True):

@@ -1,0 +1,1212 @@
+{
+ "id": "F-T51-4",
+ "kind": "failure",
+ "title": "Evening journal photo of tasks: find_tasks called 11 times before writing",
+ "criteria": [
+  3,
+  9
+ ],
+ "severity": "high",
+ "seen": "2026-11-04",
+ "fern_did": "Read the photo, then called find_tasks 11 times (same lists over and over) and spent 20 tool calls; it did finish.",
+ "should_have": "One or two find_tasks to check duplicates, then create the tasks and mark today's done in a handful of calls.",
+ "history": [],
+ "records": {
+  "task": [
+   {
+    "id": "@r16c71dab7f",
+    "title": "Upgrade or fix the Northwind pH workflow based on feedback from last Saturday",
+    "list_id": null,
+    "due_date": "2026-11-05",
+    "due_time": "23:59",
+    "remind_at": null,
+    "recurrence": null,
+    "notes": "Push this tomorrow: fix or improve the Northwind pH workflow based on feedback from last Saturday.",
+    "starred": false,
+    "status": "open",
+    "completed_at": null,
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-10-22",
+    "reschedule_count": 7,
+    "sort_order": 8,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r6d2e132bb0",
+    "title": "Review and implement the feedbacks and improvements for the Northwind SOP",
+    "list_id": null,
+    "due_date": "2026-11-05",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "open",
+    "completed_at": null,
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 3,
+    "sort_order": 17,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@rc0055a7b9a",
+    "title": "Finish redesign of the inventory management system using the new Northwind design skill",
+    "list_id": null,
+    "due_date": "2026-11-05",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "open",
+    "completed_at": null,
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 2,
+    "sort_order": 20,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r1c55d56e83",
+    "title": "Prep things for Baguio",
+    "list_id": null,
+    "due_date": "2026-10-24",
+    "due_time": "07:00",
+    "remind_at": "2026-10-23T23:00:00+00:00",
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-10-24T11:00:48.986+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-10-24",
+    "reschedule_count": 0,
+    "sort_order": 8,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@re29c58ba45",
+    "title": "Deploy the personal app AWS account",
+    "list_id": null,
+    "due_date": "2026-10-23",
+    "due_time": "23:59",
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-10-24T11:00:57.069+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-10-22",
+    "reschedule_count": 1,
+    "sort_order": 9,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r220e55340f",
+    "title": "Register the personal app project in the Apple App Store",
+    "list_id": null,
+    "due_date": "2026-10-23",
+    "due_time": "23:59",
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-10-24T11:00:58.938+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-10-22",
+    "reschedule_count": 1,
+    "sort_order": 10,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r453b737626",
+    "title": "Deploying AWS instance of Atlas",
+    "list_id": null,
+    "due_date": "2026-10-23",
+    "due_time": null,
+    "remind_at": "2026-10-23T01:00:00+00:00",
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-10-24T11:51:43.895+00:00",
+    "cleared_at": null,
+    "source": "manual",
+    "parse_state": "parsed",
+    "original_due": "2026-10-23",
+    "reschedule_count": 0,
+    "sort_order": 7,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r1b2e540b33",
+    "title": "Deploy staging environment in AWS via Terraform",
+    "list_id": null,
+    "due_date": "2026-10-23",
+    "due_time": "23:59",
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-10-28T06:12:43.78+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-10-22",
+    "reschedule_count": 1,
+    "sort_order": 7,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r87b095bd70",
+    "title": "Refine inventory management system (Lee's project)",
+    "list_id": null,
+    "due_date": "2026-10-23",
+    "due_time": "23:59",
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-10-28T06:13:01.345+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-10-22",
+    "reschedule_count": 1,
+    "sort_order": 6,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@radf36e6aaf",
+    "title": "Plan budgeting for Northwind: marketing, app running costs, other expenses, and first founders' cashout by end of year",
+    "list_id": null,
+    "due_date": "2026-11-01",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-01T12:06:47.828+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 0,
+    "sort_order": 19,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@rda86fdf6d3",
+    "title": "Finish up all feedbacks on Unfurl",
+    "list_id": null,
+    "due_date": "2026-11-01",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-01T12:06:52.86+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 0,
+    "sort_order": 21,
+    "series_parent_id": null,
+    "tags": [
+     "Unfurl",
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@rdb44205801",
+    "title": "Finish the design skill for Northwind to replace the uiuxpromax skill",
+    "list_id": null,
+    "due_date": "2026-11-01",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-01T12:07:27.303+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 0,
+    "sort_order": 14,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r15f0a55a20",
+    "title": "Check if we can integrate creating mockup designs, design system planning, and component library into the Northwind SOP",
+    "list_id": null,
+    "due_date": "2026-11-01",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-02T05:12:12.35+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 0,
+    "sort_order": 15,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r570efe0955",
+    "title": "Finish POC for the augmented and 3d generator based off our own house",
+    "list_id": null,
+    "due_date": null,
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "open",
+    "completed_at": null,
+    "cleared_at": null,
+    "source": "manual",
+    "parse_state": "parsed",
+    "original_due": null,
+    "reschedule_count": 0,
+    "sort_order": 21,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@raa2586541c",
+    "title": "Create trajectory proposal for Northwind: future plan, business model for services, schedules for products, choosing best niche to vertically scale, and whether to launch a separate company",
+    "list_id": null,
+    "due_date": "2026-11-01",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-02T05:12:26.998+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 0,
+    "sort_order": 18,
+    "series_parent_id": null,
+    "tags": [
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r3964985760",
+    "title": "Complete branding and marketing materials for Unfurl",
+    "list_id": null,
+    "due_date": "2026-11-03",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-03T09:45:35.998+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 1,
+    "sort_order": 22,
+    "series_parent_id": null,
+    "tags": [
+     "Unfurl",
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r68fc7f8062",
+    "title": "Character designs for Fern by Unfurl: Halloween, Christmas, New Year, and Chinese New Year versions",
+    "list_id": null,
+    "due_date": "2026-11-03",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-03T09:45:37.197+00:00",
+    "cleared_at": null,
+    "source": "capture-text",
+    "parse_state": "parsed",
+    "original_due": "2026-11-01",
+    "reschedule_count": 1,
+    "sort_order": 23,
+    "series_parent_id": null,
+    "tags": [
+     "Unfurl",
+     "Northwind"
+    ],
+    "estimate_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r752934cce7",
+    "title": "Finish Phase 3 Beacon Feedbacks",
+    "list_id": null,
+    "due_date": "2026-11-03",
+    "due_time": null,
+    "remind_at": null,
+    "recurrence": null,
+    "notes": null,
+    "starred": false,
+    "status": "done",
+    "completed_at": "2026-11-04T02:38:55.195+00:00",
+    "cleared_at": null,
+    "source": "manual",
+    "parse_state": "parsed",
+    "original_due": "2026-11-03",
+    "reschedule_count": 0,
+    "sort_order": 22,
+    "series_parent_id": null,
+    "tags": [],
+    "estimate_min": null,
+    "nag_every_min": null
+   }
+  ],
+  "habit": [
+   {
+    "id": "@re048f0f4f3",
+    "name": "Morning journal",
+    "icon": "✍️",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "09:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 2,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@rdf56ecdf87",
+    "name": "Evening journal",
+    "icon": "✍️",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "21:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 3,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@raae5fcdc00",
+    "name": "30 min work block",
+    "icon": "✅",
+    "type": "duration",
+    "target": 30,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "09:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 5,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r43604f3580",
+    "name": "Face skin care routine",
+    "icon": "💧",
+    "type": "count",
+    "target": 2,
+    "unit": null,
+    "step": 1,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "09:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 1,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r39c0c6ca16",
+    "name": "Workout",
+    "icon": "🏋️",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "07:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": true,
+    "archived_at": null,
+    "sort_order": 8,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r69988becf7",
+    "name": "Garden time",
+    "icon": "✅",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "18:00"
+     }
+    ],
+    "reminder": true,
+    "status": "archived",
+    "link_workout": false,
+    "archived_at": "2026-10-29T04:00:00+00:00",
+    "sort_order": 4,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@raa01cd7bc8",
+    "name": "Bath",
+    "icon": "💧",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "09:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 9,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r9bb60e67f0",
+    "name": "Walk after lunch",
+    "icon": "🚶",
+    "type": "duration",
+    "target": 30,
+    "unit": "min",
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 11,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@rc011371d7f",
+    "name": "Walk after dinner",
+    "icon": "🚶",
+    "type": "duration",
+    "target": 30,
+    "unit": "min",
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 12,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r315ac3b063",
+    "name": "Work",
+    "icon": "✅",
+    "type": "duration",
+    "target": 480,
+    "unit": "min",
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 13,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r6903223c2d",
+    "name": "Fix the bed",
+    "icon": "🛏️",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "06:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 7,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r8b0e274aa8",
+    "name": "Morning Walk",
+    "icon": "🏃",
+    "type": "duration",
+    "target": 30,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "06:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 10,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r6e44d3de5c",
+    "name": "General cleaning",
+    "icon": "✅",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       6
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 14,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r6d90268239",
+    "name": "Cleaning the cleaning robot",
+    "icon": "✅",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       6
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 15,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r2aabd911a4",
+    "name": "Change towel",
+    "icon": "✅",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       1
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 16,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@rd9f82b6da1",
+    "name": "Change bedsheet",
+    "icon": "🛏️",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       1
+      ]
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 17,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r35bfac1910",
+    "name": "Take two fish oil capsules",
+    "icon": "💊",
+    "type": "check",
+    "target": null,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "08:00"
+     }
+    ],
+    "reminder": true,
+    "status": "active",
+    "link_workout": false,
+    "archived_at": null,
+    "sort_order": 2,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   },
+   {
+    "id": "@r5f6c570356",
+    "name": "15 min relaxation",
+    "icon": "✅",
+    "type": "duration",
+    "target": 15,
+    "unit": null,
+    "step": null,
+    "schedule": [
+     {
+      "days": [
+       0,
+       1,
+       2,
+       3,
+       4,
+       5,
+       6
+      ],
+      "time": "21:00"
+     }
+    ],
+    "reminder": true,
+    "status": "archived",
+    "link_workout": false,
+    "archived_at": "2026-11-03T04:00:00+00:00",
+    "sort_order": 6,
+    "rule_kind": null,
+    "rule_group_id": null,
+    "rule_max_min": null,
+    "nag_every_min": null
+   }
+  ],
+  "memory": [
+   {
+    "id": "@rc6f80abe1f",
+    "text": "Sam's typical pull day is cable wide grip pulldowns, neutral grip rows, one-arm tricep cable pushdowns, rear delts on the peck deck, and lower back extensions.",
+    "kind": "routine",
+    "tags": [],
+    "importance": 3,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@r41f0397e13",
+    "text": "Aims to hit both protein and carbohydrate targets in meals.",
+    "kind": "goal",
+    "tags": [],
+    "importance": 3,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@r4e0d667c13",
+    "text": "Buys Kopiko Lucky Day pre-workout coffee from 7-Eleven for ₱25.",
+    "kind": "preference",
+    "tags": [],
+    "importance": 3,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@rc3ba870f27",
+    "text": "Wants it understood when logging a simple meal name like 'Breakfast' without the assistant demanding exact foods and amounts.",
+    "kind": "response_style",
+    "tags": [
+     "logging",
+     "answers"
+    ],
+    "importance": 3,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@r13cc790907",
+    "text": "Can only eat around 67 g of the tail part of food, a dietary limitation.",
+    "kind": "health",
+    "tags": [],
+    "importance": 5,
+    "always_on": true,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@rb062c29923",
+    "text": "Tracks macros and wants exact gram portions so they can plan what else they can eat within their daily targets.",
+    "kind": "goal",
+    "tags": [],
+    "importance": 3,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@r7c9cadd386",
+    "text": "Uses ON (Optimum Nutrition) pea protein powder to help reach protein targets.",
+    "kind": "preference",
+    "tags": [
+     "protein",
+     "supplement"
+    ],
+    "importance": 3,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@r847ed80c6f",
+    "text": "Prefers direct, blunt, exact numeric answers without fluffy wording.",
+    "kind": "response_style",
+    "tags": [],
+    "importance": 3,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@rfc259369ce",
+    "text": "Training goal: build/maintain muscle while weightlifting and lower body fat from 20% to 15%, with an optimized diet.",
+    "kind": "goal",
+    "tags": [
+     "fitness",
+     "diet",
+     "muscle",
+     "body fat"
+    ],
+    "importance": 4,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@r13693bfb8c",
+    "text": "Wants direct answers about what's in a meal (foods and amounts given outright) without preamble.",
+    "kind": "response_style",
+    "tags": [],
+    "importance": 4,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@r9d9728d1a1",
+    "text": "When a reply has finished acting, never end with a promise of a future action (\"I'll note what to push\") — a reply ends the turn and nothing else runs.",
+    "kind": "response_style",
+    "tags": [],
+    "importance": 5,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   },
+   {
+    "id": "@r70a88cb02d",
+    "text": "I don't have enough context here — this refers to an edit task I don't have details on.",
+    "kind": "fact",
+    "tags": [],
+    "importance": 1,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@r142644c674",
+    "text": "Considers it obvious that logging \"breakfast\" means the actual meal they ate, and gets frustrated when asked for more detail or an explanation; wants food logs taken at face value without interrogation.",
+    "kind": "response_style",
+    "tags": [
+     "logging",
+     "food",
+     "tone"
+    ],
+    "importance": 3,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@r9a50c7420f",
+    "text": "Wants answers based on the gram portions given, factoring in bone weight to estimate how much lean meat is actually edible.",
+    "kind": "response_style",
+    "tags": [
+     "lean meat",
+     "portions",
+     "grams"
+    ],
+    "importance": 3,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@r05c63b1d8b",
+    "text": "Categorizes food-related gym expenses under a specific \"Gym Food\" category.",
+    "kind": "preference",
+    "tags": [
+     "categories",
+     "expenses"
+    ],
+    "importance": 2,
+    "always_on": false,
+    "source": "inferred",
+    "superseded_by": null
+   },
+   {
+    "id": "@r05d32763f7",
+    "text": "Has an upcoming trip to Baguio.",
+    "kind": "event",
+    "tags": [
+     "trip",
+     "baguio"
+    ],
+    "importance": 3,
+    "always_on": false,
+    "source": "said",
+    "superseded_by": null
+   }
+  ]
+ },
+ "turn": [
+  {
+   "text": "record these as my tasks done today for to be done tomorrow and for the future\n\n[1 photo attached. What they show:\nPhoto 1 — other: Handwritten page titled 'Evening journal' listing work tasks under 'Done', 'Need to be done (tomorrow)', and 'Other Non-IT' sections\nEvening journal\n\nDone:\n- imp call to Dana\n- improvements for UNFUN\n- APK for UNFURl\n- page estimation skill\n- user stories of Atlas\n\nNeed to be done (tomorrow):\n- Send proposal to Dana (2 rounds, the client)\n- Harbor inventory management another refinement\n- Document scanning feature for receipt to creating PD (Quill)\n- Reviewing the user stories of each project role in Atlas (S)\n\nOther Non-IT:\n- Pipeline for validation of SaaS in Northwind\n  (also: marketing of SaaS)\n- Workflow refinement for Northwind\n- Graph review\n- SOP\n- Skill\nHard to read: the name 'UNFURl/UNFUN' and some acronyms (Atlas, Northwind, Harbor, Quill, the client) are uncertain as written.]",
+   "at": "2026-11-04T18:45:59+08:00"
+  }
+ ],
+ "expect": {
+  "tools_any": [
+   [
+    "create_tasks"
+   ],
+   [
+    "complete_task",
+    "create_tasks"
+   ]
+  ],
+  "calls_max": 12,
+  "tool_max": {
+   "find_tasks": 3
+  },
+  "not_cut_off": true
+ },
+ "rubric": "Done-today tasks marked complete, tomorrow's due tomorrow, future ones undated; few repeated reads."
+}

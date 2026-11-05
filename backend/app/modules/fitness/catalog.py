@@ -84,6 +84,8 @@ PEC_DECK = frozenset({"pec", "deck"})
 REAR = {"rear", "reverse", "delt", "delts"}
 # How close a typo must be (difflib ratio on the keys) to count.
 CLOSE = 0.9
+# How alike the one differing word of two close routine names must be.
+WORD_CLOSE = 0.75
 
 
 def fold(name: str) -> str:
@@ -202,9 +204,21 @@ def resolve_routine(name: str, rows: Sequence[T]) -> T | None:
     exact = next((r for r in rows if routine_key(r.name) == key), None)
     if exact is not None:
         return exact
-    close = [
-        r
-        for r in rows
-        if difflib.SequenceMatcher(None, key, routine_key(r.name)).ratio() >= CLOSE
-    ]
+    close = [r for r in rows if _close_spelling(key, routine_key(r.name))]
     return close[0] if len(close) == 1 else None
+
+
+def _close_spelling(a: str, b: str) -> bool:
+    """Two routine names one typo apart: the same words but one, and that
+    one spelled closely. Compared as whole strings, "leg day b" and "leg
+    day abs" scored 0.9 and a new "Leg Day B" was refused as "Leg day +
+    Abs" three times (2026-11-05)."""
+    wa, wb = a.split(), b.split()
+    if len(wa) != len(wb) or difflib.SequenceMatcher(None, a, b).ratio() < CLOSE:
+        return False
+    differ = [(x, y) for x, y in zip(wa, wb, strict=True) if x != y]
+    return len(differ) == 1 and all(
+        min(len(x), len(y)) >= 4
+        and difflib.SequenceMatcher(None, x, y).ratio() >= WORD_CLOSE
+        for x, y in differ
+    )
