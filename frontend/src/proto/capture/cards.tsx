@@ -23,6 +23,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { cn } from "@/lib/utils"
+import type { ModuleKey } from "../contract"
+import { AREA } from "../dash/data"
+import { setEnabled } from "../dash/store"
 import { finStore } from "../finance/store"
 import { habitsStore } from "../habits/store"
 import { dayKey, fmtDuration } from "../lib/day"
@@ -1005,6 +1008,11 @@ export function InfoCardView({
       cls: cn(tint.fin.border, "bg-card"),
       ic: tint.fin.text,
     },
+    module_off: {
+      icon: Sparkles,
+      cls: "border-border bg-card",
+      ic: "text-primary",
+    },
   }[card.tone]
   const Icon = tone.icon
   if (hidden) return null
@@ -1032,7 +1040,10 @@ export function InfoCardView({
             key={a.label}
             type="button"
             onClick={() => {
-              if (a.do === "quickadd") ctx.quickAdd()
+              if (a.do === "module_on" && a.module && Object.hasOwn(AREA, a.module)) {
+                setEnabled(a.module as ModuleKey, true)
+                setHidden(true)
+              } else if (a.do === "quickadd") ctx.quickAdd()
               else if (a.do === "retry" && captureId) retryCapture(captureId)
               else if (a.do === "journal")
                 ctx.send(`journal: ${a.prompt ?? ""}`)

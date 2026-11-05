@@ -7,7 +7,7 @@ import { setEnabled } from "@domain/dash/store"
 import { enableScreenTime } from "./screen-sync"
 
 export const isModuleKey = (k: unknown): k is ModuleKey =>
-  typeof k === "string" && k in AREA
+  typeof k === "string" && Object.hasOwn(AREA, k)
 
 export function turnModuleOn(k: ModuleKey) {
   if (k === "screen") void enableScreenTime()
