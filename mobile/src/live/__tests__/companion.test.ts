@@ -544,6 +544,56 @@ test("a refused ask is kept as failed and Retry sends it again", async () => {
   ])
 })
 
+test("Retry while Fern is answering waits its turn and never hides the reply in progress", async () => {
+  // Kai's 2026-11-05 22:40: an old failed photo message was sent again 13 s
+  // into a slow reply to new photos. It took over the "replying" state,
+  // failed, and cleared it, so the reply still being written looked gone
+  // and he sent his message a second time.
+  const answers: ((r: Response) => void)[] = []
+  let refuse = true
+  const { post } = install(async () => {
+    if (refuse) return { ok: false, status: 503 } as Response
+    return new Promise<Response>((done) => answers.push(done))
+  })
+  ask("old message")
+  await flush()
+  const [old] = companionStore.get().messages
+  expect(old).toMatchObject({ text: "old message", status: "failed" })
+  refuse = false
+  ask("for breakfast")
+  await flush()
+  const now = companionStore
+    .get()
+    .messages.find((m) => m.text === "for breakfast")
+  expect(replying.getState().id).toBe(now?.id)
+  expect(thinking.getState().on).toBe(true)
+
+  retryAsk(old.id)
+  await flush()
+  // The retried message waits; the reply in progress still shows.
+  expect(
+    companionStore.get().messages.find((m) => m.id === old.id)?.status,
+  ).toBe("queued")
+  expect(post).toHaveBeenCalledTimes(2)
+  expect(replying.getState().id).toBe(now?.id)
+  expect(thinking.getState().on).toBe(true)
+  // A reconnect meanwhile does not send it either.
+  reconnect()
+  await flush()
+  expect(post).toHaveBeenCalledTimes(2)
+
+  // The reply ends; the waiting message goes next.
+  answers[0](sseResponse([ended]))
+  await flush()
+  expect(post).toHaveBeenCalledTimes(3)
+  expect(post.mock.calls[2][1]).toMatchObject({
+    id: old.id,
+    text: "old message",
+  })
+  answers[1](sseResponse([ended]))
+  await flush()
+})
+
 test("a network failure mid-ask keeps the question to retry", async () => {
   install(async () => {
     throw new NetworkError("Network request failed")

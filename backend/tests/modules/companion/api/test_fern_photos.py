@@ -188,3 +188,53 @@ def test_a_label_on_the_server_key_is_read_by_three_readers_and_voted(
     assert "Photo 1 — nutrition label: Nestle Non-Fat Milk" in text
     assert "Per serving: 90 kcal, carbs 12.5 g, protein 10 g." in text
     assert "Unclear" not in text
+
+
+def test_a_second_message_with_many_photos_carries_the_first_as_text(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Kai, 2026-11-05: a second message with several photos, right after a
+    first one, seemed not to go through. The model never gets the earlier
+    photos again: they come back as their reading (text), so the second
+    turn's chat request holds no image at all and stays small."""
+    from uuid import uuid4
+
+    api = user(client, db)
+    api.assign("chat")
+    api.assign("vision", vision=True)
+    thread = str(uuid4())
+
+    def photos(n: int) -> list[str]:
+        return [
+            media(api, storage, kind="image", mime="image/jpeg", data=JPEG)
+            for _ in range(n)
+        ]
+
+    install(
+        monkeypatch,
+        *[say(f"Lunch plate {i}: fried chicken about 100 g.") for i in range(4)],
+        say("Lunch noted."),
+    )
+    ask(client, api, {"text": "lunch", "media_ids": photos(4), "thread_id": thread})
+
+    model = install(
+        monkeypatch,
+        *[say(f"Breakfast label {i}: 173 kcal per serving.") for i in range(4)],
+        say("Breakfast noted."),
+    )
+    ask(
+        client,
+        api,
+        {"text": "for breakfast", "media_ids": photos(4), "thread_id": thread},
+    )
+    readers, chat = model.seen[:4], model.seen[4]
+    # This turn's photos: one per reader request, each read on its own.
+    for seen in readers:
+        assert [p["type"] for p in seen[-1].content[1:]] == ["image_url"]
+    # Fern's own request: no image parts, the first turn as its reading.
+    assert "image_url" not in str([m.content for m in chat])
+    text = " ".join(str(m.content) for m in chat)
+    assert "Lunch plate 0" in text and "Breakfast label 3" in text

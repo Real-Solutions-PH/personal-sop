@@ -1385,9 +1385,13 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     try {
       await run()
     } finally {
-      thinking.setState({ on: false })
-      answering.setState({ id: null })
-      replying.setState({ id: null })
+      // Only the reply this run owns is cleared: another run ending must
+      // never make a reply still being written look finished.
+      if (replying.getState().id === meId) {
+        thinking.setState({ on: false })
+        answering.setState({ id: null })
+        replying.setState({ id: null })
+      }
       if (companionStore.get().inFlight?.id === meId) setInFlight(null)
       deps.kick()
       void refreshSpend()
@@ -1567,7 +1571,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     if (flushing) return flushing
     flushing = (async () => {
       for (;;) {
-        if (!deps.online()) return
+        // One reply at a time: what waits goes when this reply ends.
+        if (!deps.online() || replying.getState().id) return
         const next = companionStore
           .get()
           .messages.filter((m) => m.role === "me" && m.status === "queued")
@@ -1589,6 +1594,14 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     if (!deps.online()) {
       markAsk(id, "queued")
       toast.warning(`${companionName()} will answer when you're back online.`)
+      return
+    }
+    // A Retry tapped while Fern is still answering another message waits
+    // its turn. Run at once, it took over the "replying" state, and when it
+    // ended it cleared it: the reply still being written looked gone, so
+    // the person sent their message again.
+    if (replying.getState().id) {
+      markAsk(id, "queued")
       return
     }
     void runAsk(m.text ?? "", m.hint, photosOf(m), id)

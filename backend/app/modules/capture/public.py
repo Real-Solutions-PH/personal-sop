@@ -139,10 +139,18 @@ def describe_photos(
     merged = photo_read.merge(per_photo)
     if merged:
         return (photo_read.render(merged, label), read)
-    # A reader that answered in words instead of the JSON asked for.
-    said_any = next((a for answers in per_photo for a in answers if a), None)
-    if said_any:
-        return (f"[{label} attached. What they show:\n{said_any}]", read)
+    # Readers that answered in words instead of the JSON asked for: every
+    # photo's words, by photo (taking only the first answer dropped every
+    # photo after it from a message with several).
+    by_photo = [next((a for a in answers if a), None) for answers in per_photo]
+    if any(by_photo):
+        if len(by_photo) == 1:
+            words = str(by_photo[0])
+        else:
+            words = "\n".join(
+                f"Photo {i + 1}: {a}" for i, a in enumerate(by_photo) if a
+            )
+        return (f"[{label} attached. What they show:\n{words}]", read)
     return (f"[{label} attached; they could not be read just now]", read)
 
 
