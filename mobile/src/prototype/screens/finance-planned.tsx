@@ -89,7 +89,7 @@ const SAMPLE_ONCE = [
     amount: 45000,
   },
 ]
-function PlannedIcon({ p }: { p: PlannedItem }) {
+export function PlannedIcon({ p }: { p: PlannedItem }) {
   const s = finStore.use((s) => s),
     t = useTheme(),
     cat = s.categories.find((c) => c.id === p.categoryId),

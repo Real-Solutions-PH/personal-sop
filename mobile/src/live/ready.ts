@@ -5,6 +5,8 @@
 import { create } from "zustand"
 import { liveMode } from "./config"
 
-export const syncReady = create<{ ready: boolean }>(() => ({
+// ``failed``: ready only because the first pull failed, so this device
+// still holds none of the account's rows; cleared once a pull lands.
+export const syncReady = create<{ ready: boolean; failed?: boolean }>(() => ({
   ready: !liveMode,
 }))

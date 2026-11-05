@@ -42,6 +42,7 @@ import {
   SavingsSection,
 } from "./finance-home-cards"
 import { FinPill } from "./finance-planned"
+import { UpcomingWeek } from "./finance-upcoming"
 import {
   BudgetHistoryCard,
   CategoryCard,
@@ -379,6 +380,9 @@ export function FinanceHome({
               </Line>
             </Tap>
           </Frame>
+          {/* What falls due this week, straight under the net worth so it is
+              on the first screen. */}
+          <UpcomingWeek />
           {/* Where the money is kept, under what it adds up to: one wallet
               card per account, each opening its account. */}
           <SectionHeading

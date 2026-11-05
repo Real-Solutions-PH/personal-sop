@@ -1,4 +1,4 @@
-import { dayKey } from "../lib/day"
+import { DAY_START_HOUR, dayKey } from "../lib/day"
 import { moneyCompact } from "../lib/money"
 import {
   type Account,
@@ -492,6 +492,73 @@ export function dueNow(s: FinState) {
   return occurrencesIn(s, addDays(t, -14), addDays(t, 1)).filter(
     (o) => o.status === "overdue" || o.status === "due",
   )
+}
+/** The days ahead that the Finance home lists, today included: today plus
+ * seven more, so a bill due a week from today is still on it. */
+export const UPCOMING_DAYS = 7
+export interface UpcomingWeek {
+  /** Unpaid, unskipped occurrences before today (two weeks back), oldest
+   * first. */
+  overdue: Occurrence[]
+  /** Only the days that hold something, today first. Paid occurrences stay
+   * on their day; skipped ones leave. */
+  days: { day: string; items: Occurrence[] }[]
+  /** Unpaid expenses and transfers out, overdue included. */
+  dueTotal: number
+  /** Unpaid income expected in the same window. */
+  incomeTotal: number
+  /** Every row the section draws. */
+  count: number
+}
+/** What is scheduled from today through ``UPCOMING_DAYS`` ahead, in the
+ * user's business day (``dayKey``: the device's zone with the 04:00
+ * rollover, never the UTC calendar). Paused (``archived``) items, ended
+ * ones and what-if drafts are left out by ``occurrencesIn``. */
+export function upcomingWeek(s: FinState, days = UPCOMING_DAYS): UpcomingWeek {
+  const t = today(),
+    last = addDays(t, days),
+    all = occurrencesIn(s, addDays(t, -14), last)
+  const overdue = all.filter((o) => o.status === "overdue")
+  const byDay = new Map<string, Occurrence[]>()
+  for (const o of all) {
+    if (o.day < t || o.status === "skipped") continue
+    byDay.set(o.day, [...(byDay.get(o.day) ?? []), o])
+  }
+  const unpaid = [...overdue, ...[...byDay.values()].flat()].filter(
+    (o) => o.status !== "paid",
+  )
+  const sum = (xs: Occurrence[]) => xs.reduce((n, o) => n + o.item.amount, 0)
+  return {
+    overdue,
+    days: [...byDay].map(([day, items]) => ({ day, items })),
+    dueTotal: sum(unpaid.filter((o) => o.item.type !== "income")),
+    incomeTotal: sum(unpaid.filter((o) => o.item.type === "income")),
+    count: overdue.length + [...byDay.values()].flat().length,
+  }
+}
+/** How near an occurrence is, for the live countdown: ``overdue`` before
+ * today, ``today``, ``soon`` within two days, ``later`` after that. */
+export type DueState = "overdue" | "today" | "soon" | "later"
+export function countdown(
+  day: string,
+  now: Date = new Date(),
+): { state: DueState; label: string } {
+  const t = dayKey(now),
+    n = diffDays(day, t)
+  if (n < 0)
+    return {
+      state: "overdue",
+      label: n === -1 ? "1 day late" : `${-n} days late`,
+    }
+  if (n === 0) {
+    // Hours to the next business-day rollover (04:00 local).
+    const end = parseKey(addDays(t, 1))
+    end.setHours(DAY_START_HOUR, 0, 0, 0)
+    const h = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 3600000))
+    return { state: "today", label: h <= 1 ? "Due now" : `Due today · ${h} h left` }
+  }
+  if (n === 1) return { state: "soon", label: "Due tomorrow" }
+  return { state: n === 2 ? "soon" : "later", label: `In ${n} days` }
 }
 export function monthlyEq(p: PlannedItem) {
   switch (p.schedule.kind) {
