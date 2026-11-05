@@ -8,6 +8,7 @@ import {
   undoCard,
 } from "@domain/capture/engine"
 import { captureStore } from "@domain/capture/store"
+import type { ModuleKey } from "@domain/contract"
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { catMap, flowIn, netWorthSeries, spendIn } from "@domain/finance/calc"
@@ -442,7 +443,10 @@ function useInsights(): Insight[] {
   const fit = fitStore.use((s) => s)
   const money = useMoney()
   const today = useTodayData()
+  const enabled = D.useEnabled()
   return useMemo(() => {
+    // A module switched off is left out of every insight.
+    const on = (k: ModuleKey) => enabled[k] !== false
     const out: Insight[] = []
     if (life.score !== null && life.delta !== null)
       out.push({
@@ -455,7 +459,9 @@ function useInsights(): Insight[] {
             : "A dip versus the previous 30 days. Usually that's one area slipping, not everything.",
         track: "life",
       })
-    const areas = Object.entries(life.rates) as [string, number][]
+    const areas = (Object.entries(life.rates) as [ModuleKey, number][]).filter(
+      ([k, v]) => on(k) && v !== null && v !== undefined,
+    )
     if (areas.length) {
       const sorted = [...areas].sort((a, b) => b[1] - a[1])
       const [bestK, bestV] = sorted[0]
@@ -470,7 +476,9 @@ function useInsights(): Insight[] {
     }
     const idx = H.logIndex(habits.logs)
     const hs = habits.habits.filter((h) => h.status !== "archived")
-    const missed = H.mostMissedWeekday(hs, idx, dayOffset(-29))
+    const missed = on("habits")
+      ? H.mostMissedWeekday(hs, idx, dayOffset(-29))
+      : null
     const FULL: Record<string, string> = {
       Sun: "Sunday",
       Mon: "Monday",
@@ -493,7 +501,7 @@ function useInsights(): Insight[] {
     const prev = flowIn(fin, dayOffset(-59), dayOffset(-30))
     const cats = catMap(fin)
     const top = [...now.byCat.entries()].sort((a, b) => b[1] - a[1])[0]
-    if (top) {
+    if (top && on("finance")) {
       const before = prev.byCat.get(top[0]) ?? 0
       const change = before ? Math.round(((top[1] - before) / before) * 100) : 0
       out.push({
@@ -512,17 +520,18 @@ function useInsights(): Insight[] {
     const avg =
       weeks.slice(0, -1).reduce((a, w) => a + w.count, 0) /
       Math.max(1, weeks.length - 1)
-    out.push({
-      icon: Dumbbell,
-      accent: "fit",
-      title: `${thisWeek} workout${thisWeek === 1 ? "" : "s"} this week`,
-      body:
-        thisWeek >= avg
-          ? `At or above your ${avg.toFixed(1)}/week average. Keep the rhythm.`
-          : `Below your ${avg.toFixed(1)}/week average — one short session keeps the streak alive.`,
-      track: "workouts",
-    })
-    if (today.overdue.length)
+    if (on("fitness"))
+      out.push({
+        icon: Dumbbell,
+        accent: "fit",
+        title: `${thisWeek} workout${thisWeek === 1 ? "" : "s"} this week`,
+        body:
+          thisWeek >= avg
+            ? `At or above your ${avg.toFixed(1)}/week average. Keep the rhythm.`
+            : `Below your ${avg.toFixed(1)}/week average — one short session keeps the streak alive.`,
+        track: "workouts",
+      })
+    if (today.overdue.length && on("tasks"))
       out.push({
         icon: CalendarClock,
         accent: "warn",
@@ -538,7 +547,7 @@ function useInsights(): Insight[] {
       track: "life",
     })
     return out
-  }, [life, target, habits, fin, fit, money, today.overdue.length])
+  }, [life, target, habits, fin, fit, money, today.overdue.length, enabled])
 }
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
 

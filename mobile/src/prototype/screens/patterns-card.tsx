@@ -3,6 +3,7 @@
 // qualifies. Everything is read on the phone; nothing new is stored.
 import type { JournalEntry } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
+import { useEnabled } from "@domain/dash/hooks"
 import * as F from "@domain/fitness/calc"
 import type { FitnessState } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
@@ -11,6 +12,7 @@ import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { useMemo } from "react"
+import { useShown } from "../extras"
 import type { DayActivity } from "../health"
 import { findInsights, type InsightDay } from "../insights"
 import { Copy, Frame, SectionHeading } from "../native-kit"
@@ -66,12 +68,19 @@ export function PatternsCard() {
     fit = fitStore.use((s) => s),
     habits = habitsStore.use((s) => s),
     journal = captureStore.use((s) => s.journal),
+    enabled = useEnabled(),
+    journalShown = useShown("journal"),
     found = useMemo(
       () =>
         findInsights(
           insightDays(SPAN.map(calDay), nights, activity, fit, habits, journal),
+          {
+            fitness: enabled.fitness,
+            habits: enabled.habits,
+            journal: journalShown,
+          },
         ),
-      [nights, activity, fit, habits, journal],
+      [nights, activity, fit, habits, journal, enabled, journalShown],
     )
   if (!found.length) return null
   return (

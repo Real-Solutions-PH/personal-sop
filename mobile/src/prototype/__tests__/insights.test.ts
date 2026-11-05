@@ -90,3 +90,35 @@ test("at most three, biggest gap first", () => {
     [...found.map((x) => x.gap)].sort((a, b) => b - a),
   )
 })
+
+describe("a part that is off is left out", () => {
+  // Every pairing has a real gap on both sides.
+  const all = days(12, (i) =>
+    i % 2
+      ? { sleepMin: 480, workout: true, steps: 12_000, mood: 5, habits: 0.9 }
+      : { sleepMin: 360, mood: 3, habits: 0.4 },
+  )
+  const ids = (on?: Parameters<typeof findInsights>[1]) =>
+    findInsights(all, on)
+      .map((x) => x.id)
+      .sort()
+
+  test("all on: insights from fitness against mood and habits", () => {
+    expect(ids().length).toBe(3)
+  })
+
+  test("Habits off: no habit outcome", () => {
+    expect(ids({ habits: false }).some((x) => x.endsWith("-habits"))).toBe(
+      false,
+    )
+    expect(ids({ habits: false }).length).toBeGreaterThan(0)
+  })
+
+  test("Journal hidden: no mood outcome", () => {
+    expect(ids({ journal: false }).some((x) => x.endsWith("-mood"))).toBe(false)
+  })
+
+  test("Fitness off: sleep, workouts and steps are all Fitness, so nothing", () => {
+    expect(ids({ fitness: false })).toEqual([])
+  })
+})

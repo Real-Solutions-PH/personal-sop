@@ -4,6 +4,8 @@
 // ponytail: a plain difference of averages, no significance test; the
 // 5-days-a-side floor and the minimum gap keep noise out. Correlation, not
 // cause, which is why the copy only states the two numbers.
+// A part that is off says nothing: sleep, workouts and steps are Fitness,
+// mood is the Journal, habit completion is Habits.
 
 export interface InsightDay {
   day: string
@@ -16,6 +18,12 @@ export interface InsightDay {
   mood: number | undefined
   /** Share of the day's due habits done, 0–1; null when none were due. */
   habits: number | null
+}
+/** What the person has switched on; omitted = on. */
+export interface InsightParts {
+  fitness?: boolean
+  habits?: boolean
+  journal?: boolean
 }
 export interface Insight {
   id: string
@@ -52,7 +60,7 @@ const DRIVERS: {
   },
 ]
 const OUTCOMES: {
-  id: string
+  id: "mood" | "habits"
   value: (d: InsightDay) => number | null | undefined
   /** The smallest gap worth saying, and the scale it's ranked on. */
   min: number
@@ -80,10 +88,17 @@ const OUTCOMES: {
 
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length
 
-export function findInsights(days: readonly InsightDay[]): Insight[] {
+export function findInsights(
+  days: readonly InsightDay[],
+  on: InsightParts = {},
+): Insight[] {
   const found: Insight[] = []
+  if (on.fitness === false) return found
+  const outcomes = OUTCOMES.filter((o) =>
+    o.id === "mood" ? on.journal !== false : on.habits !== false,
+  )
   for (const dr of DRIVERS)
-    for (const out of OUTCOMES) {
+    for (const out of outcomes) {
       const on: number[] = [],
         off: number[] = []
       for (const d of days) {
