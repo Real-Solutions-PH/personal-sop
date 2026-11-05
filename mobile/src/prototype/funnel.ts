@@ -72,11 +72,20 @@ let post: Post | null = null
 export function setFunnelSender(p: Post | null) {
   post = p
 }
+/** The live API client, or null where there is none (prototype mode, or a
+ * test that mocks the auth module without it). Never throws: the send runs
+ * from a timer, where a throw would surface in whatever runs next. */
 function sender(): Post | null {
   if (post) return post
   if (!liveMode) return null
-  const { http } = require("@/live/auth") as typeof import("@/live/auth")
-  return (path, body) => http.request("POST", path, body)
+  try {
+    const http = (
+      require("@/live/auth") as Partial<typeof import("@/live/auth")>
+    ).http
+    return http ? (path, body) => http.request("POST", path, body) : null
+  } catch {
+    return null
+  }
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null
@@ -93,7 +102,7 @@ export function logFunnel(e: FunnelEvent, at = new Date()) {
   if (timer) clearTimeout(timer)
   timer = setTimeout(() => {
     timer = null
-    void flushFunnel()
+    flushFunnel().catch(() => {})
   }, 1500)
 }
 

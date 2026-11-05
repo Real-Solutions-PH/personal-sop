@@ -88,3 +88,11 @@ test("a failed send keeps the queue; the next one sends it in batches of 50", as
   expect(await flushFunnel()).toBe(120)
   expect(sent.map((s) => s.body.events.length)).toEqual([50, 50, 20])
 })
+
+test("with no API client the timed send does nothing and keeps the queue", async () => {
+  setFunnelSender(null)
+  // liveMode is false here, so there is no sender: nothing may throw.
+  logFunnel({ event: "step_view", step: "identity" })
+  await expect(flushFunnel()).resolves.toBe(0)
+  await jest.runOnlyPendingTimersAsync()
+})
