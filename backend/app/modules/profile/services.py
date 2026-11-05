@@ -140,6 +140,11 @@ def update_profile(ctx: Ctx, data: ProfileUpdate) -> UserProfile:
         values["seen_trophies"] = sorted(
             set(profile.seen_trophies) | set(values["seen_trophies"] or [])
         )
+    for k in ("intro_offered", "intro_dismissed"):
+        if k in values:
+            # Only grows, like seen_trophies: a reintroduction offered or
+            # turned down stays so whatever an older device sends.
+            values[k] = sorted(set(getattr(profile, k)) | set(values[k] or []))
     if "enabled_extras" in values and values["enabled_extras"] is None:
         # Null means "not changing it": never reset a choice to unchosen.
         del values["enabled_extras"]

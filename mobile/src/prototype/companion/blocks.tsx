@@ -62,6 +62,7 @@ import { useMoney } from "../screens/finance"
 import { NutritionDay } from "../screens/nutrition-day"
 import { type Accent, fonts, useTheme } from "../theme"
 import { ask, metricLabel } from "./brain"
+import { ModuleIntroBlock } from "./module-intro-block"
 import {
   addTracker,
   type Block,
@@ -1020,7 +1021,16 @@ export function Chips({ prompts }: { prompts: string[] }) {
 /** Fern logged into a module switched off: the line saying it won't show
  * on Today, and a button that turns the module back on. Once on, the line
  * says so with a check, so the switch is seen to land. */
-function ModuleOffBlock({ module, text }: { module: ModuleKey; text: string }) {
+function ModuleOffBlock({
+  module,
+  text,
+  ask,
+}: {
+  module: ModuleKey
+  text: string
+  /** False once the person said "Not for me": the line, no button. */
+  ask: boolean
+}) {
   const t = useTheme()
   const on = dashStore.use((s) => s.enabled[module] !== false)
   const area = AREA[module]
@@ -1049,33 +1059,35 @@ function ModuleOffBlock({ module, text }: { module: ModuleKey; text: string }) {
       >
         {text}
       </Text>
-      <Pressable
-        cssInterop={false}
-        accessibilityRole="button"
-        onPress={() => {
-          feel.tap()
-          turnModuleOn(module)
-        }}
-        style={({ pressed }) => ({
-          alignSelf: "flex-start",
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 6,
-          paddingHorizontal: 12,
-          minHeight: 34,
-          borderRadius: 17,
-          borderWidth: 1,
-          borderColor: `${t.primary}66`,
-          backgroundColor: pressed ? `${t.primary}26` : "transparent",
-        })}
-      >
-        <Power size={14} color={t.primary} />
-        <Text
-          style={{ color: t.primary, fontFamily: fonts.medium, fontSize: 13 }}
+      {ask && (
+        <Pressable
+          cssInterop={false}
+          accessibilityRole="button"
+          onPress={() => {
+            feel.tap()
+            turnModuleOn(module)
+          }}
+          style={({ pressed }) => ({
+            alignSelf: "flex-start",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 12,
+            minHeight: 34,
+            borderRadius: 17,
+            borderWidth: 1,
+            borderColor: `${t.primary}66`,
+            backgroundColor: pressed ? `${t.primary}26` : "transparent",
+          })}
         >
-          Turn on {area.label}
-        </Text>
-      </Pressable>
+          <Power size={14} color={t.primary} />
+          <Text
+            style={{ color: t.primary, fontFamily: fonts.medium, fontSize: 13 }}
+          >
+            Turn on {area.label}
+          </Text>
+        </Pressable>
+      )}
     </View>
   )
 }
@@ -1657,7 +1669,15 @@ export function BlockView({ block, live }: { block: Block; live?: boolean }) {
     case "nutrition":
       return <NutritionBlock day={block.day} />
     case "module_off":
-      return <ModuleOffBlock module={block.module} text={block.text} />
+      return (
+        <ModuleOffBlock
+          module={block.module}
+          text={block.text}
+          ask={block.ask !== false}
+        />
+      )
+    case "module_intro":
+      return <ModuleIntroBlock module={block.module} text={block.text} />
     case "table":
       return <TableBlock block={block} />
     case "photos":

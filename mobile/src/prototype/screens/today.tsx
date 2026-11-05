@@ -116,6 +116,7 @@ import { RecordEditor, useMoney } from "./finance"
 import { DueSheet } from "./finance-planned"
 import { HabitActions } from "./habit-actions"
 import { HabitLog } from "./habits"
+import { ModuleIntroCard } from "./module-intro-card"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
 import { ClearRing } from "./plan"
@@ -2045,6 +2046,7 @@ export function Today() {
             </Deferred>
           ) : null
         })}
+      <ModuleIntroCard cards={MODULE_CARDS} />
       {shown.social && <Community />}
       <Deferred lag fallback={<FrameSkeleton height={90} />}>
         <Goals evening={evening} />

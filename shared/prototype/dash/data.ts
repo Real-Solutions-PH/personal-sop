@@ -147,6 +147,10 @@ export interface DashState {
   targetThreshold: number
   eveningStart: string
   seenTrophies: string[]
+  /** The one-time reintroduction of a hidden part (a module, the Journal
+   * or Community): offered once by Fern, and turned down for good with
+   * "Not for me". On the account, so they outlive a reinstall. */
+  intro: { offered: string[]; dismissed: string[] }
 }
 export const seed = (): DashState => ({
   profile: {
@@ -330,4 +334,5 @@ export const seed = (): DashState => ({
   targetThreshold: 0.8,
   eveningStart: "18:00",
   seenTrophies: [],
+  intro: { offered: [], dismissed: [] },
 })

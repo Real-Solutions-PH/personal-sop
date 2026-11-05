@@ -6,6 +6,7 @@ import { dashStore, setEnabled } from "@domain/dash/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { fireEvent, render, screen } from "@testing-library/react-native"
 import { BlockView } from "../companion/blocks"
+import { extrasStore, setShown } from "../extras"
 import { Reply } from "../screens/capture"
 
 jest.mock("react-native-reanimated", () => ({
@@ -101,4 +102,55 @@ test("the capture card's Turn on switches in place, not through the link", () =>
   expect(
     screen.getByText("Finance is on. It shows on Today again."),
   ).toBeTruthy()
+})
+
+test("after Not for me, Fern's line no longer asks", () => {
+  render(
+    <BlockView
+      block={{
+        t: "module_off",
+        module: "finance",
+        text: "Finance is off, so this won't show on Today.",
+        ask: false,
+      }}
+    />,
+  )
+  expect(
+    screen.getByText("Finance is off, so this won't show on Today."),
+  ).toBeTruthy()
+  expect(screen.queryByText("Turn on Finance")).toBeNull()
+})
+
+describe("Fern's one-time offer to bring back a hidden part", () => {
+  const offer = (module: string) =>
+    render(
+      <BlockView
+        block={{ t: "module_intro", module, text: `${module} is hidden.` }}
+      />,
+    )
+
+  test("Turn on shows the Journal again, and says so", () => {
+    setShown("journal", false)
+    offer("journal")
+    fireEvent.press(screen.getByText("Turn on Journal"))
+    expect(extrasStore.get().journal).toBe(true)
+    expect(
+      screen.getByText("Journal is on. It shows on Today again."),
+    ).toBeTruthy()
+  })
+
+  test("Not for me is kept on the account and acknowledged", () => {
+    offer("finance")
+    fireEvent.press(screen.getByText("Not for me"))
+    expect(dashStore.get().intro.dismissed).toEqual(["finance"])
+    expect(dashStore.get().enabled.finance).toBe(false)
+    expect(
+      screen.getByText("Got it. I won't bring up Finance again."),
+    ).toBeTruthy()
+  })
+
+  test("an unknown part draws nothing", () => {
+    offer("weather")
+    expect(screen.queryByText("Not for me")).toBeNull()
+  })
 })

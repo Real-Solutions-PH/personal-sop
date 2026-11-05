@@ -19,6 +19,8 @@
       "push_evening": "21:00",
       "push_review": true,
       "seen_trophies": [],
+      "intro_offered": [],
+      "intro_dismissed": [],
       "enabled_extras": [
         "journal",
         "social",

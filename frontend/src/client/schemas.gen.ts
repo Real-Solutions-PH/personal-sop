@@ -14186,6 +14186,24 @@ export const ProfilePublicSchema = {
             ],
             title: 'Enabled Extras'
         },
+        intro_offered: {
+            items: {
+                type: 'string',
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen', 'journal', 'social']
+            },
+            type: 'array',
+            title: 'Intro Offered',
+            default: []
+        },
+        intro_dismissed: {
+            items: {
+                type: 'string',
+                enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen', 'journal', 'social']
+            },
+            type: 'array',
+            title: 'Intro Dismissed',
+            default: []
+        },
         occupation: {
             anyOf: [
                 {
@@ -14489,6 +14507,38 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Enabled Extras'
+        },
+        intro_offered: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen', 'journal', 'social']
+                    },
+                    type: 'array',
+                    maxItems: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Intro Offered'
+        },
+        intro_dismissed: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen', 'journal', 'social']
+                    },
+                    type: 'array',
+                    maxItems: 9
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Intro Dismissed'
         }
     },
     type: 'object',

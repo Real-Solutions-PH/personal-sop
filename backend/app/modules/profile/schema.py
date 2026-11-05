@@ -12,6 +12,17 @@ ModuleKey = Literal[
     "habits", "tasks", "fitness", "nutrition", "focus", "finance", "screen"
 ]
 ExtraKey = Literal["journal", "social", "weather", "calendar"]
+IntroKey = Literal[
+    "habits",
+    "tasks",
+    "fitness",
+    "nutrition",
+    "focus",
+    "finance",
+    "screen",
+    "journal",
+    "social",
+]
 Appearance = Literal["system", "light", "dark"]
 PushPermission = Literal["default", "granted", "denied"]
 Occupation = Literal[
@@ -74,6 +85,9 @@ class ProfilePublic(BaseModel):
     seen_trophies: list[str]
     # Extras kept shown; null = never chosen, so every extra is shown.
     enabled_extras: list[ExtraKey] | None = None
+    # Hidden parts Fern has offered once, and those turned down for good.
+    intro_offered: list[IntroKey] = []
+    intro_dismissed: list[IntroKey] = []
     occupation: Occupation | None = None
     occupation_detail: str | None = None
     referral_source: ReferralSource | None = None
@@ -110,6 +124,9 @@ class ProfileUpdate(BaseModel):
     # The whole set of extras to keep shown (an empty list hides them all);
     # null leaves the stored choice as it is.
     enabled_extras: list[ExtraKey] | None = Field(default=None, max_length=4)
+    # Added to what is stored (never removes one).
+    intro_offered: list[IntroKey] | None = Field(default=None, max_length=9)
+    intro_dismissed: list[IntroKey] | None = Field(default=None, max_length=9)
 
     @field_validator("enabled_extras")
     @classmethod
