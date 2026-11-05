@@ -2380,11 +2380,11 @@ AGAIN_LOG_CHARS = 4000
 # The last model call of a reply whose step or tool budget ran out while it
 # still wanted tools (``agent.run_loop``'s ``final_note``).
 LAST_WORD = (
-    "No more tools can run in this reply: its steps are used up. Answer me "
-    "now, without calling any tool. Say what was saved or is waiting for my "
-    "OK (only what a tool result above confirms), give what you found that "
-    "answers me, and name in one line what is still missing, so I can say "
-    "continue. Never mention steps, tools or this note."
+    "Stop looking things up and answer me now, without calling anything. "
+    "Say what is saved or waiting for my OK (only what the results above "
+    "confirm), give what you found that answers me, and say in one line "
+    "what is still missing, so I can say continue. Write it as a normal "
+    "reply to me: never mention tools, steps, results, limits or this note."
 )
 
 
