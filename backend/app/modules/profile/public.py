@@ -154,3 +154,28 @@ def modules_off(ctx: Ctx) -> list[str]:
     leave them out; what is logged into one is still kept."""
     ms = module_settings(ctx)
     return [k for k in DEFAULT_WEIGHTS if not ms[k].enabled]
+
+
+def hidden_parts(ctx: Ctx) -> list[str]:
+    """The parts a person hid: modules switched off, then the Journal and
+    Community when hidden (an account that never chose hides none)."""
+    shown = getattr(find_profile(ctx), "enabled_extras", None)
+    extras = (
+        [] if shown is None else [k for k in ("journal", "social") if k not in shown]
+    )
+    return [*modules_off(ctx), *extras]
+
+
+def intro_state(ctx: Ctx) -> tuple[list[str], list[str]]:
+    """The hidden parts Fern has offered back, and those turned down."""
+    p = find_profile(ctx)
+    return (list(p.intro_offered), list(p.intro_dismissed)) if p else ([], [])
+
+
+def mark_intro_offered(ctx: Ctx, parts: list[str]) -> None:
+    """Record that Fern offered ``parts`` back, so it never offers again.
+    Flushes only."""
+    p = get_profile(ctx)
+    p.intro_offered = sorted(set(p.intro_offered) | set(parts))
+    ctx.session.add(p)
+    ctx.session.flush()

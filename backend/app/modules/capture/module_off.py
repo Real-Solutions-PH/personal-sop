@@ -32,9 +32,18 @@ def module_of(kind: str, target: str) -> str | None:
     return target if target in profile_public.MODULE_LABEL else None
 
 
-def line(module: str) -> str:
+def line(module: str, *, ask: bool = True) -> str:
     label = profile_public.MODULE_LABEL[module]
-    return f"{label} is off, so this won't show on Today. Turn it on?"
+    said = f"{label} is off, so this won't show on Today."
+    return f"{said} Turn it on?" if ask else said
+
+
+def part_of(kind: str, target: str) -> str | None:
+    """Like ``module_of``, and a new Journal entry is the Journal (a part a
+    person can hide, though not a scored module)."""
+    if kind == "journal" and target == "journal":
+        return "journal"
+    return module_of(kind, target)
 
 
 def off_written(ctx: Ctx, written: Iterable[tuple[str, str]]) -> list[str]:

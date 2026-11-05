@@ -25,6 +25,9 @@ from tests.modules.companion.api.test_companion_answer_quality import (
 
 def turn_off(api: Api, module: str) -> None:
     api.patch(f"/profile/modules/{module}", {"enabled": False})
+    # Already offered back once (test_fern_reintro covers that first offer),
+    # so a write gets the plain note.
+    api.patch("/profile", {"intro_offered": [module]})
 
 
 def reply_blocks(out: dict[str, Any]) -> list[dict[str, Any]]:

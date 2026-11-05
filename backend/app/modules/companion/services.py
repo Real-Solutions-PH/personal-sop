@@ -40,6 +40,7 @@ from app.modules.companion import (
     portions,
     records,
     redo,
+    reintro,
     reply_format,
     web,
 )
@@ -2665,7 +2666,21 @@ def _ask_ai(
     run.blocks.extend(tables)
     # Logged into a module switched off: kept, with one line per module
     # saying it won't show on Today and a button to turn it back on.
-    for note in capture.off_module_notes(ctx, wrun.made):
+    # A hidden part heard for the first time is offered back once (Turn on /
+    # Not for me), in place of the plain note; the offer is kept on the
+    # account so it is never made again.
+    offered, dismissed = profile.intro_state(ctx)
+    offers = reintro.to_offer(
+        reintro.heard(text, capture.written_parts(ctx, wrun.made)),
+        hidden=profile.hidden_parts(ctx),
+        offered=offered,
+        dismissed=dismissed,
+    )
+    if offers:
+        profile.mark_intro_offered(ctx, offers)
+    for part in offers:
+        run.block(reintro.block(part))
+    for note in capture.off_module_notes(ctx, wrun.made, skip=offers, quiet=dismissed):
         run.block(note)
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks

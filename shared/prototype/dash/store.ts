@@ -180,6 +180,13 @@ export const markTrophiesSeen = (ids: string[]) =>
     ...s,
     seenTrophies: Array.from(new Set([...s.seenTrophies, ...ids])),
   }))
+/** "Not for me" on a hidden part's reintroduction: never offered again. */
+export const dismissIntro = (k: string) =>
+  set((s) =>
+    s.intro.dismissed.includes(k)
+      ? s
+      : { ...s, intro: { ...s.intro, dismissed: [...s.intro.dismissed, k] } },
+  )
 export const setProfilePhoto = (photo: string | undefined) =>
   set((s) => ({ ...s, profile: { ...s.profile, photo } }))
 export const setProfilePhotoPending = (

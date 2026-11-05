@@ -6,7 +6,7 @@ None of these commit unless the docstring says so: the calling use case does.
 import re
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import date, timedelta
 from typing import Any, Literal
 
@@ -474,13 +474,38 @@ def card_states(ctx: Ctx, ids: list[str]) -> dict[str, str]:
     return {str(r.id): str(r.state) for r in rows}
 
 
-def off_module_notes(ctx: Ctx, ids: list[uuid.UUID]) -> list[dict[str, Any]]:
+def off_module_notes(
+    ctx: Ctx,
+    ids: list[uuid.UUID],
+    *,
+    skip: Iterable[str] = (),
+    quiet: Iterable[str] = (),
+) -> list[dict[str, Any]]:
     """Fern's ``module_off`` blocks for the cards ``ids``: one per module
-    switched off that a live card landed in (see ``module_off``)."""
-    return [
-        {"t": "module_off", "module": m, "text": module_off.line(m)}
-        for m in module_off.off_written(ctx, card_kinds(ctx, ids))
-    ]
+    switched off that a live card landed in (see ``module_off``). ``skip``:
+    modules already offered back in this reply; ``quiet``: modules the
+    person turned down ("Not for me"), whose note no longer asks."""
+    left, hush = set(skip), set(quiet)
+    out: list[dict[str, Any]] = []
+    for m in module_off.off_written(ctx, card_kinds(ctx, ids)):
+        if m in left:
+            continue
+        note: dict[str, Any] = {
+            "t": "module_off",
+            "module": m,
+            "text": module_off.line(m, ask=m not in hush),
+        }
+        if m in hush:
+            note["ask"] = False
+        out.append(note)
+    return out
+
+
+def written_parts(ctx: Ctx, ids: list[uuid.UUID]) -> list[str]:
+    """The modules (and the Journal) the live cards ``ids`` landed in,
+    once each, in order, whatever their switches."""
+    parts = (module_off.part_of(k, t) for k, t in card_kinds(ctx, ids))
+    return list(dict.fromkeys(p for p in parts if p is not None))
 
 
 def card_kinds(ctx: Ctx, ids: list[uuid.UUID]) -> list[tuple[str, str]]:

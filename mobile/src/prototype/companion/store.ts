@@ -32,7 +32,10 @@ export type Block =
   | { t: "thinking"; text: string; done?: boolean }
   /** Fern logged into a module switched off: the line to show, and the
    * module its "Turn on" button switches back on. */
-  | { t: "module_off"; module: ModuleKey; text: string }
+  | { t: "module_off"; module: ModuleKey; text: string; ask?: boolean }
+  /** Fern's one-time offer to bring back a hidden part (a module, the
+   * Journal or Community): Turn on / Not for me. */
+  | { t: "module_intro"; module: string; text: string }
   /** The day's food against the target, as Fern pulled it up. */
   | { t: "nutrition"; day: string }
   /** Photos sent with a message: media ids, and links when known (local
