@@ -1801,6 +1801,39 @@
         }
       }
     },
+    "/api/v1/funnel/events": {
+      "post": {
+        "tags": ["funnel"],
+        "summary": "Post Events",
+        "operationId": "funnel-post_events",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FunnelBatch" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FunnelAccepted" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/habits/home": {
       "get": {
         "tags": ["habits"],
@@ -23159,6 +23192,96 @@
         "type": "object",
         "required": ["data", "count"],
         "title": "FoodsOut"
+      },
+      "FunnelAccepted": {
+        "properties": {
+          "accepted": { "type": "integer", "title": "Accepted" }
+        },
+        "type": "object",
+        "required": ["accepted"],
+        "title": "FunnelAccepted"
+      },
+      "FunnelBatch": {
+        "properties": {
+          "install_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Install Id"
+          },
+          "events": {
+            "items": { "$ref": "#/components/schemas/FunnelEventIn" },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["install_id", "events"],
+        "title": "FunnelBatch"
+      },
+      "FunnelEventIn": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "step_view",
+              "step_complete",
+              "step_skip",
+              "module_toggle",
+              "module_choice"
+            ],
+            "title": "Event"
+          },
+          "step": {
+            "type": "string",
+            "enum": [
+              "identity",
+              "about",
+              "modules",
+              "capture",
+              "targets",
+              "when",
+              "building",
+              "pledge",
+              "account",
+              "notifications",
+              "done",
+              "setup"
+            ],
+            "title": "Step"
+          },
+          "module": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "habits",
+                  "tasks",
+                  "fitness",
+                  "nutrition",
+                  "focus",
+                  "finance",
+                  "screen",
+                  "journal",
+                  "social"
+                ]
+              },
+              { "type": "null" }
+            ],
+            "title": "Module"
+          },
+          "turned_on": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Turned On"
+          },
+          "at": { "type": "string", "format": "date-time", "title": "At" }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["event", "step", "at"],
+        "title": "FunnelEventIn"
       },
       "FxRatePublic": {
         "properties": {

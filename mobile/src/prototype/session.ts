@@ -2,6 +2,7 @@ import { dashStore, updateProfile } from "@domain/dash/store"
 import { createStore } from "@domain/lib/store"
 import { liveMode } from "@/live/config"
 import { forgetFirstCapture, replayFirstCapture } from "./first-capture"
+import { logFunnel } from "./funnel"
 import { aboutOf, applyDraft, discardDraft, getDraft } from "./onboarding-draft"
 
 // Live mode backs these same actions with Supabase + the API server
@@ -333,6 +334,7 @@ export async function completeSignUp() {
   // starts from an empty snapshot for a new account, so its first capture
   // pushes them as creates.
   applyDraft()
+  logFunnel({ event: "step_complete", step: "account" })
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,

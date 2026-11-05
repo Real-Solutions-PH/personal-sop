@@ -39,13 +39,14 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
 import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
+import { logFunnel } from "../funnel"
 import {
   border,
   Copy,
@@ -205,6 +206,14 @@ export function Setup() {
     steps = firstRun ? firstRunSteps(all, first) : all,
     pending = steps.filter((k) => !has[k]),
     allDone = (firstRun || steps.length > 0) && !pending.length
+  // The funnel: each setup step shown, finished or skipped.
+  useEffect(() => {
+    if (step) logFunnel({ event: "step_view", step: "setup", module: step })
+  }, [step])
+  const done = (k: ModuleKey) => {
+    logFunnel({ event: "step_complete", step: "setup", module: k })
+    advance(k)
+  }
   const finishOnboarding = () => {
     setOnboarded(true)
     replace("/today")
@@ -292,6 +301,7 @@ export function Setup() {
                 onPress={() => {
                   if (step === "screen") screenTimeOff()
                   else skipSetup(step)
+                  logFunnel({ event: "step_skip", step: "setup", module: step })
                   advance(step)
                 }}
                 style={{ padding: 8 }}
@@ -330,19 +340,19 @@ export function Setup() {
             <AccentContext.Provider value={modules[step].color}>
               <View style={{ flex: 1 }}>
                 {step === "finance" ? (
-                  <FinanceSetup embedded canSkip onDone={() => advance(step)} />
+                  <FinanceSetup embedded canSkip onDone={() => done(step)} />
                 ) : step === "habits" ? (
-                  <HabitsStep onDone={() => advance(step)} />
+                  <HabitsStep onDone={() => done(step)} />
                 ) : step === "fitness" ? (
-                  <FitnessStep onDone={() => advance(step)} />
+                  <FitnessStep onDone={() => done(step)} />
                 ) : step === "nutrition" ? (
-                  <NutritionStep onDone={() => advance(step)} />
+                  <NutritionStep onDone={() => done(step)} />
                 ) : step === "focus" ? (
-                  <FocusStep onDone={() => advance(step)} />
+                  <FocusStep onDone={() => done(step)} />
                 ) : step === "screen" ? (
-                  <ScreenStep onDone={() => advance(step)} />
+                  <ScreenStep onDone={() => done(step)} />
                 ) : (
-                  <TasksStep onDone={() => advance(step)} />
+                  <TasksStep onDone={() => done(step)} />
                 )}
               </View>
             </AccentContext.Provider>

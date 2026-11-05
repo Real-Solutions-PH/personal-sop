@@ -44,6 +44,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { firstCaptureStore } from "../first-capture"
 import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
+import { type FunnelStep, logFunnel } from "../funnel"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back, go, replace } from "../navigation"
 import {
@@ -57,6 +58,7 @@ import {
   type MobileStep,
   newDraft,
   OCCUPATIONS,
+  type OnboardingDraft,
   REFERRAL_DETAIL,
   REFERRALS,
   startersOf,
@@ -106,14 +108,41 @@ const EXTRA_ROWS: Record<
   journal: {
     icon: BookOpen,
     label: "Journal",
-    note: "Reflections and your day's story · no setup",
+    note: "Your day in words · no setup",
   },
   social: {
     icon: Users,
     label: "Community",
-    note: "Friends, stories and shared wins · no setup",
+    note: "Friends and shared wins · no setup",
   },
 }
+const FUNNEL_STEPS: readonly MobileStep[] = [...PRE_ACCOUNT, ...POST_ACCOUNT]
+const isFunnelStep = (x: MobileStep): x is MobileStep & FunnelStep =>
+  FUNNEL_STEPS.includes(x)
+
+/** The funnel's record of finishing a step; the module step also records
+ * the final choice of every module, ticked or not. */
+function funnelDone(step: MobileStep, d: OnboardingDraft) {
+  if (!isFunnelStep(step)) return
+  logFunnel({ event: "step_complete", step })
+  if (step !== "modules") return
+  for (const k of MODULE_KEYS)
+    logFunnel({
+      event: "module_choice",
+      step: "modules",
+      module: k,
+      turned_on: d.enabled[k],
+    })
+  const extras = extrasOf(d)
+  for (const k of DRAFT_EXTRAS)
+    logFunnel({
+      event: "module_choice",
+      step: "modules",
+      module: k,
+      turned_on: extras[k],
+    })
+}
+
 export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
   const pre = phase === "pre",
     STEPS = pre ? PRE_ACCOUNT : POST_ACCOUNT,
@@ -161,7 +190,16 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
     index = STEPS.indexOf(step),
     bar = STEPS.filter((x) => !PASSING.includes(x)),
     active = startersOf(d),
-    next = () => setStep(STEPS[Math.min(STEPS.length - 1, index + 1)])
+    advance = () => setStep(STEPS[Math.min(STEPS.length - 1, index + 1)]),
+    // Leaving a step forward counts as finishing it (Skip says skip).
+    next = () => {
+      funnelDone(step, d)
+      advance()
+    }
+  // Every step shown counts once per showing, for the funnel.
+  useEffect(() => {
+    if (isFunnelStep(step)) logFunnel({ event: "step_view", step })
+  }, [step])
   // Start (or resume) the draft as soon as onboarding opens.
   useEffect(() => {
     if (pre) ensureDraft()
@@ -176,6 +214,7 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
       if (n > 4) {
         clearInterval(id)
         // "building" is a pre-account step: the step lives in the draft.
+        logFunnel({ event: "step_complete", step: "building" })
         editDraft({ step: "pledge" })
       }
     }, 650)
@@ -237,7 +276,10 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
   }
   // The answers were written to the account at sign-up (applyDraft). Setup
   // is the last part of onboarding; it marks onboarding finished.
-  const finish = () => go("/setup")
+  const finish = () => {
+    logFunnel({ event: "step_complete", step: "done" })
+    go("/setup")
+  }
   const configs: Record<
       MobileStep,
       { icon: typeof Compass; title: string; body: string }
@@ -346,30 +388,35 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
               />
             ))}
           </Line>
-          {pre && SKIPPABLE.includes(step) && (
-            <Tap
-              onPress={() => {
-                // Skipping "about you" leaves both answers unanswered;
-                // skipping the first capture holds nothing.
-                editDraft(
-                  step === "capture"
-                    ? { firstCapture: null }
-                    : {
-                        occupation: null,
-                        occupationDetail: "",
-                        referralSource: null,
-                        referralDetail: "",
-                      },
-                )
-                next()
-              }}
-              style={{ padding: 8 }}
-            >
-              <Copy size={14} muted>
-                Skip
-              </Copy>
-            </Tap>
-          )}
+          {pre &&
+            SKIPPABLE.includes(step) &&
+            // Once a first capture is held, its own buttons go on.
+            !(step === "capture" && d.firstCapture) && (
+              <Tap
+                onPress={() => {
+                  // Skipping "about you" leaves both answers unanswered;
+                  // skipping the first capture holds nothing.
+                  editDraft(
+                    step === "capture"
+                      ? { firstCapture: null }
+                      : {
+                          occupation: null,
+                          occupationDetail: "",
+                          referralSource: null,
+                          referralDetail: "",
+                        },
+                  )
+                  if (isFunnelStep(step))
+                    logFunnel({ event: "step_skip", step })
+                  advance()
+                }}
+                style={{ padding: 8 }}
+              >
+                <Copy size={14} muted>
+                  Skip
+                </Copy>
+              </Tap>
+            )}
           {/* Anyone with an account already leaves here; the draft stays
               until a sign-in succeeds, so Back returns to this step. */}
           {pre && (
@@ -553,9 +600,15 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                 {MODULE_KEYS.map((k) => (
                   <Tap
                     key={k}
-                    onPress={() =>
+                    onPress={() => {
+                      logFunnel({
+                        event: "module_toggle",
+                        step: "modules",
+                        module: k,
+                        turned_on: !enabled[k],
+                      })
                       editDraft({ enabled: { ...enabled, [k]: !enabled[k] } })
-                    }
+                    }}
                     style={{
                       padding: 16,
                       borderRadius: 16,
@@ -600,9 +653,15 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                     <Tap
                       key={k}
                       label={`${EXTRA_ROWS[k].label}${on ? ", on" : ", off"}`}
-                      onPress={() =>
+                      onPress={() => {
+                        logFunnel({
+                          event: "module_toggle",
+                          step: "modules",
+                          module: k,
+                          turned_on: !on,
+                        })
                         editDraft({ extras: { ...extras, [k]: !on } })
-                      }
+                      }}
                       style={{
                         padding: 16,
                         borderRadius: 16,
@@ -981,7 +1040,14 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                   void enableReminders().finally(next)
                 },
               )}
-              {button("Not now", next, true)}
+              {button(
+                "Not now",
+                () => {
+                  logFunnel({ event: "step_skip", step: "notifications" })
+                  advance()
+                },
+                true,
+              )}
             </>
           )}
           {step === "done" && (

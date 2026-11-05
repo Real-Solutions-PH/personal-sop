@@ -174,6 +174,46 @@ describe("onboarding before the account exists", () => {
     expect(getDraft()).toMatchObject({ occupation: null, referralSource: null })
   })
 
+  test("the funnel records views, ticks, final choices and skips", () => {
+    const F = require("../funnel") as typeof import("../funnel")
+    F.setFunnelSender(async () => {})
+    F.funnelStore.set({ installId: "", queue: [] })
+    editDraft({ identities: ["I'm someone who trains"], step: "modules" })
+    pre()
+    fireEvent.press(screen.getByText("Journal"))
+    fireEvent.press(screen.getByText("Next"))
+    fireEvent.press(screen.getByText("Skip"))
+    const q = F.funnelStore.get().queue.map(({ at: _at, ...e }) => e)
+    expect(q).toEqual(
+      expect.arrayContaining([
+        { event: "step_view", step: "modules" },
+        {
+          event: "module_toggle",
+          step: "modules",
+          module: "journal",
+          turned_on: true,
+        },
+        { event: "step_complete", step: "modules" },
+        {
+          event: "module_choice",
+          step: "modules",
+          module: "fitness",
+          turned_on: true,
+        },
+        {
+          event: "module_choice",
+          step: "modules",
+          module: "habits",
+          turned_on: false,
+        },
+        { event: "step_view", step: "capture" },
+        { event: "step_skip", step: "capture" },
+      ]),
+    )
+    expect(q).not.toContainEqual({ event: "step_complete", step: "capture" })
+    F.setFunnelSender(null)
+  })
+
   test("the first capture: typed, held as a win, and skippable", () => {
     editDraft({ step: "capture" })
     pre()
@@ -194,6 +234,9 @@ describe("onboarding before the account exists", () => {
     // Back, and Skip from the header holds nothing.
     fireEvent.press(screen.getByLabelText("Back"))
     expect(getDraft()?.step).toBe("capture")
+    // Held, the header's Skip is gone; clearing it brings Skip back.
+    expect(screen.queryByText("Skip")).toBeNull()
+    fireEvent.press(screen.getByText("Say something else"))
     fireEvent.press(screen.getByText("Skip"))
     expect(getDraft()?.firstCapture).toBeNull()
     expect(getDraft()?.step).toBe("targets")
