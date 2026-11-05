@@ -484,7 +484,9 @@ def off_drafts(
                 ):
                     continue
             product = get(row, "product_name").strip()
-            if not product:
+            # A product with no brand is often a generic name typed in
+            # ("Pancit Canton", "Rice"): it would answer the dish itself.
+            if not product or not get(row, "brands").strip():
                 continue
             kcal = _num(get(row, "energy-kcal_100g"))
             if kcal is None and (kj := _num(get(row, "energy_100g"))) is not None:

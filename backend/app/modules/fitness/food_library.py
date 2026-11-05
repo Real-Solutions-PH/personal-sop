@@ -205,6 +205,17 @@ def _candidates(ctx: Ctx, texts: list[str]) -> list[FoodItem]:
     )
 
 
+def _candidates_each(ctx: Ctx, names: list[str]) -> list[FoodItem]:
+    """``_candidates`` for each name on its own, together: one shared query
+    would spend its ``CANDIDATES`` on the commonest word ("chicken") and
+    drop another item's foods ("banana")."""
+    out: dict[Any, FoodItem] = {}
+    for n in dict.fromkeys(names):
+        for r in _candidates(ctx, [n]):
+            out.setdefault(r.id, r)
+    return list(out.values())
+
+
 def _ranked(rows: list[FoodItem]) -> list[FoodItem]:
     """Rows in trust order (stable: the caller's order within a tier)."""
     return sorted(rows, key=tier)
@@ -505,7 +516,7 @@ def _library_match(
 def library_hits(ctx: Ctx, items: list[dict[str, Any]]) -> list[bool]:
     """Which items ``apply_library`` would take from the library. Reads
     only: nothing is counted as used."""
-    rows = _candidates(ctx, [str(it.get("name", "")) for it in items])
+    rows = _candidates_each(ctx, [str(it.get("name", "")) for it in items])
     return [bool(rows) and _library_match(ctx, it, rows) is not None for it in items]
 
 
@@ -516,7 +527,7 @@ def library_candidates(
     food's name (or alias) are one inside the other ("rice" and "White
     rice, long-grain, cooked"), with up to ``limit`` such foods, most used
     first. Reads only."""
-    rows = _candidates(ctx, [str(it.get("name", "")) for it in items])
+    rows = _candidates_each(ctx, [str(it.get("name", "")) for it in items])
     out: list[dict[str, Any]] = []
     for it in items:
         if not rows or _library_match(ctx, it, rows) is not None:
@@ -550,7 +561,7 @@ def apply_library(
     matches and the amount can be scaled; the rest unchanged. Returns the
     items and the names of the library foods used (each one's use is
     counted). Flushes only."""
-    rows = _candidates(ctx, [str(it.get("name", "")) for it in items])
+    rows = _candidates_each(ctx, [str(it.get("name", "")) for it in items])
     if not rows:
         return items, []
     used: list[str] = []

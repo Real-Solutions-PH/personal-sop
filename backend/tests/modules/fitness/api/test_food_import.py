@@ -268,6 +268,31 @@ def test_a_household_food_still_matches_on_its_words(db: Session) -> None:
         assert food is not None and food.name == f"Tapa {t}"
 
 
+def test_a_common_word_in_one_item_never_crowds_out_another(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each item is looked up on its own: "chicken" matching more foods than
+    one lookup reads must not drop the banana of the same meal."""
+    monkeypatch.setattr(L, "CANDIDATES", 3)
+    user_, _ = signed_in(db)
+    t = _tag()
+    with ctx_for(user_) as ctx:
+        I.upsert_drafts(
+            ctx,
+            [usda(f"{t}c{i}", f"Chicken{t} cut {chr(97 + i)}") for i in range(6)]
+            + [usda(f"{t}b", f"Bananas {t}, raw", kcal=89, aliases=[f"banana{t}"])],
+        )
+        items, used = L.apply_library(
+            ctx,
+            [
+                {"name": f"chicken{t} cut a", "qty": 100, "unit": "g"},
+                {"name": f"banana{t}", "qty": 100, "unit": "g"},
+            ],
+        )
+    assert used == [f"Chicken{t} cut a", f"Bananas {t}, raw"]
+    assert items[1]["kcal"] == 89
+
+
 def test_a_meal_from_an_imported_food_names_its_source(db: Session) -> None:
     user_, _ = signed_in(db)
     t = _tag()
@@ -588,6 +613,23 @@ def test_open_food_facts_rows_sold_here_with_plausible_values(tmp_path: Path) ->
             "",
             "",
             "0.04",
+        ],
+        # Sold here, no brand: a generic name typed in, out.
+        [
+            "4800000000003",
+            "Pancit Canton",
+            "",
+            ph,
+            "",
+            "450",
+            "",
+            "9",
+            "60",
+            "19",
+            "",
+            "",
+            "",
+            "",
         ],
         # Not a barcode: out.
         ["abc", "Odd", "X", ph, "", "100", "", "1", "20", "1", "", "", "", ""],
