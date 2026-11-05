@@ -10,7 +10,15 @@
 // ``media_id``). A network failure is a NetworkError so callers can keep the
 // item queued and retry; a refusal is an ApiError or MediaRejected.
 
-import { ApiError, type Fetch, type Http, NetworkError } from "./http"
+import { ApiError, type Fetch, type Http, NetworkError, timed } from "./http"
+
+/** How long one upload may take, by its size. A phone on a weak mobile
+ * network moves a 600 KB photo in well over the 15 s other requests get
+ * (one of four photos sent together finished after 38 s), so the limit
+ * allows 30 s plus 16 KB/s, up to 5 minutes. */
+export function uploadTimeoutMs(bytes: number): number {
+  return Math.min(30_000 + Math.ceil(bytes / 16), 300_000)
+}
 
 export type MediaKind = "image" | "video" | "audio" | "file"
 
@@ -166,21 +174,32 @@ export async function uploadMedia(
     }
     throw error
   }
+  const limit = uploadTimeoutMs(bytes.byteLength)
   let put: Response
   try {
-    put = await deps.fetch(ticket.upload_url, {
-      method: "PUT",
-      headers: ticket.headers,
-      body: bytes as unknown as BodyInit,
-    })
+    // Bounded: a dead connection used to leave the send waiting forever.
+    put = await timed(limit, (signal) =>
+      deps.fetch(ticket.upload_url, {
+        method: "PUT",
+        headers: ticket.headers,
+        body: bytes as unknown as BodyInit,
+        signal,
+      }),
+    )
   } catch (error) {
+    if (error instanceof NetworkError) throw error
     throw new NetworkError(String(error))
   }
   if (!put.ok)
     throw new ApiError(put.status, "upload_failed", "The upload did not finish")
+  // The server reads the stored file back before it answers: on a busy
+  // server that has taken longer than 15 s, and the send failed though the
+  // photo was in. It gets the upload's limit.
   const done = await deps.http.request<MediaRow>(
     "POST",
     `/media/${ticket.id}/complete`,
+    undefined,
+    { timeoutMs: limit },
   )
   if (done.state !== "ready") throw new MediaRejected(ticket.id)
   return {
