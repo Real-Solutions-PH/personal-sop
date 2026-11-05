@@ -9,6 +9,7 @@ import {
 } from "@domain/capture/engine"
 import { captureStore } from "@domain/capture/store"
 import type { ModuleKey } from "@domain/contract"
+import { AREA } from "@domain/dash/data"
 import * as D from "@domain/dash/hooks"
 import { dashStore } from "@domain/dash/store"
 import { catMap, flowIn, netWorthSeries, spendIn } from "@domain/finance/calc"
@@ -31,6 +32,7 @@ import {
   Dumbbell,
   Flame,
   type Lightbulb,
+  Power,
   Radar,
   Repeat2,
   Sparkles,
@@ -52,6 +54,7 @@ import {
 import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
+import { turnModuleOn } from "../module-switch"
 import { feel, GrowBar, markCompletion } from "../motion"
 import { go } from "../navigation"
 import { CaptureSummary } from "../screens/capture-summary"
@@ -1014,6 +1017,69 @@ export function Chips({ prompts }: { prompts: string[] }) {
   )
 }
 
+/** Fern logged into a module switched off: the line saying it won't show
+ * on Today, and a button that turns the module back on. Once on, the line
+ * says so with a check, so the switch is seen to land. */
+function ModuleOffBlock({ module, text }: { module: ModuleKey; text: string }) {
+  const t = useTheme()
+  const on = dashStore.use((s) => s.enabled[module] !== false)
+  const area = AREA[module]
+  if (!area) return null
+  if (on)
+    return (
+      <Animated.View
+        entering={ZoomIn}
+        style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+      >
+        <Check size={16} color={t.good} />
+        <Text style={{ color: t.text, fontFamily: fonts.medium, fontSize: 14 }}>
+          {area.label} is on. It shows on Today again.
+        </Text>
+      </Animated.View>
+    )
+  return (
+    <View style={{ gap: 8 }}>
+      <Text
+        style={{
+          color: t.muted,
+          fontFamily: fonts.body,
+          fontSize: 14,
+          lineHeight: 20,
+        }}
+      >
+        {text}
+      </Text>
+      <Pressable
+        cssInterop={false}
+        accessibilityRole="button"
+        onPress={() => {
+          feel.tap()
+          turnModuleOn(module)
+        }}
+        style={({ pressed }) => ({
+          alignSelf: "flex-start",
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 6,
+          paddingHorizontal: 12,
+          minHeight: 34,
+          borderRadius: 17,
+          borderWidth: 1,
+          borderColor: `${t.primary}66`,
+          backgroundColor: pressed ? `${t.primary}26` : "transparent",
+        })}
+      >
+        <Power size={14} color={t.primary} />
+        <Text
+          style={{ color: t.primary, fontFamily: fonts.medium, fontSize: 13 }}
+        >
+          Turn on {area.label}
+        </Text>
+      </Pressable>
+    </View>
+  )
+}
+
 /** A meal Fern logged: each item's calories, macros and its share of the
  * day's limits, so it can be checked before Confirm (and after). */
 function StepMeal({ id }: { id: string }) {
@@ -1590,6 +1656,8 @@ export function BlockView({ block, live }: { block: Block; live?: boolean }) {
       return <ThinkingBlock text={block.text} done={block.done} />
     case "nutrition":
       return <NutritionBlock day={block.day} />
+    case "module_off":
+      return <ModuleOffBlock module={block.module} text={block.text} />
     case "table":
       return <TableBlock block={block} />
     case "photos":

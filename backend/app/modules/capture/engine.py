@@ -35,7 +35,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col
 
 from app.modules.ai_providers import public as ai
-from app.modules.capture import agent, ports, qa, rules, seams, vocabulary
+from app.modules.capture import (
+    agent,
+    module_off,
+    ports,
+    qa,
+    rules,
+    seams,
+    vocabulary,
+)
 from app.modules.capture import cards as C
 from app.modules.capture import photo as Ph
 from app.modules.capture.journal import settings_row
@@ -536,6 +544,18 @@ def _interpret(
     return "rules", None
 
 
+def _note_off_modules(ctx: Ctx, cap: Capture, emit: Emit, pos: Pos) -> None:
+    """An entry logged into a module switched off is kept; an info card per
+    such module says it won't show on Today and offers to turn it on."""
+    written = [
+        (c.kind, c.target)
+        for c in C.cards_of(ctx, cap.id)
+        if c.state not in ("undone", "discarded")
+    ]
+    for m in module_off.off_written(ctx, written):
+        emit_reply(ctx, emit, cap, module_off.info_card(m), position=pos.take())
+
+
 def _views(ctx: Ctx, cap: Capture) -> list[rules.ItemView]:
     v = [rules.ItemView("record", c.state) for c in C.cards_of(ctx, cap.id)]
     v += [
@@ -560,6 +580,7 @@ def run(ctx: Ctx, cap: Capture, plan: Plan, emit: Emit = _noop) -> Capture:
     sp = ctx.session.begin_nested()
     try:
         engine, reply = _interpret(ctx, cap, plan, emit, pos)
+        _note_off_modules(ctx, cap, emit, pos)
         sp.commit()
     except Exception as exc:  # noqa: BLE001 - any failure keeps the input and says so
         # The type and id only: the exception text can carry the user's input.

@@ -17,7 +17,16 @@ from sqlmodel import col
 
 from app.core.config import settings
 from app.modules.ai_providers.public import ResolvedModel
-from app.modules.capture import agent, engine, journal, photo_read, ports, rules, seams
+from app.modules.capture import (
+    agent,
+    engine,
+    journal,
+    module_off,
+    photo_read,
+    ports,
+    rules,
+    seams,
+)
 from app.modules.capture import cards as C
 from app.modules.capture.models import AISettings, Capture, JournalEntry, RecordCard
 from app.modules.capture.schema import CaptureIn
@@ -463,6 +472,31 @@ def card_states(ctx: Ctx, ids: list[str]) -> dict[str, str]:
         return {}
     rows = owned_repo.list_rows(ctx, RecordCard, col(RecordCard.id).in_(wanted))
     return {str(r.id): str(r.state) for r in rows}
+
+
+def off_module_notes(ctx: Ctx, ids: list[uuid.UUID]) -> list[dict[str, Any]]:
+    """Fern's ``module_off`` blocks for the cards ``ids``: one per module
+    switched off that a live card landed in (see ``module_off``)."""
+    return [
+        {"t": "module_off", "module": m, "text": module_off.line(m)}
+        for m in module_off.off_written(ctx, card_kinds(ctx, ids))
+    ]
+
+
+def card_kinds(ctx: Ctx, ids: list[uuid.UUID]) -> list[tuple[str, str]]:
+    """Each live card's kind and target (undone and discarded ones left
+    out), in the order of ``ids``."""
+    if not ids:
+        return []
+    rows = {
+        r.id: r
+        for r in owned_repo.list_rows(ctx, RecordCard, col(RecordCard.id).in_(ids))
+    }
+    return [
+        (str(rows[i].kind), str(rows[i].target))
+        for i in ids
+        if i in rows and rows[i].state not in ("undone", "discarded")
+    ]
 
 
 def settle_waiting(

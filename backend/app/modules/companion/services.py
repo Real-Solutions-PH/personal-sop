@@ -1507,6 +1507,16 @@ What you are tracking for them:
 {turn}"""
 
 
+# Said only when the person has switched a module off (``modules_off`` in
+# TODAY). The app adds its own line under a write into one, with a button.
+MODULES_OFF = (
+    "`modules_off` are switched off in Settings: leave them out of summaries, "
+    "plans and suggestions unless they ask about one by name. Still log what "
+    "they tell you for one; the app notes under the reply that it won't show "
+    "on Today, so don't say it yourself."
+)
+
+
 def _day_name(d: date) -> str:
     return f"{d.strftime('%A')} {d.day} {d.strftime('%B')}"
 
@@ -2438,7 +2448,8 @@ def _ask_ai(
         ) + CONTEXT.format(
             now_line=now_line(ctx),
             currency=ctx.currency.phrase,
-            today_facts=json.dumps(facts, ensure_ascii=False),
+            today_facts=json.dumps(facts, ensure_ascii=False)
+            + (f"\n{MODULES_OFF}" if facts.get("modules_off") else ""),
             memories=mems,
             turn=turn_note,
             summary=_summary_block(ctx)
@@ -2652,6 +2663,10 @@ def _ask_ai(
         # The card shows Confirm; the reply needn't explain it.
         answer = drop_confirm_how(answer)
     run.blocks.extend(tables)
+    # Logged into a module switched off: kept, with one line per module
+    # saying it won't show on Today and a button to turn it back on.
+    for note in capture.off_module_notes(ctx, wrun.made):
+        run.block(note)
     if _ABOUT_NUTRITION.search(text) and not any(
         b["t"] == "nutrition" for b in run.blocks
     ):
