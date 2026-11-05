@@ -18,6 +18,7 @@ alias, or by exactly the words said; never because a few of its words
 appear in a longer dish name."""
 
 import difflib
+import math
 import re
 import uuid
 from dataclasses import dataclass, field
@@ -378,28 +379,41 @@ def _agrees(item: dict[str, Any], values: dict[str, Any]) -> bool:
     return abs(mine - theirs) <= max(40.0, theirs / 3)
 
 
-def _relevance(query: str, f: FoodItem) -> tuple[int, float, float]:
+def _names_words(f: FoodItem) -> list[set[str]]:
+    return [{_plain(w) for w in _words(n)} for n in [f.key, *(f.aliases or [])]]
+
+
+def _relevance(
+    query: str, f: FoodItem, weight: dict[str, float]
+) -> tuple[int, float, float]:
     """How well a food's name or best alias answers ``query``: (1 for the
-    very name or alias else 0, share of the query's words it has, share of
-    its own words the query has)."""
+    very name or alias else 0, the share of the query's words it has, each
+    word weighted by how rare it is (``weight``), and the share of its own
+    words the query has)."""
     key = fold(query)
     if f.key == key or key in (f.aliases or []):
         return 1, 1.0, 1.0
     q = _core_words(query) or {_plain(w) for w in _words(query)}
+    total = sum(weight.get(w, 1.0) for w in q) or 1.0
     best = (0, 0.0, 0.0)
-    for n in [f.key, *(f.aliases or [])]:
-        c = {_plain(w) for w in _words(n)}
-        common = len(q & c)
+    for c in _names_words(f):
+        common = q & c
         if common and c:
-            best = max(best, (0, round(common / len(q), 2), round(common / len(c), 2)))
+            share = sum(weight.get(w, 1.0) for w in common) / total
+            best = max(best, (0, round(share, 2), round(len(common) / len(c), 2)))
     return best
 
 
 def rank_foods(query: str, rows: list[FoodItem]) -> list[FoodItem]:
     """Foods sharing a word with ``query``, best answer first: the very
-    name, then the most of the query's words; among equals the most trusted
-    source (``tier``), then the closest name, then the most used."""
-    scored = [(_relevance(query, r), r) for r in rows]
+    name, then the most of the query's words, the rarer words counting
+    more ("fried tilapia" is tilapia first: hundreds of foods are fried);
+    among equals the most trusted source (``tier``), then the closest name,
+    then the most used."""
+    q = _core_words(query) or {_plain(w) for w in _words(query)}
+    seen = [set().union(*_names_words(r)) for r in rows]
+    weight = {w: 1 / math.log(2 + sum(w in ws for ws in seen)) for w in q}
+    scored = [(_relevance(query, r, weight), r) for r in rows]
     scored = [(s, r) for s, r in scored if s[1] > 0]
     scored.sort(
         key=lambda sr: (

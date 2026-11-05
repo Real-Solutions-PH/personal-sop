@@ -261,6 +261,10 @@ def _id(v: str) -> int:
     return int(v) if v.strip().isdigit() else -1
 
 
+def _r2(v: float | None) -> float | None:
+    return None if v is None else round(v, 2)
+
+
 def _num(v: str | None) -> float | None:
     if v is None or v.strip() == "":
         return None
@@ -500,6 +504,7 @@ def off_drafts(
             if not _plausible(kcal, p, c, fat):
                 continue
             sodium = _num(get(row, "sodium_100g"))
+            kcal, p, c, fat = (round(x, 2) for x in (kcal, p, c, fat))
             seen.add(code)
             yield FoodDraft(
                 name=off_name(product, get(row, "brands")),
@@ -507,9 +512,9 @@ def off_drafts(
                 protein=p,
                 carbs=c,
                 fat=fat,
-                fiber=_num(get(row, "fiber_100g")),
-                sat_fat=_num(get(row, "saturated-fat_100g")),
-                sugar=_num(get(row, "added-sugars_100g")),
+                fiber=_r2(_num(get(row, "fiber_100g"))),
+                sat_fat=_r2(_num(get(row, "saturated-fat_100g"))),
+                sugar=_r2(_num(get(row, "added-sugars_100g"))),
                 sodium=round(sodium * 1000, 1) if sodium is not None else None,
                 basis="100g",
                 state="as_sold",
