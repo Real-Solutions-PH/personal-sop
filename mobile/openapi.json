@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "unfurl-test", "version": "0.1.0" },
+  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -28483,6 +28483,19 @@
             "type": "array",
             "title": "Seen Trophies"
           },
+          "enabled_extras": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": ["journal", "social", "weather", "calendar"]
+                },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Enabled Extras"
+          },
           "occupation": {
             "anyOf": [
               {
@@ -28671,6 +28684,20 @@
               { "type": "null" }
             ],
             "title": "Seen Trophies"
+          },
+          "enabled_extras": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "enum": ["journal", "social", "weather", "calendar"]
+                },
+                "type": "array",
+                "maxItems": 4
+              },
+              { "type": "null" }
+            ],
+            "title": "Enabled Extras"
           }
         },
         "type": "object",

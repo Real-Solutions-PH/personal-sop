@@ -40,6 +40,7 @@ import { currencyStore, isCurrency } from "@domain/lib/money"
 import { toast } from "@domain/lib/platform"
 import { privacyStore } from "@domain/lib/privacy"
 import { createStore, type Store } from "@domain/lib/store"
+import { EXTRAS, type Extra, extrasStore } from "@/prototype/extras"
 import { appearanceStore } from "@/prototype/theme"
 import type { Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
@@ -124,12 +125,13 @@ function keyedRecord<V>(opts: {
 
 // --------------------------------------------------------------- profile
 
-/** The four stores the profile row spans, read and written as one. */
+/** The five stores the profile row spans, read and written as one. */
 interface ProfileState {
   dash: DashState
   appearance: ReturnType<typeof appearanceStore.get>
   privacy: ReturnType<typeof privacyStore.get>
   currency: ReturnType<typeof currencyStore.get>
+  extras: ReturnType<typeof extrasStore.get>
 }
 
 function combined(): Store<ProfileState> {
@@ -139,14 +141,16 @@ function combined(): Store<ProfileState> {
     const appearance = appearanceStore.get()
     const privacy = privacyStore.get()
     const currency = currencyStore.get()
+    const extras = extrasStore.get()
     if (
       !last ||
       last.dash !== dash ||
       last.appearance !== appearance ||
       last.privacy !== privacy ||
-      last.currency !== currency
+      last.currency !== currency ||
+      last.extras !== extras
     )
-      last = { dash, appearance, privacy, currency }
+      last = { dash, appearance, privacy, currency, extras }
     return last
   }
   const set: Store<ProfileState>["set"] = (next) => {
@@ -156,6 +160,7 @@ function combined(): Store<ProfileState> {
     if (v.appearance !== cur.appearance) appearanceStore.set(v.appearance)
     if (v.privacy !== cur.privacy) privacyStore.set(v.privacy)
     if (v.currency !== cur.currency) currencyStore.set(v.currency)
+    if (v.extras !== cur.extras) extrasStore.set(v.extras)
   }
   return {
     get,
@@ -169,6 +174,7 @@ function combined(): Store<ProfileState> {
         appearanceStore.subscribe(l),
         privacyStore.subscribe(l),
         currencyStore.subscribe(l),
+        extrasStore.subscribe(l),
       ]
       return () => {
         for (const off of offs) off()
@@ -197,6 +203,28 @@ export function resetHandleRefusals() {
   toldRefused.clear()
 }
 
+/** The extras shown, as the server's ``enabled_extras`` list. */
+export const extrasToServer = (e: Record<Extra, boolean>): Extra[] =>
+  EXTRAS.map((x) => x.key).filter((k) => e[k] !== false)
+
+/** The server's ``enabled_extras`` over the device's switches; ``null`` (or
+ * anything that is not a list) means the account never chose, so the
+ * device's own switches stand until they are uploaded. */
+export function extrasFromServer(
+  v: unknown,
+  cur: Record<Extra, boolean>,
+): Record<Extra, boolean> {
+  if (!Array.isArray(v)) return cur
+  const on = new Set(v.map(String))
+  const next = { ...cur }
+  let changed = false
+  for (const { key } of EXTRAS) {
+    if (next[key] !== on.has(key)) changed = true
+    next[key] = on.has(key)
+  }
+  return changed ? next : cur
+}
+
 /** Profile payload; a value the server would refuse is left out. */
 export function profileToServer(v: ProfileState): Payload {
   const d = v.dash
@@ -215,6 +243,7 @@ export function profileToServer(v: ProfileState): Payload {
     push_evening: HM.test(d.push.evening) ? d.push.evening : null,
     push_review: Boolean(d.push.review),
     seen_trophies: d.seenTrophies.slice(-500),
+    enabled_extras: extrasToServer(v.extras),
   }
   const name = d.profile.name.trim()
   if (name.length >= 2 && name.length <= 80) out.name = name
@@ -289,6 +318,7 @@ export function profileFromServer(
     },
     // An unknown code keeps the device's (fail closed: never a blank symbol).
     currency: isCurrency(row.currency) ? { code: row.currency } : cur.currency,
+    extras: extrasFromServer(row.enabled_extras, cur.extras),
   }
 }
 

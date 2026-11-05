@@ -28,6 +28,7 @@ const state = (handle: string): State =>
     appearance: { mode: "system" },
     privacy: { hidden: false },
     currency: { code: "PHP" },
+    extras: { journal: true, social: true, weather: true, calendar: true },
   }) as unknown as State
 
 beforeEach(() => {

@@ -145,6 +145,29 @@ test("Screen time picked in onboarding is on after sign-up, so setup asks", asyn
   expect(dashStore.get().enabled.screen).toBe(true)
 })
 
+test("Journal and Community picked in onboarding go to the account's extras", async () => {
+  const { extrasStore } = require("../extras") as typeof import("../extras")
+  extrasStore.set({
+    journal: true,
+    social: true,
+    weather: true,
+    calendar: true,
+  })
+  D.editDraft({ extras: { journal: true, social: false } })
+  await session.completeSignUp()
+  expect(extrasStore.get()).toEqual({
+    journal: true,
+    social: false,
+    weather: true,
+    calendar: true,
+  })
+})
+
+test("a draft saved before Journal and Community were offered keeps both on", () => {
+  const { extras: _gone, ...old } = D.newDraft()
+  expect(D.extrasOf(old)).toEqual({ journal: true, social: true })
+})
+
 test("signing in to an existing account discards the draft and marks it returning", async () => {
   mockSignIn.mockResolvedValueOnce(undefined)
   await session.signIn({

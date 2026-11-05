@@ -14171,6 +14171,21 @@ export const ProfilePublicSchema = {
             type: 'array',
             title: 'Seen Trophies'
         },
+        enabled_extras: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        enum: ['journal', 'social', 'weather', 'calendar']
+                    },
+                    type: 'array'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled Extras'
+        },
         occupation: {
             anyOf: [
                 {
@@ -14458,6 +14473,22 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Seen Trophies'
+        },
+        enabled_extras: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        enum: ['journal', 'social', 'weather', 'calendar']
+                    },
+                    type: 'array',
+                    maxItems: 4
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Enabled Extras'
         }
     },
     type: 'object',

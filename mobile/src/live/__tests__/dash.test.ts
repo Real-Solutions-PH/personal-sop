@@ -23,6 +23,7 @@ import { derivedId } from "@domain/lib/ids"
 import { currencyStore, setCurrency } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import type { StorageAdapter } from "@domain/lib/store"
+import { extrasStore, setShown } from "@/prototype/extras"
 import { appearanceStore } from "@/prototype/theme"
 import { SyncEngine } from "../engine"
 import type { Http } from "../http"
@@ -110,6 +111,12 @@ beforeEach(() => {
   appearanceStore.set({ mode: "system" })
   privacyStore.set({ hidden: false, fernEval: false })
   currencyStore.set({ code: "PHP" })
+  extrasStore.set({
+    journal: true,
+    social: true,
+    weather: true,
+    calendar: true,
+  })
 })
 
 afterAll(() => {
@@ -202,6 +209,7 @@ test("profile round trip covers the dash, appearance, privacy and currency field
     appearance: appearanceStore.get(),
     privacy: privacyStore.get(),
     currency: currencyStore.get(),
+    extras: extrasStore.get(),
   }
   const row = { ...profileToServer(cur), since: DAY }
   expect(row).toMatchObject({
@@ -222,6 +230,7 @@ test("a pulled currency the device does not know keeps the device's", () => {
     appearance: appearanceStore.get(),
     privacy: privacyStore.get(),
     currency: currencyStore.get(),
+    extras: extrasStore.get(),
   }
   const row = { ...profileToServer(cur), currency: "XXX" }
   expect(profileFromServer(row, cur).currency).toEqual({ code: "PHP" })
@@ -238,6 +247,7 @@ test("profile leaves out a value the server would refuse", () => {
     appearance: appearanceStore.get(),
     privacy: privacyStore.get(),
     currency: currencyStore.get(),
+    extras: extrasStore.get(),
   })
   expect(out).not.toHaveProperty("name")
   expect(out).not.toHaveProperty("handle")
@@ -265,6 +275,10 @@ test("profile: one edit per store sends only that field", () => {
   setCurrency("EUR")
   expect(upserts(record(e.capture()), "profile")[0].data).toEqual({
     currency: "EUR",
+  })
+  setShown("social", false)
+  expect(upserts(record(e.capture()), "profile")[0].data).toEqual({
+    enabled_extras: ["journal", "weather", "calendar"],
   })
 })
 
