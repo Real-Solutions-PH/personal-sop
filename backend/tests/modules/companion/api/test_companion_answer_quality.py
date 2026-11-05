@@ -209,9 +209,9 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
 ) -> None:
     """A model that never stops calling tools, a long thread of long
     messages, and a turn with too many tool calls: the answer still takes at
-    most MAX_STEPS calls; each call carries the whole chat, every message in
-    full, within the history budget, and at most MAX_TOOL_CALLS_PER_TURN
-    real results of at most MAX_TOOL_RESULT_CHARS each."""
+    most MAX_STEPS calls, plus one tool-less call for the last word; each
+    call carries the whole chat, every message in full, within the history
+    budget, and at most MAX_TOOL_CALLS_PER_TURN real results of at most MAX_TOOL_RESULT_CHARS each."""
     api = user(client, db, accounts=False)
     long = "hey " + "x" * 3990
     for _ in range(10):  # the router answers greetings: 20 stored messages
@@ -224,7 +224,10 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
     )
     ask(api, "how am I doing?")
 
-    assert len(model.seen) == services.MAX_STEPS
+    # Past the tool budget the loop stops early and the model answers once,
+    # without tools (``services.LAST_WORD``), instead of spinning to the cap.
+    assert len(model.seen) <= services.MAX_STEPS + 1
+    assert model.seen[-1][-1].content == services.LAST_WORD
     for sent in model.seen:
         assert isinstance(sent[0], SystemMessage)
         convo = [
@@ -232,7 +235,7 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
             for m in sent[1:]
             if isinstance(m, (HumanMessage, AIMessage))
             and not getattr(m, "tool_calls", None)
-            and m.content != "how am I doing?"
+            and m.content not in ("how am I doing?", services.LAST_WORD)
         ]
         # 20 stored messages, all sent and none cut.
         assert len(convo) == 20
@@ -249,7 +252,7 @@ def test_steps_are_capped_and_each_call_input_stays_bounded(
     # The whole chat goes, within the history budget's characters.
     budget_chars = settings.FERN_HISTORY_MAX_TOKENS * services.CHARS_PER_TOKEN
     assert max(sizes) < budget_chars + 30_000, sizes
-    assert [u.input_tokens for u in usage_rows(api)] == [120] * services.MAX_STEPS
+    assert [u.input_tokens for u in usage_rows(api)] == [120] * len(model.seen)
 
 
 def test_a_long_tool_result_is_cut() -> None:

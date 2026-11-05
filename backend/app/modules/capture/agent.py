@@ -123,6 +123,12 @@ def _stream_usage(chunks_usage: list[dict[str, Any]]) -> dict[str, Any] | None:
     return {"input_tokens": i, "output_tokens": o, "total_tokens": i + o}
 
 
+def _call_key(tc: dict[str, Any]) -> str:
+    """A tool call's name and arguments, as compared for a repeat."""
+    args = json.dumps(tc.get("args") or {}, sort_keys=True, default=str)
+    return f"{tc['name']}{args}"
+
+
 def _tool_content(result: Any) -> str:
     text = result if isinstance(result, str) else json.dumps(result, default=str)
     if len(text) <= MAX_TOOL_RESULT_CHARS:
@@ -224,6 +230,8 @@ def run_loop(
     think_first: bool = False,
     think_every: bool = False,
     deferred: list[BaseTool] | None = None,
+    writes: frozenset[str] | None = None,
+    final_note: str | None = None,
 ) -> str:
     """Run the model/tools graph; returns the model's final text. Every
     model call is metered; a provider failure raises ``SeamError``.
@@ -240,8 +248,18 @@ def run_loop(
 
     ``max_tool_calls`` caps the tool calls of the whole run (past it a call
     is answered with an error instead of run); ``hooks`` hears each model
-    call and tool call as it starts and ends."""
+    call and tool call as it starts and ends.
+
+    ``writes`` (the tools that change records) turns on the repeat guard: a
+    read called again with the same arguments gets its first result back,
+    marked as a repeat, instead of running again; any write that succeeds
+    clears what was read. ``final_note`` turns on the last word: a run whose
+    step or tool budget ends while the model still asks for tools gets one
+    more model call, with no tools and that note, so it answers with what it
+    did and what is left instead of stopping mid-search (Kai, 2026-11-05: a
+    reply that hit the cap was a list of the searches it made)."""
     h = hooks or LoopHooks()
+    seen: dict[str, Any] = {}
     model = ai.build_chat_model(resolved)
     later = {t.name: t for t in deferred or []}
     active: list[BaseTool] = list(tools)
@@ -348,9 +366,20 @@ def run_loop(
             elif n >= MAX_TOOL_CALLS_PER_TURN:
                 result = {"error": "too_many_calls_in_one_turn"}
             elif max_tool_calls is not None and calls >= max_tool_calls:
-                result = {"error": "too_many_calls_in_this_reply"}
+                result = {
+                    "error": "too_many_calls_in_this_reply",
+                    "instead": "call no more tools; answer with what you have",
+                }
             elif tool is None:
                 result = {"error": "unknown_tool"}
+            elif writes is not None and (key := _call_key(tc)) in seen:
+                result = {
+                    "repeat": "you already called this tool with these "
+                    "arguments in this reply; this is its result",
+                    "result": seen[key],
+                    "next": "use it; do not call it again",
+                }
+                calls += 1
             else:
                 # Called without loading it first: run it, and keep its
                 # schema for the rest of the turn.
@@ -362,6 +391,12 @@ def run_loop(
                 except seams.SeamError as exc:
                     result = {"error": exc.code}
                 calls += 1
+                ok = not (isinstance(result, dict) and result.get("error"))
+                if writes is not None and ok:
+                    if tc["name"] in writes:
+                        seen.clear()
+                    else:
+                        seen[_call_key(tc)] = result
             if isinstance(result, dict) and result.get("error"):
                 # A refused or failed tool left no trace (a correction that
                 # failed twice showed nothing in the logs). The tool and its
@@ -381,22 +416,72 @@ def run_loop(
 
     def route(state: LoopState) -> str:
         last = state["messages"][-1]
-        if (
-            getattr(last, "tool_calls", None)
-            and state["turns"] < max_turns
-            and not h.stopped()
-        ):
+        if not getattr(last, "tool_calls", None) or h.stopped():
+            return END
+        spent = max_tool_calls is not None and state.get("calls", 0) >= max_tool_calls
+        if state["turns"] < max_turns and not spent:
             return "tools"
-        return END
+        return "final" if final_note else END
+
+    def last_word(state: LoopState) -> dict[str, Any]:
+        """The budget is spent and the model still wants tools: its pending
+        calls are answered as not run, and it answers once without tools."""
+        last = state["messages"][-1]
+        unrun: list[BaseMessage] = [
+            ToolMessage(
+                content=json.dumps({"error": "not_run_step_budget_spent"}),
+                tool_call_id=tc.get("id") or str(uuid.uuid4()),
+                name=tc["name"],
+            )
+            for tc in getattr(last, "tool_calls", None) or []
+        ]
+        turn = state["turns"] + 1
+        h.model_started(turn)
+        if not ctx.in_batch and not ctx.session.in_nested_transaction():
+            release_connection(ctx.session)
+        acc: Any = None
+        usages: list[dict[str, Any]] = []
+        try:
+            for chunk in model.stream(
+                [
+                    SystemMessage(system),
+                    *state["messages"],
+                    *unrun,
+                    HumanMessage(final_note or ""),
+                ]
+            ):
+                if h.stopped():
+                    break
+                delta = _text(chunk)
+                if delta:
+                    on_text(delta)
+                u = getattr(chunk, "usage_metadata", None)
+                if u:
+                    usages.append(dict(u))
+                acc = chunk if acc is None else acc + chunk
+        except Exception:  # noqa: BLE001 - a provider error becomes a stable code
+            seams.meter(ctx, resolved, None, ok=False)
+            raise seams.SeamError("model_unavailable") from None
+        msg = AIMessage(
+            content=acc.content if acc is not None else "",
+            usage_metadata=_stream_usage(usages),
+        )
+        seams.meter(ctx, resolved, msg)
+        h.model_finished(turn, msg)
+        return {"messages": [*unrun, msg], "turns": turn}
 
     g: StateGraph[LoopState] = StateGraph(LoopState)
     g.add_node("model", call_model)
     g.add_node("tools", call_tools)
+    g.add_node("final", last_word)
     g.set_entry_point("model")
-    g.add_conditional_edges("model", route, {"tools": "tools", END: END})
+    g.add_conditional_edges(
+        "model", route, {"tools": "tools", "final": "final", END: END}
+    )
     g.add_edge("tools", "model")
+    g.add_edge("final", END)
     start: LoopState = {"messages": messages, "turns": 0, "calls": 0}
-    final = g.compile().invoke(start, {"recursion_limit": max_turns * 2 + 2})  # type: ignore[call-overload]
+    final = g.compile().invoke(start, {"recursion_limit": max_turns * 2 + 4})  # type: ignore[call-overload]
     last = final["messages"][-1]
     return _text(last) if isinstance(last, AIMessage) else ""
 
@@ -2105,7 +2190,13 @@ def capture_tools(run: Run) -> list[BaseTool]:
             ]
             if gaps:
                 asked_for.update(g["item"] for g in gaps)
-                return {"error": "send_items_with_every_nutrient", "items": gaps}
+                return {
+                    "error": "send_items_with_every_nutrient",
+                    "items": gaps,
+                    "instead": "call log_meal again now with every item, each "
+                    "missing value filled with your best estimate (say so in "
+                    "that item's assumption); do not search for them",
+                }
             wrong = ports.meal_item_problems(
                 run.ctx, [i.model_dump(exclude_none=True) for i in a.items]
             )

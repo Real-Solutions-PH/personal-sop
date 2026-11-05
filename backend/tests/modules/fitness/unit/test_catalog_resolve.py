@@ -116,6 +116,14 @@ def test_routines_resolve_by_folded_name_or_close_spelling() -> None:
     assert catalog.resolve_routine("Upper body", rows) is None
 
 
+def test_a_routine_one_word_apart_is_another_routine() -> None:
+    """ "Leg Day B" scored 0.9 against "Leg day + Abs" as one string and was
+    refused as that routine three times (2026-11-05)."""
+    rows = [Row("Leg day + Abs"), Row("Upper Body")]
+    assert catalog.resolve_routine("Leg Day B", rows) is None
+    assert catalog.resolve_routine("Upper Bodyy", rows) is rows[1]
+
+
 @dataclass
 class Food:
     key: str

@@ -791,6 +791,8 @@ class SolRun:
     turn_capture: Callable[[], uuid.UUID | None] = lambda: None
     # Every tool result of the turn, in order, for the number check.
     results: list[tuple[str, Any]] = field(default_factory=list)
+    # The web searches the turn made, with their results (``same_search``).
+    searches: list[dict[str, Any]] = field(default_factory=list)
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -910,6 +912,41 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
         description=tool.description,
         args_schema=tool.args_schema,
     )
+
+
+WEB_SEARCHES = 5
+# Words every nutrition search carries; two searches for the same food differ
+# only in these, so they are left out when searches are compared.
+_SEARCH_FILLER = frozenset(
+    "nutrition nutritional facts fact information info label calories calorie "
+    "kcal protein carbs carbohydrates fat fats sugar sodium fiber per serving "
+    "servings size philippines ph the of a and in for with vs how many much "
+    "100g 100 g ml grams values value macros macro".split()
+)
+SAME_SEARCH = 0.6
+
+
+def _search_words(query: str) -> set[str]:
+    return {
+        w for w in re.findall(r"[a-z0-9]+", query.lower()) if w not in _SEARCH_FILLER
+    }
+
+
+def same_search(query: str, earlier: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The earlier search ``query`` repeats in other words: the same food
+    words (Jaccard at least SAME_SEARCH once the nutrition words are left
+    out), or every word of a two-word-or-longer earlier query."""
+    words = _search_words(query)
+    if not words:
+        return None
+    for e in earlier:
+        before = _search_words(str(e["query"]))
+        if not before or not e.get("results"):
+            continue
+        overlap = len(words & before) / len(words | before)
+        if overlap >= SAME_SEARCH or (len(before) >= 2 and before <= words):
+            return e
+    return None
 
 
 def recording(run: SolRun, tool: BaseTool) -> BaseTool:
@@ -1209,13 +1246,33 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     def web_search(**kw: Any) -> dict[str, Any]:
         a = WebSearchArgs(**kw)
         query = own_words(a.query, run.said)
+        # The same food asked again in other words gets the first answer
+        # (seen live: one oat latte searched seven ways in two replies),
+        # and a reply searches at most WEB_SEARCHES times.
+        again = same_search(query, run.searches)
+        if again is not None:
+            return {
+                "query": query,
+                "same_as": again["query"],
+                "results": again["results"],
+                "next": "you searched this already in this reply; use "
+                "these results, or estimate and say so",
+            }
+        if len(run.searches) >= WEB_SEARCHES:
+            return {
+                "error": "search_limit_reached",
+                "instead": "stop searching: use the results above, or "
+                "estimate and say it is an estimate",
+            }
         # A network wait: give the connection back first (see run_loop).
         if not ctx.in_batch and not ctx.session.in_nested_transaction():
             release_connection(ctx.session)
         try:
-            return {"query": query, "results": web.search(query)}
+            out = {"query": query, "results": web.search(query)}
         except web.WebSearchError as exc:
             return {"error": exc.code}
+        run.searches.append(out)
+        return out
 
     def stats_overview(**kw: Any) -> dict[str, Any]:
         a = OverviewArgs(**kw)
@@ -2304,6 +2361,65 @@ def _earlier_actions(ctx: Ctx, rows: list[CompanionMessage]) -> str:
     )
 
 
+# What later turns are told the last replies looked up (``tool_log``):
+# the newest LOOKED_REPLIES replies of the last day, at most LOOKED_CHARS
+# (the oldest calls go first when it is over). Kai, 2026-11-05: a reply cut
+# off at the step cap kept none of its 12 searches, so "continue" searched
+# the same four foods 14 times more and was cut off again.
+LOOKED_REPLIES = 2
+LOOKED_CHARS = 6000
+LOG_CALLS = 30
+LOOKED = """LOOKED UP BY YOUR LAST REPLIES (tool calls and what they returned, oldest
+first; never words to copy). Reuse web results, food lookups and photo
+readings instead of calling again; records and totals may have changed
+since, so read those again before you write or answer about them:
+{lines}"""
+
+
+AGAIN_LOG_CHARS = 4000
+# The last model call of a reply whose step or tool budget ran out while it
+# still wanted tools (``agent.run_loop``'s ``final_note``).
+LAST_WORD = (
+    "No more tools can run in this reply: its steps are used up. Answer me "
+    "now, without calling any tool. Say what was saved or is waiting for my "
+    "OK (only what a tool result above confirms), give what you found that "
+    "answers me, and name in one line what is still missing, so I can say "
+    "continue. Never mention steps, tools or this note."
+)
+
+
+def _log_lines(log: list[dict[str, Any]], limit: int, at: str = "") -> str:
+    lines = [
+        f"- {at}{e.get('tool')} {e.get('args')} → {e.get('result', '(no result)')}"
+        for e in log
+    ]
+    while lines and sum(len(x) + 1 for x in lines) > limit:
+        lines.pop(0)
+    return "\n".join(lines)
+
+
+def _looked_up(ctx: Ctx, rows: list[CompanionMessage]) -> str:
+    """The prompt's record of the tool calls the last replies made, with
+    their results. ``rows`` is the history window, newest first."""
+    recent = [
+        m
+        for m in rows
+        if m.role == "sol"
+        and m.tool_log
+        and ctx.now - m.created_at <= timedelta(days=1)
+    ][:LOOKED_REPLIES]
+    log = [
+        {
+            **e,
+            "tool": f"{m.created_at.astimezone(ctx.clock.zone):%H:%M} {e.get('tool')}",
+        }
+        for m in reversed(recent)
+        for e in m.tool_log or []
+    ]
+    lines = _log_lines(log, LOOKED_CHARS)
+    return "\n" + LOOKED.format(lines=lines) if lines else ""
+
+
 def _settle_step_states(ctx: Ctx, steps: list[Step]) -> None:
     """Each step's card state as the turn left it: a card dropped later in
     the same turn is stored as dropped, not as waiting."""
@@ -2401,7 +2517,11 @@ def _words_for(
     one that did nothing gets one pass to answer from what the tools
     returned, else an honest line. A blank reply is never sent (seen live:
     a portion question answered with nothing, then "try again")."""
-    did = [s.summary for s in kept_steps(steps) if s.summary and s.ok]
+    did = [
+        s.summary
+        for s in kept_steps(steps)
+        if s.summary and s.ok and s.name in WRITE_TOOLS
+    ]
     if did:
         return "\n".join(f"• {d}" for d in did) if len(did) > 1 else f"{did[0]}.", []
     if allowed:
@@ -2444,7 +2564,7 @@ def _ask_ai(
         mems = memory.context_block(ctx, text)
         facts = grounding.snapshot(ctx)
         grounds[:] = [facts, mems]
-        return SYSTEM.format(
+        return (SYSTEM + loop.BUDGET_RULES).format(
             sol=sol_name, user=first, correct_waiting=CORRECT_WAITING
         ) + CONTEXT.format(
             now_line=now_line(ctx),
@@ -2455,7 +2575,7 @@ def _ask_ai(
             turn=turn_note,
             summary=_summary_block(ctx)
             + (f"\n{EARLIER_DAYS}\n" if _spans_days(ctx, rows) else ""),
-            earlier=_earlier_actions(ctx, rows),
+            earlier=_earlier_actions(ctx, rows) + _looked_up(ctx, rows),
             trackers=json.dumps(
                 [
                     {
@@ -2550,6 +2670,9 @@ def _ask_ai(
         )
     question = job.kind in ("question", "plan", "redo")
     turn = [*history, HumanMessage(text)]
+    # Loop guards (``agent.run_loop``): repeated reads answered from the
+    # first, and a last word without tools when the budget runs out.
+    guards: dict[str, Any] = {"writes": WRITE_TOOLS, "final_note": LAST_WORD}
 
     def again(reply_so_far: str, nudge: str) -> str:
         """One corrective pass: the reply so far and a note, with every
@@ -2559,6 +2682,12 @@ def _ask_ai(
             nudge += (
                 "\n\nAlready done in this reply (do not redo, and do not quote "
                 "this list): " + "; ".join(done)
+            )
+        if stream.log:
+            # A pass starts from the reply's words alone: without what the
+            # reply looked up it searched everything again.
+            nudge += "\n\nWhat this reply already looked up (reuse it):\n" + (
+                _log_lines(stream.log, AGAIN_LOG_CHARS)
             )
         stream.end_text()
         return capture.run_agent(
@@ -2577,6 +2706,7 @@ def _ask_ai(
             max_tool_calls=MAX_TOOL_CALLS,
             hooks=stream,
             think_every=True,
+            **guards,
         )
 
     reply = capture.run_agent(
@@ -2594,6 +2724,7 @@ def _ask_ai(
         # results it gathered is where a wrong assumption gets caught.
         think_first=True,
         think_every=True,
+        **guards,
     )
     answer, tables = shaped(reply)
     unbacked = unbacked_claim(
@@ -2694,6 +2825,11 @@ def _ask_ai(
     steps = stream.steps_block()
     blocks = ([steps] if steps else []) + list(run.blocks)
     out = _message(ctx, "sol", answer or None, blocks, sol_id)
+    if stream.log:
+        out.tool_log = [{k: v for k, v in e.items() if k != "id"} for e in stream.log][
+            -LOG_CALLS:
+        ]
+        ctx.session.add(out)
     ctx.commit()
     return AskOut(
         kind="reply",

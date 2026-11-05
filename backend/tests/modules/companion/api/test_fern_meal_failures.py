@@ -128,6 +128,9 @@ def test_an_estimate_without_its_details_is_sent_back_once_then_saved(
                 ],
             }
         ],
+        "instead": "call log_meal again now with every item, each missing "
+        "value filled with your best estimate (say so in that item's "
+        "assumption); do not search for them",
     }
     [card] = [c for c in rows_of(api, RecordCard) if c.kind == "meal"]
     assert card.warn == (
