@@ -1315,6 +1315,47 @@ test("upload helper: a rejected file and a dropped PUT are told apart", async ()
   ).rejects.toMatchObject({ code: "upload_failed", status: 403 })
 })
 
+test("upload helper: an id an earlier try finished is used, or refused if rejected", async () => {
+  const http = (state: string): Http => ({
+    request: async <T>(method: string, path: string) => {
+      if (path === "/media/uploads")
+        throw new ApiError(422, "media_already_uploaded", "Already complete")
+      if (method === "GET" && path === "/media/m-3")
+        return { id: "m-3", kind: "image", mime: "image/jpeg", state } as T
+      throw new Error(`unexpected ${method} ${path}`)
+    },
+    raw: async () => {
+      throw new Error("unused")
+    },
+  })
+  const put = jest.fn(async () => jsonResponse(200, {}))
+  const input = {
+    kind: "image" as const,
+    id: "m-3",
+    bytes: new Uint8Array([1]),
+  }
+  await expect(
+    uploadMedia(input, { http: http("ready"), fetch: put }),
+  ).resolves.toEqual({
+    id: "m-3",
+    kind: "image",
+    mime: "image/jpeg",
+    state: "ready",
+    url: null,
+  })
+  expect(put).not.toHaveBeenCalled()
+  await expect(
+    uploadMedia(input, { http: http("rejected"), fetch: put }),
+  ).rejects.toBeInstanceOf(MediaRejected)
+  // Without a client id the refusal is not ours to resolve.
+  await expect(
+    uploadMedia(
+      { ...input, id: undefined },
+      { http: http("ready"), fetch: put },
+    ),
+  ).rejects.toMatchObject({ code: "media_already_uploaded" })
+})
+
 // ---------------------------------------------------------------------------
 // Wire fixture (validated by backend/tests/modules/capture/test_mobile_wire.py)
 // ---------------------------------------------------------------------------

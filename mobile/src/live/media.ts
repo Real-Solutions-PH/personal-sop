@@ -20,7 +20,8 @@ export interface UploadInput {
   bytes?: Uint8Array
   uri?: string
   mime?: string
-  /** Client-minted id: a retried upload reuses the same media row. */
+  /** Client-minted id: a retried upload reuses the same media row, and one
+   * an earlier try already finished is used as it is. */
   id?: string
   width?: number
   height?: number
@@ -127,19 +128,44 @@ export async function uploadMedia(
   deps: { http: Http; fetch: Fetch },
 ): Promise<UploadedMedia> {
   const { mime, bytes } = await read(input, deps.fetch)
-  const ticket = await deps.http.request<Ticket>("POST", "/media/uploads", {
-    ...(input.id ? { id: input.id } : {}),
-    kind: input.kind,
-    mime,
-    size_bytes: bytes.byteLength,
-    ...(input.width ? { width: Math.round(input.width) } : {}),
-    ...(input.height ? { height: Math.round(input.height) } : {}),
-    ...(input.durationSec !== undefined
-      ? { duration_sec: input.durationSec }
-      : {}),
-    ...(input.previewId ? { preview_id: input.previewId } : {}),
-    ...(input.lqip ? { lqip: input.lqip } : {}),
-  })
+  let ticket: Ticket
+  try {
+    ticket = await deps.http.request<Ticket>("POST", "/media/uploads", {
+      ...(input.id ? { id: input.id } : {}),
+      kind: input.kind,
+      mime,
+      size_bytes: bytes.byteLength,
+      ...(input.width ? { width: Math.round(input.width) } : {}),
+      ...(input.height ? { height: Math.round(input.height) } : {}),
+      ...(input.durationSec !== undefined
+        ? { duration_sec: input.durationSec }
+        : {}),
+      ...(input.previewId ? { preview_id: input.previewId } : {}),
+      ...(input.lqip ? { lqip: input.lqip } : {}),
+    })
+  } catch (error) {
+    // A retry after an earlier try finished this upload but failed later
+    // (a slow photo among several on a phone network): the server refuses a
+    // second ticket for a finished id, so every Retry failed the same way.
+    // The finished upload is the one we want: use it.
+    if (
+      input.id &&
+      error instanceof ApiError &&
+      error.code === "media_already_uploaded"
+    ) {
+      const row = await deps.http.request<MediaRow>("GET", `/media/${input.id}`)
+      if (row.state === "ready")
+        return {
+          id: row.id,
+          kind: row.kind,
+          mime: row.mime,
+          state: "ready",
+          url: row.url ?? null,
+        }
+      throw new MediaRejected(input.id)
+    }
+    throw error
+  }
   let put: Response
   try {
     put = await deps.fetch(ticket.upload_url, {
