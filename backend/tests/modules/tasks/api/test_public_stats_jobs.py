@@ -161,3 +161,52 @@ def test_job_entry_points_skip_users_with_nothing_due(db: Session) -> None:
     # No reminders in the window and no digest subscribers → no notify call.
     far = datetime(2001, 1, 1, tzinfo=UTC)
     assert jobs.run_reminders(db, now=far) == 0
+
+
+def _tasks_off(client: TestClient, headers: dict[str, str]) -> None:
+    ok(
+        client.patch(
+            "/api/v1/profile/modules/tasks", headers=headers, json={"enabled": False}
+        )
+    )
+
+
+def test_reminder_job_skips_a_user_with_tasks_off(
+    client: TestClient, db: Session
+) -> None:
+    # Off means off: the module's server pushes stop with its screens.
+    user, headers = signed_in(db)
+    soon = datetime.now(UTC) - timedelta(minutes=1)
+    new_task(
+        client,
+        headers,
+        "ping",
+        due_date=day(0),
+        due_time="09:00",
+        remind_at=soon.isoformat(),
+    )
+    _tasks_off(client, headers)
+    with ctx_for(user, now=datetime.now(UTC)) as ctx:
+        assert jobs.send_reminders(ctx) == 0
+
+
+def test_digest_job_skips_a_user_with_tasks_off(
+    client: TestClient, db: Session
+) -> None:
+    user, headers = signed_in(db)
+    ok(
+        client.patch(
+            f"{API}/settings",
+            headers=headers,
+            json={
+                "digest_on": True,
+                "digest_time": "04:00",
+                "quiet_start": "04:00",
+                "quiet_end": "04:00",
+            },
+        )
+    )
+    new_task(client, headers, "x", due_date=day(0))
+    _tasks_off(client, headers)
+    with ctx_for(user) as ctx:
+        assert jobs.send_digest(ctx) is False

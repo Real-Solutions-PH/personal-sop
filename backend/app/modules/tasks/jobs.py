@@ -19,6 +19,7 @@ from sqlmodel import Session, col, select
 
 from app.modules.dashboard import public as dashboard
 from app.modules.iam.users.models import User
+from app.modules.profile import public as profile_public
 from app.modules.tasks import logic, repo
 from app.modules.tasks.models import Task, TaskSettings
 from app.shared import owned_repo
@@ -151,8 +152,15 @@ def digest_for(
 # ---------------------------------------------------------------- per user
 
 
+def _tasks_on(ctx: Ctx) -> bool:
+    """Tasks switched off in Settings sends no pushes: off means off."""
+    return profile_public.module_settings(ctx)["tasks"].enabled
+
+
 def send_reminders(ctx: Ctx) -> int:
     """Post every due reminder for one user. Returns how many were new."""
+    if not _tasks_on(ctx):
+        return 0
     settings = repo.settings_or_default(ctx)
     rows = owned_repo.list_rows(
         ctx,
@@ -189,7 +197,7 @@ def send_reminders(ctx: Ctx) -> int:
 
 def send_digest(ctx: Ctx) -> bool:
     settings = repo.settings_or_default(ctx)
-    if not settings.digest_on:
+    if not settings.digest_on or not _tasks_on(ctx):
         return False
     digest = digest_for(
         repo.load_state(ctx).state,

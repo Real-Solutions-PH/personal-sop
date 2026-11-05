@@ -2,6 +2,7 @@
 // reminder slots, soonest first, capped for iOS, and a re-sync replaces
 // only this app's own notifications.
 
+import { dashStore, setEnabled } from "@domain/dash/store"
 import type { Occurrence } from "@domain/finance/calc"
 import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
@@ -15,6 +16,7 @@ import {
   BILL_OVERDUE_DAYS,
   inQuiet,
   MAX_PENDING,
+  type MoreReminders,
   nagTimes,
   planReminders,
   scheduleEatBackReminder,
@@ -584,5 +586,120 @@ describe("keep reminding me", () => {
       pauses: [{ from: "2026-10-22", to: "2026-10-22" }],
     })
     expect(nags(planReminders([], [h], local(8), { quiet }))).toEqual([])
+  })
+})
+
+describe("a module switched off sends no reminders", () => {
+  const routine = {
+    id: "r1",
+    name: "Morning routine",
+    icon: "🌅",
+    reminder: true,
+    status: "active",
+    steps: [{ habitId: "h1", minutes: 5 }],
+    schedule: [{ days: [0], time: "09:00" }],
+  } as Routine
+  const bill = {
+    item: { id: "p1", name: "Rent", type: "expense", amount: 1 },
+    day: "2026-10-25",
+    orig: "2026-10-25",
+    status: "upcoming",
+  } as unknown as Occurrence
+  const everything = (enabled: MoreReminders["enabled"]) =>
+    planReminders(
+      [
+        task("t", "2026-10-22T09:00:00+08:00"),
+        task("nag", null, { nagEveryMin: 60, dueTime: "07:00" }),
+      ],
+      [habit()],
+      NOW,
+      {
+        routines: [routine],
+        weighIn: "06:30",
+        bills: [bill],
+        billReminder: "09:00",
+        enabled,
+      },
+    ).map((p) => p.id.split("-")[0])
+  const kinds = (enabled: MoreReminders["enabled"]) => [
+    ...new Set(everything(enabled)),
+  ]
+
+  test("all on: every kind is planned", () => {
+    expect(kinds(undefined).sort()).toEqual(
+      ["bill", "habit", "routine", "task", "weigh"].sort(),
+    )
+  })
+
+  test("Habits off drops habit and routine reminders", () => {
+    expect(kinds({ habits: false }).sort()).toEqual(
+      ["bill", "task", "weigh"].sort(),
+    )
+  })
+
+  test("Tasks off drops task reminders and their repeats", () => {
+    expect(kinds({ tasks: false }).sort()).toEqual(
+      ["bill", "habit", "routine", "weigh"].sort(),
+    )
+  })
+
+  test("Finance off drops bills; Fitness off drops the weigh-in", () => {
+    expect(kinds({ finance: false, fitness: false }).sort()).toEqual(
+      ["habit", "routine", "task"].sort(),
+    )
+  })
+
+  test("turning a module off cancels its pending reminders; on brings them back", async () => {
+    tasksStore.set((s) => ({
+      ...s,
+      tasks: [task("a", "2026-10-22T09:00:00+08:00")],
+    }))
+    habitsStore.set((s) => ({ ...s, habits: [], routines: [] }))
+    fitStore.set((s) => ({
+      ...s,
+      settings: { ...s.settings, weighInReminder: "" },
+    }))
+    finStore.set((s) => ({ ...s, planned: [] }))
+    let pending = ["task-a"]
+    const N = {
+      getPermissionsAsync: async () => ({ status: "granted" }),
+      getAllScheduledNotificationsAsync: async () =>
+        pending.map((identifier) => ({ identifier })),
+      cancelScheduledNotificationAsync: async (id: string) => {
+        pending = pending.filter((p) => p !== id)
+      },
+      scheduleNotificationAsync: async (r: { identifier: string }) => {
+        pending.push(r.identifier)
+        return r.identifier
+      },
+      SchedulableTriggerInputTypes: { DATE: "date", WEEKLY: "weekly" },
+    } as unknown as typeof import("expo-notifications")
+    setEnabled("tasks", false)
+    expect(await syncReminders(N, NOW)).toBe(0)
+    expect(pending).toEqual([])
+    setEnabled("tasks", true)
+    expect(await syncReminders(N, NOW)).toBe(1)
+    expect(pending).toEqual(["task-a"])
+  })
+
+  test("Nutrition off: no eat-back reminder, and a pending one goes", async () => {
+    expect(dashStore.get().enabled.nutrition).toBe(true)
+    setEnabled("nutrition", false)
+    const scheduled: string[] = []
+    const cancelled: string[] = []
+    const N = {
+      getPermissionsAsync: async () => ({ status: "granted" }),
+      cancelScheduledNotificationAsync: async (id: string) => {
+        cancelled.push(id)
+      },
+      scheduleNotificationAsync: async (r: { identifier: string }) => {
+        scheduled.push(r.identifier)
+        return r.identifier
+      },
+      SchedulableTriggerInputTypes: { DATE: "date" },
+    } as unknown as typeof import("expo-notifications")
+    await scheduleEatBackReminder(300, 0, N, new Date(2026, 9, 28, 15))
+    expect(cancelled).toEqual(["eat-back"])
+    expect(scheduled).toEqual([])
   })
 })

@@ -10,7 +10,12 @@
 // overdue reminder every that many minutes until the day ends, outside
 // quiet hours. They are dated one-offs, so a completion (here, or synced
 // from the widget or Fern) drops the rest at the next rebuild.
+// A module switched off in Settings sends none of its reminders; the
+// rebuild that follows the switch cancels them, and turning it back on
+// plans them again.
 
+import type { ModuleKey } from "@domain/contract"
+import { dashStore } from "@domain/dash/store"
 import { addDays, type Occurrence, occurrencesIn } from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { fitStore } from "@domain/fitness/store"
@@ -76,6 +81,9 @@ export interface MoreReminders {
   quiet?: { start: string; end: string }
   /** When a task with a due day but no time or reminder is due. */
   defaultRemindTime?: string
+  /** The module switches (Settings); a module that is off is never
+   * reminded. Omitted = all on. */
+  enabled?: Partial<Record<ModuleKey, boolean>>
 }
 
 /** The sound bundled by the expo-notifications plugin (app.json); the
@@ -162,11 +170,20 @@ const hm = (t: string) => {
 
 /** What to schedule, soonest first, capped at ``MAX_PENDING``. Pure. */
 export function planReminders(
-  tasks: readonly Task[],
-  habits: readonly Habit[],
+  allTasks: readonly Task[],
+  allHabits: readonly Habit[],
   now: Date,
-  more: MoreReminders = {},
+  given: MoreReminders = {},
 ): Planned[] {
+  const on = (k: ModuleKey) => given.enabled?.[k] !== false
+  const tasks = on("tasks") ? allTasks : []
+  const habits = on("habits") ? allHabits : []
+  const more: MoreReminders = {
+    ...given,
+    routines: on("habits") ? given.routines : [],
+    weighIn: on("fitness") ? given.weighIn : null,
+    bills: on("finance") ? given.bills : [],
+  }
   const habitPlans: Planned[] = []
   // A repeating trigger can't skip one day, so what's done today gets
   // dated one-offs instead; the next sync (any habit change or app open)
@@ -358,6 +375,7 @@ export async function syncReminders(
         end: tasksStore.get().settings.quietEnd,
       },
       defaultRemindTime: tasksStore.get().settings.defaultRemindTime,
+      enabled: dashStore.get().enabled,
     },
   )
   for (const p of plan)
@@ -403,6 +421,8 @@ export async function scheduleEatBackReminder(
   if (Platform.OS === "web") return
   if ((await N.getPermissionsAsync()).status !== "granted") return
   await N.cancelScheduledNotificationAsync("eat-back")
+  // It's about the food budget: none while Nutrition is off.
+  if (dashStore.get().enabled.nutrition === false) return
   const at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 20)
   const extra = burned - added
   if (extra <= 100 || now >= at) return
@@ -560,5 +580,16 @@ export function startReminders() {
   fitStore.subscribe(soon)
   finStore.subscribe(soon)
   privacyStore.subscribe(soon)
+  // A module switched off or on: rebuild only when a switch moved, not on
+  // every other dash change.
+  let switches = JSON.stringify(dashStore.get().enabled)
+  dashStore.subscribe(() => {
+    const now = JSON.stringify(dashStore.get().enabled)
+    if (now === switches) return
+    switches = now
+    if (dashStore.get().enabled.nutrition === false)
+      void N.cancelScheduledNotificationAsync("eat-back").catch(() => {})
+    soon()
+  })
   soon()
 }
