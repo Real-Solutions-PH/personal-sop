@@ -15,6 +15,7 @@ import { captureMappers } from "./capture"
 import { API_PREFIX, API_URL } from "./config"
 import { forgetSyncState, SyncEngine } from "./engine"
 import { runEventStream, type ServerEvent } from "./events"
+import { settleDeviceExtras } from "./extras-upload"
 import { foregroundStream } from "./foreground-stream"
 import { transcribePending } from "./journal-audio"
 import type { AnyMapper } from "./mapper"
@@ -139,6 +140,8 @@ export function startLive(
         installStarter(userId)
         storage.setItem(starter, "1")
       }
+      // The extras switches move from this phone to the account, once.
+      void settleDeviceExtras(userId, storage, http)
       void stats.refreshAll()
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()

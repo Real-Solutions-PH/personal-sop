@@ -19,6 +19,9 @@ MODULE_KEYS = (
     "finance",
     "screen",
 )
+# Parts of the app outside the scored modules that a person can hide
+# (Settings -> Sections, onboarding's module step).
+EXTRA_KEYS = ("journal", "social", "weather", "calendar")
 LIVE_KINDS = ("timer", "routine", "workout")
 PUSH_PERMISSIONS = ("default", "granted", "denied")
 APPEARANCE = ("system", "light", "dark")
@@ -104,6 +107,10 @@ class UserProfile(OwnedRow, table=True):
         default_factory=list,
         sa_type=JSONB,
     )
+    # The extras (EXTRA_KEYS) this person keeps shown. NULL until they first
+    # choose (an account from before this field, or one whose phone has not
+    # uploaded its old on-device choice yet): every extra counts as shown.
+    enabled_extras: list[str] | None = Field(default=None, sa_type=JSONB)
     occupation: str | None = Field(default=None, sa_type=String(16))  # type: ignore
     occupation_detail: str | None = Field(default=None, max_length=80)
     referral_source: str | None = Field(default=None, sa_type=String(16))  # type: ignore

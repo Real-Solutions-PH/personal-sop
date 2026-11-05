@@ -11,6 +11,7 @@ from app.shared.day import check_timezone, parse_hm
 ModuleKey = Literal[
     "habits", "tasks", "fitness", "nutrition", "focus", "finance", "screen"
 ]
+ExtraKey = Literal["journal", "social", "weather", "calendar"]
 Appearance = Literal["system", "light", "dark"]
 PushPermission = Literal["default", "granted", "denied"]
 Occupation = Literal[
@@ -71,6 +72,8 @@ class ProfilePublic(BaseModel):
     fern_eval_consent: bool
     fern_eval_consent_at: datetime | None
     seen_trophies: list[str]
+    # Extras kept shown; null = never chosen, so every extra is shown.
+    enabled_extras: list[ExtraKey] | None = None
     occupation: Occupation | None = None
     occupation_detail: str | None = None
     referral_source: ReferralSource | None = None
@@ -104,6 +107,17 @@ class ProfileUpdate(BaseModel):
     # When it changes the server stamps fern_eval_consent_at.
     fern_eval_consent: bool | None = None
     seen_trophies: list[str] | None = Field(default=None, max_length=500)
+    # The whole set of extras to keep shown (an empty list hides them all);
+    # null leaves the stored choice as it is.
+    enabled_extras: list[ExtraKey] | None = Field(default=None, max_length=4)
+
+    @field_validator("enabled_extras")
+    @classmethod
+    def _extras(cls, v: list[str] | None) -> list[str] | None:
+        """Deduplicated, in the canonical order."""
+        if v is None:
+            return None
+        return [k for k in ("journal", "social", "weather", "calendar") if k in v]
 
     @field_validator("evening_start", "push_morning", "push_evening")
     @classmethod

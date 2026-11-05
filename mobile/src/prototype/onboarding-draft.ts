@@ -16,6 +16,7 @@ import {
   setPush,
 } from "@domain/dash/store"
 import { createStore, uid } from "@domain/lib/store"
+import { setShown } from "./extras"
 
 export const OCCUPATIONS = [
   { value: "student", label: "Student" },
@@ -44,6 +45,11 @@ export const DETAIL_MAX = 80
 
 export type MobileStep = Step | "about" | "account"
 
+/** The extras onboarding offers beside the scored modules; Weather and
+ * Calendar stay as they are (on) and are switched in Settings. */
+export const DRAFT_EXTRAS = ["journal", "social"] as const
+export type DraftExtra = (typeof DRAFT_EXTRAS)[number]
+
 export type OnboardingDraft = {
   /** Up to 3 identity texts. */
   identities: string[]
@@ -52,6 +58,9 @@ export type OnboardingDraft = {
   referralSource: ReferralSource | null
   referralDetail: string
   enabled: Record<ModuleKey, boolean>
+  /** Journal and Community; a draft saved before they were offered has
+   * none (read it through extrasOf). */
+  extras?: Record<DraftExtra, boolean>
   pace: Pace | null
   /** null = no starter goal for that module. */
   targets: Record<ModuleKey, number | null>
@@ -75,6 +84,7 @@ export function newDraft(): OnboardingDraft {
     enabled: Object.fromEntries(
       MODULE_KEYS.map((k) => [k, k !== "screen"]),
     ) as Record<ModuleKey, boolean>,
+    extras: { journal: true, social: true },
     pace: "gentle",
     targets: { ...PACES.gentle.targets },
     pushMorning: push.morning,
@@ -109,6 +119,10 @@ export function discardDraft() {
   draftStore.set({ draft: null })
 }
 
+/** The draft's Journal and Community choice. */
+export const extrasOf = (d: OnboardingDraft): Record<DraftExtra, boolean> =>
+  d.extras ?? { journal: true, social: true }
+
 /** The modules that get a starter goal. */
 export const startersOf = (d: OnboardingDraft): ModuleKey[] =>
   MODULE_KEYS.filter((k) => d.enabled[k] && d.targets[k] !== null)
@@ -139,6 +153,10 @@ export function applyDraft(): number {
   const d = getDraft()
   if (!d) return 0
   for (const k of MODULE_KEYS) setEnabled(k, d.enabled[k])
+  // Written to the extras store, which syncs to the account's
+  // enabled_extras with the rest of the profile.
+  const extras = extrasOf(d)
+  for (const k of DRAFT_EXTRAS) setShown(k, extras[k])
   setPush({ morning: d.pushMorning, evening: d.pushEvening })
   if (d.identities.length)
     setIdentities(d.identities.map((text) => ({ id: uid(), text })))

@@ -140,6 +140,9 @@ def update_profile(ctx: Ctx, data: ProfileUpdate) -> UserProfile:
         values["seen_trophies"] = sorted(
             set(profile.seen_trophies) | set(values["seen_trophies"] or [])
         )
+    if "enabled_extras" in values and values["enabled_extras"] is None:
+        # Null means "not changing it": never reset a choice to unchosen.
+        del values["enabled_extras"]
     consent = values.get("fern_eval_consent")
     if consent is not None and consent != profile.fern_eval_consent:
         # When it was given or withdrawn: the export reads the flag as it

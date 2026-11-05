@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   BarChart3,
   Bell,
+  BookOpen,
   CalendarClock,
   Check,
   Compass,
@@ -31,6 +32,7 @@ import {
   Target,
   Timer,
   UserRound,
+  Users,
   Utensils,
   Wallet,
   Zap,
@@ -44,9 +46,12 @@ import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back, go, replace } from "../navigation"
 import {
   DETAIL_MAX,
+  DRAFT_EXTRAS,
+  type DraftExtra,
   draftStore,
   editDraft,
   ensureDraft,
+  extrasOf,
   type MobileStep,
   newDraft,
   OCCUPATIONS,
@@ -89,6 +94,21 @@ const modules = {
   screen: { icon: Smartphone, color: "scr" },
   finance: { icon: Wallet, color: "fin" },
 } as const
+const EXTRA_ROWS: Record<
+  DraftExtra,
+  { icon: typeof BookOpen; label: string; note: string }
+> = {
+  journal: {
+    icon: BookOpen,
+    label: "Journal",
+    note: "Reflections and your day's story",
+  },
+  social: {
+    icon: Users,
+    label: "Community",
+    note: "Friends, stories and shared wins",
+  },
+}
 export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
   const pre = phase === "pre",
     STEPS = pre ? PRE_ACCOUNT : POST_ACCOUNT,
@@ -115,6 +135,7 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
     setPicked = (f: (p: string[]) => string[]) =>
       editDraft({ identities: f(ensureDraft().identities) }),
     enabled = d.enabled,
+    extras = extrasOf(d),
     pace = d.pace,
     setPace = (p: Pace | null) => editDraft({ pace: p }),
     targets = d.targets,
@@ -556,6 +577,59 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                     </Line>
                   </Tap>
                 ))}
+                {DRAFT_EXTRAS.map((k) => {
+                  const on = extras[k],
+                    X = EXTRA_ROWS[k].icon
+                  return (
+                    <Tap
+                      key={k}
+                      label={`${EXTRA_ROWS[k].label}${on ? ", on" : ", off"}`}
+                      onPress={() =>
+                        editDraft({ extras: { ...extras, [k]: !on } })
+                      }
+                      style={{
+                        padding: 16,
+                        borderRadius: 16,
+                        borderWidth: 1,
+                        borderColor: on ? t.primary : t.line,
+                        backgroundColor: on ? border(t.primary, 0.1) : t.card,
+                      }}
+                    >
+                      <Line style={{ gap: 12 }}>
+                        <View
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 40 / 3,
+                            backgroundColor: border(t.life, 0.15),
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <X size={20} color={t.life} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Copy weight="semibold">{EXTRA_ROWS[k].label}</Copy>
+                          <Copy size={12} muted>
+                            {EXTRA_ROWS[k].note}
+                          </Copy>
+                        </View>
+                        <View
+                          style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: on ? t.primary : t.soft,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {on && <Check size={16} color={t.bg} />}
+                        </View>
+                      </Line>
+                    </Tap>
+                  )
+                })}
                 <Line
                   style={{
                     padding: 16,

@@ -3098,6 +3098,7 @@ export type ProfilePublic = {
     fern_eval_consent: boolean;
     fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
+    enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
     occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
     occupation_detail?: (string | null);
     referral_source?: ('friend' | 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'app_store' | 'search' | 'other' | null);
@@ -3133,6 +3134,7 @@ export type ProfileUpdate = {
     push_review?: (boolean | null);
     fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
+    enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
 };
 
 /**
