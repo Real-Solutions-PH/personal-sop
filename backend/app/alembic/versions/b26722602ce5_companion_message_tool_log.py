@@ -6,7 +6,7 @@ reply that ran out of steps picks up from what that reply already looked
 up instead of starting over. Nullable: older replies have none.
 
 Revision ID: b26722602ce5
-Revises: 3a94561e128e
+Revises: 1d09f03e3aac
 Create Date: 2026-11-05
 
 """
@@ -16,7 +16,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "b26722602ce5"
-down_revision = "3a94561e128e"
+down_revision = "1d09f03e3aac"
 branch_labels = None
 depends_on = None
 
