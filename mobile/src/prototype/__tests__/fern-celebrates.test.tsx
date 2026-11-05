@@ -1,7 +1,8 @@
 // Fern celebrates every achievement (Kai: "fern should always celebrate on
 // all achievements of the user"). Every finish page and moment goes
 // through one of the surfaces below, and each draws FernCelebrates; under
-// Reduce Motion Fern holds a still celebrating pose; a miss consoles. The
+// Reduce Motion Fern keeps celebrating (calmly, never a still pose); a miss
+// consoles. The
 // source scan at the end keeps it that way: a file that fires the success
 // haptic (every completion does) must show Fern celebrating, or say here
 // why it is not an achievement surface.
@@ -161,13 +162,15 @@ describe.each(SURFACES)("%s", (_name, surface) => {
     expect(
       screen.getByTestId("fern-celebrates", { includeHiddenElements: true }),
     ).toBeTruthy()
-    expect(sprite()).toMatchObject({ state: "celebrating", still: false })
+    expect(sprite().state).toBe("celebrating")
+    expect(sprite().still).toBeFalsy()
   })
 
-  test("under Reduce Motion Fern holds a still celebrating pose", () => {
+  test("under Reduce Motion Fern still celebrates, never a still pose", () => {
     mockMotion.reduced = true
     render(surface(), { wrapper })
-    expect(sprite()).toMatchObject({ state: "celebrating", still: true })
+    expect(sprite().state).toBe("celebrating")
+    expect(sprite().still).toBeFalsy()
   })
 })
 

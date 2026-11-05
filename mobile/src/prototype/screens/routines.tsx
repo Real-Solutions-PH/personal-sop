@@ -819,7 +819,10 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
       s.runs.find((r) => r.id === runId && r.routineId === id) ??
       [...s.runs].reverse().find((r) => r.routineId === id),
     // A partial or abandoned run gets the calm header: no burst, no haptic.
-    play = useCelebrate(run?.id ?? id, !!run && L.runState(run) === "completed")
+    celebrate = useCelebrate(
+      run?.id ?? id,
+      !!run && L.runState(run) === "completed",
+    )
   if (!r || !run)
     return (
       <Screen prototypeLayout title="Routine summary">
@@ -873,7 +876,8 @@ export function RoutineSummary({ id, runId }: { id: string; runId?: string }) {
                 format: (n) => fmtDuration(n),
               },
             ]}
-            play={play}
+            play={celebrate.play}
+            first={celebrate.first}
           />
         ) : null}
         <View

@@ -13,7 +13,7 @@ import { moveToToday } from "@domain/tasks/actions"
 import { useFocusEffect, useLocalSearchParams, usePathname } from "expo-router"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ScrollView, View } from "react-native"
-import Animated, { useReducedMotion, ZoomIn } from "react-native-reanimated"
+import Animated from "react-native-reanimated"
 import { TrophyBadge } from "../brand/badge"
 import {
   LockedTrophy,
@@ -25,6 +25,7 @@ import {
 import { FernCelebrates } from "../companion/fern-celebrates"
 import { useNoteGoals } from "../goal-ledger"
 import { MissedGoals } from "../missed-goals"
+import { usePopIn } from "../motion"
 import {
   border,
   Copy,
@@ -265,7 +266,7 @@ export function Misses() {
 const order: TrophyType[] = ["pr", "streak", "best", "goal", "first"]
 export function Trophies() {
   const t = useTheme(),
-    reduced = useReducedMotion(),
+    popIn = usePopIn(),
     p = useLocalSearchParams<{ open?: string }>(),
     catalog = useAchievements(),
     trophies = catalog.flatMap((a) => (a.trophy ? [a.trophy] : [])),
@@ -372,9 +373,7 @@ export function Trophies() {
         {selected && (
           <View style={{ alignItems: "center" }}>
             {/* The badge lands with a spring: the unlock is celebrated. */}
-            <Animated.View
-              entering={reduced ? undefined : ZoomIn.springify().damping(11)}
-            >
+            <Animated.View entering={popIn()}>
               <TrophyBadge
                 type={selected.type}
                 size={128}

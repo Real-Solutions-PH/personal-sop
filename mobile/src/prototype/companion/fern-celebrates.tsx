@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 import { View } from "react-native"
-import { useReducedMotion } from "react-native-reanimated"
 import { useTheme } from "../theme"
 import { FernSprite } from "./fern-sprite"
 
@@ -8,7 +7,10 @@ import { FernSprite } from "./fern-sprite"
  * Fern celebrating a win: the hero of every finish page, moment card and
  * all-done line, so every achievement is celebrated by the same character.
  * It plays Fern's celebrating loop (a hop, the curl unfurling, lifting
- * leaves, twinkles); under Reduce Motion it holds a still celebrating pose.
+ * leaves, twinkles). Under Reduce Motion it still plays, calmly: the arms
+ * wave, the twinkles turn and the curl unfurls in place, with no hop and no
+ * travelling leaves. It is never a still image: with Reduce Motion on, a
+ * frozen Fern read as a broken celebration.
  * A moment that is a miss (a day sealed below target) passes
  * `mood="consoling"`, so the miss still shows its cost.
  *
@@ -30,7 +32,6 @@ export function FernCelebrates({
   badgeScale?: number
 }) {
   const t = useTheme()
-  const reduced = useReducedMotion()
   const chip = Math.max(20, Math.round(size * 0.36))
   return (
     <View
@@ -39,7 +40,7 @@ export function FernCelebrates({
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size }}
     >
-      <FernSprite size={size} state={mood} still={reduced} decorative />
+      <FernSprite size={size} state={mood} decorative />
       {badge != null && (
         <View
           style={{

@@ -295,6 +295,9 @@ const M = {
   ping: { dur: 1.2, opacity: swing(0.15, 1) },
   twinkle: {
     dur: 1.8,
+    // A spark turning where it stands: in place, so it stays under
+    // Reduced Motion and a celebration still visibly plays.
+    calm: true,
     opacity: [
       [0, 0],
       [0.3, 1],
@@ -348,7 +351,11 @@ const droop = (k: 1 | -1): Motion => ({
     [1, 7 * k],
   ],
 })
-const wave = (deg: number): Motion => ({ dur: 1.2, rotate: swing(0, deg) })
+const wave = (deg: number, calm = false): Motion => ({
+  dur: 1.2,
+  calm,
+  rotate: swing(0, deg),
+})
 
 type Ctx = {
   size: number
@@ -641,7 +648,9 @@ export function FernSprite({
       state === "speaking"
         ? wave(side === "left" ? -22 : 22)
         : happy
-          ? wave(side === "left" ? 14 : -14)
+          ? // A celebrating wave is a small turn in place, so it plays
+            // under Reduced Motion too: a win never looks frozen.
+            wave(side === "left" ? 14 : -14, true)
           : undefined
     const leafArt = (fill: string, stroke: string) => (
       <Art>

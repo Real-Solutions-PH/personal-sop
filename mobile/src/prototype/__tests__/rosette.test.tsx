@@ -139,7 +139,7 @@ describe("the leaf flower", () => {
     expect(picked).toEqual(["Tasks"])
   })
 
-  it("blooms from 70% on its first frame, and holds still under Reduced Motion", () => {
+  it("blooms from 70% on its first frame, and only fades in under Reduced Motion", () => {
     const all = [petal("Habits", 100), petal("Tasks", 100)]
     const scales = () =>
       screen.UNSAFE_root.findAll(
@@ -164,7 +164,17 @@ describe("the leaf flower", () => {
     unmount()
     mockMotion.reduced = true
     render(<Rosette petals={all} ink={ink} />)
-    expect(scales()).toEqual([1, 1, 1, 1])
+    // Nothing grows; each layer fades up from 60% instead.
+    expect(scales()).toEqual([])
+    const fades = screen.UNSAFE_root.findAll(
+      (n) =>
+        n.props.pointerEvents === "none" &&
+        Array.isArray(n.props.style) &&
+        n.props.style.some(
+          (x: { opacity?: unknown }) => x && typeof x.opacity === "number",
+        ),
+    )
+    expect(fades.length).toBeGreaterThanOrEqual(4)
   })
 })
 

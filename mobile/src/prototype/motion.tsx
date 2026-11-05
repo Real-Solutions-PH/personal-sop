@@ -24,6 +24,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   Easing,
   FadeIn,
+  FadeInDown,
   FadeOut,
   LinearTransition,
   ReduceMotion,
@@ -39,6 +40,7 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
+  ZoomIn,
 } from "react-native-reanimated"
 import Svg, { Circle } from "react-native-svg"
 import { anchor, type Box, Overlay } from "./overlay"
@@ -121,27 +123,50 @@ export function alpha(color: string, a: number) {
 
 const easeOut = Easing.out(Easing.cubic)
 
+// Reanimated 4 jumps every animation to its end on frame 1 while iOS Reduce
+// Motion is on, unless told otherwise. Reduce Motion asks for less movement,
+// not for no feedback: fades, numbers counting and strokes drawing on still
+// play under it (with this flag); slides, scaling and travel do not.
+const never = ReduceMotion.Never
+
 /** List rows glide to their new place when a list re-sorts or shrinks. */
 export const rowLayout = LinearTransition.springify().damping(20).stiffness(220)
-export const rowEnter = FadeIn.duration(MOTION.base)
-export const rowExit = FadeOut.duration(MOTION.fast)
+export const rowEnter = FadeIn.duration(MOTION.base).reduceMotion(never)
+export const rowExit = FadeOut.duration(MOTION.fast).reduceMotion(never)
 
-/** Count a number up (or down) to `value`, e.g. a score revealing itself. */
+/** An entrance for something that just landed (a record, a new row): it
+ * rises in, or only fades in under Reduce Motion, and it always plays. */
+export function useEnter() {
+  const reduced = useReducedMotion()
+  return (delay = 0, duration = MOTION.base) =>
+    (reduced ? FadeIn : FadeInDown)
+      .duration(duration)
+      .delay(delay)
+      .reduceMotion(never)
+}
+
+/** An entrance for a win's line or badge: it pops in, or only fades in
+ * under Reduce Motion, and it always plays. */
+export function usePopIn() {
+  const reduced = useReducedMotion()
+  return (delay = 0) =>
+    reduced
+      ? FadeIn.duration(MOTION.base).delay(delay).reduceMotion(never)
+      : ZoomIn.springify().damping(12).delay(delay).reduceMotion(never)
+}
+
+/** Count a number up (or down) to `value`, e.g. a score revealing itself.
+ * It counts under Reduce Motion too: digits changing in place are not
+ * movement, and a finish's numbers landing is part of its celebration. */
 export function useCountUp(
   value: number,
   duration = MOTION.reveal,
   /** Where the first count starts; the value itself skips it. */
   start = 0,
 ) {
-  const reduced = useReducedMotion()
-  const [shown, setShown] = useState(reduced ? value : start)
-  const from = useRef(reduced ? value : start)
+  const [shown, setShown] = useState(start)
+  const from = useRef(start)
   useEffect(() => {
-    if (reduced) {
-      setShown(value)
-      from.current = value
-      return
-    }
     const start = from.current
     const began = Date.now()
     let frame = 0
@@ -155,7 +180,7 @@ export function useCountUp(
     }
     frame = requestAnimationFrame(step)
     return () => cancelAnimationFrame(frame)
-  }, [value, duration, reduced])
+  }, [value, duration])
   return shown
 }
 
@@ -182,7 +207,8 @@ export function CountUp({
 
 const AnimatedCircleSvg = Animated.createAnimatedComponent(Circle)
 
-/** An SVG arc whose fill sweeps to `value` (0–1) on mount and on change. */
+/** An SVG arc whose fill sweeps to `value` (0–1) on mount and on change.
+ * A stroke drawing on, so it sweeps under Reduce Motion as well. */
 export function ArcCircle({
   value,
   r,
@@ -205,15 +231,16 @@ export function ArcCircle({
    * quicker answer. */
   duration?: number
 }) {
-  const reduced = useReducedMotion()
   const c = 2 * Math.PI * r
-  const p = useSharedValue(reduced ? value : 0)
+  const p = useSharedValue(0)
   const ms = duration ?? MOTION.reveal
   useEffect(() => {
-    p.value = reduced
-      ? value
-      : withTiming(value, { duration: ms, easing: easeOut })
-  }, [value, reduced, p, ms])
+    p.value = withTiming(value, {
+      duration: ms,
+      easing: easeOut,
+      reduceMotion: never,
+    })
+  }, [value, p, ms])
   const props = useAnimatedProps(() => ({
     strokeDasharray: [c * p.value, c],
   }))
@@ -229,10 +256,8 @@ export function ArcCircle({
   )
 }
 
-// Reanimated 4 jumps every animation to its end on frame 1 while iOS Reduce
-// Motion is on, unless told otherwise. A completion's feedback must still be
-// seen, so these always run; under Reduce Motion they only fade, never move.
-const never = ReduceMotion.Never
+// A completion's feedback must still be seen, so these always run; under
+// Reduce Motion they only fade, never move.
 const fade = (to: number, duration: number) =>
   withTiming(to, { duration, easing: easeOut, reduceMotion: never })
 const spring = (to: number, config: { damping: number; stiffness: number }) =>
@@ -484,20 +509,32 @@ export function useDayMoment(
   return state
 }
 
-/** One soft band of light sweeping across its parent, once, on mount. */
+/** One soft band of light sweeping across its parent, once, on mount.
+ * Under Reduce Motion the light glows up and fades where it stands. */
 export function Shimmer({ color = "rgba(255, 255, 255, 0.35)" }) {
   const reduced = useReducedMotion()
   const [width, setWidth] = useState(0)
   const x = useSharedValue(0)
   useEffect(() => {
-    if (!width || reduced) return
-    x.value = withTiming(1, { duration: 700, easing: easeOut })
+    if (!width) return
+    x.value = withTiming(1, {
+      duration: reduced ? 900 : 700,
+      easing: easeOut,
+      reduceMotion: never,
+    })
   }, [width, reduced, x])
-  const band = useAnimatedStyle(() => ({
-    transform: [{ translateX: -120 + (width + 240) * x.value }],
-    opacity: 1 - x.value * 0.4,
-  }))
-  if (reduced) return null
+  const band = useAnimatedStyle(() =>
+    reduced
+      ? {
+          transform: [{ translateX: 0 }],
+          width,
+          opacity: Math.sin(Math.PI * x.value),
+        }
+      : {
+          transform: [{ translateX: -120 + (width + 240) * x.value }],
+          opacity: 1 - x.value * 0.4,
+        },
+  )
   return (
     <View
       pointerEvents="none"
@@ -547,6 +584,7 @@ export function StreakChip({
   const t = useTheme()
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
+  const dim = useSharedValue(1)
   const prev = useRef(from ?? streak)
   const n = useCountUp(streak, MOTION.base * 2, from ?? streak)
   // A milestone day (7, 30, 100, 365) wears gold with a trophy.
@@ -554,13 +592,23 @@ export function StreakChip({
   useEffect(() => {
     if (streak > prev.current && !reduced)
       scale.value = withSequence(
-        withTiming(milestone ? 1.6 : 1.3, { duration: 140 }),
-        withSpring(1, { damping: milestone ? 6 : 8, stiffness: 260 }),
+        never,
+        withTiming(milestone ? 1.6 : 1.3, {
+          duration: 140,
+          reduceMotion: never,
+        }),
+        spring(1, { damping: milestone ? 6 : 8, stiffness: 260 }),
       )
+    // Under Reduce Motion the chip glows instead: a dip and back, in place.
+    else if (streak > prev.current)
+      dim.value = withSequence(never, fade(0.35, 140), fade(1, 420))
     if (streak > prev.current && milestone) feel.success()
     prev.current = streak
-  }, [streak, reduced, scale, milestone])
-  const bump = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  }, [streak, reduced, scale, dim, milestone])
+  const bump = useAnimatedStyle(() => ({
+    opacity: dim.value,
+    transform: [{ scale: scale.value }],
+  }))
   if (streak <= 0)
     return lost > 0 ? (
       <View
@@ -1010,8 +1058,9 @@ export function SwipeSegments<T extends string>({
       if (e.translationX < -60 || e.velocityX < -600) runOnJS(step)(1)
       else if (e.translationX > 60 || e.velocityX > 600) runOnJS(step)(-1)
     })
+  // The new page slides in, or cross-fades under Reduce Motion.
   const entering = reduced
-    ? undefined
+    ? FadeIn.duration(MOTION.fast).reduceMotion(never)
     : (dir.current > 0 ? SlideInRight : SlideInLeft)
         .duration(MOTION.base)
         .easing(easeOut)
@@ -1053,8 +1102,9 @@ export function SwipeStep({
       if (e.translationX < -50 || e.velocityX < -500) runOnJS(step)(1)
       else if (e.translationX > 50 || e.velocityX > 500) runOnJS(step)(-1)
     })
+  // The new page slides in, or cross-fades under Reduce Motion.
   const entering = reduced
-    ? undefined
+    ? FadeIn.duration(MOTION.fast).reduceMotion(never)
     : (dir.current > 0 ? SlideInRight : SlideInLeft)
         .duration(MOTION.base)
         .easing(easeOut)
@@ -1087,33 +1137,45 @@ export function GrowBar({
   const pct = typeof height === "string"
   const target = pct ? Number.parseFloat(height) : height
   const h = useSharedValue(reduced ? target : 0)
+  // Under Reduce Motion the bar is drawn at its height and fades in.
+  const o = useSharedValue(reduced ? 0 : 1)
   useEffect(() => {
-    h.value = reduced
-      ? target
-      : withDelay(
-          Math.min(index, 12) * 35,
-          withTiming(target, {
-            duration: MOTION.reveal * 0.7,
-            easing: easeOut,
-          }),
-        )
-  }, [target, index, reduced, h])
+    const delay = Math.min(index, 12) * 35
+    if (reduced) {
+      h.value = target
+      o.value = withDelay(delay, fade(1, MOTION.base), never)
+      return
+    }
+    h.value = withDelay(
+      delay,
+      withTiming(target, {
+        duration: MOTION.reveal * 0.7,
+        easing: easeOut,
+      }),
+    )
+  }, [target, index, reduced, h, o])
   const anim = useAnimatedStyle(() => ({
+    opacity: o.value,
     height: pct ? (`${h.value}%` as `${number}%`) : h.value,
   }))
   return <Animated.View style={[style, anim]}>{children}</Animated.View>
 }
 
-/** Line/area charts sweep in left to right when they first appear. */
+/** Line/area charts sweep in left to right when they first appear (fade
+ * in, whole, under Reduce Motion). */
 export function Reveal({ children }: { children: ReactNode }) {
   const reduced = useReducedMotion()
   const [width, setWidth] = useState(0)
-  const p = useSharedValue(reduced ? 1 : 0)
+  const p = useSharedValue(0)
   useEffect(() => {
-    if (!width || reduced) return
-    p.value = withTiming(1, { duration: MOTION.reveal, easing: easeOut })
+    if (!width) return
+    p.value = reduced
+      ? fade(1, MOTION.base)
+      : withTiming(1, { duration: MOTION.reveal, easing: easeOut })
   }, [width, reduced, p])
-  const clip = useAnimatedStyle(() => ({ width: width * p.value }))
+  const clip = useAnimatedStyle(() =>
+    reduced ? { width, opacity: p.value } : { width: width * p.value },
+  )
   return (
     <View
       style={{ width: "100%", height: "100%" }}

@@ -871,7 +871,7 @@ export function RunDetail({
   // The phone's motion distance for a switched session's time, offered in
   // the readings sheet once Health answers.
   const [motionM, setMotionM] = useState<number>()
-  const fresh = useCelebrate(id, summary)
+  const celebrate = useCelebrate(id, summary)
   if (!r)
     return (
       <Screen title={summary ? "Summary" : "Session"}>
@@ -965,7 +965,8 @@ export function RunDetail({
             },
           ]}
           record={record}
-          play={fresh && (r.distanceM > 0 || indoor)}
+          play={celebrate.play && (r.distanceM > 0 || indoor)}
+          first={celebrate.first && (r.distanceM > 0 || indoor)}
         />
       )}
       {summary && paceDelta}

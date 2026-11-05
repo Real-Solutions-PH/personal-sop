@@ -1,9 +1,11 @@
-// The finish moment for a workout, a run or walk, or a routine: the
-// fiddlehead draws itself and settles, one quiet burst of leaves in the area
-// colours, the numbers count up and the phone gives one success tap. A
-// record set on the way (a run's best pace) lands as a line under it. It
-// plays once per finished session; opened again later it shows settled,
-// with no burst.
+// The finish moment for a workout, a run or walk, or a routine: Fern
+// celebrates, one quiet burst of leaves in the area colours, the numbers
+// count up and the medal's check lands. A record set on the way (a run's
+// best pace) lands as a line under it. It plays every time the finish page
+// opens, a second finish in the same session included; the success tap
+// comes only on the first showing. Under Reduce Motion it still plays, as a
+// dissolve: the leaves fade in and out where they land instead of flying,
+// nothing scales, and the numbers still count up.
 
 import { createStore } from "@domain/lib/store"
 import {
@@ -17,6 +19,7 @@ import { type ComponentRef, useEffect, useRef, useState } from "react"
 import { Text, View } from "react-native"
 import Animated, {
   Easing,
+  ReduceMotion,
   type SharedValue,
   useAnimatedStyle,
   useReducedMotion,
@@ -44,18 +47,27 @@ export function markCelebrated(id: string) {
   )
 }
 
-/** Whether to play the celebration for ``id``: true on its first showing.
- * Decided once at mount, and the store is not subscribed to, so recording
- * the id cannot stop an animation that is still running. With ``enabled``
- * off (a page that never celebrates) it is false and records nothing. */
+const known = (id: string) => celebrateStore.get().ids.includes(id)
+
+/** The finish page's celebration for ``id``. ``play`` is ``enabled``: the
+ * page celebrates every time it opens. ``first`` is true on the first
+ * showing only, for the one success haptic. Recording the id never stops
+ * an animation that is running. ``enabled`` may turn on after mount (the
+ * run's completion reaches the store a beat after the page opens); the
+ * first showing is decided then. With ``enabled`` off (a page that never
+ * celebrates) nothing plays and nothing is recorded. */
 export function useCelebrate(id: string, enabled = true) {
-  const [play] = useState(
-    () => enabled && !celebrateStore.get().ids.includes(id),
-  )
+  const [first, setFirst] = useState(() => enabled && !known(id))
+  const decided = useRef<string | null>(enabled ? id : null)
   useEffect(() => {
-    if (enabled) markCelebrated(id)
+    if (!enabled) return
+    if (decided.current !== id) {
+      decided.current = id
+      setFirst(!known(id))
+    }
+    markCelebrated(id)
   }, [id, enabled])
-  return play
+  return { play: enabled, first: enabled && first }
 }
 
 const LEAVES = 18
@@ -70,7 +82,9 @@ type Leaf = {
   color: string
 }
 
-function Burst({ colors }: { colors: string[] }) {
+const never = ReduceMotion.Never
+
+function Burst({ colors, calm }: { colors: string[]; calm: boolean }) {
   // Drawn once: re-renders while the burst runs never reshuffle it.
   const leaves = useRef<Leaf[]>(
     Array.from({ length: LEAVES }, (_, i) => ({
@@ -86,9 +100,11 @@ function Burst({ colors }: { colors: string[] }) {
   const [live, setLive] = useState(true)
   useEffect(() => {
     if (at.current) anchor.measure(at.current, setBox)
+    // Never skipped by Reduce Motion: there it draws the calm dissolve.
     progress.value = withTiming(1, {
       duration: BURST_MS,
       easing: Easing.out(Easing.cubic),
+      reduceMotion: never,
     })
     const id = setTimeout(() => setLive(false), BURST_MS + 80)
     return () => clearTimeout(id)
@@ -118,7 +134,7 @@ function Burst({ colors }: { colors: string[] }) {
             }}
           >
             {leaves.map((leaf, i) => (
-              <LeafView key={i} leaf={leaf} progress={progress} />
+              <LeafView key={i} leaf={leaf} progress={progress} calm={calm} />
             ))}
           </View>
         </Overlay>
@@ -130,12 +146,24 @@ function Burst({ colors }: { colors: string[] }) {
 function LeafView({
   leaf,
   progress,
+  calm,
 }: {
   leaf: Leaf
   progress: SharedValue<number>
+  /** Reduce Motion: the leaf fades in and out where it lands, unmoving. */
+  calm: boolean
 }) {
   const style = useAnimatedStyle(() => {
     const k = progress.value
+    if (calm)
+      return {
+        opacity: Math.sin(Math.PI * k),
+        transform: [
+          { translateX: Math.cos(leaf.angle) * leaf.distance * 0.8 },
+          { translateY: Math.sin(leaf.angle) * leaf.distance * 0.8 },
+          { rotate: `${leaf.spin * 0.25}deg` },
+        ],
+      }
     return {
       opacity: k < 0.6 ? 1 : Math.max(0, 1 - (k - 0.6) / 0.4),
       transform: [
@@ -210,6 +238,7 @@ export function Celebration({
   stats,
   record,
   play,
+  first = play,
 }: {
   /** Picks the accent (fitness or habits) and the icon. */
   kind: "workout" | "run" | "walk" | "routine"
@@ -220,31 +249,49 @@ export function Celebration({
   stats: { label: string; value: number; format: (n: number) => string }[]
   /** A record this session set: "Best pace yet · 5:12 /km". */
   record?: string
-  /** True only on the first showing after finishing. */
+  /** Plays the celebration: every time the finish page opens. */
   play: boolean
+  /** The first showing of this finish: the one success haptic. */
+  first?: boolean
 }) {
   const t = useTheme(),
     reduced = useReducedMotion(),
-    moving = play && !reduced,
     accent = kind === "routine" ? t.hab : t.fit,
     Icon = kind === "run" ? Activity : kind === "walk" ? Footprints : Dumbbell,
-    pop = useSharedValue(moving ? 0.9 : 1),
-    badge = useSharedValue(moving ? 0 : 1)
+    pop = useSharedValue(play && !reduced ? 0.9 : 1),
+    badge = useSharedValue(play ? 0 : 1)
   useEffect(() => {
-    if (play) feel.success()
-  }, [play])
+    if (first) feel.success()
+  }, [first])
+  // Runs when the page opens celebrating, or when the finish lands a beat
+  // after it opened. Never skipped by Reduce Motion: there the check fades
+  // in where it stands instead of springing.
   useEffect(() => {
-    if (!moving) return
-    pop.value = withDelay(MOTION.reveal, withSpring(1, MOTION.spring))
-    badge.value = withDelay(MOTION.commit, withSpring(1, MOTION.spring))
-  }, [moving, pop, badge])
+    if (!play) return
+    badge.value = 0
+    badge.value = withDelay(
+      MOTION.commit,
+      reduced
+        ? withTiming(1, { duration: MOTION.base, reduceMotion: never })
+        : withSpring(1, { ...MOTION.spring, reduceMotion: never }),
+      never,
+    )
+    if (reduced) return
+    pop.value = 0.9
+    pop.value = withDelay(
+      MOTION.reveal,
+      withSpring(1, { ...MOTION.spring, reduceMotion: never }),
+      never,
+    )
+  }, [play, reduced, pop, badge])
   const popStyle = useAnimatedStyle(() => ({
       transform: [{ scale: pop.value }],
     })),
-    badgeStyle = useAnimatedStyle(() => ({
-      opacity: badge.value,
-      transform: [{ scale: badge.value }],
-    }))
+    badgeStyle = useAnimatedStyle(() =>
+      reduced
+        ? { opacity: badge.value }
+        : { opacity: badge.value, transform: [{ scale: badge.value }] },
+    )
   return (
     <View
       testID="celebration"
@@ -258,7 +305,9 @@ export function Celebration({
           justifyContent: "center",
         }}
       >
-        {moving && <Burst colors={[t.fit, t.hab, t.nut, t.tsk, t.fin]} />}
+        {play && (
+          <Burst colors={[t.fit, t.hab, t.nut, t.tsk, t.fin]} calm={reduced} />
+        )}
         {/* Fern celebrates the finish, with what was finished beside it. */}
         <Animated.View
           style={[
@@ -368,7 +417,7 @@ export function Celebration({
               label={x.label}
               value={x.value}
               format={x.format}
-              play={moving}
+              play={play}
               color={i === 0 ? accent : t.text}
             />
           ))}

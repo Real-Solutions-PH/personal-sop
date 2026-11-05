@@ -19,9 +19,10 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
-import Animated, { FadeInDown } from "react-native-reanimated"
+import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { Celebration, useCelebrate } from "../celebration"
+import { useEnter } from "../motion"
 import {
   border,
   Copy,
@@ -268,13 +269,14 @@ function Sets({ workout }: { workout: Workout }) {
 }
 function Records({ prs, play = false }: { prs: C.Pr[]; play?: boolean }) {
   const s = fitStore.use((s) => s),
-    t = useTheme()
+    t = useTheme(),
+    enter = useEnter()
   return (
     <View style={{ gap: 8 }}>
       {prs.map((p, i) => (
         <Animated.View
           key={`${p.exerciseId}-${p.kind}`}
-          entering={play ? FadeInDown.delay(120 * i) : undefined}
+          entering={play ? enter(120 * i) : undefined}
         >
           <Tap
             onPress={() => go(`/fitness/exercises/${p.exerciseId}`)}
@@ -402,7 +404,7 @@ export function WorkoutDetail({
     [name, setName] = useState(w?.name ?? ""),
     [notes, setNotes] = useState(w?.notes ?? ""),
     // The summary alone plays and records it; the history page never does.
-    fresh = useCelebrate(id, summary)
+    celebrate = useCelebrate(id, summary)
   if (!w)
     return (
       <Screen title={summary ? "Summary" : "Workout"}>
@@ -425,7 +427,7 @@ export function WorkoutDetail({
       .filter((e) => C.isStalled(C.exerciseHistory(s, e.exerciseId)))
       .map((e) => s.exercises.find((x) => x.id === e.exerciseId)?.name)
   // Nothing to celebrate when every set was removed before finishing.
-  const play = summary && fresh && totals.done > 0,
+  const play = summary && celebrate.play && totals.done > 0,
     shareUrl = `/fitness/share/${id}?template=${prs.length ? "pr" : "summary"}`
   const save = () =>
     A.updateWorkoutMeta(id, { name: name.trim() || w.name, notes })
@@ -522,6 +524,7 @@ export function WorkoutDetail({
               },
             ]}
             play={play}
+            first={play && celebrate.first}
           />
           {delta !== undefined && (
             <Copy
