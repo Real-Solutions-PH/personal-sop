@@ -5852,6 +5852,28 @@ export const FoodOutSchema = {
             type: 'string',
             title: 'Source'
         },
+        source_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Source Url'
+        },
+        barcode: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Barcode'
+        },
         verified: {
             type: 'boolean',
             title: 'Verified'

@@ -1555,6 +1555,8 @@ export type FoodOut = {
     sodium: (number | null);
     notes?: (string | null);
     source: string;
+    source_url?: (string | null);
+    barcode?: (string | null);
     verified: boolean;
     use_count: number;
     last_used_at: (string | null);

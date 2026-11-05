@@ -6,15 +6,27 @@ Meal logging checks the library first, so a food read once from its label
 gives the same numbers every time; only foods it has never seen fall back to
 an estimate. Matching is by folded name or alias, then by every word of the
 food's name appearing in what was said ("2 eggs" finds "Egg, whole,
-hard-boiled" only through an alias, never by guesswork on one word)."""
+hard-boiled" only through an alias, never by guesswork on one word).
+
+The library also holds whole public databases (``food_import``: USDA
+FoodData Central, Open Food Facts), so it runs to tens of thousands of
+foods. Lookups never load all of them: they read the foods sharing a word
+with what was said through a full-text index (``SEARCH_DOC``), then rank
+them: the household's own foods first (verified before not), then USDA,
+then Open Food Facts. An imported food is matched only by its name or an
+alias, or by exactly the words said; never because a few of its words
+appear in a longer dish name."""
 
 import difflib
+import math
 import re
 import uuid
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
-from sqlmodel import col
+from sqlalchemy import ColumnElement, TextClause, case, or_
+from sqlalchemy import text as sql
+from sqlmodel import col, func
 
 from app.modules.fitness.models import FoodItem
 from app.modules.media import public as media_public
@@ -105,14 +117,122 @@ class FoodDraft:
     source: str = "said"
     source_url: str | None = None
     external_ref: str | None = None
+    barcode: str | None = None
     notes: str | None = None
     verified: bool = False
 
 
-def _live(ctx: Ctx) -> list[FoodItem]:
-    return owned_repo.list_rows(
-        ctx, FoodItem, order_by=[col(FoodItem.created_at), col(FoodItem.id)]
+# Rows a bulk import made (``food_import``) are keyed "<source>:<id>"; a
+# household food may carry the same ``source`` (Kai's Notion rows say
+# "usda") and is still theirs.
+BULK_PREFIXES = ("usda:", "off:", "philfct:")
+SOURCE_LABEL = {
+    "usda": "USDA FoodData Central",
+    "off": "Open Food Facts",
+    "philfct": "Philippine Food Composition Tables (FNRI)",
+}
+# The text the full-text index covers: the folded name and the aliases.
+# The migration ``1d09f03e3aac`` builds ``ix_food_item_search`` on this
+# exact expression; change both together or the index goes unused.
+SEARCH_DOC = "to_tsvector('simple'::regconfig, key || ' ' || aliases::text)"
+# The most foods one lookup reads (a word like "chicken" is in hundreds).
+CANDIDATES = 600
+
+
+def is_bulk(f: FoodItem) -> bool:
+    """Whether a bulk import of a public database made this food."""
+    return (getattr(f, "external_ref", None) or "").startswith(BULK_PREFIXES)
+
+
+def tier(f: FoodItem) -> int:
+    """How much a food is trusted, best first: the household's own verified
+    foods, their other foods, then USDA (and FNRI), then Open Food Facts."""
+    if not is_bulk(f):
+        return 0 if getattr(f, "verified", False) else 1
+    return 3 if f.source == "off" else 2
+
+
+def _bulk_sql() -> Any:
+    # COALESCE: a NULL ref must read as "not bulk", not as unknown.
+    ref = func.coalesce(col(FoodItem.external_ref), "")
+    return or_(*(ref.startswith(p) for p in BULK_PREFIXES))
+
+
+def tier_sql() -> Any:
+    """``tier`` as a SQL expression, for ORDER BY."""
+    bulk = _bulk_sql()
+    return case(
+        (~bulk & col(FoodItem.verified), 0),
+        (~bulk, 1),
+        (col(FoodItem.source) == "off", 3),
+        else_=2,
     )
+
+
+def _tokens(texts: list[str]) -> list[str]:
+    """Every word of ``texts``, with its singular and plural, for the
+    full-text query."""
+    out: set[str] = set()
+    for t in texts:
+        for w in fold(t).split():
+            out.add(w)
+            out.add(_plain(w))
+            if len(w) > 2 and not w.endswith("s"):
+                out.add(w + "s")
+    return sorted(out)
+
+
+def _matching(tokens: list[str], name: str) -> TextClause:
+    return sql(f"{SEARCH_DOC} @@ to_tsquery('simple'::regconfig, :{name})").bindparams(
+        **{name: " | ".join(tokens)}
+    )
+
+
+def _candidates(ctx: Ctx, texts: list[str]) -> list[FoodItem]:
+    """The live foods sharing a word with any of ``texts``, most trusted
+    first, then those sharing the most words; at most ``CANDIDATES``."""
+    tokens = _tokens(texts)
+    if not tokens:
+        return []
+    rank = sql(
+        f"ts_rank({SEARCH_DOC}, to_tsquery('simple'::regconfig, :qr)) DESC"
+    ).bindparams(qr=" | ".join(tokens))
+    return owned_repo.list_rows(
+        ctx,
+        FoodItem,
+        cast(ColumnElement[bool], _matching(tokens, "qm")),
+        order_by=[tier_sql(), rank, func.length(col(FoodItem.key)), col(FoodItem.id)],
+        limit=CANDIDATES,
+    )
+
+
+def _candidates_each(ctx: Ctx, names: list[str]) -> list[FoodItem]:
+    """``_candidates`` for each name on its own, together: one shared query
+    would spend its ``CANDIDATES`` on the commonest word ("chicken") and
+    drop another item's foods ("banana")."""
+    out: dict[Any, FoodItem] = {}
+    for n in dict.fromkeys(names):
+        for r in _candidates(ctx, [n]):
+            out.setdefault(r.id, r)
+    return list(out.values())
+
+
+def _ranked(rows: list[FoodItem]) -> list[FoodItem]:
+    """Rows in trust order (stable: the caller's order within a tier)."""
+    return sorted(rows, key=tier)
+
+
+_NOT_FOOD_WORDS = COUNT_UNITS | GRAM_UNITS
+
+
+def _core_words(name: str) -> set[str]:
+    """The words that name the food itself: no amounts or units, plurals
+    folded ("2 cups cooked white rice" is {cooked, white, rice})."""
+    return {
+        _plain(w)
+        for w in _words(name)
+        if w not in _NOT_FOOD_WORDS and not any(ch.isdigit() for ch in w)
+    }
 
 
 def _plain(name: str) -> str:
@@ -128,6 +248,7 @@ def same_food(name: str, rows: list[FoodItem]) -> FoodItem | None:
     name or alias, the same words but for plurals, or one food whose name is
     a close spelling of it ("japanese siomai" for "Japanese siomai")."""
     key = fold(name)
+    rows = _ranked(rows)
     for r in rows:
         if r.key == key or key in (r.aliases or []):
             return r
@@ -152,12 +273,25 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
     key = fold(d.name)
     if not key:
         raise ValueError("a food needs a name")
-    rows = _live(ctx)
-    by_ref = next(
-        (r for r in rows if d.external_ref and r.external_ref == d.external_ref),
-        None,
+    rows = _candidates(ctx, [d.name, *d.aliases])
+    by_ref = (
+        owned_repo.list_rows(
+            ctx, FoodItem, col(FoodItem.external_ref) == d.external_ref, limit=1
+        )
+        if d.external_ref
+        else []
     )
-    row = by_ref or same_food(d.name, rows)
+    row = (by_ref[0] if by_ref else None) or same_food(d.name, rows)
+    # A food the household saves (a label, what they said) never rewrites
+    # an imported one it only resembles ("Banana" is an alias of USDA's
+    # "Bananas, raw"): it becomes their own food, which then ranks first.
+    if (
+        row is not None
+        and is_bulk(row)
+        and not (d.external_ref or "").startswith(BULK_PREFIXES)
+        and row.key != key
+    ):
+        row = None
     if row is not None and not owned_repo.can_write(ctx, row):
         return row, False
     aliases = sorted({fold(a) for a in d.aliases if fold(a) and fold(a) != key})
@@ -180,6 +314,7 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
         "source": d.source,
         "source_url": d.source_url,
         "external_ref": d.external_ref,
+        "barcode": d.barcode,
         "notes": d.notes,
         "verified": d.verified,
     }
@@ -187,7 +322,7 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
         return owned_repo.insert(ctx, FoodItem, values | {"aliases": aliases}), True
     # Keep the name it is known by (the said one becomes an alias) and the
     # aliases learned earlier; the new values replace the old ones.
-    if by_ref is None and row.key != key:
+    if not by_ref and row.key != key:
         values["name"], values["key"] = row.name, row.key
         aliases.append(key)
     merged = sorted(set(row.aliases or []) | set(aliases) - {row.key})
@@ -216,16 +351,23 @@ def match_food(
     key = fold(name)
     if not key:
         return None, False
-    rows = _live(ctx) if rows is None else rows
+    rows = _ranked(_candidates(ctx, [name]) if rows is None else rows)
     for r in rows:
         if r.key == key or key in (r.aliases or []):
             return r, True
     said = _words(name)
+    core = _core_words(name)
     best: tuple[int, FoodItem] | None = None
     for r in rows:
         for cand in [r.key, *(r.aliases or [])]:
             words = _words(cand)
-            if words and words <= said and (best is None or len(words) > best[0]):
+            if not words or not words <= said:
+                continue
+            # An imported food only by exactly the words said: "Chicken,
+            # broiler, meat only" must not stand in for "chicken adobo".
+            if is_bulk(r) and _core_words(cand) != core:
+                continue
+            if best is None or len(words) > best[0]:
                 best = (len(words), r)
     return (best[1], False) if best else (None, False)
 
@@ -237,19 +379,75 @@ def _agrees(item: dict[str, Any], values: dict[str, Any]) -> bool:
     return abs(mine - theirs) <= max(40.0, theirs / 3)
 
 
+def _names_words(f: FoodItem) -> list[set[str]]:
+    return [{_plain(w) for w in _words(n)} for n in [f.key, *(f.aliases or [])]]
+
+
+def _relevance(
+    query: str, f: FoodItem, weight: dict[str, float]
+) -> tuple[int, float, float]:
+    """How well a food's name or best alias answers ``query``: (1 for the
+    very name or alias else 0, the share of the query's words it has, each
+    word weighted by how rare it is (``weight``), and the share of its own
+    words the query has)."""
+    key = fold(query)
+    if f.key == key or key in (f.aliases or []):
+        return 1, 1.0, 1.0
+    q = _core_words(query) or {_plain(w) for w in _words(query)}
+    total = sum(weight.get(w, 1.0) for w in q) or 1.0
+    best = (0, 0.0, 0.0)
+    for c in _names_words(f):
+        common = q & c
+        if common and c:
+            share = sum(weight.get(w, 1.0) for w in common) / total
+            best = max(best, (0, round(share, 2), round(len(common) / len(c), 2)))
+    return best
+
+
+def rank_foods(query: str, rows: list[FoodItem]) -> list[FoodItem]:
+    """Foods sharing a word with ``query``, best answer first: the very
+    name, then the most of the query's words, the rarer words counting
+    more ("fried tilapia" is tilapia first: hundreds of foods are fried);
+    among equals the most trusted source (``tier``), then the closest name,
+    then the most used."""
+    q = _core_words(query) or {_plain(w) for w in _words(query)}
+    seen = [set().union(*_names_words(r)) for r in rows]
+    weight = {w: 1 / math.log(2 + sum(w in ws for ws in seen)) for w in q}
+    scored = [(_relevance(query, r, weight), r) for r in rows]
+    scored = [(s, r) for s, r in scored if s[1] > 0]
+    scored.sort(
+        key=lambda sr: (
+            -sr[0][0],
+            -sr[0][1],
+            tier(sr[1]),
+            -sr[0][2],
+            -(sr[1].use_count or 0),
+            len(sr[1].name),
+            sr[1].name,
+        )
+    )
+    return [r for _, r in scored]
+
+
+def own_or_used() -> Any:
+    """The household's own foods and imported ones they have eaten."""
+    bulk = _bulk_sql()
+    return or_(~bulk, col(FoodItem.use_count) > 0)
+
+
 def search_foods(ctx: Ctx, query: str, limit: int = 15) -> list[FoodItem]:
-    """Library foods sharing a word with ``query`` (all of them when it is
-    empty), most used first."""
-    rows = _live(ctx)
-    words = _words(query)
-    if words:
-        rows = [
-            r
-            for r in rows
-            if words & (_words(r.key) | {w for a in r.aliases or [] for w in _words(a)})
-        ]
-    rows.sort(key=lambda r: (-(r.use_count or 0), r.name))
-    return rows[:limit]
+    """Library foods sharing a word with ``query``, best answer first
+    (``rank_foods``); with no query, the household's own and eaten foods,
+    most used first."""
+    if not _words(query):
+        return owned_repo.list_rows(
+            ctx,
+            FoodItem,
+            own_or_used(),
+            order_by=[col(FoodItem.use_count).desc(), col(FoodItem.name)],
+            limit=limit,
+        )
+    return rank_foods(query, _candidates(ctx, [query]))[:limit]
 
 
 def factor(food: FoodItem, qty: float, unit: str) -> float | None:
@@ -332,7 +530,7 @@ def _library_match(
 def library_hits(ctx: Ctx, items: list[dict[str, Any]]) -> list[bool]:
     """Which items ``apply_library`` would take from the library. Reads
     only: nothing is counted as used."""
-    rows = _live(ctx)
+    rows = _candidates_each(ctx, [str(it.get("name", "")) for it in items])
     return [bool(rows) and _library_match(ctx, it, rows) is not None for it in items]
 
 
@@ -343,12 +541,13 @@ def library_candidates(
     food's name (or alias) are one inside the other ("rice" and "White
     rice, long-grain, cooked"), with up to ``limit`` such foods, most used
     first. Reads only."""
-    rows = _live(ctx)
+    rows = _candidates_each(ctx, [str(it.get("name", "")) for it in items])
     out: list[dict[str, Any]] = []
     for it in items:
         if not rows or _library_match(ctx, it, rows) is not None:
             continue
-        said = _words(str(it.get("name", "")))
+        name = str(it.get("name", ""))
+        said = _words(name)
         near = [
             r
             for r in rows
@@ -359,7 +558,7 @@ def library_candidates(
             )
         ]
         if near:
-            near.sort(key=lambda r: (-(r.use_count or 0), r.name))
+            near = rank_foods(name, near)
             out.append(
                 {
                     "item": it.get("name"),
@@ -376,7 +575,7 @@ def apply_library(
     matches and the amount can be scaled; the rest unchanged. Returns the
     items and the names of the library foods used (each one's use is
     counted). Flushes only."""
-    rows = _live(ctx)
+    rows = _candidates_each(ctx, [str(it.get("name", "")) for it in items])
     if not rows:
         return items, []
     used: list[str] = []
@@ -391,7 +590,11 @@ def apply_library(
         # keeps the item's own estimate. Seen live 2026-11-02: saved foods
         # with calories and macros only wiped the sugar, sodium and
         # saturated fat of every meal that named them.
-        said = f"From your food library: {food.name}"
+        said = (
+            f"From {SOURCE_LABEL[food.source]} (food library): {food.name}"
+            if is_bulk(food)
+            else f"From your food library: {food.name}"
+        )
         grams = item_grams(it)
         if grams and str(it.get("unit") or "").strip().lower() not in GRAM_UNITS:
             said += f", about {grams:g} g"
@@ -419,7 +622,7 @@ def food_public(f: FoodItem) -> dict[str, Any]:
         "aliases": f.aliases or [],
         "source": f.source,
         "verified": f.verified,
-    }
+    } | ({"from": SOURCE_LABEL[f.source]} if is_bulk(f) else {})
 
 
 # What a person can change on a saved food.
@@ -446,7 +649,13 @@ def update_food(ctx: Ctx, food_id: uuid.UUID, changes: dict[str, Any]) -> FoodIt
         key = fold(str(data["name"]))
         if not key:
             raise ValueError("a food needs a name")
-        if any(r.key == key and r.id != row.id for r in _live(ctx)):
+        if owned_repo.list_rows(
+            ctx,
+            FoodItem,
+            col(FoodItem.key) == key[:160],
+            col(FoodItem.id) != row.id,
+            limit=1,
+        ):
             raise conflict("food_name_taken", "Another food already has that name")
         data["name"] = str(data["name"]).strip()[:160]
         data["key"] = key[:160]

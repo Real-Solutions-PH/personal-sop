@@ -3,9 +3,14 @@
 // and Save sends only what changed; everyone else reads it. Every save and
 // photo change reports how it went.
 import { Image } from "expo-image"
-import { BadgeCheck, BookOpen, CloudOff } from "lucide-react-native"
+import {
+  BadgeCheck,
+  BookOpen,
+  CloudOff,
+  ExternalLink,
+} from "lucide-react-native"
 import { useState } from "react"
-import { ActivityIndicator, View } from "react-native"
+import { ActivityIndicator, Linking, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { ApiError } from "@/live/http"
@@ -13,8 +18,10 @@ import {
   type FoodPatch,
   foodEditError,
   type LibraryFood,
+  sourceCredit,
   useFood,
   useFoodEdits,
+  verifiedLabel,
 } from "@/live/nutrition-foods"
 import { pickPhoto } from "../media"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
@@ -367,7 +374,8 @@ function FoodBody({ food }: { food: LibraryFood }) {
       },
     })
   }
-  const uploading = edits.photo.isPending
+  const uploading = edits.photo.isPending,
+    credit = sourceCredit(food)
   const chip = (label: string, active: boolean, press: () => void) => (
     <Tap
       key={label}
@@ -439,7 +447,7 @@ function FoodBody({ food }: { food: LibraryFood }) {
           <Line style={{ gap: 4 }}>
             <BadgeCheck size={14} color={t.good} />
             <Copy size={12} muted>
-              Read from a label
+              {verifiedLabel(food)}
             </Copy>
           </Line>
         )}
@@ -449,9 +457,36 @@ function FoodBody({ food }: { food: LibraryFood }) {
           </Copy>
         )}
       </Line>
+      {credit &&
+        (food.source_url ? (
+          <Tap
+            label={`${credit.text}. Opens ${credit.site}`}
+            onPress={() => {
+              if (food.source_url) void Linking.openURL(food.source_url)
+            }}
+            style={{ alignSelf: "center" }}
+          >
+            <Line style={{ gap: 4, justifyContent: "center" }}>
+              <Copy
+                size={12}
+                muted
+                style={{ textAlign: "center", flexShrink: 1 }}
+              >
+                {credit.text}
+              </Copy>
+              <ExternalLink size={12} color={t.muted} />
+            </Line>
+          </Tap>
+        ) : (
+          <Copy size={12} muted style={{ textAlign: "center" }}>
+            {credit.text}
+          </Copy>
+        ))}
       {liveMode && !editable && (
         <Copy size={12} muted style={{ textAlign: "center" }}>
-          Added by another member — only they can edit it.
+          {credit
+            ? "Imported for everyone — only an admin can edit it."
+            : "Added by another member — only they can edit it."}
         </Copy>
       )}
       {editable ? (

@@ -8166,7 +8166,7 @@
       "get": {
         "tags": ["nutrition"],
         "summary": "List Foods",
-        "description": "The shared food library, most used first; ``q`` narrows it to foods\nwhose name contains the text.",
+        "description": "The shared food library, most used first; ``q`` narrows it to foods\nwhose name contains the text. With no ``q`` it lists the household's\nown foods and the imported ones (USDA, Open Food Facts) they have eaten;\na search covers every food, the most trusted source first.",
         "operationId": "nutrition-list_foods",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -22994,6 +22994,14 @@
             "title": "Notes"
           },
           "source": { "type": "string", "title": "Source" },
+          "source_url": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Source Url"
+          },
+          "barcode": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Barcode"
+          },
           "verified": { "type": "boolean", "title": "Verified" },
           "use_count": { "type": "integer", "title": "Use Count" },
           "last_used_at": {

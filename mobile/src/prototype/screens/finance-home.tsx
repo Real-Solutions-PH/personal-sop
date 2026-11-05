@@ -51,6 +51,7 @@ import {
   TopPayeesCard,
   WeekdayCard,
 } from "./finance-report-cards"
+import { UpcomingWeek } from "./finance-upcoming"
 import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 
 export const sourceLabel = (source: FinRecord["source"]) =>
@@ -379,6 +380,9 @@ export function FinanceHome({
               </Line>
             </Tap>
           </Frame>
+          {/* What falls due this week, straight under the net worth so it is
+              on the first screen. */}
+          <UpcomingWeek />
           {/* Where the money is kept, under what it adds up to: one wallet
               card per account, each opening its account. */}
           <SectionHeading

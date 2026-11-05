@@ -451,8 +451,14 @@ def names_for_speech(ctx: Ctx, *, limit: int = 60) -> tuple[list[str], list[str]
     ex = owned_repo.list_rows(
         ctx, Exercise, order_by=[col(Exercise.updated_at).desc()], limit=limit
     )
+    # The household's own foods and the imported ones they eat: an import
+    # touches thousands of rows at once, none of them words they say.
     foods = owned_repo.list_rows(
-        ctx, FoodItem, order_by=[col(FoodItem.updated_at).desc()], limit=limit
+        ctx,
+        FoodItem,
+        food_library.own_or_used(),
+        order_by=[col(FoodItem.updated_at).desc()],
+        limit=limit,
     )
     return [e.name for e in ex], [f.name for f in foods]
 

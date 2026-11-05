@@ -8,7 +8,7 @@ import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlmodel import col, or_
+from sqlmodel import col, func, or_
 
 from app.modules.fitness import food_library
 from app.modules.fitness.models import FoodItem
@@ -54,17 +54,27 @@ def list_foods(
     q: Annotated[str | None, Query(max_length=80)] = None,
 ) -> Any:
     """The shared food library, most used first; ``q`` narrows it to foods
-    whose name contains the text."""
-    where = []
+    whose name contains the text. With no ``q`` it lists the household's
+    own foods and the imported ones (USDA, Open Food Facts) they have eaten;
+    a search covers every food, the most trusted source first."""
     text = (q or "").strip()
     if text:
         like = f"%{text}%"
-        where.append(or_(col(FoodItem.name).ilike(like), col(FoodItem.key).ilike(like)))
+        where = [or_(col(FoodItem.name).ilike(like), col(FoodItem.key).ilike(like))]
+        order = [
+            food_library.tier_sql(),
+            col(FoodItem.use_count).desc(),
+            func.length(col(FoodItem.name)),
+            col(FoodItem.name),
+        ]
+    else:
+        where = [food_library.own_or_used()]
+        order = [col(FoodItem.use_count).desc(), col(FoodItem.name)]
     rows = owned_repo.list_rows(
         ctx,
         FoodItem,
         *where,
-        order_by=[col(FoodItem.use_count).desc(), col(FoodItem.name)],
+        order_by=order,
         skip=pagination.skip,
         limit=pagination.limit,
     )

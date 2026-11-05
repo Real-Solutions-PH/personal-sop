@@ -128,6 +128,37 @@ test("a food another member added reads only, and says why", async () => {
   expect(screen.queryByLabelText("Add food photo")).toBeNull()
 })
 
+test("an Open Food Facts product credits it and links its page", async () => {
+  const { Linking } = require("react-native")
+  const open = jest.spyOn(Linking, "openURL").mockResolvedValue(true)
+  const url = "https://world.openfoodfacts.org/product/4800016644290"
+  mockRequest.mockResolvedValue({
+    ...food,
+    source: "off",
+    verified: false,
+    source_url: url,
+    can_edit: false,
+  })
+  show()
+  const credit = "From Open Food Facts, under the Open Database License (ODbL)"
+  expect(await screen.findByText(credit)).toBeTruthy()
+  expect(
+    screen.getByText("Imported for everyone — only an admin can edit it."),
+  ).toBeTruthy()
+  fireEvent.press(screen.getByLabelText(`${credit}. Opens openfoodfacts.org`))
+  expect(open).toHaveBeenCalledWith(url)
+})
+
+test("a USDA food says its values are lab-analysed, not from a label", async () => {
+  mockRequest.mockResolvedValue({ ...food, source: "usda", can_edit: false })
+  show()
+  expect(await screen.findByText("Lab-analysed values")).toBeTruthy()
+  expect(
+    screen.getByText("From USDA FoodData Central (public domain)"),
+  ).toBeTruthy()
+  expect(screen.queryByText("Read from a label")).toBeNull()
+})
+
 test("Save sends only the changed fields and reports it", async () => {
   mockRequest.mockResolvedValue(food)
   show()

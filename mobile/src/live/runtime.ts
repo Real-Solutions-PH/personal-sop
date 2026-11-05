@@ -107,9 +107,9 @@ export function startLive(
     storage.setItem(OWNER_KEY, userId)
   }
   // A device that has pulled before already holds this account's state.
-  syncReady.setState({
-    ready: isNew || Number(storage.getItem("sop-live:cursor") ?? 0) > 0,
-  })
+  const pulledBefore = () => Number(storage.getItem("sop-live:cursor") ?? 0) > 0
+  syncReady.setState({ ready: isNew || pulledBefore(), failed: false })
+  let reached = false
   let syncing: SyncEngine | null = null
   const stats = createStats({
     http,
@@ -132,6 +132,8 @@ export function startLive(
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
     onSynced: () => {
+      reached = true
+      syncReady.setState({ failed: false })
       // Once per account on this device, after a pull really reached the
       // server (a new account's first pull can be empty): the gym library
       // and splits, measured against the account's own rows.
@@ -213,7 +215,12 @@ export function startLive(
   })
   const interval = setInterval(() => void engine.sync(), 60_000)
   const stopSocial = startSocialLive(userId, onServerEvent)
-  void engine.sync().finally(() => syncReady.setState({ ready: true }))
+  void engine.sync().finally(() =>
+    syncReady.setState({
+      ready: true,
+      failed: !isNew && !reached && !pulledBefore(),
+    }),
+  )
   void registerPushDevice({ http })
   active = {
     engine,

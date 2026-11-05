@@ -29,7 +29,14 @@ class FoodOut(BaseModel):
     sugar: float | None
     sodium: float | None
     notes: str | None = None
+    # label, brand, said, recipe, import, usda (USDA FoodData Central),
+    # philfct (FNRI) or off (Open Food Facts, credited where it shows).
     source: str
+    # The page the values came from (a USDA food or an Open Food Facts
+    # product page), when known.
+    source_url: str | None = None
+    # A packaged product's EAN/UPC barcode.
+    barcode: str | None = None
     verified: bool
     use_count: int
     last_used_at: datetime | None
