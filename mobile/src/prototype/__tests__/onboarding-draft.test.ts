@@ -72,7 +72,15 @@ beforeEach(() => {
   // Two identities, fitness off, steady pace, 06:30 / 21:30, about answers.
   D.editDraft({
     identities: ["I show up every day", "I finish what I start"],
-    enabled: { ...D.newDraft().enabled, fitness: false },
+    enabled: {
+      habits: true,
+      tasks: true,
+      fitness: false,
+      nutrition: true,
+      focus: true,
+      finance: true,
+      screen: false,
+    },
     pace: "steady",
     targets: {
       habits: 80,
@@ -161,6 +169,21 @@ test("Journal and Community picked in onboarding go to the account's extras", as
     weather: true,
     calendar: true,
   })
+})
+
+test("sign-up keeps the modules most wanted first for setup", async () => {
+  const { setupFirstStore } =
+    require("../setup-first") as typeof import("../setup-first")
+  await session.completeSignUp()
+  // "I show up every day", "I finish what I start", then a student's Tasks
+  // (already in), then the ones ticked by hand in the app's order.
+  expect(setupFirstStore.get().first).toEqual([
+    "habits",
+    "tasks",
+    "nutrition",
+    "focus",
+    "finance",
+  ])
 })
 
 test("a draft saved before Journal and Community were offered keeps both on", () => {

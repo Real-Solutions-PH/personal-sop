@@ -61,6 +61,7 @@ import {
 } from "../onboarding-draft"
 import { enableReminders } from "../reminders"
 import { screenTimeAvailable } from "../screen-time"
+import { SETUP_TIME } from "../setup-first"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { AccountForm } from "./auth-sign-up"
@@ -101,12 +102,12 @@ const EXTRA_ROWS: Record<
   journal: {
     icon: BookOpen,
     label: "Journal",
-    note: "Reflections and your day's story",
+    note: "Reflections and your day's story · no setup",
   },
   social: {
     icon: Users,
     label: "Community",
-    note: "Friends, stories and shared wins",
+    note: "Friends, stories and shared wins · no setup",
   },
 }
 export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
@@ -255,7 +256,7 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
       modules: {
         icon: LayoutGrid,
         title: "What do you want to track?",
-        body: "Turn off what you don't need. Data is kept if you switch later.",
+        body: "Ticked from who you're becoming. Each one you add asks a quick setup, so start with what matters. Add the rest anytime.",
       },
       targets: {
         icon: Target,
@@ -554,13 +555,13 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                       {areaIcon(k, 40)}
                       <View style={{ flex: 1 }}>
                         <Copy weight="semibold">{AREA[k].label}</Copy>
-                        {k === "screen" && (
-                          <Copy size={12} muted>
-                            {screenTimeAvailable()
-                              ? "Needs Screen Time access"
+                        <Copy size={12} muted>
+                          {k !== "screen"
+                            ? `${SETUP_TIME[k]} setup`
+                            : screenTimeAvailable()
+                              ? `${SETUP_TIME[k]} setup · needs Screen Time access`
                               : "Not in this version of Unfurl yet"}
-                          </Copy>
-                        )}
+                        </Copy>
                       </View>
                       <View
                         style={{
@@ -650,10 +651,14 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
                 </Line>
               </View>
               {button(
-                "Next",
+                Object.values(enabled).some(Boolean) ||
+                  Object.values(extras).some(Boolean)
+                  ? "Next"
+                  : "Pick at least one",
                 next,
                 false,
-                !Object.values(enabled).some(Boolean),
+                !Object.values(enabled).some(Boolean) &&
+                  !Object.values(extras).some(Boolean),
               )}
             </>
           )}

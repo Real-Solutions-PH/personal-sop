@@ -6,7 +6,6 @@ import {
   setOnboarded,
   skipSetup,
 } from "@domain/dash/store"
-import { finStore } from "@domain/finance/store"
 import {
   logWeighIn,
   setMacroTarget,
@@ -25,9 +24,7 @@ import { saveFocusSettings } from "@domain/focus/actions"
 import { PRESETS, type PresetKey } from "@domain/focus/data"
 import { focusStore } from "@domain/focus/store"
 import { createHabit, type HabitInput } from "@domain/habits/actions"
-import { habitsStore } from "@domain/habits/store"
 import { captureTasks } from "@domain/tasks/actions"
-import { tasksStore } from "@domain/tasks/store"
 import { useLocalSearchParams } from "expo-router"
 import {
   ArrowLeft,
@@ -59,8 +56,14 @@ import {
   Tap,
 } from "../native-kit"
 import { back, go, replace } from "../navigation"
-import { enableScreenTime, screenStatus, useScreenSetUp } from "../screen-sync"
+import { enableScreenTime, screenStatus } from "../screen-sync"
 import { screenTimeAvailable } from "../screen-time"
+import {
+  firstRunSteps,
+  SETUP_TIME,
+  setupFirstStore,
+  useSetUp,
+} from "../setup-plan"
 import { AccentContext, fonts, useTheme } from "../theme"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
@@ -76,41 +79,34 @@ const ORDER: ModuleKey[] = [
   "tasks",
 ]
 
-const STEP: Record<ModuleKey, { title: string; why: string; time: string }> = {
+const STEP: Record<ModuleKey, { title: string; why: string }> = {
   finance: {
     title: "Your accounts & balances",
     why: "Where your money lives today — the starting point for net worth and savings.",
-    time: "1 min",
   },
   habits: {
     title: "A few starter habits",
     why: "Pick two or three. Small ones stick.",
-    time: "30 sec",
   },
   fitness: {
     title: "Your training baseline",
     why: "Today's weight and the split you run, so progress has a day 1.",
-    time: "30 sec",
   },
   nutrition: {
     title: "Your daily targets",
     why: "Your calories and macros, worked out from your body and goal. Adjust anything.",
-    time: "30 sec",
   },
   focus: {
     title: "Your daily focus goal",
     why: "How many hours of deep work a day counts as a good day, and the timer you like.",
-    time: "15 sec",
   },
   screen: {
     title: "Connect Screen Time",
     why: "Pick the apps to count, like social media or games, and how many minutes a day is enough.",
-    time: "1 min",
   },
   tasks: {
     title: "What's on your plate",
     why: "Dump what's in your head. Dates like 'friday' are picked up for you.",
-    time: "1 min",
   },
 }
 
@@ -186,42 +182,50 @@ const modules = {
 export function Setup() {
   const t = useTheme(),
     safe = useSafeAreaInsets(),
-    params = useLocalSearchParams<{ step?: ModuleKey }>(),
+    // ``return``: opened from a module's screen the first time it was
+    // opened (FirstOpenSetup); done or skipped, it goes back there.
+    params = useLocalSearchParams<{ step?: ModuleKey; return?: string }>(),
+    single = !!params.return,
     [step, setStep] = useState<ModuleKey | null>(
       params.step && ORDER.includes(params.step) ? params.step : null,
     ),
     enabled = dashStore.use((s) => s.enabled),
     skipped = dashStore.use((s) => s.setupSkipped),
-    // The last part of onboarding: nothing here can be skipped or left
-    // until every section is set up. Afterwards it is "Run setup again".
+    // The last part of onboarding asks about only the one or two modules
+    // the person cares about most, each skippable; the rest are offered
+    // the first time their screen opens, and Today's "Finish setting up"
+    // card keeps them in view. Afterwards it is "Run setup again".
     firstRun = !dashStore.use((s) => s.onboarded),
-    has = {
-      finance: finStore.use((s) => s.accounts.length > 0),
-      habits: habitsStore.use((s) => s.habits.length > 0),
-      fitness: fitStore.use(
-        (s) => s.templates.length + s.workouts.length + s.weighIns.length > 0,
-      ),
-      nutrition: fitStore.use((s) => s.targets.length + s.meals.length > 0),
-      focus: focusStore.use((s) => s.settingsSaved || s.sessions.length > 0),
-      screen: useScreenSetUp(),
-      tasks: tasksStore.use((s) => s.tasks.length > 0),
-    },
+    first = setupFirstStore.use((s) => s.first),
+    has = useSetUp(),
     // A phone that can't read Screen Time has no Screen time step.
-    steps = ORDER.filter(
+    all = ORDER.filter(
       (k) => enabled[k] && (k !== "screen" || screenTimeAvailable()),
     ),
+    steps = firstRun ? firstRunSteps(all, first) : all,
     pending = steps.filter((k) => !has[k]),
     allDone = (firstRun || steps.length > 0) && !pending.length
   const finishOnboarding = () => {
     setOnboarded(true)
     replace("/today")
   }
-  const advance = (k: ModuleKey) =>
-    setStep(
-      steps
-        .slice(steps.indexOf(k) + 1)
-        .find((x) => pending.includes(x) && x !== k) ?? null,
-    )
+  const advance = (k: ModuleKey) => {
+    if (single) return back(params.return)
+    // On the first run a skipped step is not asked again: past the last
+    // one, onboarding is finished.
+    const skippedNow = dashStore.get().setupSkipped,
+      nextStep =
+        steps
+          .slice(steps.indexOf(k) + 1)
+          .find(
+            (x) =>
+              pending.includes(x) &&
+              x !== k &&
+              !(firstRun && skippedNow.includes(x)),
+          ) ?? null
+    if (!nextStep && firstRun) return finishOnboarding()
+    setStep(nextStep)
+  }
   const icon = (k: ModuleKey, size = 32) => {
     const I = modules[k].icon,
       color = t[modules[k].color]
@@ -258,11 +262,13 @@ export function Setup() {
             label={step ? "Back to setup" : firstRun ? "Back" : "Close"}
             color={t.text}
             onPress={() =>
-              step
-                ? setStep(null)
-                : firstRun
-                  ? back("/onboarding")
-                  : go("/today")
+              single
+                ? back(params.return)
+                : step
+                  ? setStep(null)
+                  : firstRun
+                    ? back("/onboarding")
+                    : go("/today")
             }
           />
           {step && (
@@ -281,20 +287,19 @@ export function Setup() {
                   />
                 ))}
               </Line>
-              {!firstRun && (
-                <Tap
-                  onPress={() => {
-                    if (step === "screen") screenTimeOff()
-                    else skipSetup(step)
-                    advance(step)
-                  }}
-                  style={{ padding: 8 }}
-                >
-                  <Copy size={14} muted>
-                    Skip
-                  </Copy>
-                </Tap>
-              )}
+              <Tap
+                label={`Skip ${AREA[step].label} setup`}
+                onPress={() => {
+                  if (step === "screen") screenTimeOff()
+                  else skipSetup(step)
+                  advance(step)
+                }}
+                style={{ padding: 8 }}
+              >
+                <Copy size={14} muted>
+                  Skip
+                </Copy>
+              </Tap>
             </>
           )}
         </Line>
@@ -325,11 +330,7 @@ export function Setup() {
             <AccentContext.Provider value={modules[step].color}>
               <View style={{ flex: 1 }}>
                 {step === "finance" ? (
-                  <FinanceSetup
-                    embedded
-                    canSkip={!firstRun}
-                    onDone={() => advance(step)}
-                  />
+                  <FinanceSetup embedded canSkip onDone={() => advance(step)} />
                 ) : step === "habits" ? (
                   <HabitsStep onDone={() => advance(step)} />
                 ) : step === "fitness" ? (
@@ -355,7 +356,7 @@ export function Setup() {
               {allDone
                 ? "Every section has its starting data. Change any of it later from the section itself."
                 : firstRun
-                  ? "A few quick steps so every section starts with your real numbers."
+                  ? `Start with ${steps.length === 1 ? "what matters most to you" : "the two that matter most to you"}. Everything else sets itself up the first time you open it.`
                   : "A few quick steps so every section starts with your real numbers. Skip anything — it waits here until you're ready."}
             </Copy>
             <View style={{ gap: 8 }}>
@@ -375,8 +376,8 @@ export function Setup() {
                           {has[k]
                             ? `${AREA[k].label} is set up`
                             : skipped.includes(k)
-                              ? `Skipped · ${STEP[k].time}`
-                              : STEP[k].time}
+                              ? `Skipped · ${SETUP_TIME[k]}`
+                              : SETUP_TIME[k]}
                         </Copy>
                       </View>
                       {has[k] ? (
@@ -412,7 +413,11 @@ export function Setup() {
                   <Button onPress={() => setStep(pending[0] ?? null)}>
                     {pending.length === steps.length ? "Start" : "Continue"}
                   </Button>
-                  {!firstRun && (
+                  {firstRun ? (
+                    <Button tone="quiet" onPress={finishOnboarding}>
+                      I'll finish later
+                    </Button>
+                  ) : (
                     <Button tone="quiet" href="/today">
                       I'll finish later
                     </Button>

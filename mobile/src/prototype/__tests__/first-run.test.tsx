@@ -3,6 +3,7 @@
 // only finishing setup marks the person onboarded. "Run setup again" is
 // setup alone.
 import { dashStore } from "@domain/dash/store"
+import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
@@ -17,6 +18,7 @@ import { Welcome } from "../screens/auth-welcome"
 import { Onboarding } from "../screens/onboarding"
 import { Setup } from "../screens/setup"
 import { sessionStore } from "../session"
+import { setSetupFirst } from "../setup-first"
 
 const params: { step?: string } = {}
 let mockPath = "/today"
@@ -172,14 +174,20 @@ describe("onboarding before the account exists", () => {
     expect(getDraft()).toMatchObject({ occupation: null, referralSource: null })
   })
 
-  test("every feature starts selected but Screen time, which only records the choice", () => {
-    editDraft({ step: "modules" })
+  test("only what the identity picks stand for starts ticked; Screen time only records the choice", () => {
+    editDraft({ identities: ["I'm someone who trains"], step: "modules" })
     pre()
     const enabled = getDraft()!.enabled
-    expect(Object.entries(enabled).filter(([, on]) => !on)).toEqual([
-      ["screen", false],
+    expect(Object.entries(enabled).filter(([, on]) => on)).toEqual([
+      ["fitness", true],
     ])
-    expect(screen.getByText("Needs Screen Time access")).toBeTruthy()
+    // Each tick says what setup it asks for; the extras ask none.
+    expect(screen.getAllByText("30 sec setup").length).toBeGreaterThan(0)
+    expect(
+      screen.getByText("1 min setup · needs Screen Time access"),
+    ).toBeTruthy()
+    expect(screen.getByText("Journal")).toBeTruthy()
+    expect(screen.getByText("Community")).toBeTruthy()
     fireEvent.press(screen.getByText("Screen time"))
     expect(getDraft()?.enabled.screen).toBe(true)
     expect(requestScreenTime).not.toHaveBeenCalled()
@@ -233,13 +241,35 @@ describe("onboarding after the account exists", () => {
 })
 
 describe("setup", () => {
-  test("during onboarding nothing can be skipped or left for later", () => {
+  test("during onboarding it asks about the top two only, each skippable", () => {
     onlyHabits(false)
+    dashStore.set((s) => ({
+      ...s,
+      enabled: { ...s.enabled, finance: true, fitness: true, focus: true },
+    }))
+    setSetupFirst(["focus", "habits", "finance", "fitness"])
+    focusStore.set((s) => ({ ...s, sessions: [], settingsSaved: false }))
     render(<Setup />, { wrapper })
-    expect(screen.queryByText("I'll finish later")).toBeNull()
+    expect(screen.getByText("Your daily focus goal")).toBeTruthy()
+    expect(screen.getByText("A few starter habits")).toBeTruthy()
+    expect(screen.queryByText("Your accounts & balances")).toBeNull()
     expect(screen.queryByLabelText("Close")).toBeNull()
     fireEvent.press(screen.getByText("Start"))
-    expect(screen.queryByText("Skip")).toBeNull()
+    // Skipping both finishes onboarding: the rest wait for their first open.
+    fireEvent.press(screen.getByLabelText("Skip Focus setup"))
+    fireEvent.press(screen.getByLabelText("Skip Habits setup"))
+    expect(dashStore.get().onboarded).toBe(true)
+    expect(dashStore.get().setupSkipped).toEqual(
+      expect.arrayContaining(["focus", "habits"]),
+    )
+    expect(router.replace).toHaveBeenCalledWith("/today")
+  })
+
+  test("during onboarding it can be left for later", () => {
+    onlyHabits(false)
+    render(<Setup />, { wrapper })
+    fireEvent.press(screen.getByText("I'll finish later"))
+    expect(dashStore.get().onboarded).toBe(true)
   })
 
   test("finishing it is what finishes onboarding", () => {
