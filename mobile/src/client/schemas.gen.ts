@@ -6155,6 +6155,88 @@ export const FoodsOutSchema = {
     title: 'FoodsOut'
 } as const;
 
+export const FunnelAcceptedSchema = {
+    properties: {
+        accepted: {
+            type: 'integer',
+            title: 'Accepted'
+        }
+    },
+    type: 'object',
+    required: ['accepted'],
+    title: 'FunnelAccepted'
+} as const;
+
+export const FunnelBatchSchema = {
+    properties: {
+        install_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Install Id'
+        },
+        events: {
+            items: {
+                '$ref': '#/components/schemas/FunnelEventIn'
+            },
+            type: 'array',
+            maxItems: 50,
+            minItems: 1,
+            title: 'Events'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['install_id', 'events'],
+    title: 'FunnelBatch'
+} as const;
+
+export const FunnelEventInSchema = {
+    properties: {
+        event: {
+            type: 'string',
+            enum: ['step_view', 'step_complete', 'step_skip', 'module_toggle', 'module_choice'],
+            title: 'Event'
+        },
+        step: {
+            type: 'string',
+            enum: ['identity', 'about', 'modules', 'capture', 'targets', 'when', 'building', 'pledge', 'account', 'notifications', 'done', 'setup'],
+            title: 'Step'
+        },
+        module: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['habits', 'tasks', 'fitness', 'nutrition', 'focus', 'finance', 'screen', 'journal', 'social']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Module'
+        },
+        turned_on: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Turned On'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['event', 'step', 'at'],
+    title: 'FunnelEventIn'
+} as const;
+
 export const FxRatePublicSchema = {
     properties: {
         base: {

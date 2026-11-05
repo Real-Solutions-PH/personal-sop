@@ -1591,6 +1591,27 @@ export type FoodsOut = {
     count: number;
 };
 
+export type FunnelAccepted = {
+    accepted: number;
+};
+
+export type FunnelBatch = {
+    install_id: string;
+    events: Array<FunnelEventIn>;
+};
+
+export type FunnelEventIn = {
+    event: 'step_view' | 'step_complete' | 'step_skip' | 'module_toggle' | 'module_choice';
+    step: 'identity' | 'about' | 'modules' | 'capture' | 'targets' | 'when' | 'building' | 'pledge' | 'account' | 'notifications' | 'done' | 'setup';
+    module?: ('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social' | null);
+    turned_on?: (boolean | null);
+    at: string;
+};
+
+export type event = 'step_view' | 'step_complete' | 'step_skip' | 'module_toggle' | 'module_choice';
+
+export type step = 'identity' | 'about' | 'modules' | 'capture' | 'targets' | 'when' | 'building' | 'pledge' | 'account' | 'notifications' | 'done' | 'setup';
+
 /**
  * One unit of ``base`` in the user's currency (``quote``), as of the
  * last published reference day.
@@ -6289,6 +6310,12 @@ export type FocusDeleteSessionData = {
 };
 
 export type FocusDeleteSessionResponse = (Message);
+
+export type FunnelPostEventsData = {
+    requestBody: FunnelBatch;
+};
+
+export type FunnelPostEventsResponse = (FunnelAccepted);
 
 export type HabitsHabitsHomeData = {
     days?: number;

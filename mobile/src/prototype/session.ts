@@ -1,6 +1,8 @@
 import { dashStore, updateProfile } from "@domain/dash/store"
 import { createStore } from "@domain/lib/store"
 import { liveMode } from "@/live/config"
+import { forgetFirstCapture, replayFirstCapture } from "./first-capture"
+import { logFunnel } from "./funnel"
 import { aboutOf, applyDraft, discardDraft, getDraft } from "./onboarding-draft"
 
 // Live mode backs these same actions with Supabase + the API server
@@ -32,7 +34,12 @@ export async function startLiveSession(isNew = false) {
     ? storage().getItem("sop-live:owner")
     : null
   const uid = await live().currentUserId(known)
-  if (uid) runtime().startLive(uid, storage(), isNew)
+  if (uid) {
+    runtime().startLive(uid, storage(), isNew)
+    // Onboarding's first capture, held until the account existed (and
+    // still held if the app closed before it was sent).
+    replayFirstCapture()
+  }
   return uid
 }
 
@@ -187,6 +194,9 @@ export async function signIn({
     if (emailError(address) || !password)
       throw new AuthError("Enter your email and password")
     await viaLive(() => live().signIn(address, password))
+    // Before live starts: a first capture held from an unfinished sign-up
+    // must never be sent into an existing account.
+    forgetFirstCapture()
     await startLiveSession()
   } else {
     await wait()
@@ -197,6 +207,7 @@ export async function signIn({
   }
   // An existing account's data wins over answers given before it.
   discardDraft()
+  forgetFirstCapture()
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
@@ -219,8 +230,13 @@ export async function continueWith(
       `${provider === "apple" ? "Apple" : "Google"} sign-in isn't available yet. Use your email instead.`,
     )
   await wait()
-  if (newAccount) applyDraft()
-  else discardDraft()
+  if (newAccount) {
+    applyDraft()
+    replayFirstCapture()
+  } else {
+    discardDraft()
+    forgetFirstCapture()
+  }
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
@@ -318,6 +334,7 @@ export async function completeSignUp() {
   // starts from an empty snapshot for a new account, so its first capture
   // pushes them as creates.
   applyDraft()
+  logFunnel({ event: "step_complete", step: "account" })
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
@@ -327,6 +344,7 @@ export async function completeSignUp() {
     returning: false,
   }))
   if (liveMode) void startLiveSession(true)
+  else replayFirstCapture()
 }
 /** Sign up's second try after the server refused the username. */
 export async function chooseUsername(username: string) {

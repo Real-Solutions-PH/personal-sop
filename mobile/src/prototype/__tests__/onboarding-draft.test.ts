@@ -72,7 +72,15 @@ beforeEach(() => {
   // Two identities, fitness off, steady pace, 06:30 / 21:30, about answers.
   D.editDraft({
     identities: ["I show up every day", "I finish what I start"],
-    enabled: { ...D.newDraft().enabled, fitness: false },
+    enabled: {
+      habits: true,
+      tasks: true,
+      fitness: false,
+      nutrition: true,
+      focus: true,
+      finance: true,
+      screen: false,
+    },
     pace: "steady",
     targets: {
       habits: 80,
@@ -161,6 +169,50 @@ test("Journal and Community picked in onboarding go to the account's extras", as
     weather: true,
     calendar: true,
   })
+})
+
+test("sign-up keeps the modules most wanted first for setup", async () => {
+  const { setupFirstStore } =
+    require("../setup-first") as typeof import("../setup-first")
+  await session.completeSignUp()
+  // "I show up every day", "I finish what I start", then a student's Tasks
+  // (already in), then the ones ticked by hand in the app's order.
+  expect(setupFirstStore.get().first).toEqual([
+    "habits",
+    "tasks",
+    "nutrition",
+    "focus",
+    "finance",
+  ])
+})
+
+test("the first capture is held through sign-up and sent once live starts", async () => {
+  const FC = require("../first-capture") as typeof import("../first-capture")
+  const engine = require("@domain/capture/engine")
+  const send = jest.spyOn(engine, "sendCapture").mockReturnValue("cap-9")
+  D.editDraft({ firstCapture: { text: "ran 5k", source: "text" } })
+  await session.completeSignUp()
+  // startLiveSession runs after sign-up returns.
+  await new Promise((r) => setTimeout(r, 0))
+  expect(send).toHaveBeenCalledWith({ text: "ran 5k", source: "text" })
+  expect(FC.firstCaptureStore.get()).toEqual({ pending: null, sentId: "cap-9" })
+  send.mockRestore()
+})
+
+test("signing in to an existing account never sends a held capture", async () => {
+  const FC = require("../first-capture") as typeof import("../first-capture")
+  const engine = require("@domain/capture/engine")
+  const send = jest.spyOn(engine, "sendCapture").mockReturnValue("cap-x")
+  FC.holdFirstCapture({ text: "from an unfinished sign-up", source: "text" })
+  mockSignIn.mockResolvedValueOnce(undefined)
+  await session.signIn({
+    email: "old@example.test",
+    password: "Pass-word1",
+    remember: false,
+  })
+  expect(send).not.toHaveBeenCalled()
+  expect(FC.firstCaptureStore.get().pending).toBeNull()
+  send.mockRestore()
 })
 
 test("a draft saved before Journal and Community were offered keeps both on", () => {

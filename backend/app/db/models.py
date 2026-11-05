@@ -74,6 +74,7 @@ from app.modules.focus.models import (  # noqa: F401
     FocusSession,
     FocusSettings,
 )
+from app.modules.funnel.models import FunnelEvent  # noqa: F401
 from app.modules.habits.models import (  # noqa: F401
     Habit,
     HabitLog,

@@ -7,7 +7,13 @@
 
 import type { ModuleKey } from "@domain/contract"
 import { MODULE_KEYS, seed } from "@domain/dash/data"
-import { PACES, type Pace, STARTERS, type Step } from "@domain/dash/onboarding"
+import {
+  IDENTITIES,
+  PACES,
+  type Pace,
+  STARTERS,
+  type Step,
+} from "@domain/dash/onboarding"
 import {
   dashStore,
   saveGoal,
@@ -17,6 +23,8 @@ import {
 } from "@domain/dash/store"
 import { createStore, uid } from "@domain/lib/store"
 import { setShown } from "./extras"
+import { type HeldCapture, holdFirstCapture } from "./first-capture"
+import { setSetupFirst } from "./setup-first"
 
 export const OCCUPATIONS = [
   { value: "student", label: "Student" },
@@ -43,7 +51,7 @@ export type ReferralSource = (typeof REFERRALS)[number]["value"]
 export const REFERRAL_DETAIL: readonly ReferralSource[] = ["friend", "other"]
 export const DETAIL_MAX = 80
 
-export type MobileStep = Step | "about" | "account"
+export type MobileStep = Step | "about" | "capture" | "account"
 
 /** The extras onboarding offers beside the scored modules; Weather and
  * Calendar stay as they are (on) and are switched in Settings. */
@@ -61,6 +69,11 @@ export type OnboardingDraft = {
   /** Journal and Community; a draft saved before they were offered has
    * none (read it through extrasOf). */
   extras?: Record<DraftExtra, boolean>
+  /** "Say one thing from today": held until the account exists. */
+  firstCapture?: HeldCapture | null
+  /** Whether the person changed the module step themself; until then it
+   * follows the identity picks (and occupation). */
+  modulesTouched?: boolean
   pace: Pace | null
   /** null = no starter goal for that module. */
   targets: Record<ModuleKey, number | null>
@@ -71,8 +84,50 @@ export type OnboardingDraft = {
   step: MobileStep
 }
 
-/** Every module selected but Screen time, which needs the iOS permission:
- * that is asked for after sign-up, in setup. */
+/** The modules the identity picks stand for, in the order they were
+ * picked; a student's Tasks comes after them. */
+function pickedModules(
+  identities: string[],
+  occupation: Occupation | null,
+): ModuleKey[] {
+  const out: ModuleKey[] = []
+  for (const text of identities) {
+    const k = IDENTITIES.find((i) => i.text === text)?.module
+    if (k && !out.includes(k)) out.push(k)
+  }
+  if (occupation === "student" && !out.includes("tasks")) out.push("tasks")
+  return out
+}
+
+/** The module step's starting ticks: only what the identity picks (and a
+ * student's Tasks) stand for. Journal and Community start unticked. */
+export function preselect(
+  identities: string[],
+  occupation: Occupation | null,
+): Pick<OnboardingDraft, "enabled" | "extras"> {
+  const picked = pickedModules(identities, occupation)
+  return {
+    enabled: Object.fromEntries(
+      MODULE_KEYS.map((k) => [k, picked.includes(k)]),
+    ) as Record<ModuleKey, boolean>,
+    extras: { journal: false, social: false },
+  }
+}
+
+/** The ticked modules, most wanted first: the identity picks in the order
+ * they were made, then the rest ticked by hand in the app's order. Setup
+ * asks about the first one or two. */
+export function priorityOf(d: OnboardingDraft): ModuleKey[] {
+  const picked = pickedModules(d.identities, d.occupation).filter(
+    (k) => d.enabled[k],
+  )
+  return [
+    ...picked,
+    ...MODULE_KEYS.filter((k) => d.enabled[k] && !picked.includes(k)),
+  ]
+}
+
+/** Nothing ticked yet: the module step follows the identity picks. */
 export function newDraft(): OnboardingDraft {
   const push = seed().push
   return {
@@ -81,10 +136,7 @@ export function newDraft(): OnboardingDraft {
     occupationDetail: "",
     referralSource: null,
     referralDetail: "",
-    enabled: Object.fromEntries(
-      MODULE_KEYS.map((k) => [k, k !== "screen"]),
-    ) as Record<ModuleKey, boolean>,
-    extras: { journal: true, social: true },
+    ...preselect([], null),
     pace: "gentle",
     targets: { ...PACES.gentle.targets },
     pushMorning: push.morning,
@@ -111,8 +163,20 @@ export function ensureDraft(): OnboardingDraft {
   return fresh
 }
 
+/** A patch that sets ``enabled`` or ``extras`` is the person's own choice
+ * (the module step); one that changes the identity picks or occupation
+ * re-derives the ticks until then. */
 export function editDraft(patch: Partial<OnboardingDraft>) {
-  draftStore.set((s) => ({ draft: { ...(s.draft ?? newDraft()), ...patch } }))
+  draftStore.set((s) => {
+    const next = { ...(s.draft ?? newDraft()), ...patch }
+    if ("enabled" in patch || "extras" in patch) next.modulesTouched = true
+    else if (
+      !next.modulesTouched &&
+      ("identities" in patch || "occupation" in patch)
+    )
+      Object.assign(next, preselect(next.identities, next.occupation))
+    return { draft: next }
+  })
 }
 
 export function discardDraft() {
@@ -157,6 +221,10 @@ export function applyDraft(): number {
   // enabled_extras with the rest of the profile.
   const extras = extrasOf(d)
   for (const k of DRAFT_EXTRAS) setShown(k, extras[k])
+  // First-run setup asks about the top one or two of these.
+  setSetupFirst(priorityOf(d))
+  // Sent through the capture path once live mode starts (session.ts).
+  holdFirstCapture(d.firstCapture ?? null)
   setPush({ morning: d.pushMorning, evening: d.pushEvening })
   if (d.identities.length)
     setIdentities(d.identities.map((text) => ({ id: uid(), text })))
