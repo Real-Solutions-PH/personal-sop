@@ -6442,7 +6442,9 @@ export class NutritionService {
     /**
      * List Foods
      * The shared food library, most used first; ``q`` narrows it to foods
-     * whose name contains the text.
+     * whose name contains the text. With no ``q`` it lists the household's
+     * own foods and the imported ones (USDA, Open Food Facts) they have eaten;
+     * a search covers every food, the most trusted source first.
      * @param data The data for the request.
      * @param data.q
      * @param data.skip

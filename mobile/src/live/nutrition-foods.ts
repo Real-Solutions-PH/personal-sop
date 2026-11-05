@@ -29,6 +29,10 @@ export interface LibraryFood {
   sugar: number | null
   sodium: number | null
   source: string
+  /** The page the values came from (a USDA food, an Open Food Facts product). */
+  source_url?: string | null
+  /** A packaged product's EAN/UPC barcode. */
+  barcode?: string | null
   verified: boolean
   use_count: number
   last_used_at: string | null
@@ -40,6 +44,40 @@ export interface LibraryFood {
   photo_url?: string | null
   /** Whether the signed-in member may edit it (its author, or an admin). */
   can_edit?: boolean
+}
+
+/** Where a food's numbers came from, as the app credits it: Open Food
+ * Facts data is used under the Open Database License, which asks for this
+ * attribution wherever it is shown. Null for the household's own foods. */
+export function sourceCredit(
+  f: Pick<LibraryFood, "source">,
+): { text: string; site: string } | null {
+  switch (f.source) {
+    case "usda":
+      return {
+        text: "From USDA FoodData Central (public domain)",
+        site: "fdc.nal.usda.gov",
+      }
+    case "off":
+      return {
+        text: "From Open Food Facts, under the Open Database License (ODbL)",
+        site: "openfoodfacts.org",
+      }
+    case "philfct":
+      return {
+        text: "From the Philippine Food Composition Tables, FNRI-DOST",
+        site: "i.fnri.dost.gov.ph",
+      }
+    default:
+      return null
+  }
+}
+
+/** What the verified tick means for this food. */
+export function verifiedLabel(f: Pick<LibraryFood, "source">): string {
+  return f.source === "usda" || f.source === "philfct"
+    ? "Lab-analysed values"
+    : "Read from a label"
 }
 
 /** A PATCH body: only the fields that changed. */

@@ -39,7 +39,7 @@ supabase-down: ## Stop the local Supabase auth stack (drops its data)
 # ---------------------------------------------------------------------------
 # Backend
 # ---------------------------------------------------------------------------
-.PHONY: backend-shell backend-lint backend-format backend-test fern-eval backend-migrate backend-downgrade backend-revision backend-prestart
+.PHONY: backend-shell backend-lint backend-format backend-test fern-eval food-import backend-migrate backend-downgrade backend-revision backend-prestart
 
 backend-shell: ## Open a bash shell in the backend container
 	docker compose exec backend bash
@@ -56,6 +56,9 @@ backend-test: ## Run backend tests with coverage
 fern-eval: ## Replay Fern's past chats against the real model and score them (needs NEBIUS_API_KEY; ADR-0029)
 	cd backend && FERN_EVAL=1 FERN_EVAL_JUDGE=0 uv run pytest tests/eval/fern/test_fern_replay.py -p no:cacheprovider; \
 	status=$$?; uv run python -m tests.eval.fern.report --judge --gate || status=1; exit $$status
+
+food-import: ## Load a public food database into the food library (SRC=usda|off|philfct; FILE=... for philfct)
+	cd backend && uv run python -m app.modules.fitness.food_import $(SRC) $(if $(FILE),--file $(FILE),)
 
 backend-migrate: ## Run Alembic migrations (upgrade head)
 	cd backend && uv run alembic upgrade head
