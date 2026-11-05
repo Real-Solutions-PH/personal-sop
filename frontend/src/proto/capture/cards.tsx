@@ -1040,7 +1040,11 @@ export function InfoCardView({
             key={a.label}
             type="button"
             onClick={() => {
-              if (a.do === "module_on" && a.module && Object.hasOwn(AREA, a.module)) {
+              if (
+                a.do === "module_on" &&
+                a.module &&
+                Object.hasOwn(AREA, a.module)
+              ) {
                 setEnabled(a.module as ModuleKey, true)
                 setHidden(true)
               } else if (a.do === "quickadd") ctx.quickAdd()
