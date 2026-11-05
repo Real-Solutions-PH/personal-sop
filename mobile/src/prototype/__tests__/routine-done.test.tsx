@@ -179,7 +179,7 @@ test("it draws in the top layer, never blocks, and leaves on its own", () => {
   expect(card()).toBeNull()
 })
 
-test("a tap opens its summary, which then shows settled", () => {
+test("a tap opens its summary, which celebrates again without a second haptic", () => {
   const r = routine()
   let id = ""
   act(() => {
@@ -191,10 +191,12 @@ test("a tap opens its summary, which then shows settled", () => {
     `/habits/routines/${r.id}/summary?run=${id}`,
   )
   expect(card()).toBeNull()
-  // The summary's own finish moment does not play a second time.
+  // The summary celebrates on opening; the card already gave the haptic.
   Haptics.notificationAsync.mockClear()
   render(<RoutineSummary id={r.id} runId={id} />, { wrapper })
-  expect(screen.queryAllByTestId("celebration-leaf", hidden)).toHaveLength(0)
+  expect(
+    screen.queryAllByTestId("celebration-leaf", hidden).length,
+  ).toBeGreaterThan(0)
   expect(Haptics.notificationAsync).not.toHaveBeenCalled()
 })
 

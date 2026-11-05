@@ -272,7 +272,7 @@ describe("the run summary", () => {
     expect(celebrateStore.get().ids).toContain("r2")
   })
 
-  it("shows settled when opened again", () => {
+  it("plays again when opened again, without a second haptic", () => {
     fitStore.set((s) => ({
       ...s,
       runs: [session("r3", 0, 3000, 1000, [330, 330, 340])],
@@ -280,7 +280,9 @@ describe("the run summary", () => {
     render(<RunDetail id="r3" summary />, { wrapper }).unmount()
     Haptics.notificationAsync.mockClear()
     render(<RunDetail id="r3" summary />, { wrapper })
-    expect(screen.queryAllByTestId("celebration-leaf", hidden)).toHaveLength(0)
+    expect(
+      screen.queryAllByTestId("celebration-leaf", hidden).length,
+    ).toBeGreaterThan(0)
     expect(Haptics.notificationAsync).not.toHaveBeenCalled()
   })
 })
