@@ -19,6 +19,7 @@ import {
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { Pressable, Text, View } from "react-native"
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -269,39 +270,47 @@ export function rosetteLabel(petals: Petal[]) {
 }
 
 /** A layer that blooms in: drawn from its first frame at 70% and growing to
- * full size, so Reduced Motion (which skips it) loses nothing but the move. */
+ * full size. Under Reduce Motion it fades up from 60% instead of growing. */
 function Bloom({ children, style }: { children: ReactNode; style: object }) {
   const reduced = useReducedMotion(),
-    s = useSharedValue(reduced ? 1 : 0.7)
+    s = useSharedValue(reduced ? 0.6 : 0.7)
   useEffect(() => {
-    if (!reduced) s.value = withTiming(1, { duration: 240 })
-  }, [reduced, s])
-  const anim = useAnimatedStyle(() => ({ transform: [{ scale: s.value }] }))
+    s.value = withTiming(1, {
+      duration: 240,
+      reduceMotion: ReduceMotion.Never,
+    })
+  }, [s])
+  const anim = useAnimatedStyle(() =>
+    reduced ? { opacity: s.value } : { transform: [{ scale: s.value }] },
+  )
   return (
     <Animated.View pointerEvents="none" style={[style, anim]}>
       {children}
     </Animated.View>
   )
 }
-/** The full petals' glow, three pulses once the whole flower is at 100. */
+/** The full petals' glow, three pulses once the whole flower is at 100.
+ * Only opacity, so it plays under Reduce Motion as well. */
 function Glow({ children }: { children: ReactNode }) {
-  const reduced = useReducedMotion(),
-    o = useSharedValue(0)
+  const o = useSharedValue(0)
   useEffect(() => {
-    if (reduced) return
+    const never = ReduceMotion.Never
     o.value = withDelay(
       300,
       withRepeat(
         withSequence(
-          withTiming(1, { duration: 800 }),
-          withTiming(0, { duration: 800 }),
+          withTiming(1, { duration: 800, reduceMotion: never }),
+          withTiming(0, { duration: 800, reduceMotion: never }),
         ),
         3,
+        false,
+        undefined,
+        never,
       ),
+      never,
     )
-  }, [reduced, o])
+  }, [o])
   const anim = useAnimatedStyle(() => ({ opacity: o.value }))
-  if (reduced) return null
   return (
     <Animated.View
       pointerEvents="none"

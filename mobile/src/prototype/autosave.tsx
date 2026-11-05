@@ -2,6 +2,7 @@ import { Check, CircleAlert } from "lucide-react-native"
 import { useEffect, useRef, useState } from "react"
 import { Text, View } from "react-native"
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -85,14 +86,19 @@ export function SavedMark({ state }: { state: AutosaveState }) {
   useEffect(() => {
     if (!count) return
     fresh.value = 1
+    // The glow is only opacity, so it plays under Reduce Motion too (it
+    // used to jump straight to 0 there, so a save never showed green).
+    const never = ReduceMotion.Never
     fresh.value = withSequence(
-      withTiming(1, { duration: 1400 }),
-      withTiming(0, { duration: reduced ? 0 : 400 }),
+      never,
+      withTiming(1, { duration: 1400, reduceMotion: never }),
+      withTiming(0, { duration: 400, reduceMotion: never }),
     )
     if (!reduced)
       scale.value = withSequence(
-        withSpring(1.25, { damping: 12, stiffness: 420 }),
-        withSpring(1, { damping: 14, stiffness: 260 }),
+        never,
+        withSpring(1.25, { damping: 12, stiffness: 420, reduceMotion: never }),
+        withSpring(1, { damping: 14, stiffness: 260, reduceMotion: never }),
       )
   }, [count])
   const pop = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))

@@ -37,6 +37,7 @@ import {
   View,
 } from "react-native"
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
@@ -414,20 +415,33 @@ const streakOf = (journal: readonly { day: string; tags: string[] }[]) =>
     ),
   )
 
-/** Pops its child when ``on`` goes up while on screen. */
+/** Pops its child when ``on`` goes up while on screen (a glow dip in place
+ * under Reduce Motion, so the grown streak is never silent). */
 function Bump({ on, children }: { on: number; children: ReactNode }) {
   const reduced = useReducedMotion()
   const scale = useSharedValue(1)
+  const dim = useSharedValue(1)
   const prev = useRef(on)
   useEffect(() => {
+    const never = ReduceMotion.Never
     if (on > prev.current && !reduced)
       scale.value = withSequence(
-        withTiming(1.25, { duration: 120 }),
-        withSpring(1, { damping: 8, stiffness: 260 }),
+        never,
+        withTiming(1.25, { duration: 120, reduceMotion: never }),
+        withSpring(1, { damping: 8, stiffness: 260, reduceMotion: never }),
+      )
+    else if (on > prev.current)
+      dim.value = withSequence(
+        never,
+        withTiming(0.35, { duration: 140, reduceMotion: never }),
+        withTiming(1, { duration: 420, reduceMotion: never }),
       )
     prev.current = on
-  }, [on, reduced, scale])
-  const pop = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
+  }, [on, reduced, scale, dim])
+  const pop = useAnimatedStyle(() => ({
+    opacity: dim.value,
+    transform: [{ scale: scale.value }],
+  }))
   return (
     <Animated.View style={[{ alignSelf: "flex-start" }, pop]}>
       {children}

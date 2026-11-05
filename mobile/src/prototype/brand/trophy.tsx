@@ -6,7 +6,8 @@ import type { TrophyType } from "@domain/dash/hooks"
 import { Lock } from "lucide-react-native"
 import { Fragment, type ReactNode } from "react"
 import { View } from "react-native"
-import Animated, { useReducedMotion, ZoomIn } from "react-native-reanimated"
+import Animated from "react-native-reanimated"
+import { usePopIn } from "../motion"
 import { Bar, border, Copy, Line } from "../native-kit"
 import { type Accent, useTheme } from "../theme"
 import { TrophyBadge } from "./badge"
@@ -60,7 +61,7 @@ export function TrophyCard({
   compact?: boolean
 }) {
   const t = useTheme(),
-    reduced = useReducedMotion(),
+    popIn = usePopIn(),
     size = compact ? 40 : 52
   return (
     <View
@@ -77,11 +78,7 @@ export function TrophyCard({
     >
       <CornerMotif kind="vine" seed={title.length + 3} size={96} />
       <Line style={{ justifyContent: "space-between", alignItems: "center" }}>
-        <Animated.View
-          entering={
-            fresh && !reduced ? ZoomIn.springify().damping(12) : undefined
-          }
-        >
+        <Animated.View entering={fresh ? popIn() : undefined}>
           <TrophyBadge type={type} size={size} color={t[TROPHY_COLOR[type]]} />
         </Animated.View>
         {fresh && <NewChip />}

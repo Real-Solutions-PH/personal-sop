@@ -1,7 +1,8 @@
-// The finish celebration plays once per workout or run (a burst of leaves,
-// a count-up and one success haptic), settles on every later visit, keeps
-// playing through re-renders after its id is recorded, and drops the burst
-// under Reduce Motion while keeping the haptic. The summaries put Share,
+// The finish celebration (a burst of leaves, a count-up, the check landing)
+// plays every time a finish page opens, a second finish in the same session
+// included; the success haptic comes once per workout or run. It keeps
+// playing through re-renders after its id is recorded, and under Reduce
+// Motion it still plays, with the leaves dissolving in place. The summaries put Share,
 // Post (Community on) and Done first.
 import * as FA from "@domain/fitness/actions"
 import { fitStore } from "@domain/fitness/store"
@@ -10,6 +11,7 @@ import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
+import { StyleSheet } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { anchor, OverlayHost, resetOverlay } from "../overlay"
 
@@ -90,6 +92,13 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 )
 const hidden = { includeHiddenElements: true }
 const leaves = () => screen.queryAllByTestId("celebration-leaf", hidden)
+/** The kinds of move the first leaf is drawn with. */
+const moves = () => {
+  const { transform } = StyleSheet.flatten(leaves()[0].props.style) as {
+    transform: Record<string, unknown>[]
+  }
+  return transform.flatMap((x) => Object.keys(x))
+}
 
 beforeEach(() => {
   jest.useFakeTimers()
@@ -113,8 +122,16 @@ afterEach(() => {
   jest.useRealTimers()
 })
 
-function Hero({ id, note = "" }: { id: string; note?: string }) {
-  const play = useCelebrate(id)
+function Hero({
+  id,
+  note = "",
+  enabled = true,
+}: {
+  id: string
+  note?: string
+  enabled?: boolean
+}) {
+  const { play, first } = useCelebrate(id, enabled)
   return (
     <Celebration
       kind="workout"
@@ -122,6 +139,7 @@ function Hero({ id, note = "" }: { id: string; note?: string }) {
       subtitle="Today"
       stats={[{ label: "Sets", value: 12, format: (n) => String(n) }]}
       play={play}
+      first={first}
     />
   )
 }
@@ -147,19 +165,46 @@ describe("Celebration", () => {
     expect(leaves()).toHaveLength(0)
   })
 
-  it("shows settled the second time: no leaves, no haptic", () => {
+  it("plays again when the page opens again, without a second haptic", () => {
     render(<Hero id="w1" />, { wrapper }).unmount()
+    act(() => jest.runOnlyPendingTimers())
     Haptics.notificationAsync.mockClear()
     render(<Hero id="w1" />, { wrapper })
-    expect(leaves()).toHaveLength(0)
+    expect(leaves()).toHaveLength(18)
     expect(Haptics.notificationAsync).not.toHaveBeenCalled()
   })
 
-  it("under Reduce Motion drops the burst but keeps the haptic", () => {
+  it("a second finish in the same session celebrates in full", () => {
+    render(<Hero id="w1" />, { wrapper }).unmount()
+    act(() => jest.runOnlyPendingTimers())
+    Haptics.notificationAsync.mockClear()
+    render(<Hero id="w2" />, { wrapper })
+    expect(leaves()).toHaveLength(18)
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1)
+  })
+
+  it("starts when the finish lands after the page opened", () => {
+    const r = render(<Hero id="w5" enabled={false} />, { wrapper })
+    expect(leaves()).toHaveLength(0)
+    expect(celebrateStore.get().ids).not.toContain("w5")
+    r.rerender(<Hero id="w5" enabled />)
+    expect(leaves()).toHaveLength(18)
+    expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1)
+    expect(celebrateStore.get().ids).toContain("w5")
+  })
+
+  it("under Reduce Motion the leaves dissolve where they land", () => {
     mockMotion.reduced = true
     render(<Hero id="w2" />, { wrapper })
-    expect(leaves()).toHaveLength(0)
+    expect(leaves()).toHaveLength(18)
     expect(Haptics.notificationAsync).toHaveBeenCalledTimes(1)
+    // Drawn where it lands and only fading: nothing grows.
+    expect(moves()).toEqual(["translateX", "translateY", "rotate"])
+  })
+
+  it("without Reduce Motion the leaves fly out and grow", () => {
+    render(<Hero id="w6" />, { wrapper })
+    expect(moves()).toContain("scale")
   })
 
   it("keeps the 50 most recent ids", () => {
@@ -177,8 +222,10 @@ describe("Celebration", () => {
     act(() => jest.advanceTimersByTime(500))
     expect(leaves()).toHaveLength(18)
     r.unmount()
+    Haptics.notificationAsync.mockClear()
     render(<Hero id="w3" />, { wrapper })
-    expect(leaves()).toHaveLength(0)
+    expect(leaves()).toHaveLength(18)
+    expect(Haptics.notificationAsync).not.toHaveBeenCalled()
   })
 })
 

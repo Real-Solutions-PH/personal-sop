@@ -39,13 +39,13 @@ import { type ReactNode, useEffect, useState } from "react"
 import { View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import Animated, {
+  ReduceMotion,
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
   withSequence,
   withSpring,
   withTiming,
-  ZoomIn,
 } from "react-native-reanimated"
 import { FernCelebrates } from "../companion/fern-celebrates"
 import {
@@ -55,6 +55,7 @@ import {
   SwipeSegments,
   SwipeStep,
   useDayMoment,
+  usePopIn,
 } from "../motion"
 import {
   Copy,
@@ -94,8 +95,9 @@ export function ClearRing({
     feel.success()
     if (!reduced)
       scale.value = withSequence(
-        withTiming(1.08, { duration: 160 }),
-        withSpring(1, MOTION.spring),
+        ReduceMotion.Never,
+        withTiming(1.08, { duration: 160, reduceMotion: ReduceMotion.Never }),
+        withSpring(1, { ...MOTION.spring, reduceMotion: ReduceMotion.Never }),
       )
   }, [play, reduced, scale])
   const pulse = useAnimatedStyle(() => ({
@@ -128,6 +130,7 @@ export function TaskPlanPanel({
     stats = useStats(7),
     s = tasksStore.use((s) => s),
     params = useLocalSearchParams<{ filter?: string }>(),
+    popIn = usePopIn(),
     [view, setView] = useState(
       params.filter === "overdue" ? "overdue" : "today",
     ),
@@ -158,7 +161,7 @@ export function TaskPlanPanel({
         </ClearRing>
         <View style={{ flex: 1 }}>
           {clear === "new" ? (
-            <Animated.View entering={ZoomIn.springify().damping(12)}>
+            <Animated.View entering={popIn()}>
               <Copy weight="semibold">Today's clear</Copy>
             </Animated.View>
           ) : (

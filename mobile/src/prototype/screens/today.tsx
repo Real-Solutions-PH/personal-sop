@@ -62,7 +62,7 @@ import {
 } from "lucide-react-native"
 import { type ComponentType, memo, useEffect, useMemo, useState } from "react"
 import { Platform, Text, View } from "react-native"
-import Animated, { FadeInDown } from "react-native-reanimated"
+import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { AppLauncher } from "../app-launcher"
 import { TrophyBadge } from "../brand/badge"
@@ -78,7 +78,6 @@ import {
   AnimatedCheck,
   CountUp,
   feel,
-  MOTION,
   markCompletion,
   rowEnter,
   rowExit,
@@ -86,6 +85,7 @@ import {
   StreakChip,
   TickRow,
   useDayMoment,
+  useEnter,
   useSwipeComplete,
 } from "../motion"
 import {
@@ -691,6 +691,7 @@ const useMinuteNow = () => useNow(60_000)
  * haptic, then stays put for the rest of the day while it holds. */
 function AllHabitsDone({ play }: { play: boolean }) {
   const t = useTheme()
+  const enter = useEnter()
   useEffect(() => {
     if (!play) return
     feel.success()
@@ -699,7 +700,7 @@ function AllHabitsDone({ play }: { play: boolean }) {
   }, [play])
   return (
     <Animated.View
-      entering={play ? FadeInDown.duration(MOTION.base) : undefined}
+      entering={play ? enter() : undefined}
       accessibilityRole="text"
       accessibilityLiveRegion="polite"
       style={{

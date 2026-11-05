@@ -1,6 +1,7 @@
 // Fern as the C1 wreath sprite: each of the seven states draws its own face
 // and mood marks, consoling wilts to the dry colours, `still` holds a pose,
-// and Reduced Motion keeps the face alive while the body stays put.
+// and Reduced Motion keeps the face alive (and a win's wave and twinkles)
+// while the body stays put.
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render, screen } from "@testing-library/react-native"
 import { cloneElement } from "react"
@@ -224,6 +225,33 @@ test("Reduced Motion: the clock still runs, Fern blinks but does not breathe", (
   ])
   expect(scaled("scale")).toEqual([])
   expect(scaled("scaleY")).toContainEqual(expect.closeTo(0.1, 3))
+})
+
+// A win under Reduce Motion: the arms still wave in place (their turn
+// changes over the clock) while the body never hops. The same probe sees
+// the hop with Reduce Motion off, so it can tell the two apart.
+const celebrateAt = (ms: number) => {
+  mockMotion.at = ms
+  const ui = <FernSprite size={88} state="celebrating" dark={false} />
+  const r = render(ui)
+  r.rerender(cloneElement(ui))
+  const turns = transforms()
+    .map((x) => x.rotate)
+    .filter((v): v is string => typeof v === "string")
+  const lifted = transforms()
+    .map((x) => x.translateY)
+    .filter((v): v is number => typeof v === "number" && Math.abs(v) > 1e-3)
+  r.unmount()
+  return { turns, lifted }
+}
+
+test("Reduced Motion: a celebrating Fern still waves, without hopping", () => {
+  const rest = celebrateAt(0),
+    mid = celebrateAt(600)
+  expect(mid.turns).not.toEqual(rest.turns)
+  expect(celebrateAt(240).lifted).toEqual([])
+  mockMotion.reduced = false
+  expect(celebrateAt(240).lifted.length).toBeGreaterThan(0)
 })
 
 test("still starts no clock and moves nothing", () => {

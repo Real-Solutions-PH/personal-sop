@@ -55,7 +55,7 @@ import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { Trend } from "../chart"
 import { Donut, FIN_PALETTE } from "../finance-charts"
 import { turnModuleOn } from "../module-switch"
-import { feel, GrowBar, markCompletion } from "../motion"
+import { feel, GrowBar, markCompletion, usePopIn } from "../motion"
 import { go } from "../navigation"
 import { CaptureSummary } from "../screens/capture-summary"
 import { useMoney } from "../screens/finance"
@@ -1232,6 +1232,7 @@ function StepCard({
   captureId?: string
 }) {
   const t = useTheme()
+  const popIn = usePopIn()
   const live = captureStore.use(() => findCard(id)?.card.state)
   const now = live ?? state
   const loading =
@@ -1268,7 +1269,7 @@ function StepCard({
           <Animated.View
             key={saved}
             testID="card-saved-pop"
-            entering={ZoomIn.springify().damping(10)}
+            entering={popIn()}
             accessibilityLabel="Saved"
             style={{
               width: 22,
