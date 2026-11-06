@@ -10,19 +10,72 @@ export type Equipment =
   | "cable"
   | "bodyweight"
 export type LoadType = "weight" | "bodyweight" | "reps" | "time"
-export type Muscle =
-  | "chest"
-  | "back"
-  | "shoulders"
-  | "biceps"
-  | "triceps"
-  | "quads"
-  | "hamstrings"
-  | "glutes"
-  | "core"
-  | "cardio"
-  | "calves"
-  | "forearms"
+/** An exercise's primary muscle, grouped by body region in the order the
+ * pickers show them. The first value of each region is the broad one an
+ * older exercise was saved with ("back", "shoulders"); the rest are the
+ * finer muscles lifting apps list. Stored values never change: the backend
+ * check constraint and Fern read the same strings. */
+export const MUSCLE_GROUPS = [
+  { region: "Chest", muscles: ["chest", "upper_chest"] },
+  {
+    region: "Shoulders",
+    muscles: ["shoulders", "front_delts", "side_delts", "rear_delts"],
+  },
+  {
+    region: "Back",
+    muscles: ["back", "lats", "traps", "rhomboids", "lower_back"],
+  },
+  { region: "Arms", muscles: ["biceps", "triceps", "forearms"] },
+  { region: "Core", muscles: ["core", "obliques"] },
+  {
+    region: "Legs",
+    muscles: [
+      "glutes",
+      "quads",
+      "hamstrings",
+      "abductors",
+      "adductors",
+      "calves",
+      "tibialis",
+      "hip_flexors",
+    ],
+  },
+  { region: "Other", muscles: ["neck", "cardio"] },
+] as const
+export type Muscle = (typeof MUSCLE_GROUPS)[number]["muscles"][number]
+export const MUSCLES: readonly Muscle[] = MUSCLE_GROUPS.flatMap(
+  (g) => g.muscles,
+)
+const MUSCLE_LABEL: Record<Muscle, string> = {
+  chest: "Chest",
+  upper_chest: "Upper chest",
+  shoulders: "Shoulders",
+  front_delts: "Front delts",
+  side_delts: "Side delts",
+  rear_delts: "Rear delts",
+  back: "Back",
+  lats: "Lats",
+  traps: "Traps / upper back",
+  rhomboids: "Rhomboids",
+  lower_back: "Lower back",
+  biceps: "Biceps",
+  triceps: "Triceps",
+  forearms: "Forearms",
+  core: "Abs / core",
+  obliques: "Obliques",
+  glutes: "Glutes",
+  quads: "Quads",
+  hamstrings: "Hamstrings",
+  abductors: "Abductors",
+  adductors: "Adductors",
+  calves: "Calves",
+  tibialis: "Tibialis",
+  hip_flexors: "Hip flexors",
+  neck: "Neck",
+  cardio: "Cardio",
+}
+/** A muscle as a person reads it; an unknown stored value shows as itself. */
+export const muscleLabel = (m: string): string => MUSCLE_LABEL[m as Muscle] ?? m
 /** What a timed exercise records beside its time: walking or running speed,
  * or added weight (a weighted plank). Absent: time alone. */
 export type TimeTrack = "speed" | "weight"

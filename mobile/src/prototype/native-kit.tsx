@@ -563,10 +563,13 @@ export function Bar({
 export function SectionHeading({
   children,
   action,
+  icon: Icon,
 }: {
   children: ReactNode
   action?: ReactNode
+  icon?: LucideIcon
 }) {
+  const t = useTheme()
   return (
     <Line
       style={{
@@ -576,10 +579,13 @@ export function SectionHeading({
         paddingHorizontal: 4,
       }}
     >
-      {/* Sentence case, like every heading in the brand (ADR-0019). */}
-      <Copy size={13} weight="medium" muted>
-        {children}
-      </Copy>
+      <Line style={{ gap: 6, flexShrink: 1 }}>
+        {Icon && <Icon size={14} color={t.muted} />}
+        {/* Sentence case, like every heading in the brand (ADR-0019). */}
+        <Copy size={13} weight="medium" muted>
+          {children}
+        </Copy>
+      </Line>
       {action}
     </Line>
   )

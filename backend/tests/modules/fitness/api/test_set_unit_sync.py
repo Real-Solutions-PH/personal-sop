@@ -92,6 +92,6 @@ def test_a_set_in_pounds_round_trips(client: TestClient, db: Session) -> None:
         client,
         h,
         op("upsert", "workout_set", st, unit="stone"),
-        op("upsert", "exercise", calf, muscle="neck"),
+        op("upsert", "exercise", calf, muscle="elbows"),
     )
     assert [r["status"] for r in bad] == ["rejected"] * 2, bad

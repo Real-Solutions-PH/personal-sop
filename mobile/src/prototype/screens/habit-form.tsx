@@ -9,14 +9,32 @@ import { scheduleLabel } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { screenStore } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
-import { CalendarClock, ChevronRight } from "lucide-react-native"
+import {
+  Archive,
+  CalendarClock,
+  Check,
+  ChevronRight,
+  Pause,
+  Play,
+  Plus,
+  SlidersHorizontal,
+  Smartphone,
+} from "lucide-react-native"
 import { useMemo, useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { SavedMark, useAutosave } from "../autosave"
 import { Stepper } from "../fitness-controls"
 import { IconField } from "../icon-picker"
-import { Copy, Frame, Line, Segmented, Tap } from "../native-kit"
+import {
+  border,
+  Copy,
+  Frame,
+  Line,
+  SectionHeading,
+  Segmented,
+  Tap,
+} from "../native-kit"
 import { back, go } from "../navigation"
 import { askForReminders } from "../reminders"
 import { syncScreenTime } from "../screen-sync"
@@ -239,7 +257,7 @@ export function HabitForm({
       footer={
         old ? undefined : (
           <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-            <Button onPress={() => save()}>
+            <Button icon={Plus} onPress={() => save()}>
               {routine ? "Create & add steps" : "Create habit"}
             </Button>
           </View>
@@ -351,7 +369,11 @@ export function HabitForm({
                   <Copy size={12} muted>
                     Make a group of apps in Screen time settings first.
                   </Copy>
-                  <Button tone="quiet" onPress={() => go("/screen")}>
+                  <Button
+                    tone="quiet"
+                    icon={Smartphone}
+                    onPress={() => go("/screen")}
+                  >
                     Screen time settings
                   </Button>
                 </>
@@ -471,22 +493,30 @@ export function HabitForm({
             )}
         </Frame>
         {h && (
-          <Line>
-            <View style={{ flex: 1 }}>
-              <Button
-                tone="quiet"
-                onPress={() =>
-                  h.status === "paused"
-                    ? A.resumeHabit(h.id)
-                    : A.pauseHabit(h.id)
-                }
-              >
-                {h.status === "paused" ? "Resume" : "Pause"}
-              </Button>
-            </View>
-            <View style={{ flex: 1 }}>
+          // Pausing keeps the habit; archiving removes it from Today and
+          // the lists, so it stands apart below a rule, never beside Pause.
+          <View testID="habit-manage">
+            <SectionHeading icon={SlidersHorizontal}>Manage</SectionHeading>
+            <Button
+              tone="quiet"
+              icon={h.status === "paused" ? Play : Pause}
+              onPress={() =>
+                h.status === "paused" ? A.resumeHabit(h.id) : A.pauseHabit(h.id)
+              }
+            >
+              {h.status === "paused" ? "Resume habit" : "Pause habit"}
+            </Button>
+            <View
+              style={{
+                marginTop: 20,
+                paddingTop: 20,
+                borderTopWidth: 1,
+                borderColor: border(t.line, 0.6),
+              }}
+            >
               <Button
                 tone="danger"
+                icon={Archive}
                 onPress={() =>
                   confirm(
                     `Archive ${h.name}?`,
@@ -498,10 +528,10 @@ export function HabitForm({
                   )
                 }
               >
-                Archive
+                Archive habit
               </Button>
             </View>
-          </Line>
+          </View>
         )}
       </View>
       <Sheet
@@ -510,7 +540,9 @@ export function HabitForm({
         onClose={() => setScheduleOpen(false)}
       >
         <Schedule value={schedule} onChange={setSchedule} />
-        <Button onPress={() => setScheduleOpen(false)}>Done</Button>
+        <Button icon={Check} onPress={() => setScheduleOpen(false)}>
+          Done
+        </Button>
       </Sheet>
     </Screen>
   )

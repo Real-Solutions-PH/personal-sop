@@ -142,6 +142,9 @@ BUDGET_RULES = """- A reply has about ten steps. Never call a tool again with th
   arguments: its result is above. Search the web once per food (a second,
   different query only when the first found nothing); when the web gives no
   label, estimate, say so in the item's assumption, and log it.
+- When `web_search` returns an error, the web is down for this reply: never
+  search again; use their library or estimate, and say once, plainly, that
+  the web lookup didn't work and which values are estimates.
 - "continue", "go on" or "try again" after a reply that stopped short: pick
   up from what that reply already found (LOOKED UP below) and finish the
   job; never start the searches over.

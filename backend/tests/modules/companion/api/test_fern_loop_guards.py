@@ -17,7 +17,7 @@ from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from sqlmodel import Session, col, select
 
 from app.core.config import settings
-from app.modules.companion import loop, services, web
+from app.modules.companion import loop, services, turn, web
 from app.modules.companion.models import CompanionMessage
 from tests.modules.capture.api.helpers import call, install, parse_agui, say, user
 
@@ -184,3 +184,68 @@ def test_same_search_compares_the_food_words_only() -> None:
     assert not services.same_search(
         "Oatside latte label", [{"query": "Oatside latte", "results": []}]
     )
+
+
+def test_after_a_failed_web_search_the_reply_stops_searching(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-06: Brave refused every call (out of credit) and one
+    reply searched 16 times, each failing, until the tool-call cap."""
+    api = user(client, db)
+    api.assign("chat")
+    monkeypatch.setattr(settings, "BRAVE_API_KEY", "brave-test")
+    searched: list[str] = []
+
+    def refused(query: str, **_: Any) -> list[dict[str, Any]]:
+        searched.append(query)
+        raise web.WebSearchError("web_search_failed")
+
+    monkeypatch.setattr(web, "search", refused)
+    foods = ["oat latte", "cream puff", "red bean sandwich", "royal bar"]
+    model = install(
+        monkeypatch,
+        *[say("", call("web_search", query=f"{f} label")) for f in foods],
+        say("The web lookup didn't work, so these are estimates."),
+    )
+    events = ask(client, api, "log my breakfast")
+    assert searched == ["oat latte label"]
+    # The model's last look at the reply: every tool result, in order.
+    results = [m for m in max(model.seen, key=len) if isinstance(m, ToolMessage)]
+    assert len(results) == len(foods)
+    assert '"web_search_failed"' in str(results[0].content)
+    assert "do not search again" in str(results[0].content)
+    for later in results[1:]:
+        assert '"web_lookup_not_working"' in str(later.content)
+        assert "do not search again" in str(later.content)
+    # The finished reply shows the failure once, in plain words.
+    blocks = [b for b in (_replies(db)[-1].blocks or []) if b.get("t") == "steps"]
+    steps: list[dict[str, Any]] = blocks[-1]["items"]  # type: ignore[assignment]
+    assert [s["tool"] for s in steps] == ["web_search"]
+    assert steps[0]["summary"] == turn.WEB_FAILED_SAYS
+    assert "Couldn't finish" not in str(steps)
+    assert any(e["type"] == "TEXT_MESSAGE_CONTENT" for e in events)
+
+
+def test_working_searches_still_run_up_to_the_cap(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    searched = _searches(monkeypatch)
+    foods = [
+        "Oatside latte",
+        "Selecta cream puff",
+        "Gardenia red bean",
+        "Magnum royal",
+        "Nissin cup noodles",
+        "Lucky Me pancit canton",
+    ]
+    model = install(
+        monkeypatch,
+        *[say("", call("web_search", query=f)) for f in foods],
+        say("Done."),
+    )
+    ask(client, api, "log my snacks")
+    assert searched == foods[: services.WEB_SEARCHES]
+    last = [m for m in max(model.seen, key=len) if isinstance(m, ToolMessage)][-1]
+    assert '"search_limit_reached"' in str(last.content)

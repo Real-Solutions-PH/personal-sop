@@ -39,7 +39,7 @@ import {
   relDay,
   suggestion,
 } from "../calc"
-import type { Exercise } from "../data"
+import { type Exercise, muscleLabel } from "../data"
 import { ExerciseEditSheet, MUSCLES } from "../sheets"
 import { useFit } from "../store"
 import {
@@ -122,7 +122,7 @@ export function LibraryScreen() {
         groups.map((g) => (
           <div key={g.m}>
             <SectionTitle>
-              <span className="capitalize">{g.m}</span>
+              <span>{muscleLabel(g.m)}</span>
             </SectionTitle>
             {g.list.map((e) => (
               <Row

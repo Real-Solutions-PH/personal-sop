@@ -22,6 +22,20 @@ Muscle = Literal[
     "cardio",
     "calves",
     "forearms",
+    "upper_chest",
+    "front_delts",
+    "side_delts",
+    "rear_delts",
+    "lats",
+    "traps",
+    "rhomboids",
+    "lower_back",
+    "obliques",
+    "abductors",
+    "adductors",
+    "tibialis",
+    "hip_flexors",
+    "neck",
 ]
 TimeTrack = Literal["speed", "weight"]
 SetKind = Literal["warmup", "working", "drop", "failure"]

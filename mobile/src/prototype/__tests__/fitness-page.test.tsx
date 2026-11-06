@@ -65,9 +65,19 @@ jest.mock("../run-tracker", () => ({
   stopTracking: jest.fn(),
 }))
 // Health and the body section have their own suites.
-jest.mock("../screens/steps-card", () => ({ StepsCard: () => null }))
-jest.mock("../screens/sleep-card", () => ({ SleepCard: () => null }))
-jest.mock("../screens/fitness-body", () => ({ Body: () => null }))
+// Each stands in as one marker line, so the page order can be read back.
+jest.mock("../screens/steps-card", () => {
+  const { Text } = require("react-native")
+  return { StepsCard: () => <Text>STEPS CARD</Text> }
+})
+jest.mock("../screens/sleep-card", () => {
+  const { Text } = require("react-native")
+  return { SleepCard: () => <Text>SLEEP CARD</Text> }
+})
+jest.mock("../screens/fitness-body", () => {
+  const { Text } = require("react-native")
+  return { Body: () => <Text>BODY SECTION</Text> }
+})
 
 const { FitnessTrain } =
   require("../screens/fitness-train") as typeof import("../screens/fitness-train")
@@ -263,4 +273,70 @@ test("an empty account sees progress dimmed under one card, with no duplicate st
   // One start action on the page.
   expect(screen.getAllByText("Start")).toHaveLength(1)
   expect(screen.queryByText("Recent")).toBeNull()
+})
+
+test("the page runs today, steps, templates and exercises, then history and trends", () => {
+  patch({
+    workouts: [workout("w1", at(WED, -1))],
+    runs: [],
+    activeId: null,
+  })
+  show()
+  const order = screen
+    .getAllByText(
+      /^(STEPS CARD|Templates|Exercises|Recent|Progress · 8 weeks|BODY SECTION|SLEEP CARD)$/,
+    )
+    .map((n) => n.props.children)
+  expect(order).toEqual([
+    "STEPS CARD",
+    "Templates",
+    "Exercises",
+    "Recent",
+    "Progress · 8 weeks",
+    "BODY SECTION",
+    "SLEEP CARD",
+  ])
+})
+
+test("the exercise editor offers every muscle by region and saves a new one", () => {
+  const { ExerciseEditor } =
+    require("../screens/fitness") as typeof import("../screens/fitness")
+  const onSaved = jest.fn()
+  render(
+    <ExerciseEditor
+      open
+      onClose={() => {}}
+      initialName="Hip abduction"
+      onSaved={onSaved}
+    />,
+    { wrapper },
+  )
+  // Region captions (Chest, Back… also name their broad muscle's chip).
+  for (const region of ["Arms", "Legs", "Other"])
+    expect(screen.getByText(region)).toBeTruthy()
+  for (const label of [
+    "Upper chest",
+    "Front delts",
+    "Side delts",
+    "Rear delts",
+    "Lats",
+    "Traps / upper back",
+    "Rhomboids",
+    "Lower back",
+    "Obliques",
+    "Abductors",
+    "Adductors",
+    "Tibialis",
+    "Hip flexors",
+    "Neck",
+  ])
+    expect(screen.getByText(label)).toBeTruthy()
+  fireEvent.press(screen.getByText("Abductors"))
+  fireEvent.press(screen.getByText("Save exercise"))
+  expect(onSaved).toHaveBeenCalledWith(
+    expect.objectContaining({ name: "Hip abduction", muscle: "abductors" }),
+  )
+  expect(
+    fitStore.get().exercises.find((e) => e.name === "Hip abduction")?.muscle,
+  ).toBe("abductors")
 })

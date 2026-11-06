@@ -97,7 +97,7 @@ def test_exercise_crud_search_and_archive(client: TestClient, db: Session) -> No
     )
     assert (
         client.post(
-            f"{API}/exercises", headers=h, json={"name": "x", "muscle": "neck"}
+            f"{API}/exercises", headers=h, json={"name": "x", "muscle": "elbows"}
         ).status_code
         == 422
     )

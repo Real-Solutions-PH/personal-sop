@@ -4652,7 +4652,7 @@ export const ExerciseUpsertSchema = {
         },
         muscle: {
             type: 'string',
-            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio', 'calves', 'forearms'],
+            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio', 'calves', 'forearms', 'upper_chest', 'front_delts', 'side_delts', 'rear_delts', 'lats', 'traps', 'rhomboids', 'lower_back', 'obliques', 'abductors', 'adductors', 'tibialis', 'hip_flexors', 'neck'],
             title: 'Muscle',
             default: 'chest'
         },
@@ -7523,6 +7523,38 @@ export const HistoryPointOutSchema = {
     type: 'object',
     required: ['workout_id', 'started_at', 'best_e1rm', 'heaviest', 'volume', 'done_sets', 'top_reps', 'top_weight'],
     title: 'HistoryPointOut'
+} as const;
+
+export const HomeLayoutSchema = {
+    properties: {
+        order: {
+            items: {
+                type: 'string',
+                pattern: '^[a-z][a-z0-9_]{0,31}$'
+            },
+            type: 'array',
+            maxItems: 64,
+            title: 'Order',
+            default: []
+        },
+        hidden: {
+            items: {
+                type: 'string',
+                pattern: '^[a-z][a-z0-9_]{0,31}$'
+            },
+            type: 'array',
+            maxItems: 64,
+            title: 'Hidden',
+            default: []
+        }
+    },
+    type: 'object',
+    title: 'HomeLayout',
+    description: `Home's sections in the person's order, and the ones they hid there.
+
+Hiding here is Home only: a module or extra switched off in Settings stays
+hidden whatever this says, and the app places a section missing from
+\`\`order\`\` at its default position.`
 } as const;
 
 export const HomeOutSchema = {
@@ -14296,6 +14328,16 @@ export const ProfilePublicSchema = {
             ],
             title: 'Enabled Extras'
         },
+        home_layout: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/HomeLayout'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
         intro_offered: {
             items: {
                 type: 'string',
@@ -14617,6 +14659,16 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Enabled Extras'
+        },
+        home_layout: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/HomeLayout'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         },
         intro_offered: {
             anyOf: [
