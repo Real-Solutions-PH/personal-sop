@@ -42,7 +42,7 @@ import { Button, Empty, PinnedFooter, Screen, Sheet, Toggle, undo } from "../ui"
 import { LockedPreview } from "./locked-preview"
 import { TaskRow } from "./tasks"
 
-const icons = {
+export const LIST_GLYPHS = {
   briefcase: Briefcase,
   laptop: Laptop,
   home: House,
@@ -69,7 +69,7 @@ export function ListGlyph({
           : t.tsk,
     Icon =
       typeof list === "object" && list
-        ? icons[list.icon]
+        ? LIST_GLYPHS[list.icon]
         : list === "starred"
           ? Star
           : Inbox
@@ -147,8 +147,8 @@ export function ListEditor({
         ))}
       </Line>
       <Line style={{ gap: 6, marginTop: 4 }}>
-        {(Object.keys(icons) as ListIcon[]).map((i) => {
-          const Icon = icons[i]
+        {(Object.keys(LIST_GLYPHS) as ListIcon[]).map((i) => {
+          const Icon = LIST_GLYPHS[i]
           return (
             <Tap
               key={i}
@@ -302,7 +302,7 @@ export function StarterLists() {
           key={l.name}
           title={l.name}
           detail={l.kind === "shopping" ? "Shopping list" : undefined}
-          icon={icons[l.icon]}
+          icon={LIST_GLYPHS[l.icon]}
           accent={l.color === "warn" ? "life" : l.color}
         />
       ))}
@@ -452,7 +452,9 @@ export function TaskListPage({ id }: { id: string }) {
           ? (a, b) => a.order - b.order
           : sort === "created"
             ? (a, b) => b.createdAt.localeCompare(a.createdAt)
-            : L.byDue,
+            : sort === "priority"
+              ? L.byPriority
+              : L.byDue,
       ),
     allDone = mine
       .filter((t) => t.status === "done")
@@ -569,6 +571,7 @@ export function TaskListPage({ id }: { id: string }) {
           onChange={setSort}
           options={[
             { value: "due", label: "By due" },
+            { value: "priority", label: "Priority" },
             { value: "created", label: "Newest" },
             { value: "manual", label: "Manual" },
           ]}

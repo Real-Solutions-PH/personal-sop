@@ -119,6 +119,7 @@ class NewTask:
     recurrence: dict[str, Any] | None = None
     notes: str | None = None
     starred: bool = False
+    priority: str = "none"
     source: str = "manual"
     parse_state: str = "parsed"
     task_id: uuid.UUID | None = None
@@ -138,6 +139,7 @@ def _build(ctx: Ctx, n: NewTask, order: int, remind_time: str) -> dict[str, Any]
         "recurrence": n.recurrence,
         "notes": n.notes,
         "starred": n.starred,
+        "priority": n.priority,
         "tags": clean_tags(n.tags),
         "status": "open",
         "completed_at": None,
@@ -281,6 +283,7 @@ def complete(
                 recurrence=t.recurrence,
                 notes=t.notes,
                 starred=t.starred,
+                priority=t.priority,
                 source=t.source,
                 tags=list(t.tags or []),
             ),
@@ -329,6 +332,7 @@ def _untouched(ctx: Ctx, child: Task, parent: Task) -> bool:
         and child.list_id == parent.list_id
         and child.notes == parent.notes
         and child.starred == parent.starred
+        and child.priority == parent.priority
         and child.due_time == parent.due_time
         and child.recurrence == parent.recurrence
         and repo.event_types(ctx, child.id) == ["created"]
@@ -362,7 +366,7 @@ def update(ctx: Ctx, t: Task, patch: dict[str, Any]) -> Task:
         _check_list(ctx, patch["list_id"])
     if "title" in patch and patch["title"] is not None:
         patch["title"] = patch["title"].strip() or "Untitled"
-    for key in ("title", "starred"):
+    for key in ("title", "starred", "priority"):
         if key in patch and patch[key] is None:
             raise invalid("field_required", "This field cannot be cleared")
     if "tags" in patch:
@@ -461,6 +465,7 @@ def duplicate(ctx: Ctx, t: Task, new_id: uuid.UUID | None = None) -> Task:
                 recurrence=t.recurrence,
                 notes=t.notes,
                 starred=t.starred,
+                priority=t.priority,
                 tags=list(t.tags or []),
                 task_id=new_id,
             )

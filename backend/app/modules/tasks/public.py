@@ -28,6 +28,7 @@ class TaskDraft:
     remind: bool = False
     task_id: uuid.UUID | None = None
     tags: list[str] = field(default_factory=list)
+    priority: str = "none"
 
 
 def create_tasks(
@@ -48,6 +49,7 @@ def create_tasks(
                 source=source,
                 task_id=d.task_id,
                 tags=list(d.tags),
+                priority=d.priority,
             )
             for d in drafts
         ],
@@ -175,6 +177,7 @@ def task_state(ctx: Ctx, *, task_id: uuid.UUID) -> dict[str, Any]:
         "due_date": t.due_date.isoformat() if t.due_date else None,
         "due_time": t.due_time,
         "tags": list(t.tags or []),
+        "priority": t.priority,
     }
 
 
@@ -183,7 +186,9 @@ def edit_task(ctx: Ctx, *, task_id: uuid.UUID, changes: dict[str, Any]) -> None:
     through ``set_due``, so moving it later counts as a reschedule."""
     t = repo.live_task(ctx, task_id)
     patch = {
-        k: v for k, v in changes.items() if k in ("title", "notes", "list_id", "tags")
+        k: v
+        for k, v in changes.items()
+        if k in ("title", "notes", "list_id", "tags", "priority")
     }
     if "list_id" in patch and patch["list_id"] is not None:
         patch["list_id"] = uuid.UUID(str(patch["list_id"]))

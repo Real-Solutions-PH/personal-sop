@@ -1847,6 +1847,18 @@ export type HistoryPointOut = {
 };
 
 /**
+ * Home's sections in the person's order, and the ones they hid there.
+ *
+ * Hiding here is Home only: a module or extra switched off in Settings stays
+ * hidden whatever this says, and the app places a section missing from
+ * ``order`` at its default position.
+ */
+export type HomeLayout = {
+    order?: Array<(string)>;
+    hidden?: Array<(string)>;
+};
+
+/**
  * FIN-01 in one read.
  */
 export type HomeOut = {
@@ -2781,6 +2793,7 @@ export type OverdueTask = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    priority?: 'none' | 'low' | 'medium' | 'high';
     tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
@@ -2798,6 +2811,8 @@ export type OverdueTask = {
     version: number;
     days_late: number;
 };
+
+export type priority = 'none' | 'low' | 'medium' | 'high';
 
 export type status5 = 'open' | 'done' | 'deleted';
 
@@ -3122,6 +3137,7 @@ export type ProfilePublic = {
     fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
+    home_layout?: (HomeLayout | null);
     intro_offered?: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')>;
     intro_dismissed?: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')>;
     occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
@@ -3160,6 +3176,7 @@ export type ProfileUpdate = {
     fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
+    home_layout?: (HomeLayout | null);
     intro_offered?: (Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')> | null);
     intro_dismissed?: (Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')> | null);
 };
@@ -4171,6 +4188,7 @@ export type TaskCreate = {
     recurrence?: (Recurrence | null);
     notes?: (string | null);
     starred?: boolean;
+    priority?: 'none' | 'low' | 'medium' | 'high';
     tags?: Array<(string)>;
     source?: 'manual' | 'capture-text' | 'capture-voice' | 'capture-photo';
     parse_state?: 'parsed' | 'pending';
@@ -4186,6 +4204,7 @@ export type TaskDetail = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    priority?: 'none' | 'low' | 'medium' | 'high';
     tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
@@ -4212,6 +4231,7 @@ export type TaskDraftIn = {
     due_time?: (string | null);
     remind?: boolean;
     tags?: Array<(string)>;
+    priority?: 'none' | 'low' | 'medium' | 'high';
 };
 
 export type TaskPayload = {
@@ -4229,6 +4249,7 @@ export type TaskPublic = {
     recurrence: (Recurrence | null);
     notes: (string | null);
     starred: boolean;
+    priority?: 'none' | 'low' | 'medium' | 'high';
     tags?: Array<(string)>;
     status: 'open' | 'done' | 'deleted';
     completed_at: (string | null);
@@ -4264,6 +4285,7 @@ export type TaskUpdate = {
     notes?: (string | null);
     list_id?: (string | null);
     starred?: (boolean | null);
+    priority?: ('none' | 'low' | 'medium' | 'high' | null);
     tags?: (Array<(string)> | null);
     recurrence?: (Recurrence | null);
     remind_at?: (string | null);

@@ -61,7 +61,15 @@ import {
   Wallet,
   X,
 } from "lucide-react-native"
-import { type ComponentType, memo, useEffect, useMemo, useState } from "react"
+import {
+  type ComponentType,
+  Fragment,
+  memo,
+  type ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { Platform, Text, View } from "react-native"
 import Animated from "react-native-reanimated"
 import { toast } from "sonner-native"
@@ -75,6 +83,7 @@ import { FirstWeekStrip, LeafRow, YesterdayStrip } from "../daily-strips"
 import { CardSkeleton, Deferred, FrameSkeleton } from "../deferred"
 import { extrasStore } from "../extras"
 import { GoalVine, goalLeft, missCost } from "../goal-vine"
+import { homeSection, useHomeLayout } from "../home-layout"
 import {
   AnimatedCheck,
   CountUp,
@@ -1613,16 +1622,90 @@ function FinanceCard() {
     </>
   )
 }
-function GoalsAndContext({ evening }: { evening: boolean }) {
+// Goals in play, the morning's news (a new trophy, else yesterday's misses)
+// and, in the evening, tomorrow: three Home sections the person places apart.
+function GoalsCard() {
   const t = useTheme(),
     goals = D.useGoals()
       .filter((g) => g.goal.status === "active" && g.goal.period === "week")
-      .slice(0, 2),
+      .slice(0, 2)
+  if (!goals.length) return null
+  return (
+    <Frame style={{ padding: 16 }}>
+      <CornerMotif kind="sprig" seed={9} />
+      <Tap onPress={() => go("/stats/goals")}>
+        <Line style={{ gap: 8 }}>
+          <Target size={16} color={t.primary} />
+          <Copy weight="semibold" style={{ flex: 1 }}>
+            Goals in play
+          </Copy>
+          <Copy size={12} muted>
+            this week
+          </Copy>
+        </Line>
+      </Tap>
+      <View style={{ gap: 10 }}>
+        {goals.map(({ goal, entry, pct, hit, current }) => {
+          const mod = goal.metric.split(":")[0]
+          const accent = mod in AREA ? AREA[mod as ModuleKey].accent : "life"
+          const left = goalLeft(goal, current, hit)
+          return (
+            <Tap
+              key={goal.id}
+              label={`${goal.label}: ${entry?.value ?? "no value yet"} of ${D.fmtGoal(goal)}${hit ? ", hit" : ""}`}
+              onPress={() =>
+                go(
+                  goal.metric.includes(":")
+                    ? `/stats/metric/${encodeURIComponent(goal.metric)}`
+                    : "/stats/goals",
+                )
+              }
+            >
+              <Line style={{ justifyContent: "space-between" }}>
+                <Copy size={14} style={{ flex: 1 }}>
+                  {goal.label}
+                </Copy>
+                <Copy
+                  size={14}
+                  weight="medium"
+                  style={{ color: hit ? t.good : t.text }}
+                >
+                  {entry?.value ?? "—"}
+                  <Text style={{ color: t.muted, fontSize: 12 }}>
+                    {" "}
+                    / {goal.target.toLocaleString("en-US")}
+                    {goal.unit}
+                  </Text>
+                </Copy>
+              </Line>
+              <GoalVine
+                pct={pct}
+                hit={hit}
+                color={t[accent]}
+                seed={goal.label.length}
+              />
+              {left && (
+                <Copy
+                  size={12}
+                  muted={!hit}
+                  style={hit ? { color: t.good } : undefined}
+                >
+                  {left}
+                </Copy>
+              )}
+            </Tap>
+          )
+        })}
+      </View>
+    </Frame>
+  )
+}
+function RecapCard({ evening }: { evening: boolean }) {
+  const t = useTheme(),
     s = dashStore.use((s) => s),
     trophies = D.useTrophies(),
     misses = D.useAllMisses(dayOffset(-1), dayOffset(-1)),
     fresh = trophies.find((x) => !s.seenTrophies.includes(x.id)),
-    tomorrow = D.useAllCalendar(dayOffset(1), dayOffset(1)),
     ended = useEndedRuns(misses)
   // The weekly review has its own card at the top of Today.
   const context = evening ? null : fresh ? (
@@ -1678,126 +1761,44 @@ function GoalsAndContext({ evening }: { evening: boolean }) {
       </Copy>
     </Tap>
   ) : null
+  if (!context) return null
   return (
-    <>
-      {(goals.length > 0 || context) && (
-        <Frame style={{ padding: 16 }}>
-          <CornerMotif kind="sprig" seed={9} />
-          {goals.length > 0 && (
-            <>
-              <Tap onPress={() => go("/stats/goals")}>
-                <Line style={{ gap: 8 }}>
-                  <Target size={16} color={t.primary} />
-                  <Copy weight="semibold" style={{ flex: 1 }}>
-                    Goals in play
-                  </Copy>
-                  <Copy size={12} muted>
-                    this week
-                  </Copy>
-                </Line>
-              </Tap>
-              <View style={{ gap: 10 }}>
-                {goals.map(({ goal, entry, pct, hit, current }) => {
-                  const mod = goal.metric.split(":")[0]
-                  const accent =
-                    mod in AREA ? AREA[mod as ModuleKey].accent : "life"
-                  const left = goalLeft(goal, current, hit)
-                  return (
-                    <Tap
-                      key={goal.id}
-                      label={`${goal.label}: ${entry?.value ?? "no value yet"} of ${D.fmtGoal(goal)}${hit ? ", hit" : ""}`}
-                      onPress={() =>
-                        go(
-                          goal.metric.includes(":")
-                            ? `/stats/metric/${encodeURIComponent(goal.metric)}`
-                            : "/stats/goals",
-                        )
-                      }
-                    >
-                      <Line style={{ justifyContent: "space-between" }}>
-                        <Copy size={14} style={{ flex: 1 }}>
-                          {goal.label}
-                        </Copy>
-                        <Copy
-                          size={14}
-                          weight="medium"
-                          style={{ color: hit ? t.good : t.text }}
-                        >
-                          {entry?.value ?? "—"}
-                          <Text style={{ color: t.muted, fontSize: 12 }}>
-                            {" "}
-                            / {goal.target.toLocaleString("en-US")}
-                            {goal.unit}
-                          </Text>
-                        </Copy>
-                      </Line>
-                      <GoalVine
-                        pct={pct}
-                        hit={hit}
-                        color={t[accent]}
-                        seed={goal.label.length}
-                      />
-                      {left && (
-                        <Copy
-                          size={12}
-                          muted={!hit}
-                          style={hit ? { color: t.good } : undefined}
-                        >
-                          {left}
-                        </Copy>
-                      )}
-                    </Tap>
-                  )
-                })}
-              </View>
-            </>
-          )}
-          {context && (
-            <View
-              style={
-                goals.length
-                  ? {
-                      borderTopWidth: 1,
-                      borderColor: border(t.line, 0.5),
-                      paddingTop: 12,
-                      marginTop: 2,
-                    }
-                  : undefined
-              }
-            >
-              {context}
+    <Frame style={{ padding: 16 }}>
+      <CornerMotif kind="sprig" seed={9} />
+      {context}
+    </Frame>
+  )
+}
+function TomorrowCard({ evening }: { evening: boolean }) {
+  const t = useTheme(),
+    tomorrow = D.useAllCalendar(dayOffset(1), dayOffset(1))
+  if (!evening) return null
+  return (
+    <Frame style={{ padding: 16 }}>
+      <CornerMotif kind="sprig" seed={9} />
+      <Tap onPress={() => go("/plan?seg=calendar")}>
+        <Line style={{ gap: 8 }}>
+          <CalendarDays size={16} color={t.primary} />
+          <Copy weight="semibold">Tomorrow</Copy>
+        </Line>
+        {tomorrow.length ? (
+          tomorrow.slice(0, 3).map((i) => (
+            <Copy key={i.id} size={14} style={{ paddingVertical: 6 }}>
+              {i.time ?? "—"}　{i.title}
+            </Copy>
+          ))
+        ) : (
+          <>
+            <View style={{ opacity: 0.32, marginVertical: 4 }}>
+              <LeafRow cells={Array(7).fill("ahead")} />
             </View>
-          )}
-        </Frame>
-      )}
-      {evening && (
-        <Frame style={{ padding: 16 }}>
-          <CornerMotif kind="sprig" seed={9} />
-          <Tap onPress={() => go("/plan?seg=calendar")}>
-            <Line style={{ gap: 8 }}>
-              <CalendarDays size={16} color={t.primary} />
-              <Copy weight="semibold">Tomorrow</Copy>
-            </Line>
-            {tomorrow.length ? (
-              tomorrow.slice(0, 3).map((i) => (
-                <Copy key={i.id} size={14} style={{ paddingVertical: 6 }}>
-                  {i.time ?? "—"}　{i.title}
-                </Copy>
-              ))
-            ) : (
-              <>
-                <View style={{ opacity: 0.32, marginVertical: 4 }}>
-                  <LeafRow cells={Array(7).fill("ahead")} />
-                </View>
-                <Copy size={14} muted>
-                  Nothing scheduled yet — a clean slate.
-                </Copy>
-              </>
-            )}
-          </Tap>
-        </Frame>
-      )}
-    </>
+            <Copy size={14} muted>
+              Nothing scheduled yet — a clean slate.
+            </Copy>
+          </>
+        )}
+      </Tap>
+    </Frame>
   )
 }
 /** For yesterday's habit misses, the streak each one ended (3 days or more,
@@ -1880,7 +1881,9 @@ const Calendar = memo(CalendarCard)
 const Launcher = memo(AppLauncher)
 const Mood = memo(MoodCheckIn)
 const Community = memo(CommunityCard)
-const Goals = memo(GoalsAndContext)
+const Goals = memo(GoalsCard)
+const Recap = memo(RecapCard)
+const Tomorrow = memo(TomorrowCard)
 export function Today() {
   const t = useTheme(),
     s = dashStore.use((s) => s),
@@ -1904,7 +1907,7 @@ export function Today() {
     foc = focusStore.use((s) => s.sessions.length + (s.settingsSaved ? 1 : 0)),
     scr = useScreenSetUp(),
     shown = extrasStore.use((s) => s),
-    order = D.useModuleOrder()
+    layout = useHomeLayout()
   const has = {
       habits,
       tasks,
@@ -1921,6 +1924,110 @@ export function Today() {
         : date.getHours() >= 12 && date.getHours() < 18
           ? "Good afternoon"
           : "Good evening"
+  // Each Home section by id (module cards are drawn from MODULE_CARDS).
+  // Their place and Home-only hiding come from the layout (home-layout.ts).
+  const SECTIONS: Record<string, () => ReactNode> = {
+    weekly_review: () => (
+      <Deferred lag fallback={<FrameSkeleton height={150} />}>
+        <WeeklyReview now={now} />
+      </Deferred>
+    ),
+    yesterday: () => <Yesterday />,
+    first_week: () => <FirstWeek />,
+    plan: () => <Plan />,
+    weather: () => <Weather />,
+    calendar: () => <Calendar />,
+    setup: () =>
+      !s.setupHidden && pending.length > 0 ? (
+        <Frame style={{ padding: 16 }}>
+          <CornerMotif kind="sprig" seed={4} size={110} />
+          <Line style={{ gap: 12 }}>
+            <Sparkles size={20} color={t.primary} />
+            <Tap onPress={() => go("/setup")} style={{ flex: 1 }}>
+              <Copy weight="semibold">Finish setting up</Copy>
+              <Copy size={14} muted>
+                {MODULE_KEYS.filter((k) => s.enabled[k]).length -
+                  pending.length}{" "}
+                steps done · next: {pending[0]}
+              </Copy>
+            </Tap>
+            <IconTap
+              icon={X}
+              label="Hide setup reminder"
+              onPress={() => setSetupHidden(true)}
+            />
+          </Line>
+        </Frame>
+      ) : null,
+    launcher: () => <Launcher />,
+    wrap_up: () =>
+      evening ? (
+        <Frame style={{ padding: 16 }}>
+          <CornerMotif kind="sprig" seed={11} size={110} />
+          <Tap onPress={() => go("/today/wrap-up")}>
+            <Line style={{ gap: 12 }}>
+              <Moon color={t.life} size={20} />
+              <View style={{ flex: 1 }}>
+                <Copy weight="semibold">
+                  {s.wrapups[dayKey()]
+                    ? "Day sealed · Tap to review"
+                    : ring.due > ring.done
+                      ? `${ring.due - ring.done} items open — wrap up`
+                      : "All done — seal the day"}
+                </Copy>
+                <Copy size={12} muted>
+                  30 seconds: tick, push, reflect
+                </Copy>
+              </View>
+              <ChevronRight size={20} color={t.muted} />
+            </Line>
+          </Tap>
+        </Frame>
+      ) : null,
+    install: () =>
+      Platform.OS === "web" && !s.installDismissed ? (
+        <Frame
+          style={{
+            padding: 16,
+          }}
+        >
+          <Line>
+            <Smartphone size={20} color={t.primary} />
+            <Tap
+              onPress={() => go("/onboarding?step=install")}
+              style={{ flex: 1 }}
+            >
+              <Copy size={14} weight="medium">
+                Install the app
+              </Copy>
+              <Copy size={12} muted>
+                Needed for reminders on iPhone
+              </Copy>
+            </Tap>
+            <IconTap
+              size={44}
+              icon={X}
+              label="Dismiss install nudge"
+              onPress={() => setInstallDismissed(true)}
+            />
+          </Line>
+        </Frame>
+      ) : null,
+    mood: () => <Mood />,
+    intro: () => <ModuleIntroCard cards={MODULE_CARDS} />,
+    community: () => <Community />,
+    goals: () => (
+      <Deferred lag fallback={<FrameSkeleton height={90} />}>
+        <Goals />
+      </Deferred>
+    ),
+    recap: () => (
+      <Deferred lag fallback={<FrameSkeleton height={90} />}>
+        <Recap evening={evening} />
+      </Deferred>
+    ),
+    tomorrow: () => <Tomorrow evening={evening} />,
+  }
   return (
     <Screen
       root
@@ -1934,6 +2041,13 @@ export function Today() {
       })}
       actions={
         <Line style={{ gap: 4 }}>
+          <IconTap
+            size={44}
+            icon={Pencil}
+            label="Edit Home"
+            color={t.text}
+            onPress={() => go("/today/edit")}
+          />
           <PrivacyEye />
           {shown.social && <CommunityButton />}
           <View>
@@ -1970,107 +2084,28 @@ export function Today() {
         </Line>
       }
     >
-      <Deferred lag fallback={<FrameSkeleton height={150} />}>
-        <WeeklyReview now={now} />
-      </Deferred>
-      <Yesterday />
-      <FirstWeek />
-      <Plan />
-      {shown.weather && <Weather />}
-      {shown.calendar && <Calendar />}
-      {!s.setupHidden && pending.length > 0 && (
-        <Frame style={{ padding: 16 }}>
-          <CornerMotif kind="sprig" seed={4} size={110} />
-          <Line style={{ gap: 12 }}>
-            <Sparkles size={20} color={t.primary} />
-            <Tap onPress={() => go("/setup")} style={{ flex: 1 }}>
-              <Copy weight="semibold">Finish setting up</Copy>
-              <Copy size={14} muted>
-                {MODULE_KEYS.filter((k) => s.enabled[k]).length -
-                  pending.length}{" "}
-                steps done · next: {pending[0]}
-              </Copy>
-            </Tap>
-            <IconTap
-              icon={X}
-              label="Hide setup reminder"
-              onPress={() => setSetupHidden(true)}
-            />
-          </Line>
-        </Frame>
-      )}
-      <Launcher />
-      {evening ? (
-        <Frame style={{ padding: 16 }}>
-          <CornerMotif kind="sprig" seed={11} size={110} />
-          <Tap onPress={() => go("/today/wrap-up")}>
-            <Line style={{ gap: 12 }}>
-              <Moon color={t.life} size={20} />
-              <View style={{ flex: 1 }}>
-                <Copy weight="semibold">
-                  {s.wrapups[dayKey()]
-                    ? "Day sealed · Tap to review"
-                    : ring.due > ring.done
-                      ? `${ring.due - ring.done} items open — wrap up`
-                      : "All done — seal the day"}
-                </Copy>
-                <Copy size={12} muted>
-                  30 seconds: tick, push, reflect
-                </Copy>
-              </View>
-              <ChevronRight size={20} color={t.muted} />
-            </Line>
-          </Tap>
-        </Frame>
-      ) : null}
-      {Platform.OS === "web" && !s.installDismissed && (
-        <Frame
-          style={{
-            padding: 16,
-          }}
-        >
-          <Line>
-            <Smartphone size={20} color={t.primary} />
-            <Tap
-              onPress={() => go("/onboarding?step=install")}
-              style={{ flex: 1 }}
-            >
-              <Copy size={14} weight="medium">
-                Install the app
-              </Copy>
-              <Copy size={12} muted>
-                Needed for reminders on iPhone
-              </Copy>
-            </Tap>
-            <IconTap
-              size={44}
-              icon={X}
-              label="Dismiss install nudge"
-              onPress={() => setInstallDismissed(true)}
-            />
-          </Line>
-        </Frame>
-      )}
-      {shown.journal && <Mood />}
-      {order
-        .filter((k) => s.enabled[k])
-        .map((k) => {
-          const Card = MODULE_CARDS[k]
+      {layout.ids.map((id) => {
+        if (layout.hidden.has(id)) return null
+        const section = homeSection(id)
+        // A module or extra switched off stays hidden whatever the layout
+        // says; an id this release does not know has nothing to draw.
+        if (!section) return null
+        if (section.module && !s.enabled[section.module]) return null
+        if (section.extra && !shown[section.extra]) return null
+        const Card = section.module ? MODULE_CARDS[section.module] : null
+        if (section.module)
           return Card ? (
             <Deferred
-              key={k}
-              lag={LAGGING_CARDS.has(k)}
-              fallback={<CardSkeleton {...CARD_SKELETON[k]} />}
+              key={id}
+              lag={LAGGING_CARDS.has(section.module)}
+              fallback={<CardSkeleton {...CARD_SKELETON[section.module]} />}
             >
               <Card />
             </Deferred>
           ) : null
-        })}
-      <ModuleIntroCard cards={MODULE_CARDS} />
-      {shown.social && <Community />}
-      <Deferred lag fallback={<FrameSkeleton height={90} />}>
-        <Goals evening={evening} />
-      </Deferred>
+        const draw = SECTIONS[id]
+        return draw ? <Fragment key={id}>{draw()}</Fragment> : null
+      })}
     </Screen>
   )
 }
