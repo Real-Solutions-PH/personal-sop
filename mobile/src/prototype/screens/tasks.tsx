@@ -30,6 +30,7 @@ import {
 } from "../motion"
 import { Copy, Line, Tap } from "../native-kit"
 import { back, go } from "../navigation"
+import { PriorityMark } from "../task-editor"
 import { fonts, useTheme } from "../theme"
 import {
   Actions,
@@ -185,7 +186,9 @@ export function TaskRow({
     task.status === "done" && task.completedAt
       ? new Date(task.completedAt)
       : null
+  const prioritised = !!task.priority && task.priority !== "none"
   const hasMeta =
+    prioritised ||
     !!doneAt ||
     (showDay && !!task.dueDate) ||
     !!task.dueTime ||
@@ -297,6 +300,8 @@ export function TaskRow({
                       minHeight: 16,
                     }}
                   >
+                    {/* First: how much it matters is read before when. */}
+                    <PriorityMark priority={task.priority} />
                     {doneAt && (
                       <View
                         accessible
@@ -411,24 +416,30 @@ export function TaskRow({
                   </View>
                 )
               ) : (
-                <Text
-                  style={{
-                    fontFamily: fonts.body,
-                    fontSize: 12,
-                    color: L.isOverdue(task) ? t.bad : t.muted,
-                  }}
-                >
-                  {task.dueDate
-                    ? L.isOverdue(task)
-                      ? `late ${L.diffDays(task.dueDate, dayKey())}d · ${L.fmtDay(task.dueDate)}`
-                      : L.fmtDay(task.dueDate)
-                    : "No date"}
-                  {task.rescheduleCount >= 3
-                    ? ` · pushed ${task.rescheduleCount}×`
-                    : ""}
-                  {task.dueTime ? ` · ${task.dueTime}` : ""}
-                  {task.recurrence ? ` · ${L.fmtRepeat(task.recurrence)}` : ""}
-                </Text>
+                <Line style={{ gap: 6, flexWrap: "wrap" }}>
+                  <PriorityMark priority={task.priority} />
+                  <Text
+                    style={{
+                      flexShrink: 1,
+                      fontFamily: fonts.body,
+                      fontSize: 12,
+                      color: L.isOverdue(task) ? t.bad : t.muted,
+                    }}
+                  >
+                    {task.dueDate
+                      ? L.isOverdue(task)
+                        ? `late ${L.diffDays(task.dueDate, dayKey())}d · ${L.fmtDay(task.dueDate)}`
+                        : L.fmtDay(task.dueDate)
+                      : "No date"}
+                    {task.rescheduleCount >= 3
+                      ? ` · pushed ${task.rescheduleCount}×`
+                      : ""}
+                    {task.dueTime ? ` · ${task.dueTime}` : ""}
+                    {task.recurrence
+                      ? ` · ${L.fmtRepeat(task.recurrence)}`
+                      : ""}
+                  </Text>
+                </Line>
               )}
               <TagChips tags={task.tags} />
             </Pressable>
@@ -676,7 +687,9 @@ export function Tasks({
       ? (a, b) => a.title.localeCompare(b.title)
       : sort === "manual"
         ? (a, b) => a.order - b.order
-        : L.byDue,
+        : sort === "priority"
+          ? L.byPriority
+          : L.byDue,
   )
   return (
     <ListScreen
@@ -789,7 +802,7 @@ export function Tasks({
                 label="Sort"
                 value={sort}
                 onChange={setSort}
-                options={["due", "manual", "name"].map((value) => ({
+                options={["due", "priority", "manual", "name"].map((value) => ({
                   value,
                   label: value,
                 }))}
