@@ -174,7 +174,7 @@ describe("a habit driven by screen time", () => {
       expect(screen.getByLabelText(AUTO)).toBeTruthy()
       expect(screen.getByText("≥ 15 of 30 min")).toBeTruthy()
       expect(
-        screen.queryByLabelText("More options for Less social media"),
+        screen.queryByLabelText("More actions for Less social media"),
       ).toBeNull()
       view.unmount()
     }
