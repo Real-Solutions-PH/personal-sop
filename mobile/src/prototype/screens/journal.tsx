@@ -8,7 +8,7 @@ import {
 } from "@domain/capture/data"
 import { journalDraft } from "@domain/capture/parse"
 import { captureStore, isOnline, useOnline } from "@domain/capture/store"
-import { dayKey, dayOffset, weekday } from "@domain/lib/day"
+import { dayKey, dayOffset } from "@domain/lib/day"
 import {
   Briefcase,
   Check,
@@ -55,7 +55,6 @@ import Svg, {
 } from "react-native-svg"
 import { toast } from "sonner-native"
 import { CornerMotif } from "../brand/corner"
-import { leaf } from "../brand/scribble"
 import { FernCelebrates } from "../companion/fern-celebrates"
 import { feel, StreakChip } from "../motion"
 import {
@@ -80,6 +79,7 @@ import {
   usePaged,
 } from "../ui"
 import { CaptureVoice } from "./capture-voice"
+import { countByDay, JournalHeatmap } from "./journal-heatmap"
 import { MoodPicker, moodIcons } from "./mood-picker"
 
 const areaIcons = {
@@ -470,13 +470,7 @@ function JournalList() {
     byDay = groupBy(shown, (e) => e.day),
     groups = [...byDay.keys()].sort((a, b) => b.localeCompare(a)),
     days = new Set(entries.map((e) => e.day)),
-    lead = weekday(dayOffset(-27)),
-    heat = [
-      ...Array.from({ length: lead }, () => null),
-      ...Array.from({ length: 28 }, (_, i) =>
-        days.has(dayOffset(i - 27)) ? 1 : 0,
-      ),
-    ]
+    perDay = countByDay(entries.map((e) => e.day))
   const streak = journalStreak(days)
   const page = usePaged(groups, `${area}|${q}`)
   return (
@@ -541,45 +535,7 @@ function JournalList() {
               </View>
             ))}
           </Line>
-          {/* Weekdays across, weeks down (card library, Heatmap). */}
-          <View style={{ gap: 6, marginTop: 16 }}>
-            <Line style={{ gap: 0 }}>
-              {["S", "M", "T", "W", "T", "F", "S"].map((label, i) => (
-                <Copy
-                  key={`${label}${i}`}
-                  size={12}
-                  muted
-                  style={{ flex: 1, textAlign: "center" }}
-                >
-                  {label}
-                </Copy>
-              ))}
-            </Line>
-            {Array.from({ length: Math.ceil(heat.length / 7) }, (_, week) => (
-              <Line key={week} style={{ gap: 0 }}>
-                {Array.from({ length: 7 }, (_, d) => {
-                  const v = heat[week * 7 + d] ?? null
-                  return (
-                    <View key={d} style={{ flex: 1, alignItems: "center" }}>
-                      {v === null ? (
-                        <View style={{ width: 22, height: 22 }} />
-                      ) : (
-                        <DayLeaf
-                          on={v === 1}
-                          seed={week * 7 + d}
-                          color={t.life}
-                          faint={t.muted}
-                        />
-                      )}
-                    </View>
-                  )
-                })}
-              </Line>
-            ))}
-          </View>
-          <Copy size={12} muted style={{ marginTop: 8 }}>
-            Last 4 weeks
-          </Copy>
+          <JournalHeatmap counts={perDay} />
           {all.filter((e) => e.mood).length >= 5 && <MoodTrend entries={all} />}
         </Frame>
         <Line style={{ gap: 8, marginTop: 12 }}>
@@ -1142,33 +1098,5 @@ function JournalEditor({ id }: { id?: string }) {
         />
       )}
     </Screen>
-  )
-}
-
-/** One day of the Journal heatmap as a leaf: filled when written, a faint
- * outline when not (card library, Journal). Leaves lean a little each way so
- * the grid reads hand-drawn. */
-function DayLeaf({
-  on,
-  seed,
-  color,
-  faint,
-}: {
-  on: boolean
-  seed: number
-  color: string
-  faint: string
-}) {
-  const ang = -Math.PI * (0.62 + ((seed * 37) % 7) * 0.02)
-  return (
-    <Svg width={22} height={22} viewBox="0 0 14 14">
-      <Path
-        d={leaf(4, 12, 11, ang, 0.42)}
-        fill={on ? color : "none"}
-        stroke={on ? color : faint}
-        strokeWidth={on ? 0.8 : 0.7}
-        opacity={on ? 1 : 0.45}
-      />
-    </Svg>
   )
 }
