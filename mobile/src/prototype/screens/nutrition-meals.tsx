@@ -47,8 +47,8 @@ import { TimeInput } from "../time-input"
 import { Button, Empty, Screen, undo } from "../ui"
 import { isDay } from "../validation"
 import { MealThumb } from "./nutrition"
-import { EatAgain } from "./nutrition-eat-again"
 import { LibraryPickSheet } from "./nutrition-food-pick"
+import { FoodLibraryCard } from "./nutrition-library-card"
 
 const keys = ["kcal", "protein", "carbs", "fat"] as const
 /** An item picked from the food library says so instead of "AI assumed". */
@@ -175,6 +175,9 @@ function When({
       {labels.map((l) => (
         <Tap
           key={l}
+          role="radio"
+          selected={l === label}
+          label={`${l[0].toUpperCase()}${l.slice(1)}`}
           onPress={() => onLabel(l)}
           style={{
             paddingHorizontal: 12,
@@ -671,6 +674,9 @@ export function ManualMeal() {
         </View>
       }
     >
+      {/* Which meal it is comes first: it is picked from the time of day,
+          and everything below logs into it. */}
+      <When label={label} time={time} onLabel={setLabel} onTime={setTime} />
       <Frame style={{ padding: 8 }}>
         <Line style={{ gap: 8 }}>
           {(
@@ -712,7 +718,7 @@ export function ManualMeal() {
           ))}
         </Line>
       </Frame>
-      <EatAgain
+      <FoodLibraryCard
         day={day}
         onAdd={(item) => setItems((now) => [...now, item])}
         onPick={setPicking}
@@ -798,7 +804,6 @@ export function ManualMeal() {
       <View style={{ marginTop: -12, marginBottom: -12 }}>
         <SectionHeading>Or build it yourself</SectionHeading>
       </View>
-      <When label={label} time={time} onLabel={setLabel} onTime={setTime} />
       <FoodPicker
         onPick={(key) => {
           const f = FOODS.find((x) => x.key === key)

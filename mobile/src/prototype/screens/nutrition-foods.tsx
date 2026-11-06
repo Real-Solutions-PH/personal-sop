@@ -170,7 +170,7 @@ export function FoodLibrary() {
             }}
           >
             <Line style={{ justifyContent: "space-between", gap: 8 }}>
-              <Copy size={14} weight="medium" lines={1} style={{ flex: 1 }}>
+              <Copy size={14} weight="medium" style={{ flex: 1 }}>
                 {f.name}
               </Copy>
               <Copy size={14} weight="semibold">
@@ -215,12 +215,7 @@ function FoodRow({ food: f, first }: { food: LibraryFood; first: boolean }) {
         <View style={{ flex: 1, gap: 2 }}>
           <Line style={{ justifyContent: "space-between", gap: 8 }}>
             <Line style={{ gap: 6, flex: 1 }}>
-              <Copy
-                size={14}
-                weight="medium"
-                lines={1}
-                style={{ flexShrink: 1 }}
-              >
+              <Copy size={14} weight="medium" style={{ flexShrink: 1 }}>
                 {f.name}
               </Copy>
               {f.verified && (

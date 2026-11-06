@@ -59,7 +59,7 @@ const metrics = {
   frame: { x: 0, y: 0, width: 390, height: 844 },
   insets: { top: 0, left: 0, right: 0, bottom: 0 },
 }
-// The app's providers hold a QueryClient: Log meal's Eat again card reads
+// The app's providers hold a QueryClient: Log meal's Food library card reads
 // the food library through it (off outside live mode, so never fetched).
 const queries = new QueryClient()
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -437,7 +437,7 @@ test("Log meal offers the meals eaten before, one tap with Undo", () => {
     meals: [meal("a", dayOffset(-1), 650, 40)],
   }))
   render(<ManualMeal />, { wrapper })
-  expect(screen.getByText("Eat again")).toBeTruthy()
+  expect(screen.getByText("Food library")).toBeTruthy()
   fireEvent.press(screen.getByLabelText("Log Adobo again, 650 kcal"))
   // A copy of the same foods, wherever the business day's cut-off puts it.
   expect(fitStore.get().meals).toHaveLength(2)

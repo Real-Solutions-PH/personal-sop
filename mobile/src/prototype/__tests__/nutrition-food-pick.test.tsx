@@ -1,4 +1,4 @@
-// Logging a meal by hand from the food library, on Log meal's Eat again
+// Logging a meal by hand from the food library, on Log meal's Food library
 // card: one tap adds a saved food at its usual amount, or pick it to say how
 // much, and it joins the meal with the food's numbers scaled to that amount;
 // the meal saves it like any other item and the food's use is counted. The
@@ -113,6 +113,9 @@ beforeEach(() => {
     removeItem: () => {},
   })
   resetAll()
+  // No meal history: the preview's recent meals would outrank these
+  // never-eaten foods (recent-first is tested on its own below).
+  fitStore.set((st) => ({ ...st, meals: [] }))
   mockRequest.mockReset()
   mockRequest.mockImplementation(async (method: string, path: string) =>
     method === "GET" && path.startsWith("/nutrition/foods?")
@@ -241,7 +244,7 @@ test("search narrows the foods after a pause, and says when nothing matches", as
   show()
   await screen.findByLabelText("Pick Egg, boiled")
   const typed = async (text: string) => {
-    fireEvent.changeText(screen.getByLabelText("Search your foods"), text)
+    fireEvent.changeText(screen.getByLabelText("Search the food library"), text)
     // The search waits 300 ms for typing to pause, then asks the server;
     // React Query hands the answer over on a later tick.
     await act(() => new Promise((done) => setTimeout(done, 350)))
@@ -252,7 +255,7 @@ test("search narrows the foods after a pause, and says when nothing matches", as
   expect(foodsCalls().at(-1)?.[1]).toBe("/nutrition/foods?limit=100&q=chick")
   expect(screen.getByLabelText("Pick Chicken breast, grilled")).toBeTruthy()
   await typed("zzz")
-  expect(screen.getByText("No saved food matches “zzz”.")).toBeTruthy()
+  expect(screen.getByText("No food in the library matches “zzz”.")).toBeTruthy()
 })
 
 test("while loading it shows skeleton rows, neither empty nor an error", async () => {
@@ -267,7 +270,7 @@ test("an empty library is its real rows dimmed, with the step that fills it", as
   mockRequest.mockResolvedValue({ data: [], count: 0 })
   show()
   expect(await screen.findByTestId("foods-empty")).toBeTruthy()
-  expect(screen.getByText(/No saved foods yet/)).toBeTruthy()
+  expect(screen.getByText(/No foods eaten yet/)).toBeTruthy()
   // Sample rows sit dimmed behind it, hidden from screen readers.
   expect(screen.queryByLabelText(/^Pick /)).toBeNull()
   expect(
@@ -303,7 +306,7 @@ test("a 401 (an expired session) is an error with Try again, never an empty libr
   expect(await screen.findByText("Couldn’t load your foods")).toBeTruthy()
   expect(screen.getByText("Try again")).toBeTruthy()
   expect(screen.queryByTestId("foods-empty")).toBeNull()
-  expect(screen.queryByText(/No saved foods yet/)).toBeNull()
+  expect(screen.queryByText(/No foods eaten yet/)).toBeNull()
   expect(screen.queryByLabelText("Loading foods")).toBeNull()
 })
 
