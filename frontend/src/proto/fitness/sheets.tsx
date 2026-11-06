@@ -38,13 +38,15 @@ import {
   relDay,
   suggestion,
 } from "./calc"
-import type {
-  Equipment,
-  Exercise,
-  LoadType,
-  Muscle,
-  SetKind,
-  WeighIn,
+import {
+  type Equipment,
+  type Exercise,
+  type LoadType,
+  MUSCLES,
+  type Muscle,
+  muscleLabel,
+  type SetKind,
+  type WeighIn,
 } from "./data"
 import { fitStore, useFit } from "./store"
 import { BottomSheet, Pill, Stepper, toast } from "./ui"
@@ -554,20 +556,7 @@ function SetEdit({ target, onDone }: { target: SetRef; onDone: () => void }) {
 
 // ── FIT-07 Exercise picker ──
 
-export const MUSCLES: Muscle[] = [
-  "chest",
-  "back",
-  "shoulders",
-  "biceps",
-  "triceps",
-  "quads",
-  "hamstrings",
-  "glutes",
-  "core",
-  "calves",
-  "forearms",
-  "cardio",
-]
+export { MUSCLES } from "./data"
 
 export function ExercisePicker({
   open,
@@ -664,9 +653,8 @@ function Picker({
             active={muscle === m}
             accent="fit"
             onClick={() => setMuscle(m)}
-            className="capitalize"
           >
-            {m}
+            {muscleLabel(m)}
           </Chip>
         ))}
       </div>
@@ -844,9 +832,8 @@ function ExerciseForm({
             active={f.muscle === m}
             accent="fit"
             onClick={() => set({ muscle: m })}
-            className="capitalize"
           >
-            {m}
+            {muscleLabel(m)}
           </Chip>
         ))}
       </Field>

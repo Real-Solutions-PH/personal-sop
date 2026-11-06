@@ -1,7 +1,11 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
 import { lastOfTemplate, relDay } from "@domain/fitness/calc"
-import type { Exercise, TemplateItem } from "@domain/fitness/data"
+import {
+  type Exercise,
+  muscleLabel,
+  type TemplateItem,
+} from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import {
   ArrowDown,
@@ -505,7 +509,7 @@ export function Templates({ id }: { id?: string }) {
                 <View>
                   <Copy weight="medium">{e.name}</Copy>
                   <Copy size={12} muted>
-                    {e.muscle} · {e.equipment}
+                    {muscleLabel(e.muscle)} · {e.equipment}
                   </Copy>
                 </View>
               </Line>
