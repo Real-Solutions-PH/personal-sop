@@ -56,6 +56,7 @@ import {
   ME,
   type Post,
   postingStore,
+  refreshFeedIfStale,
   refreshSocial,
   socialStore,
   storyGroups,
@@ -477,7 +478,13 @@ export function SocialFeed() {
   const chats = socialStore.use((s) => s.chats)
   const activity = socialStore.use((s) => s.activity)
   const readAt = socialStore.use((s) => s.activityReadAt)
-  const [tab, setTab] = useState<Tab>("following")
+  const people = socialStore.use((s) => s.people)
+  // Friends lists only the people I follow. Someone who follows nobody would
+  // land on a feed of their own posts and think nobody else posts, so the
+  // screen opens on Everyone until they follow someone or pick a tab.
+  const [picked, setTab] = useState<Tab | null>(null)
+  const followsAnyone = people.some((p) => p.isFollowing)
+  const tab: Tab = picked ?? (followsAnyone ? "following" : "foryou")
   const [area, setArea] = useState<FeedArea | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [create, setCreate] = useState(false)
@@ -490,6 +497,9 @@ export function SocialFeed() {
       setFocused(true)
       // A story whose live event was missed shows on the next visit.
       void loadStoriesIfStale()
+      // New posts reach only the author's followers live, so a post on
+      // Everyone shows on the next visit instead.
+      void refreshFeedIfStale()
       return () => setFocused(false)
     }, []),
   )
@@ -500,7 +510,6 @@ export function SocialFeed() {
     })
     return () => sub.remove()
   }, [])
-  const people = socialStore.use((s) => s.people)
   // Newest first on both tabs: cheers never lift a post above newer
   // progress, so nothing is ranked for reach.
   const data = useMemo(() => {

@@ -23,6 +23,11 @@ LIST_ICONS = (
     "list",
 )
 TASK_STATUSES = ("open", "done", "deleted")
+# Priority (2026-11-06): four levels, "none" the default. "Urgent" is left
+# out on purpose: overdue already says "now", so a fifth level would only
+# split "high" in two. Rank order lives in ``PRIORITY_RANK``.
+TASK_PRIORITIES = ("none", "low", "medium", "high")
+PRIORITY_RANK = {"high": 0, "medium": 1, "low": 2, "none": 3}
 TASK_SOURCES = ("manual", "capture-text", "capture-voice", "capture-photo")
 EVENT_TYPES = (
     "created",
@@ -60,6 +65,7 @@ class Task(OwnedRow, table=True):
     __table_args__ = (
         enum_check("status", TASK_STATUSES, name="ck_task_status"),
         enum_check("source", TASK_SOURCES, name="ck_task_source"),
+        enum_check("priority", TASK_PRIORITIES, name="ck_task_priority"),
         enum_check("parse_state", ("parsed", "pending"), name="ck_task_parse"),
         CheckConstraint("reschedule_count >= 0", name="ck_task_reschedules"),
         CheckConstraint(
@@ -82,6 +88,11 @@ class Task(OwnedRow, table=True):
     recurrence: dict[str, object] | None = Field(default=None, sa_type=JSONB)
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool = False
+    priority: str = Field(
+        default="none",
+        sa_type=String(6),  # type: ignore
+        sa_column_kwargs={"server_default": "none"},
+    )
     # Free labels the person adds ("work", "errand"), shown in the lists.
     tags: list[str] = Field(
         default_factory=list,

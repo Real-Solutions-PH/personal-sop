@@ -27360,6 +27360,12 @@
             "title": "Notes"
           },
           "starred": { "type": "boolean", "title": "Starred" },
+          "priority": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "title": "Priority",
+            "default": "none"
+          },
           "tags": {
             "items": { "type": "string" },
             "type": "array",
@@ -32545,6 +32551,12 @@
             "title": "Starred",
             "default": false
           },
+          "priority": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "title": "Priority",
+            "default": "none"
+          },
           "tags": {
             "items": { "type": "string", "maxLength": 40 },
             "type": "array",
@@ -32613,6 +32625,12 @@
             "title": "Notes"
           },
           "starred": { "type": "boolean", "title": "Starred" },
+          "priority": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "title": "Priority",
+            "default": "none"
+          },
           "tags": {
             "items": { "type": "string" },
             "type": "array",
@@ -32764,6 +32782,12 @@
             "type": "array",
             "maxItems": 8,
             "title": "Tags"
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "title": "Priority",
+            "default": "none"
           }
         },
         "additionalProperties": false,
@@ -32827,6 +32851,12 @@
             "title": "Notes"
           },
           "starred": { "type": "boolean", "title": "Starred" },
+          "priority": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "title": "Priority",
+            "default": "none"
+          },
           "tags": {
             "items": { "type": "string" },
             "type": "array",
@@ -32960,6 +32990,13 @@
           "starred": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Starred"
+          },
+          "priority": {
+            "anyOf": [
+              { "type": "string", "enum": ["none", "low", "medium", "high"] },
+              { "type": "null" }
+            ],
+            "title": "Priority"
           },
           "tags": {
             "anyOf": [

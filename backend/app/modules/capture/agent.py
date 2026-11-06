@@ -592,6 +592,13 @@ class PlannedArgs(BaseModel):
 TagList = list[Annotated[str, Field(min_length=1, max_length=40)]]
 
 
+Priority = Literal["none", "low", "medium", "high"]
+PRIORITY_HINT = (
+    "Only when the person said how important or urgent it is (high for "
+    "urgent or important, low for someday); otherwise omit."
+)
+
+
 class TaskIn(BaseModel):
     title: Annotated[str, Field(min_length=1, max_length=280)]
     due_date: (
@@ -615,6 +622,7 @@ class TaskIn(BaseModel):
         | None
     ) = None
     remind: bool = False
+    priority: Priority | None = Field(default=None, description=PRIORITY_HINT)
     # ``builtins.list``: the ``list`` field below shadows the builtin in this
     # class body once annotations are evaluated lazily.
     tags: builtins.list[Annotated[str, Field(min_length=1, max_length=40)]] = Field(
@@ -1155,6 +1163,11 @@ class TaskEditArgs(BaseModel):
         max_length=8,
         description="The task's whole new set of tags ([] clears them).",
     )
+    priority: Priority | None = Field(
+        default=None,
+        description="Only when the person asked to change how important it "
+        "is; none clears it.",
+    )
 
 
 RemoveWhat = Literal[
@@ -1631,6 +1644,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
                     "due_time": t.due_time if time else None,
                     "remind": t.remind,
                     "tags": list(t.tags),
+                    **({"priority": t.priority} if t.priority else {}),
                 }
             )
         # Plain to-dos and reminders tier differently (a reminder waits for
@@ -2615,6 +2629,8 @@ def capture_tools(run: Run) -> list[BaseTool]:
             changes["notes"] = a.notes
         if a.tags is not None:
             changes["tags"] = list(a.tags)
+        if a.priority is not None:
+            changes["priority"] = a.priority
         if a.due_date:
             changes["due_date"] = a.due_date.isoformat()
         if a.list:

@@ -107,3 +107,28 @@ def test_the_snapshot_names_live_lists_in_order_capped_at_twenty(
     with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
         shown = grounding.snapshot(ctx)["task_lists"]
     assert shown == names[1:21]
+
+
+def test_fern_sets_priority_when_creating_and_editing(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    add(
+        api,
+        client,
+        monkeypatch,
+        {"title": "File taxes", "priority": "high"},
+        {"title": "Water plants"},
+    )
+    got = {t.title: t.priority for t in tasks_of(api)}
+    assert got == {"File taxes": "high", "Water plants": "none"}
+
+    turn(
+        api,
+        client,
+        monkeypatch,
+        "water plants is low priority",
+        call("edit_task", task="water plants", priority="low"),
+    )
+    got = {t.title: t.priority for t in tasks_of(api)}
+    assert got["Water plants"] == "low"
