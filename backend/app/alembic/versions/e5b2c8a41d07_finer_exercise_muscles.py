@@ -4,7 +4,7 @@ Widens the exercise muscle check with the muscles lifting apps list beside
 the broad groups. No stored value changes on the way up.
 
 Revision ID: e5b2c8a41d07
-Revises: 1d0dbaef7dd6
+Revises: 7c4d2e9a1b36
 Create Date: 2026-11-06
 
 """
@@ -12,7 +12,7 @@ Create Date: 2026-11-06
 from alembic import op
 
 revision = "e5b2c8a41d07"
-down_revision = "1d0dbaef7dd6"
+down_revision = "7c4d2e9a1b36"
 branch_labels = None
 depends_on = None
 
