@@ -4652,7 +4652,7 @@ export const ExerciseUpsertSchema = {
         },
         muscle: {
             type: 'string',
-            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio', 'calves', 'forearms'],
+            enum: ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'core', 'cardio', 'calves', 'forearms', 'upper_chest', 'front_delts', 'side_delts', 'rear_delts', 'lats', 'traps', 'rhomboids', 'lower_back', 'obliques', 'abductors', 'adductors', 'tibialis', 'hip_flexors', 'neck'],
             title: 'Muscle',
             default: 'chest'
         },

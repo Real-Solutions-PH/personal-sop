@@ -55,9 +55,10 @@ import { StepsCard } from "./steps-card"
 // (or get back to) today's training, a workout or a run, and to see whether
 // this week is on track, so that I can train without planning and keep my
 // weekly target." Required: today's training with its one-tap start, the
-// run/walk start and the week against its target, as one card. Supporting:
-// progress (PRs, lifts, volume), recent sessions and body weight. Guiding:
-// steps, sleep and the links to templates and exercises.
+// run/walk start and the week against its target, as one card. Steps come
+// next (the figure people check most often), then the links to templates
+// and exercises (managed often, so not buried). Supporting: recent
+// sessions, progress (PRs, lifts, volume) and body weight. Guiding: sleep.
 
 /** Large accessibility text: side-by-side rows stack so nothing breaks
  * mid-word. */
@@ -89,13 +90,15 @@ export function FitnessTrain() {
       }
     >
       <View>
+        {/* Most checked first: today, then steps, then the routines and
+            exercises people manage, then what was done, then the trends. */}
         <TodayCard s={s} onStart={start} />
-        <Progress s={s} />
-        <Recent s={s} />
-        <Body hub embedded />
         <StepsCard />
-        <SleepCard />
         <PlanLinks s={s} />
+        <Recent s={s} />
+        <Progress s={s} />
+        <Body hub embedded />
+        <SleepCard />
       </View>
       {startOpen && <StartWorkoutSheet onClose={() => setStartOpen(false)} />}
     </Screen>

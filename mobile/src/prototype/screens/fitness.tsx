@@ -1,6 +1,6 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
-import type { Exercise } from "@domain/fitness/data"
+import { type Exercise, MUSCLE_GROUPS, muscleLabel } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { Redirect, useLocalSearchParams } from "expo-router"
 import { Check, Plus } from "lucide-react-native"
@@ -130,9 +130,16 @@ export function ExerciseEditor({
         e.id !== f.id &&
         e.name.toLowerCase() === (f.name ?? "").trim().toLowerCase(),
     )
-  const chip = (label: string, active: boolean, press: () => void) => (
+  const chip = (
+    label: string,
+    active: boolean,
+    press: () => void,
+    key: string = label,
+  ) => (
     <Tap
-      key={label}
+      key={key}
+      role="radio"
+      selected={active}
       onPress={press}
       style={{
         paddingHorizontal: 12,
@@ -143,11 +150,7 @@ export function ExerciseEditor({
         backgroundColor: active ? t.fit : t.card,
       }}
     >
-      <Copy
-        size={14}
-        weight="medium"
-        style={{ color: active ? t.bg : t.text, textTransform: "capitalize" }}
-      >
+      <Copy size={14} weight="medium" style={{ color: active ? t.bg : t.text }}>
         {label}
       </Copy>
     </Tap>
@@ -176,7 +179,7 @@ export function ExerciseEditor({
           {(
             ["barbell", "dumbbell", "machine", "cable", "bodyweight"] as const
           ).map((e) =>
-            chip(e, f.equipment === e, () =>
+            chip(`${e[0].toUpperCase()}${e.slice(1)}`, f.equipment === e, () =>
               set({
                 equipment: e,
                 increment: e === "dumbbell" ? 2 : e === "machine" ? 5 : 2.5,
@@ -189,33 +192,35 @@ export function ExerciseEditor({
         <Copy size={12} muted>
           Primary muscle
         </Copy>
-        <Line style={{ gap: 8, flexWrap: "wrap" }}>
-          {(
-            [
-              "chest",
-              "back",
-              "shoulders",
-              "biceps",
-              "triceps",
-              "quads",
-              "hamstrings",
-              "glutes",
-              "core",
-              "calves",
-              "forearms",
-              "cardio",
-            ] as const
-          ).map((m) =>
-            chip(m, f.muscle === m, () =>
-              // Cardio is timed, and speed is what walks and runs track.
-              set(
-                m === "cardio"
-                  ? { muscle: m, loadType: "time", track: f.track ?? "speed" }
-                  : { muscle: m },
-              ),
-            ),
-          )}
-        </Line>
+        <View style={{ gap: 12, marginTop: 2 }}>
+          {MUSCLE_GROUPS.map((g) => (
+            <View key={g.region} style={{ gap: 6 }}>
+              <Copy size={11} muted style={{ textTransform: "uppercase" }}>
+                {g.region}
+              </Copy>
+              <Line style={{ gap: 8, flexWrap: "wrap" }}>
+                {g.muscles.map((m) =>
+                  chip(
+                    muscleLabel(m),
+                    f.muscle === m,
+                    () =>
+                      // Cardio is timed, and speed is what walks and runs track.
+                      set(
+                        m === "cardio"
+                          ? {
+                              muscle: m,
+                              loadType: "time",
+                              track: f.track ?? "speed",
+                            }
+                          : { muscle: m },
+                      ),
+                    m,
+                  ),
+                )}
+              </Line>
+            </View>
+          ))}
+        </View>
       </View>
       <View style={{ gap: 6 }}>
         <Copy size={12} muted>

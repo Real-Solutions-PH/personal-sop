@@ -1,6 +1,10 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
-import type { Exercise, WorkoutSet } from "@domain/fitness/data"
+import {
+  type Exercise,
+  muscleLabel,
+  type WorkoutSet,
+} from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { fmtDuration } from "@domain/lib/day"
 import { liveStore } from "@domain/lib/live"
@@ -929,7 +933,7 @@ export function WorkoutLogger() {
                 <View>
                   <Copy weight="medium">{e.name}</Copy>
                   <Copy size={12} muted>
-                    {e.muscle} · {e.equipment}
+                    {muscleLabel(e.muscle)} · {e.equipment}
                   </Copy>
                 </View>
               </Line>

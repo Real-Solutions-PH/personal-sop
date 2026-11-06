@@ -1,6 +1,6 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
-import type { Exercise } from "@domain/fitness/data"
+import { type Exercise, MUSCLES, muscleLabel } from "@domain/fitness/data"
 import {
   type DupePair,
   dismissDuplicate,
@@ -42,20 +42,6 @@ import { fonts, useTheme } from "../theme"
 import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 
-const MUSCLES = [
-  "chest",
-  "back",
-  "shoulders",
-  "biceps",
-  "triceps",
-  "quads",
-  "hamstrings",
-  "glutes",
-  "core",
-  "calves",
-  "forearms",
-  "cardio",
-]
 /** What an exercise is logged as: a rep range and step, or a timed one
  * ("1–1 reps · +0 kg" said nothing about a run). */
 const spec = (e: Exercise) =>
@@ -300,7 +286,7 @@ export function Exercises({ id }: { id?: string }) {
             .filter((g) => g.list.length)
             .map((g) => (
               <View key={g.m} style={{ marginTop: -12 }}>
-                <SectionHeading>{g.m}</SectionHeading>
+                <SectionHeading>{muscleLabel(g.m)}</SectionHeading>
                 {g.list.map((e) => (
                   <Tap
                     key={e.id}
@@ -356,7 +342,7 @@ export function Exercises({ id }: { id?: string }) {
       ) : (
         <>
           <Copy size={14} muted style={{ textTransform: "capitalize" }}>
-            {ex.muscle} · {ex.equipment} · {spec(ex)}
+            {muscleLabel(ex.muscle)} · {ex.equipment} · {spec(ex)}
           </Copy>
           {!!ex.aliases?.length && (
             <Copy size={14} muted style={{ marginTop: -8 }}>
@@ -678,7 +664,7 @@ export function Exercises({ id }: { id?: string }) {
                       muted
                       style={{ textTransform: "capitalize" }}
                     >
-                      {e.muscle} · {e.equipment}
+                      {muscleLabel(e.muscle)} · {e.equipment}
                     </Copy>
                   </View>
                   {same ? (

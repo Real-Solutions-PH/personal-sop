@@ -1326,7 +1326,7 @@ export type ExercisesOut = {
 export type ExerciseUpsert = {
     name: string;
     equipment?: 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
-    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms';
+    muscle?: 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms' | 'upper_chest' | 'front_delts' | 'side_delts' | 'rear_delts' | 'lats' | 'traps' | 'rhomboids' | 'lower_back' | 'obliques' | 'abductors' | 'adductors' | 'tibialis' | 'hip_flexors' | 'neck';
     load_type?: 'weight' | 'bodyweight' | 'reps' | 'time';
     rep_min?: number;
     rep_max?: number;
@@ -1338,7 +1338,7 @@ export type ExerciseUpsert = {
 
 export type equipment = 'barbell' | 'dumbbell' | 'machine' | 'cable' | 'bodyweight';
 
-export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms';
+export type muscle = 'chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms' | 'upper_chest' | 'front_delts' | 'side_delts' | 'rear_delts' | 'lats' | 'traps' | 'rhomboids' | 'lower_back' | 'obliques' | 'abductors' | 'adductors' | 'tibialis' | 'hip_flexors' | 'neck';
 
 export type load_type = 'weight' | 'bodyweight' | 'reps' | 'time';
 
@@ -6040,7 +6040,7 @@ export type FitnessRestoreTemplateResponse = (TemplateOut);
 export type FitnessListExercisesData = {
     includeArchived?: boolean;
     limit?: number;
-    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms' | null);
+    muscle?: ('chest' | 'back' | 'shoulders' | 'biceps' | 'triceps' | 'quads' | 'hamstrings' | 'glutes' | 'core' | 'cardio' | 'calves' | 'forearms' | 'upper_chest' | 'front_delts' | 'side_delts' | 'rear_delts' | 'lats' | 'traps' | 'rhomboids' | 'lower_back' | 'obliques' | 'abductors' | 'adductors' | 'tibialis' | 'hip_flexors' | 'neck' | null);
     q?: (string | null);
     skip?: number;
 };
