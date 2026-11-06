@@ -144,7 +144,11 @@ describe("round trip from the prototype seed", () => {
         deleted_at: t.deletedAt,
       }
       // A task made before tags reads back with none.
-      expect(m.fromServer(row, seed)).toEqual({ ...t, tags: t.tags ?? [] })
+      expect(m.fromServer(row, seed)).toEqual({
+        ...t,
+        tags: t.tags ?? [],
+        priority: t.priority ?? "none",
+      })
     }
     expect(seed.tasks.some((t) => t.recurrence)).toBe(true)
     expect(seed.tasks.some((t) => t.remindAt)).toBe(true)
@@ -273,6 +277,27 @@ describe("store edits become sync ops", () => {
       id: t.id,
       data: { nag_every_min: 60 },
     })
+  })
+
+  test("priority is one field write, sent on create and read back", () => {
+    const e = engine()
+    const t = createTask({ title: "File taxes", priority: "high" })
+    const made = record(e.capture())
+    expect(made[0]).toMatchObject({ id: t.id, data: { priority: "high" } })
+    updateTask(t.id, { priority: "low" })
+    const ops = record(e.capture())
+    expect(ops).toHaveLength(1)
+    expect(ops[0]).toMatchObject({ id: t.id, data: { priority: "low" } })
+    const m = taskMapper()
+    const s = tasksStore.get()
+    const back = m.fromServer(
+      { ...m.toServer({ ...t, priority: "medium" }, s), id: t.id } as Payload,
+      s,
+    )
+    expect(back?.priority).toBe("medium")
+    // An unknown or missing level from an older server reads as none.
+    const old = m.fromServer({ id: t.id, title: "x" } as Payload, s)
+    expect(old?.priority).toBe("none")
   })
 
   test("a later due date is a plain due_date write; the counts stay local", () => {

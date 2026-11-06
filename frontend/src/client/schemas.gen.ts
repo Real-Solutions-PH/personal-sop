@@ -12284,6 +12284,12 @@ export const OverdueTaskSchema = {
             type: 'boolean',
             title: 'Starred'
         },
+        priority: {
+            type: 'string',
+            enum: ['none', 'low', 'medium', 'high'],
+            title: 'Priority',
+            default: 'none'
+        },
         tags: {
             items: {
                 type: 'string'
@@ -20045,6 +20051,12 @@ export const TaskCreateSchema = {
             title: 'Starred',
             default: false
         },
+        priority: {
+            type: 'string',
+            enum: ['none', 'low', 'medium', 'high'],
+            title: 'Priority',
+            default: 'none'
+        },
         tags: {
             items: {
                 type: 'string',
@@ -20154,6 +20166,12 @@ export const TaskDetailSchema = {
         starred: {
             type: 'boolean',
             title: 'Starred'
+        },
+        priority: {
+            type: 'string',
+            enum: ['none', 'low', 'medium', 'high'],
+            title: 'Priority',
+            default: 'none'
         },
         tags: {
             items: {
@@ -20357,6 +20375,12 @@ export const TaskDraftInSchema = {
             type: 'array',
             maxItems: 8,
             title: 'Tags'
+        },
+        priority: {
+            type: 'string',
+            enum: ['none', 'low', 'medium', 'high'],
+            title: 'Priority',
+            default: 'none'
         }
     },
     additionalProperties: false,
@@ -20470,6 +20494,12 @@ export const TaskPublicSchema = {
         starred: {
             type: 'boolean',
             title: 'Starred'
+        },
+        priority: {
+            type: 'string',
+            enum: ['none', 'low', 'medium', 'high'],
+            title: 'Priority',
+            default: 'none'
         },
         tags: {
             items: {
@@ -20647,6 +20677,18 @@ export const TaskUpdateSchema = {
                 }
             ],
             title: 'Starred'
+        },
+        priority: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['none', 'low', 'medium', 'high']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Priority'
         },
         tags: {
             anyOf: [
