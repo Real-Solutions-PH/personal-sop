@@ -19,7 +19,7 @@ from tests.modules.fitness.api.helpers import API, ok
 from tests.utils.mobile import signed_in
 
 REVISION = "e5b2c8a41d07"
-PREVIOUS = "b26722602ce5"
+PREVIOUS = "1d0dbaef7dd6"
 BACKEND = Path(__file__).resolve().parents[4]
 # Written out by hand, not read from the module: these are the stored values
 # the mobile client and Fern rely on.
