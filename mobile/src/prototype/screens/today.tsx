@@ -42,6 +42,7 @@ import {
   CircleCheck,
   Dumbbell,
   Flame,
+  ListChecks,
   type LucideIcon,
   Moon,
   MoreHorizontal,
@@ -124,7 +125,6 @@ import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
 import { DueSheet } from "./finance-planned"
 import { HabitActions } from "./habit-actions"
-import { HabitLog } from "./habits"
 import { ModuleIntroCard } from "./module-intro-card"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
@@ -551,7 +551,6 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
 function ManualTodayHabit({ habit }: { habit: Habit }) {
   const t = useTheme(),
     logs = habitsStore.use((s) => s.logs),
-    [sheet, setSheet] = useState(false),
     [actions, setActions] = useState(false),
     today = dayKey(),
     idx = H.logIndex(logs),
@@ -591,7 +590,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
       <Animated.View entering={rowEnter} exiting={rowExit}>
         <SwipeRow
           onComplete={swipe.onComplete}
-          onMore={() => setSheet(true)}
+          onMore={() => setActions(true)}
           background={t.card}
         >
           <TickRow>
@@ -671,19 +670,15 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
               )}
               <IconTap
                 icon={MoreHorizontal}
-                label={`More options for ${habit.name}`}
-                onPress={() => setSheet(true)}
+                label={`More actions for ${habit.name}`}
+                onPress={() => setActions(true)}
               />
             </Line>
           </TickRow>
         </SwipeRow>
       </Animated.View>
-      <HabitLog
-        habit={habit}
-        day={today}
-        open={sheet}
-        onClose={() => setSheet(false)}
-      />
+      {/* The ⋯ button, a swipe's More and a long press all open the one
+          actions menu; logging by hand is its first item. */}
       <HabitActions
         habit={habit}
         day={today}
@@ -731,6 +726,18 @@ function AllHabitsDone({ play }: { play: boolean }) {
   )
 }
 export function HabitsCard() {
+  return (
+    <Group title="Habits" icon={Target} accent="hab" href="/habits">
+      <HabitsToday />
+    </Group>
+  )
+}
+/** Today's routines and due habits, ticked and started in place. Home's
+ * Habits card and the Habits page both draw this, so a tick behaves the
+ * same in either place. On the Habits page (`page`) every routine due
+ * today shows, not only the one whose part of the day it is, and Home's
+ * stats strip is left out (the page has its own statistics above). */
+export function HabitsToday({ page = false }: { page?: boolean }) {
   const now = useMinuteNow()
   const t = useTheme(),
     s = habitsStore.use((s) => s),
@@ -765,18 +772,20 @@ export function HabitsCard() {
     )
   // Only the routines whose part of the day it is (or one already started):
   // a morning and an evening routine no longer show side by side.
-  const routines = dueToday.filter(
-    (r) => running(r.id) || H.routineShowsAt(r, today, minute),
-  )
+  const routines = page
+    ? dueToday
+    : dueToday.filter(
+        (r) => running(r.id) || H.routineShowsAt(r, today, minute),
+      )
   const next = dueToday
     .filter((r) => !routines.includes(r))
     .map((r) => ({ r, w: H.routineWindow(r, today) }))
     .filter((x) => x.w && x.w[0] > minute)
     .sort((a, b) => (a.w?.[0] ?? 0) - (b.w?.[0] ?? 0))[0]?.r
   return (
-    <Group title="Habits" icon={Target} accent="hab" href="/habits">
+    <>
       {allDone && <AllHabitsDone play={allDone === "new"} />}
-      <HabitsStats />
+      {!page && <HabitsStats />}
       {routines.map((r) => {
         const run = [...s.runs]
             .reverse()
@@ -816,6 +825,7 @@ export function HabitsCard() {
                   <Check color={t.good} size={20} />
                 ) : (
                   <Tap
+                    label={`${active ? "Resume" : "Start"} ${r.name}`}
                     onPress={() => go(`/habits/routines/${r.id}/play`)}
                     style={{
                       backgroundColor: t.hab,
@@ -849,7 +859,7 @@ export function HabitsCard() {
           <Tap onPress={() => go(`/habits/routines/${next.id}`)}>
             <Line style={{ gap: 10 }}>
               <Copy size={20}>{next.icon}</Copy>
-              <Copy size={14} muted style={{ flex: 1 }} lines={1}>
+              <Copy size={14} muted style={{ flex: 1 }}>
                 Next:{" "}
                 <Copy size={14} weight="medium">
                   {next.name}
@@ -883,9 +893,12 @@ export function HabitsCard() {
                 : `${count - done} left today${skipped ? ` · ${skipped} skipped` : ""}`}
           </Copy>
           <Tap onPress={() => go("/habits/manage")}>
-            <Copy size={14} weight="medium" style={{ color: t.hab }}>
-              Manage
-            </Copy>
+            <Line style={{ gap: 4 }}>
+              <ListChecks size={14} color={t.hab} />
+              <Copy size={14} weight="medium" style={{ color: t.hab }}>
+                Manage
+              </Copy>
+            </Line>
           </Tap>
         </Line>
         {(["now", "later", "anytime", "done"] as const).map((group) => {
@@ -935,7 +948,7 @@ export function HabitsCard() {
           )
         })}
       </Part>
-    </Group>
+    </>
   )
 }
 function TasksCard() {
