@@ -192,3 +192,86 @@ test("a salary alone is scheduled into an existing account, not dropped", () => 
   expect(s.planned.find((p) => p.name === "Salary")?.accountId).toBe(bdo?.id)
   expect(toast).not.toHaveBeenCalled()
 })
+
+test("your own account: a name, a type and an opening balance, beside the suggestions", () => {
+  render(<FinanceSetup embedded onDone={() => {}} />, { wrapper })
+  // Only the suggestions to start with; Cash stays, the rest are left out.
+  for (const n of ["GCash", "Maya", "BPI Savings"]) include(n)
+  fireEvent.press(screen.getByText("Add your own account"))
+  fireEvent.changeText(
+    screen.getByLabelText("own-1 account name"),
+    "  GoTyme Savings ",
+  )
+  fireEvent.press(screen.getByText("E-wallet"))
+  fireEvent.press(screen.getByText("Bank"))
+  fireEvent.changeText(
+    screen.getByLabelText("GoTyme Savings balance"),
+    "1,234,567.89",
+  )
+  // The money field groups thousands as it is typed.
+  expect(screen.getByLabelText("GoTyme Savings balance").props.value).toBe(
+    "1,234,567.89",
+  )
+  fireEvent.press(screen.getByText("Add 2 accounts"))
+  const own = finStore.get().accounts.find((a) => a.name === "GoTyme Savings")
+  expect(own).toMatchObject({
+    type: "bank",
+    opening: 1234567.89,
+    inNetWorth: true,
+    inProjection: true,
+  })
+  expect(finStore.get().accounts.map((a) => a.name)).toEqual([
+    "Cash",
+    "GoTyme Savings",
+  ])
+  expect(toast).not.toHaveBeenCalled()
+})
+
+test("an own investment account stays out of the spendable forecast", () => {
+  render(<FinanceSetup embedded onDone={() => {}} />, { wrapper })
+  for (const n of ["Cash", "GCash", "Maya", "BPI Savings"]) include(n)
+  fireEvent.press(screen.getByText("Add your own account"))
+  fireEvent.changeText(screen.getByLabelText("own-1 account name"), "COL")
+  fireEvent.press(screen.getByText("Investment"))
+  fireEvent.changeText(screen.getByLabelText("COL balance"), "50000")
+  fireEvent.press(screen.getByText("Add 1 account"))
+  expect(finStore.get().accounts).toEqual([
+    expect.objectContaining({
+      name: "COL",
+      type: "investment",
+      opening: 50000,
+      inProjection: false,
+      manual: true,
+    }),
+  ])
+})
+
+test("an own account with no name is refused; removing it adds nothing", () => {
+  render(<FinanceSetup embedded onDone={() => {}} />, { wrapper })
+  for (const n of ["Cash", "GCash", "Maya", "BPI Savings"]) include(n)
+  fireEvent.press(screen.getByText("Add your own account"))
+  fireEvent.press(screen.getByText("Add 1 account"))
+  expect(toast.error).toHaveBeenCalledWith("Give every ticked account a name")
+  expect(finStore.get().accounts).toHaveLength(0)
+  fireEvent.press(screen.getByLabelText("Remove this account"))
+  expect(screen.queryByLabelText("own-1 account name")).toBeNull()
+  expect(screen.queryByText("Add 1 account")).toBeNull()
+})
+
+test("own accounts can be added even once every suggestion exists", () => {
+  const { addAccount } = require("@domain/finance/actions")
+  for (const name of ["Cash", "GCash", "Maya", "BPI Savings"])
+    addAccount({
+      name,
+      type: "cash",
+      opening: 0,
+      color: "var(--acct-green)",
+      inNetWorth: true,
+      inProjection: true,
+    })
+  render(<FinanceSetup embedded onDone={() => {}} />, { wrapper })
+  fireEvent.press(screen.getByText("Add your own account"))
+  fireEvent.changeText(screen.getByLabelText("own-1 account name"), "UnionBank")
+  fireEvent.press(screen.getByText("Add 1 account"))
+  expect(finStore.get().accounts.map((a) => a.name)).toContain("UnionBank")
+})
