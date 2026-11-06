@@ -105,6 +105,8 @@ export function SendSheet({
   const s = socialStore.use((s) => s)
   const [sent, setSent] = useState<string[]>([])
   const [note, setNote] = useState("")
+  // Copying shows on the button itself: the link is on the clipboard.
+  const [copied, setCopied] = useState(false)
   const [q, setQ] = useState("")
   const post = s.posts.find((p) => p.id === postId)
   const targets = useMemo(() => {
@@ -259,9 +261,12 @@ export function SendSheet({
             },
           },
           {
-            label: "Copy link",
-            Icon: Link2,
-            run: () => copyText(postLink(postId)),
+            label: copied ? "Copied" : "Copy link",
+            Icon: copied ? Check : Link2,
+            run: () =>
+              void copyText(postLink(postId)).then((ok) => {
+                if (ok) setCopied(true)
+              }),
           },
           {
             label: "Share to…",

@@ -154,7 +154,8 @@ test('"Seen" uses the other members\' read marks, not only their replies', () =>
   expect(lastMineSeen({ ...withMine, readBy: { ana: at } })).toBe(true)
 })
 
-test("shared links open the app, not a dead web domain", () => {
-  expect(postLink("p1")).toBe("personalsop://social/post/p1")
+test("a shared post link is the public share page; a profile link opens the app", () => {
+  // A web link that unfurls when pasted elsewhere, never the app scheme.
+  expect(postLink("p1")).toBe("http://localhost:8000/share/p/p1")
   expect(profileLink("u1")).toBe("personalsop://social/u/u1")
 })
