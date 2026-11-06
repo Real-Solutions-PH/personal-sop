@@ -1162,8 +1162,21 @@ function load(call: (r: SocialRemote) => Promise<unknown>, report?: string) {
       },
     )
 }
-export const refreshSocial = () =>
-  load((r) => r.refresh(), "Couldn't refresh. Showing what was saved.")
+/** When the feed was last read from this screen (not persisted). */
+let feedLoadedAt = 0
+export const refreshSocial = () => {
+  feedLoadedAt = Date.now()
+  return load((r) => r.refresh(), "Couldn't refresh. Showing what was saved.")
+}
+/** The feed again when the last read is older than ``ms`` (Community in
+ * focus): new posts reach only the author's followers live, so without this
+ * a post shown under Everyone waits for a pull or the app coming back to the
+ * front. Quiet: a failed read keeps what is shown. */
+export const refreshFeedIfStale = (ms = 30_000) => {
+  if (Date.now() - feedLoadedAt <= ms) return Promise.resolve()
+  feedLoadedAt = Date.now()
+  return load((r) => r.refresh())
+}
 export const loadMoreFeed = (tab: "following" | "foryou") =>
   load((r) => r.loadMoreFeed(tab))
 export const openPostLive = (id: string) => load((r) => r.openPost(id))
