@@ -19,7 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
 from app.modules.fitness import calc as C
-from app.modules.fitness import catalog, meal_ai, repo
+from app.modules.fitness import catalog, exercise_shape, meal_ai, repo
 from app.modules.fitness import foods as F
 from app.modules.fitness.models import (
     Exercise,
@@ -649,8 +649,9 @@ def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
         ctx,
         Exercise,
         row_id,
-        # ``upsertExercise({name})`` defaults: a barbell chest lift, 8-12.
-        {"name": clean[:80], "equipment": "barbell", "muscle": "chest"},
+        # Its shape read off its name ("Bulgarian split squat": a weighted
+        # dumbbell quads lift), never the form's barbell-chest default.
+        {"name": clean[:80], **exercise_shape.guess(clean)},
     )
     return ex
 

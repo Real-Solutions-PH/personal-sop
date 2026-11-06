@@ -190,6 +190,85 @@ def test_create_a_timed_exercise_then_undo_removes_it(
     assert "Treadmill Walk" not in {e.name for e in live(rows_of(api, Exercise))}
 
 
+def test_a_new_exercise_gets_its_equipment_muscle_and_type_from_its_name(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Kai, 2026-11-06: exercises Fern added were barbell chest lifts
+    whatever their name. Left out by the model, the shape is read off the
+    name; given, the model's own values win."""
+    api = fern(client, db)
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "add bulgarian split squat",
+        act("create_exercise", name="Bulgarian Split Squat"),
+    )
+    assert step["ok"] and step["state"] == "saved", step
+    ex = exercise(api, "Bulgarian Split Squat")
+    assert (ex.equipment, ex.muscle, ex.load_type) == ("dumbbell", "quads", "weight")
+    assert "muscle quads" in step["summary"]
+
+    turn(
+        api,
+        client,
+        monkeypatch,
+        "add landmine split squat",
+        act(
+            "create_exercise",
+            name="Landmine Split Squat",
+            equipment="barbell",
+            muscle="glutes",
+        ),
+    )
+    ex = exercise(api, "Landmine Split Squat")
+    assert (ex.equipment, ex.muscle, ex.load_type) == ("barbell", "glutes", "weight")
+
+
+def test_the_exercise_tool_offers_every_muscle_the_fitness_list_has() -> None:
+    """Read from ``fitness.models.MUSCLES``, never a copy: a muscle added
+    there is offered to the model with no second edit."""
+    from app.modules.capture.fitness_tools import ExerciseCreateArgs
+    from app.modules.fitness.models import EQUIPMENT, LOAD_TYPES, MUSCLES
+
+    props = ExerciseCreateArgs.model_json_schema()["properties"]
+
+    def enum(field: str) -> list[str]:
+        out: list[str] = next(o["enum"] for o in props[field]["anyOf"] if "enum" in o)
+        return out
+
+    assert enum("muscle") == list(MUSCLES)
+    assert enum("equipment") == list(EQUIPMENT)
+    assert enum("type") == list(LOAD_TYPES)
+    with pytest.raises(ValueError, match="muscle is one of"):
+        ExerciseCreateArgs(name="x", muscle="wings")
+
+
+def test_an_exercise_first_named_in_a_logged_workout_gets_its_shape(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    logged, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "did bulgarian split squats 3x10 at 12",
+        act(
+            "log_workout",
+            name="Legs",
+            exercises=[
+                {
+                    "exercise": "Bulgarian Split Squat",
+                    "sets": [{"reps": 10, "weight": 12}] * 3,
+                }
+            ],
+        ),
+    )
+    assert logged["state"] == "saved", logged
+    ex = exercise(api, "Bulgarian Split Squat")
+    assert (ex.equipment, ex.muscle, ex.load_type) == ("dumbbell", "quads", "weight")
+
+
 def test_creating_a_variant_of_an_existing_exercise_reuses_it(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
