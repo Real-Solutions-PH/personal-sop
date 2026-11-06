@@ -1,7 +1,7 @@
 """home layout on profile
 
 Revision ID: 7c4d2e9a1b36
-Revises: b26722602ce5
+Revises: 1d0dbaef7dd6
 Create Date: 2026-11-06 12:00:00.000000
 
 Home's sections in the person's order and the ones they hid there, as
@@ -15,7 +15,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "7c4d2e9a1b36"
-down_revision = "b26722602ce5"
+down_revision = "1d0dbaef7dd6"
 branch_labels = None
 depends_on = None
 
