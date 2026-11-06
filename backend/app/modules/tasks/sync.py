@@ -71,6 +71,7 @@ def upsert_task(ctx: Ctx, task_id: uuid.UUID, payload: BaseModel) -> OwnedRow:
                     recurrence=data.get("recurrence"),
                     notes=data.get("notes"),
                     starred=bool(data.get("starred", False)),
+                    priority=data.get("priority") or "none",
                     tags=list(data.get("tags") or []),
                     source=data.get("source") or "manual",
                     parse_state=data.get("parse_state") or "parsed",

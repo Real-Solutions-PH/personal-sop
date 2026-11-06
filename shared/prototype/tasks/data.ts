@@ -45,6 +45,10 @@ export interface Recurrence {
   mode: "fixed" | "after"
 }
 export type TaskStatus = "open" | "done" | "deleted"
+/** How much a task matters, lowest to highest. Four levels, not five:
+ * overdue already says "now", so "urgent" would only split "high". */
+export const PRIORITIES = ["none", "low", "medium", "high"] as const
+export type TaskPriority = (typeof PRIORITIES)[number]
 export type TaskSource =
   | "manual"
   | "capture-text"
@@ -60,6 +64,8 @@ export interface Task {
   recurrence: Recurrence | null
   notes: string | null
   starred: boolean
+  /** Absent on tasks made before priority, which reads as "none". */
+  priority?: TaskPriority
   /** Free labels ("work", "errand"); absent on tasks made before tags. */
   tags?: string[]
   /** How long it should take, in minutes; Focus shows time spent against

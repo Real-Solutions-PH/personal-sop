@@ -74,6 +74,7 @@ class TaskDraftIn(_P):
     tags: list[Annotated[str, Field(max_length=40)]] = Field(
         default_factory=list, max_length=8
     )
+    priority: Literal["none", "low", "medium", "high"] = "none"
 
 
 class TaskPayload(_P):

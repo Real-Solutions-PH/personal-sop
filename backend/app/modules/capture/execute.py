@@ -198,6 +198,7 @@ def execute(
                 due_time=t.get("due_time"),
                 remind=bool(t.get("remind")),
                 tags=[str(x) for x in t.get("tags") or []],
+                priority=str(t.get("priority") or "none"),
                 task_id=rid(i),
             )
             for i, t in enumerate(p.get("tasks") or [])

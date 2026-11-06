@@ -1,5 +1,12 @@
 import { dayKey, weekday } from "../lib/day"
-import type { Recurrence, RepeatRule, Task, TaskList, TasksState } from "./data"
+import type {
+  Recurrence,
+  RepeatRule,
+  Task,
+  TaskList,
+  TaskPriority,
+  TasksState,
+} from "./data"
 
 const pad = (n: number) => String(n).padStart(2, "0")
 const keyOf = (d: Date) =>
@@ -125,13 +132,30 @@ export function isDueNow(t: Task, now = new Date()): boolean {
   if (t.dueDate !== dayKey(now)) return false
   return new Date(isoAt(t.dueDate, t.dueTime)).getTime() <= now.getTime()
 }
+/** Higher first: high 0, medium 1, low 2, none (or absent) 3. */
+export const priorityRank = (t: Pick<Task, "priority">): number =>
+  ({ high: 0, medium: 1, low: 2, none: 3 })[t.priority ?? "none"] ?? 3
+export const PRIORITY_LABEL: Record<TaskPriority, string> = {
+  none: "No priority",
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+}
+/** Date (none last), then priority (high first), starred, time, order.
+ * The server orders ``sort=due`` the same way. */
 export function byDue(a: Task, b: Task): number {
   if ((a.dueDate ?? "9") !== (b.dueDate ?? "9"))
     return (a.dueDate ?? "9") < (b.dueDate ?? "9") ? -1 : 1
+  if (priorityRank(a) !== priorityRank(b))
+    return priorityRank(a) - priorityRank(b)
   if (a.starred !== b.starred) return a.starred ? -1 : 1
   if ((a.dueTime ?? "99") !== (b.dueTime ?? "99"))
     return (a.dueTime ?? "99") < (b.dueTime ?? "99") ? -1 : 1
   return a.order - b.order
+}
+/** The "Priority" sort: high first, then by due within a level. */
+export function byPriority(a: Task, b: Task): number {
+  return priorityRank(a) - priorityRank(b) || byDue(a, b)
 }
 export const live = (s: TasksState) =>
   s.tasks.filter((t) => t.status !== "deleted")
