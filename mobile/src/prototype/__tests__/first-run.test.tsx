@@ -20,7 +20,7 @@ import { Setup } from "../screens/setup"
 import { sessionStore } from "../session"
 import { setSetupFirst } from "../setup-first"
 
-const params: { step?: string } = {}
+const params: { step?: string; return?: string } = {}
 let mockPath = "/today"
 jest.mock("expo-router", () => {
   const { View } = require("react-native")
@@ -116,6 +116,7 @@ beforeEach(() => {
   resetAll()
   jest.clearAllMocks()
   delete params.step
+  delete params.return
   mockPath = "/today"
   sessionStore.set((s) => ({ ...s, returning: false }))
 })
@@ -236,7 +237,7 @@ describe("onboarding before the account exists", () => {
     expect(getDraft()?.step).toBe("capture")
     // Held, the header's Skip is gone; clearing it brings Skip back.
     expect(screen.queryByText("Skip")).toBeNull()
-    fireEvent.press(screen.getByText("Say something else"))
+    fireEvent.press(screen.getByText("Edit what I said"))
     fireEvent.press(screen.getByText("Skip"))
     expect(getDraft()?.firstCapture).toBeNull()
     expect(getDraft()?.step).toBe("targets")
@@ -359,6 +360,43 @@ describe("setup", () => {
     expect(screen.getByLabelText("Close")).toBeTruthy()
     fireEvent.press(screen.getByText("Start"))
     expect(screen.getByText("Skip")).toBeTruthy()
+  })
+
+  // The progress bar belongs to first-run onboarding only.
+  test("during onboarding a step shows the progress bar", () => {
+    onlyHabits(false)
+    render(<Setup />, { wrapper })
+    fireEvent.press(screen.getByText("Start"))
+    expect(screen.getByTestId("setup-progress")).toBeTruthy()
+    expect(screen.queryByText("Set up Habits")).toBeNull()
+  })
+
+  test("run again later, a step has a plain header with Back, no progress bar", () => {
+    onlyHabits(true)
+    render(<Setup />, { wrapper })
+    fireEvent.press(screen.getByText("Start"))
+    expect(screen.queryByTestId("setup-progress")).toBeNull()
+    expect(screen.getByText("Set up Habits")).toBeTruthy()
+    fireEvent.press(screen.getByLabelText("Back to setup"))
+    expect(screen.getByText("Bring your life in")).toBeTruthy()
+  })
+
+  test("opened from a module's own screen, no progress bar; Back returns there", () => {
+    onlyHabits(true)
+    params.step = "habits"
+    params.return = "/habits"
+    render(<Setup />, { wrapper })
+    expect(screen.getByText("A few starter habits")).toBeTruthy()
+    expect(screen.queryByTestId("setup-progress")).toBeNull()
+    expect(screen.getByText("Set up Habits")).toBeTruthy()
+  })
+
+  test("a module opened for the first time while still onboarding shows no progress bar either", () => {
+    onlyHabits(false)
+    params.step = "habits"
+    params.return = "/habits"
+    render(<Setup />, { wrapper })
+    expect(screen.queryByTestId("setup-progress")).toBeNull()
   })
 })
 
