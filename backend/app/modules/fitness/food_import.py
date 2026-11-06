@@ -19,7 +19,7 @@ download, never from a live API:
   for.
 
 The downloads are cached (``--cache-dir``, by default
-``~/.cache/unfurl/food-data``), not kept in git: SR Legacy and Foundation
+``~/.cache/unfurl/food-data``, or the temp folder where home is read-only), not kept in git: SR Legacy and Foundation
 are ~10 MB zipped and versioned by date, and the Open Food Facts export is
 1.5 GB and changes daily (and its licence asks that we not redistribute it).
 
@@ -34,8 +34,10 @@ import csv
 import gzip
 import io
 import logging
+import os
 import re
 import sys
+import tempfile
 import time
 import urllib.request
 import zipfile
@@ -52,7 +54,20 @@ from app.shared.context import Ctx
 
 log = logging.getLogger(__name__)
 
-DEFAULT_CACHE = Path.home() / ".cache" / "unfurl" / "food-data"
+
+def default_cache(home: Path | None = None) -> Path:
+    """Where downloads are cached: ``~/.cache/unfurl/food-data``, or the
+    system temp folder when the home folder cannot be written (the
+    production container runs as a user whose home does not exist)."""
+    home = Path.home() if home is None else home
+    probe = home
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    if os.access(probe, os.W_OK):
+        return home / ".cache" / "unfurl" / "food-data"
+    return Path(tempfile.gettempdir()) / "unfurl-food-data"
+
+
 FDC = "https://fdc.nal.usda.gov/fdc-datasets/"
 USDA_FILES = {
     # Newest first: a food in both keeps the Foundation (newer, lab) values.
@@ -743,7 +758,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("source", choices=["usda", "off", "philfct"])
     ap.add_argument("--file", type=Path, help="read this download instead of fetching")
-    ap.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE)
+    ap.add_argument("--cache-dir", type=Path, default=default_cache())
     ap.add_argument(
         "--owner-email",
         default=settings.FIRST_SUPERUSER,
