@@ -2,15 +2,25 @@ import * as A from "@domain/finance/actions"
 import type { AccountType } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { useCurrency } from "@domain/lib/money"
-import { Check, Download } from "lucide-react-native"
+import { Check, Download, Plus, X } from "lucide-react-native"
 import { useState } from "react"
 import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { MoneyInput } from "../money-input"
-import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
+import { Copy, Frame, IconTap, Line, SectionHeading, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Screen } from "../ui"
+import { FinChip } from "./finance-projection"
+
+/** The kinds a new account can be in setup (credit cards are not added any
+ * more), each with the colour its dot starts in. */
+const KINDS: { type: AccountType; label: string; color: string }[] = [
+  { type: "cash", label: "Cash", color: "green" },
+  { type: "bank", label: "Bank", color: "red" },
+  { type: "ewallet", label: "E-wallet", color: "blue" },
+  { type: "investment", label: "Investment", color: "emerald" },
+]
 
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`
 const same = (a: string, b: string) =>
@@ -63,8 +73,10 @@ export function FinanceSetup({
           on: true,
           balance: "",
         },
-      ].map((r) => ({ ...r, suggested: r.name })),
+      ].map((r) => ({ ...r, suggested: r.name, custom: false })),
     ),
+    // Keys for the person's own accounts, added below the suggestions.
+    [nextKey, setNextKey] = useState(1),
     [salary, setSalary] = useState(""),
     [rent, setRent] = useState(""),
     [tried, setTried] = useState(false),
@@ -73,7 +85,9 @@ export function FinanceSetup({
     live = s.accounts.filter((a) => !a.archived),
     // Checked as it renders, not once at mount: an account that syncs in
     // while the step is open drops its suggestion.
-    shown = rows.filter((r) => !live.some((a) => same(a.name, r.suggested))),
+    shown = rows.filter(
+      (r) => r.custom || !live.some((a) => same(a.name, r.suggested)),
+    ),
     picked = shown.filter((r) => r.on),
     // Where salary and rent land: the bank row, else the first other
     // account being added, else a non-card one the person already has.
@@ -83,7 +97,24 @@ export function FinanceSetup({
     homeless = plans && !landing && !existing,
     dupe = (r: (typeof rows)[number]) =>
       live.some((a) => same(a.name, r.name)) ||
-      picked.some((o) => o.key !== r.key && same(o.name, r.name))
+      picked.some((o) => o.key !== r.key && same(o.name, r.name)),
+    addOwn = () => {
+      setRows([
+        ...rows,
+        {
+          key: `own-${nextKey}`,
+          name: "",
+          type: "bank",
+          color: "red",
+          on: true,
+          balance: "",
+          suggested: "",
+          custom: true,
+        },
+      ])
+      setNextKey(nextKey + 1)
+    },
+    removeOwn = (key: string) => setRows(rows.filter((r) => r.key !== key))
   const finish = () => {
     setTried(true)
     const unnamed = picked.find((r) => !r.name.trim()),
@@ -105,7 +136,10 @@ export function FinanceSetup({
         opening: Number(r.balance || 0),
         color: `var(--acct-${r.color})`,
         inNetWorth: true,
-        inProjection: true,
+        // As the account editor does: an investment is valued by hand and
+        // is not spendable money in the forecast.
+        inProjection: r.type !== "investment",
+        manual: r.type === "investment",
       }).id
     }
     const home = landing ? created[landing.key] : existing?.id
@@ -154,6 +188,29 @@ export function FinanceSetup({
     if (onDone) onDone()
     else go("/finance")
   }
+  const balance = (r: (typeof rows)[number]) => (
+    <MoneyInput
+      bare
+      label={`${r.name.trim() || "New account"} balance`}
+      placeholder={`balance ${sym}`}
+      value={r.balance}
+      onChange={(balance) => set(r.key, { balance, on: true })}
+      style={{
+        // Seven-digit balances fit on a line of their own.
+        width: r.custom ? 160 : 112,
+        height: 36,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: t.line,
+        paddingHorizontal: 8,
+        backgroundColor: t.bg,
+        color: t.text,
+        fontFamily: fonts.body,
+        fontSize: 14,
+        textAlign: "right",
+      }}
+    />
+  )
   const content = (
     <>
       <Copy size={14} muted style={{ paddingHorizontal: 4 }}>
@@ -161,11 +218,24 @@ export function FinanceSetup({
         later.
       </Copy>
       <View style={{ gap: 8 }}>
+        {/* Every suggestion exists already: the accounts themselves,
+            dimmed, rather than a line of text. */}
+        {!shown.some((r) => !r.custom) &&
+          live.slice(0, 5).map((a) => (
+            <Frame key={a.id} style={{ padding: 12, opacity: 0.32 }}>
+              <Line>
+                <Check size={16} color={t.muted} />
+                <Copy size={16} weight="medium" style={{ flex: 1 }}>
+                  {a.name}
+                </Copy>
+              </Line>
+            </Frame>
+          ))}
         {shown.map((r) => (
           <Frame key={r.key} style={{ padding: 12, opacity: r.on ? 1 : 0.6 }}>
             <Line>
               <Tap
-                label={`Include ${r.name}`}
+                label={`Include ${r.name.trim() || "this account"}`}
                 onPress={() => set(r.key, { on: !r.on })}
                 style={{
                   width: 24,
@@ -190,6 +260,12 @@ export function FinanceSetup({
               />
               <TextInput
                 accessibilityLabel={`${r.key} account name`}
+                placeholder={r.custom ? "Account name" : undefined}
+                // A typed name wraps rather than scrolling out of sight.
+                multiline={r.custom}
+                scrollEnabled={!r.custom}
+                submitBehavior={r.custom ? "blurAndSubmit" : undefined}
+                placeholderTextColor={t.muted}
                 value={r.name}
                 onChangeText={(name) => set(r.key, { name })}
                 style={{
@@ -198,7 +274,7 @@ export function FinanceSetup({
                   minWidth: 0,
                   // A name that clashes with another account, once Add was
                   // tapped.
-                  ...(tried && r.on && dupe(r)
+                  ...(tried && r.on && (dupe(r) || !r.name.trim())
                     ? {
                         borderBottomWidth: 1,
                         borderColor: t.bad,
@@ -209,42 +285,46 @@ export function FinanceSetup({
                   color: t.text,
                 }}
               />
-              <MoneyInput
-                bare
-                label={`${r.name} balance`}
-                placeholder={`balance ${sym}`}
-                value={r.balance}
-                onChange={(balance) => set(r.key, { balance, on: true })}
-                style={{
-                  width: 112,
-                  height: 36,
-                  borderRadius: 8,
-                  borderWidth: 1,
-                  borderColor: t.line,
-                  paddingHorizontal: 8,
-                  backgroundColor: t.bg,
-                  color: t.text,
-                  fontFamily: fonts.body,
-                  fontSize: 14,
-                  textAlign: "right",
-                }}
-              />
+              {/* A typed name gets the whole line: the balance goes
+                  under it, so the name is never cut off. */}
+              {!r.custom && balance(r)}
+              {r.custom && (
+                <IconTap
+                  size={36}
+                  icon={X}
+                  label={`Remove ${r.name.trim() || "this account"}`}
+                  color={t.muted}
+                  onPress={() => removeOwn(r.key)}
+                />
+              )}
             </Line>
+            {r.custom && (
+              <Line style={{ marginTop: 12 }}>
+                <Copy size={14} muted style={{ flex: 1 }}>
+                  Balance today
+                </Copy>
+                {balance(r)}
+              </Line>
+            )}
+            {r.custom && (
+              <Line style={{ gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+                {KINDS.map((k) => (
+                  <FinChip
+                    key={k.type}
+                    label={k.label}
+                    active={r.type === k.type}
+                    onPress={() =>
+                      set(r.key, { type: k.type, color: k.color, on: true })
+                    }
+                  />
+                ))}
+              </Line>
+            )}
           </Frame>
         ))}
-        {/* Every suggestion exists already: the accounts themselves,
-            dimmed, rather than a line of text. */}
-        {!shown.length &&
-          live.slice(0, 5).map((a) => (
-            <Frame key={a.id} style={{ padding: 12, opacity: 0.32 }}>
-              <Line>
-                <Check size={16} color={t.muted} />
-                <Copy size={16} weight="medium" style={{ flex: 1 }}>
-                  {a.name}
-                </Copy>
-              </Line>
-            </Frame>
-          ))}
+        <Button tone="quiet" icon={Plus} onPress={addOwn}>
+          Add your own account
+        </Button>
       </View>
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Unlock the projection · optional</SectionHeading>
