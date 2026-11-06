@@ -545,6 +545,9 @@ export class ProdStack extends Stack {
       ENVIRONMENT: "production",
       PROJECT_NAME: "Unfurl",
       FRONTEND_HOST: config.siteUrl,
+      // The origin a shared post link is built on (/share/p/{id}): set, not
+      // taken from the forwarded Host, so a crawler always gets the https URL.
+      PUBLIC_API_URL: publicUrl,
       FIRST_SUPERUSER: config.adminEmail,
       // GoTrue over the private network (Cloud Map), not out through
       // Cloudflare and back; the tokens still carry the public issuer.

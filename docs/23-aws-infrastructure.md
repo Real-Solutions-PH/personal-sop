@@ -164,6 +164,7 @@ Every setting in `backend/app/core/config.py` is either set by the stack or list
 | `ENVIRONMENT` | `production` |
 | `PROJECT_NAME`, `EMAILS_FROM_NAME` | `Unfurl` |
 | `FRONTEND_HOST` | `https://unfurl.realsolutionsph.com` (`unfurl:siteUrl`, defaulting to the email domain) |
+| `PUBLIC_API_URL` | `https://unfurl-api.realsolutionsph.com` (`https://` + `unfurl:apiHost`): the origin shared post links (`/share/p/{id}`) are built on |
 | `FIRST_SUPERUSER` | `unfurl:adminEmail`, default `admin@unfurl.realsolutionsph.com` |
 | `FIRST_SUPERUSER_PASSWORD` | Secret `unfurl/app` → `first_superuser_password` |
 | `SUPABASE_URL` | `http://auth.unfurl.internal:8080`: GoTrue over the private network, not out through Cloudflare and back |
