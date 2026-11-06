@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, col, select
 
 from app.core.config import settings
+from app.core.db import engine
 from app.modules.ai_providers.models import AIUsage
 from app.modules.dashboard import miss_analysis
 from app.modules.dashboard.models import MissAnalysis
@@ -59,13 +60,25 @@ def _seed(a: Api, *, days_ago: int = 3) -> tuple[uuid.UUID, uuid.UUID]:
     return hid, tid
 
 
-def _usage(db: Session, a: Api) -> list[AIUsage]:
-    db.expire_all()
-    return list(
-        db.exec(
-            select(AIUsage).where(col(AIUsage.owner_id) == a.user.id)  # type: ignore[attr-defined]
-        ).all()
-    )
+def _usage(a: Api) -> list[AIUsage]:
+    """The person's ai_usage rows, read in a session of its own (the shared
+    ``db`` session would hold the table open and block a later migration
+    test's DROP TABLE)."""
+    with Session(engine) as s:
+        return list(
+            s.exec(
+                select(AIUsage).where(col(AIUsage.owner_id) == a.user.id)  # type: ignore[attr-defined]
+            ).all()
+        )
+
+
+def _kept(a: Api) -> list[MissAnalysis]:
+    with Session(engine) as s:
+        return list(
+            s.exec(
+                select(MissAnalysis).where(col(MissAnalysis.owner_id) == a.user.id)  # type: ignore[attr-defined]
+            ).all()
+        )
 
 
 # ---------------------------------------------------------------- the day
@@ -142,7 +155,7 @@ def test_nothing_missed_celebrates_without_a_model_call(
         [],
         0,
     )
-    assert model.seen == [] and _usage(db, a) == []
+    assert model.seen == [] and _usage(a) == []
 
 
 def test_analysis_is_kept_once_per_day(
@@ -161,12 +174,10 @@ def test_analysis_is_kept_once_per_day(
     # Reopening: the kept answer, no second call, one metered row.
     again = a.post(ANALYSIS)
     assert again["points"] == THREE["points"] and len(model.seen) == 1
-    usage = _usage(db, a)
+    usage = _usage(a)
     assert len(usage) == 1 and usage[0].ok and usage[0].purpose == "chat"
     assert (usage[0].input_tokens, usage[0].output_tokens) == (120, 30)
-    rows = db.exec(
-        select(MissAnalysis).where(col(MissAnalysis.owner_id) == a.user.id)  # type: ignore[attr-defined]
-    ).all()
+    rows = _kept(a)
     assert len(rows) == 1 and rows[0].day.isoformat() == first["day"]
 
 
@@ -200,15 +211,9 @@ def test_provider_failure_is_an_error_and_retry_works(
     body: Any = a.post(ANALYSIS, status=503)
     assert body["code"] == "analysis_failed"
     assert "sk-" not in json.dumps(body)  # the provider's error text never leaks
-    usage = _usage(db, a)
+    usage = _usage(a)
     assert len(usage) == 1 and usage[0].ok is False  # metered even though it failed
-    db.expire_all()
-    assert (
-        db.exec(
-            select(MissAnalysis).where(col(MissAnalysis.owner_id) == a.user.id)  # type: ignore[attr-defined]
-        ).first()
-        is None
-    )
+    assert _kept(a) == []
     # An answer with nothing usable is the same error, not an empty success.
     install(monkeypatch, say("I think you did fine!"))
     assert a.post(ANALYSIS, status=503)["code"] == "analysis_failed"
@@ -230,7 +235,7 @@ def test_ai_off_gives_the_rules_read(client: TestClient, db: Session) -> None:
     # and it is what today starts with.
     assert "Read slipped" in out["points"][1] and "pattern" in out["points"][1]
     assert out["points"][2] == "Today, do Read first, before anything else."
-    assert _usage(db, a) == []
+    assert _usage(a) == []
 
 
 def test_rules_read_quotes_a_note() -> None:
