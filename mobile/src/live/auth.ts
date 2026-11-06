@@ -179,10 +179,22 @@ export async function changePassword(current: string, next: string) {
   await updatePassword(next)
 }
 
-/** GoTrue mails a confirmation link to the new address; the change takes
- * effect once it is opened, and the auth webhook copies it to our user. */
+/** GoTrue mails a confirmation link to the new address (and, with secure
+ * email change on, to the current one); the change takes effect once it is
+ * opened, and the auth webhook copies it to our user.
+ *
+ * GoTrue answers 500 when the mail itself cannot be sent, e.g. the mail
+ * provider refuses the address. Nothing changed then, and the person is told
+ * that on the email field instead of "Something went wrong". */
 export async function changeEmail(email: string) {
   const { error } = await getSupabase().auth.updateUser({ email })
+  const status = (error as { status?: number } | null)?.status ?? 0
+  const code = (error as { code?: string } | null)?.code ?? ""
+  if (error && (status >= 500 || code === "unexpected_failure"))
+    throw new LiveAuthError(
+      `We couldn't send the confirmation email to ${email}, so your email hasn't changed. Try again later.`,
+      "email",
+    )
   mapError(error)
 }
 
