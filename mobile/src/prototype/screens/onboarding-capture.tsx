@@ -3,8 +3,8 @@
 // how the words are held and sent.
 import type { Capture, RecordCard } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
-import { Check, Mic, Square } from "lucide-react-native"
-import { type ReactNode, useState } from "react"
+import { Check, Mic, Pencil, Square } from "lucide-react-native"
+import { type ReactNode, useRef, useState } from "react"
 import { TextInput, View } from "react-native"
 import { FernCelebrates } from "../companion/fern-celebrates"
 import { FernSprite } from "../companion/fern-sprite"
@@ -42,15 +42,26 @@ export function FirstCaptureStep({
     [text, setText] = useState(held?.text ?? ""),
     [spoke, setSpoke] = useState(false),
     [micError, setMicError] = useState(""),
+    // Set when the person types while dictation is on: the recogniser stops
+    // and nothing it still sends overwrites their correction.
+    typed = useRef(false),
     // No server refine: before the account exists there is no session for
     // the server's transcription, and the phone's words are enough here.
     dictation = useLiveDictation(
-      (v) => setText(v),
+      (v) => {
+        if (!typed.current) setText(v)
+      },
       () => setMicError("Couldn't hear that. Try again or type it."),
       "en-US",
       null,
     ),
     canTalk = canDictateLive()
+  // Back to the field with the words as they were, to correct a misheard
+  // transcript before it is sent.
+  const edit = () => {
+    if (held) setText(held.text)
+    onHold(null)
+  }
   if (held)
     return (
       <View style={{ gap: 16 }}>
@@ -62,16 +73,24 @@ export function FirstCaptureStep({
           <Copy weight="semibold" style={{ textAlign: "center" }}>
             Got it — your first log is ready
           </Copy>
-          <Frame
-            style={{
-              alignSelf: "stretch",
-              padding: 12,
-              backgroundColor: border(t.primary, 0.1),
-              borderColor: border(t.primary, 0.3),
-            }}
+          <Tap
+            label={`Edit “${held.text}”`}
+            onPress={edit}
+            style={{ alignSelf: "stretch" }}
           >
-            <Copy>“{held.text}”</Copy>
-          </Frame>
+            <Frame
+              style={{
+                padding: 12,
+                backgroundColor: border(t.primary, 0.1),
+                borderColor: border(t.primary, 0.3),
+              }}
+            >
+              <Line style={{ gap: 8, alignItems: "flex-start" }}>
+                <Copy style={{ flex: 1 }}>“{held.text}”</Copy>
+                <Pencil size={16} color={t.primary} />
+              </Line>
+            </Frame>
+          </Tap>
           <Copy size={14} muted style={{ textAlign: "center" }}>
             Fern logs it the moment your account exists, so day 1 starts with a
             win.
@@ -80,13 +99,16 @@ export function FirstCaptureStep({
         <View style={{ gap: 4 }}>
           {button("Next", onNext)}
           <Tap
-            label="Say something else"
-            onPress={() => onHold(null)}
+            label="Edit what I said"
+            onPress={edit}
             style={{ alignSelf: "center", padding: 8 }}
           >
-            <Copy size={14} style={{ color: t.primary }}>
-              Say something else
-            </Copy>
+            <Line style={{ gap: 6 }}>
+              <Pencil size={14} color={t.primary} />
+              <Copy size={14} style={{ color: t.primary }}>
+                Edit what I said
+              </Copy>
+            </Line>
           </Tap>
         </View>
       </View>
@@ -104,7 +126,15 @@ export function FirstCaptureStep({
             placeholder={`e.g. “${EXAMPLES[0]}”`}
             placeholderTextColor={t.muted}
             value={text}
-            onChangeText={setText}
+            onChangeText={(v) => {
+              // A correction while listening: stop, so the next phrase the
+              // recogniser hears doesn't type over it.
+              if (dictation.listening) {
+                typed.current = true
+                dictation.stop()
+              }
+              setText(v)
+            }}
             multiline
             maxLength={500}
             style={{
@@ -128,6 +158,7 @@ export function FirstCaptureStep({
               onPress={() => {
                 setMicError("")
                 if (dictation.listening) return dictation.stop()
+                typed.current = false
                 void dictation.start(text).then((ok) => {
                   if (ok) setSpoke(true)
                   else
@@ -150,7 +181,11 @@ export function FirstCaptureStep({
           <Tap
             key={x}
             label={`Use “${x}”`}
-            onPress={() => setText(x)}
+            onPress={() => {
+              typed.current = true
+              if (dictation.listening) dictation.stop()
+              setText(x)
+            }}
             style={{
               paddingHorizontal: 12,
               minHeight: 36,
