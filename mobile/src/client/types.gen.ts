@@ -2542,6 +2542,27 @@ export type MetricOut = {
     shareable: boolean;
 };
 
+/**
+ * Fern's read of yesterday. ``state`` is ``celebrate`` when nothing was
+ * missed (``points`` empty). ``source`` says who wrote the points: ``fern``
+ * (the model, kept for the day), ``rules`` (AI off, cap reached or no
+ * model: the same beats from the data alone) or ``none``.
+ */
+export type MissAnalysisOut = {
+    day: string;
+    state: 'celebrate' | 'analysis';
+    source: 'fern' | 'rules' | 'none';
+    points: Array<(string)>;
+    misses: number;
+    due: number;
+    done: number;
+    on_target: boolean;
+};
+
+export type state2 = 'celebrate' | 'analysis';
+
+export type source7 = 'fern' | 'rules' | 'none';
+
 export type MissesOut = {
     data: Array<MissOut>;
     count: number;
@@ -3950,7 +3971,7 @@ export type StartWorkout = {
     id?: (string | null);
 };
 
-export type source7 = 'empty' | 'template' | 'repeat';
+export type source8 = 'empty' | 'template' | 'repeat';
 
 export type StartWorkoutOut = {
     workout: WorkoutOut;
@@ -4427,7 +4448,7 @@ export type TodayRoutine = {
     run: (RunPublic | null);
 };
 
-export type state2 = 'start' | 'resume' | 'done';
+export type state3 = 'start' | 'resume' | 'done';
 
 export type ToggleSetOut = {
     completed: boolean;
@@ -4614,7 +4635,7 @@ export type WeatherPrefPublic = {
     version: number;
 };
 
-export type source8 = 'device' | 'city';
+export type source9 = 'device' | 'city';
 
 export type unit = 'c' | 'f';
 
@@ -5322,6 +5343,8 @@ export type DashboardUndismissData = {
 };
 
 export type DashboardUndismissResponse = (NotificationPublic);
+
+export type DashboardYesterdayAnalysisResponse = (MissAnalysisOut);
 
 export type DashboardNoteMissData = {
     missKey: string;

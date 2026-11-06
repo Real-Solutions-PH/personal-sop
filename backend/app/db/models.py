@@ -33,6 +33,7 @@ from app.modules.companion.models import (  # noqa: F401
 )
 from app.modules.dashboard.models import (  # noqa: F401
     Goal,
+    MissAnalysis,
     MissNote,
     Notification,
     Review,
