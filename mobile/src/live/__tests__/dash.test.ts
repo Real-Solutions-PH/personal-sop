@@ -24,6 +24,11 @@ import { currencyStore, setCurrency } from "@domain/lib/money"
 import { privacyStore, togglePrivacy } from "@domain/lib/privacy"
 import type { StorageAdapter } from "@domain/lib/store"
 import { extrasStore, setShown } from "@/prototype/extras"
+import {
+  homeLayoutStore,
+  moveSection,
+  setSectionShown,
+} from "@/prototype/home-layout"
 import { appearanceStore } from "@/prototype/theme"
 import { SyncEngine } from "../engine"
 import type { Http } from "../http"
@@ -111,6 +116,7 @@ beforeEach(() => {
   appearanceStore.set({ mode: "system" })
   privacyStore.set({ hidden: false, fernEval: false })
   currencyStore.set({ code: "PHP" })
+  homeLayoutStore.set(null)
   extrasStore.set({
     journal: true,
     social: true,
@@ -210,6 +216,7 @@ test("profile round trip covers the dash, appearance, privacy and currency field
     privacy: privacyStore.get(),
     currency: currencyStore.get(),
     extras: extrasStore.get(),
+    homeLayout: homeLayoutStore.get(),
   }
   const row = { ...profileToServer(cur), since: DAY }
   expect(row).toMatchObject({
@@ -231,6 +238,7 @@ test("a pulled currency the device does not know keeps the device's", () => {
     privacy: privacyStore.get(),
     currency: currencyStore.get(),
     extras: extrasStore.get(),
+    homeLayout: homeLayoutStore.get(),
   }
   const row = { ...profileToServer(cur), currency: "XXX" }
   expect(profileFromServer(row, cur).currency).toEqual({ code: "PHP" })
@@ -248,10 +256,42 @@ test("profile leaves out a value the server would refuse", () => {
     privacy: privacyStore.get(),
     currency: currencyStore.get(),
     extras: extrasStore.get(),
+    homeLayout: homeLayoutStore.get(),
   })
   expect(out).not.toHaveProperty("name")
   expect(out).not.toHaveProperty("handle")
   expect(out).not.toHaveProperty("evening_start")
+})
+
+test("Home's layout is left out until edited, then rides on the profile", () => {
+  const cur = () => ({
+    dash: dashStore.get(),
+    appearance: appearanceStore.get(),
+    privacy: privacyStore.get(),
+    currency: currencyStore.get(),
+    extras: extrasStore.get(),
+    homeLayout: homeLayoutStore.get(),
+  })
+  // Never edited: nothing sent, so another phone's layout stands.
+  expect(profileToServer(cur())).not.toHaveProperty("home_layout")
+  // A row without one keeps the device's (null).
+  expect(profileFromServer(profileToServer(cur()), cur()).homeLayout).toBeNull()
+  setSectionShown("weather", false)
+  const row = profileToServer(cur())
+  expect(row.home_layout).toMatchObject({ hidden: ["weather"] })
+  expect(profileFromServer(row, cur())).toEqual(cur())
+  // Another phone's layout wins on pull, ids this release lacks included.
+  const pulled = profileFromServer(
+    {
+      ...row,
+      home_layout: { order: ["goals", "future_card", "plan"], hidden: [] },
+    },
+    cur(),
+  )
+  expect(pulled.homeLayout).toEqual({
+    order: ["goals", "future_card", "plan"],
+    hidden: [],
+  })
 })
 
 // ------------------------------------------------------------- diffs
@@ -280,6 +320,11 @@ test("profile: one edit per store sends only that field", () => {
   expect(upserts(record(e.capture()), "profile")[0].data).toEqual({
     enabled_extras: ["journal", "weather", "calendar"],
   })
+  moveSection("goals", 0, ["plan", "goals"])
+  const sent = upserts(record(e.capture()), "profile")[0].data ?? {}
+  expect(Object.keys(sent)).toEqual(["home_layout"])
+  const order = (sent.home_layout as { order: string[] }).order
+  expect(order.indexOf("goals")).toBeLessThan(order.indexOf("plan"))
 })
 
 test("goals: create, single-field edit, archive, delete unlinks identities", () => {
