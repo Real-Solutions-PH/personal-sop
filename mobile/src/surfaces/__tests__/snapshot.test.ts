@@ -52,6 +52,7 @@ const input = (over: Partial<SnapshotInput> = {}): SnapshotInput => ({
   streak: 4,
   journal: true,
   screenTime: false,
+  steps: null,
   ...over,
 })
 
@@ -366,4 +367,35 @@ it("Shortcuts list every check habit due today, medicine first, done marked", ()
 it("a Shortcut sees no habits when Habits is switched off", () => {
   dashStore.set((s) => ({ ...s, enabled: { ...s.enabled, habits: false } }))
   expect(buildSnapshot(input()).shortcuts.habits).toEqual([])
+})
+
+describe("steps", () => {
+  const reading = { day: "2026-11-06", count: 6240.4 }
+
+  it("carry today's count against the step goal", () => {
+    const s = buildSnapshot(input({ steps: reading }))
+    expect(s.steps).toEqual({ day: "2026-11-06", count: 6240, goal: 10_000 })
+  })
+
+  it("are null with no reading (no Health here, or not connected)", () => {
+    expect(buildSnapshot(input({ steps: null })).steps).toBeNull()
+  })
+
+  it("are null while Fitness is off, whatever Health says", () => {
+    const dash = dashStore.get()
+    const off = { ...dash, enabled: { ...dash.enabled, fitness: false } }
+    expect(buildSnapshot(input({ dash: off, steps: reading })).steps).toBeNull()
+  })
+
+  it("a new count changes the snapshot key, the same count does not", () => {
+    const a = snapshotKey(buildSnapshot(input({ steps: reading })))
+    const same = snapshotKey(
+      buildSnapshot(input({ steps: { ...reading, count: 6240 } })),
+    )
+    const more = snapshotKey(
+      buildSnapshot(input({ steps: { ...reading, count: 6300 } })),
+    )
+    expect(same).toBe(a)
+    expect(more).not.toBe(a)
+  })
 })

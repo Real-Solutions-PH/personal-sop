@@ -8,6 +8,7 @@ import * as H from "@domain/habits/logic"
 import { DAY_START_HOUR, dayKey } from "@domain/lib/day"
 import type { Live } from "@domain/lib/live"
 import { money } from "@domain/lib/money"
+import { STEP_GOAL } from "@/prototype/step-goal"
 import type { TasksState } from "@domain/tasks/data"
 import { byDue, fmtDay, isOverdue } from "@domain/tasks/logic"
 import {
@@ -22,6 +23,12 @@ import {
 /** The parts of the app the widgets show. ``ring``, ``lifeScore`` and
  * ``streak`` come from the dashboard hooks (they prefer the server's numbers
  * in live mode), so the widget reads what Today reads. */
+/** A step count for one calendar day (YYYY-MM-DD, midnight to midnight). */
+export interface StepsReading {
+  day: string
+  count: number
+}
+
 export interface SnapshotInput {
   habits: HabitsState
   tasks: TasksState
@@ -37,6 +44,9 @@ export interface SnapshotInput {
   journal: boolean
   /** This build can read Screen Time (the native module is present). */
   screenTime: boolean
+  /** Today's steps as last read from Apple Health (steps.ts); null when
+   * there is no reading. */
+  steps: StepsReading | null
   now?: Date
 }
 
@@ -267,6 +277,14 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
       ? tasksPart(input.tasks, now)
       : { open: 0, overdue: 0, items: [] },
     money: dash.enabled.finance ? moneyPart(input.fin, input.privacy) : null,
+    steps:
+      dash.enabled.fitness && input.steps
+        ? {
+            day: input.steps.day,
+            count: Math.max(0, Math.round(input.steps.count)),
+            goal: STEP_GOAL,
+          }
+        : null,
     live: input.live
       ? {
           kind: LIVE_KIND[input.live.kind],

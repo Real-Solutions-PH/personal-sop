@@ -22,6 +22,7 @@ enum Tone {
   static let fin = Color("fin")
   static let life = Color("life")
   static let warn = Color("warn")
+  static let good = Color("good")
   static let foc = Color("foc")
   static let scr = Color("scr")
   static let moss = Color("moss")
@@ -567,6 +568,7 @@ struct UnfurlWidgets: WidgetBundle {
     MoneyWidget()
     FernWidget()
     AppsWidget()
+    StepsWidget()
     UnfurlLiveActivity()
     if #available(iOS 18.0, *) {
       AskFernControl()

@@ -7,6 +7,8 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.widgetkit-extension</string>
 	</dict>
+	<key>NSMotionUsageDescription</key>
+	<string>The Steps widget adds the steps your iPhone counted since Unfurl last read Apple Health.</string>
 	<key>UnfurlKeychainGroup</key>
 	<string>$(AppIdentifierPrefix)com.schadenkai.personal-sop.surfaces</string>
 </dict>

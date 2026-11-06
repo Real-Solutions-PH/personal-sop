@@ -15,9 +15,10 @@ import { Bar, Copy, Frame, Line, Part, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button } from "../ui"
+import { STEP_GOAL } from "../step-goal"
 import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
-export const GOAL = 10_000
+export const GOAL = STEP_GOAL
 export const n = (v: number) => v.toLocaleString("en-US")
 /** The calendar day `offset` days from today, as Health counts days
  * (midnight to midnight, not the app's 04:00 dayKey). */
