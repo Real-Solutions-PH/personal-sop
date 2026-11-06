@@ -65,6 +65,7 @@ from app.modules.companion.schema import (
 )
 from app.modules.companion.turn import (
     NOTHING_WAITING,
+    WEB_SEARCH_STOPPED,
     Step,
     TurnStream,
     kept_steps,
@@ -794,6 +795,10 @@ class SolRun:
     results: list[tuple[str, Any]] = field(default_factory=list)
     # The web searches the turn made, with their results (``same_search``).
     searches: list[dict[str, Any]] = field(default_factory=list)
+    # Why the web lookup failed this turn, once it has: every later search in
+    # the reply stops at once (seen live 2026-11-06: Brave out of credit, one
+    # reply searched 16 times, each failing, until the tool-call cap).
+    search_failed: str | None = None
 
     def block(self, b: dict[str, Any]) -> dict[str, Any]:
         self.blocks.append(b)
@@ -916,6 +921,12 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
 
 
 WEB_SEARCHES = 5
+# After a failed search the web stays off for the rest of the reply.
+WEB_DOWN = (
+    "the web lookup is not working right now: do not search again in this "
+    "reply; use their food library (find_foods) or estimate, and say once, "
+    "plainly, that the web lookup didn't work and which values are estimates"
+)
 # Words every nutrition search carries; two searches for the same food differ
 # only in these, so they are left out when searches are compared.
 _SEARCH_FILLER = frozenset(
@@ -1264,6 +1275,12 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
                 "next": "you searched this already in this reply; use "
                 "these results, or estimate and say so",
             }
+        if run.search_failed is not None:
+            return {
+                "error": WEB_SEARCH_STOPPED,
+                "why": run.search_failed,
+                "instead": WEB_DOWN,
+            }
         if len(run.searches) >= WEB_SEARCHES:
             return {
                 "error": "search_limit_reached",
@@ -1276,7 +1293,8 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         try:
             out = {"query": query, "results": web.search(query)}
         except web.WebSearchError as exc:
-            return {"error": exc.code}
+            run.search_failed = exc.code
+            return {"error": exc.code, "instead": WEB_DOWN}
         run.searches.append(out)
         return out
 

@@ -175,6 +175,13 @@ RETRIED = frozenset(
         "unknown_category",
     }
 )
+# A web search after one already failed in the reply: never run, and kept
+# out of the finished reply so the failure shows once (``kept_steps``).
+WEB_SEARCH_STOPPED = "web_lookup_not_working"
+WEB_FAILED = frozenset(
+    {"web_search_failed", "web_search_unreachable", "web_search_unavailable"}
+)
+WEB_FAILED_SAYS = "Web lookup didn't work; went with your library or estimates"
 # Guards doing their job: Fern tried what only the person may do (confirm,
 # bring back), or a record they already have. Shown as such, never as an
 # error (13 "they did not confirm" and 7 "already exists" steps showed red).
@@ -182,6 +189,7 @@ GUARDED = {
     "they_did_not_confirm": "Waiting for your OK before saving",
     "they_did_not_ask": "Waiting for your OK before saving it again",
     "search_limit_reached": "Stopped searching; went with what was found",
+    WEB_SEARCH_STOPPED: WEB_FAILED_SAYS,
 }
 _EXISTS = re.compile(r"^an?_([a-z]+)_with_that_name_exists$")
 
@@ -211,6 +219,8 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
     error = str(res.get("error") or "")
     if error in GUARDED:
         return True, GUARDED[error]
+    if error in WEB_FAILED:
+        return False, WEB_FAILED_SAYS
     if exists := _EXISTS.match(error):
         named = str(args.get("name") or "").strip()
         return True, f"Already in your records: {named or 'that ' + exists.group(1)}"
@@ -391,11 +401,13 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
 
 def kept_steps(steps: list["Step"]) -> list["Step"]:
     """The steps a finished reply keeps: a refusal Fern fixed and sent again
-    goes once the same tool succeeded later in the reply."""
+    goes once the same tool succeeded later in the reply, and a web search
+    stopped because the web already failed goes too."""
     return [
         s
         for i, s in enumerate(steps)
-        if not (s.retried and any(t.name == s.name and t.ok for t in steps[i + 1 :]))
+        if not s.web_stopped
+        and not (s.retried and any(t.name == s.name and t.ok for t in steps[i + 1 :]))
     ]
 
 
@@ -415,6 +427,8 @@ class Step:
     capture_id: str | None = None
     # Refused with something to fix and send again (``RETRIED``).
     retried: bool = False
+    # A web search not run because one already failed (``WEB_SEARCH_STOPPED``).
+    web_stopped: bool = False
 
     def public(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -718,6 +732,9 @@ class TurnStream(capture.LoopHooks):
         if step is not None:
             step.ok, step.summary = ok, summary
             step.retried = isinstance(result, dict) and result.get("error") in RETRIED
+            step.web_stopped = (
+                isinstance(result, dict) and result.get("error") == WEB_SEARCH_STOPPED
+            )
             if isinstance(result, dict) and result.get("card_id"):
                 step.card_id = str(result["card_id"])
                 step.state = str(result.get("state") or "")
