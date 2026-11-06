@@ -22,13 +22,15 @@
 // task_event is server-written history and never pushed; local events stay
 // local.
 
-import type {
-  NotifState,
-  Recurrence,
-  Task,
-  TaskList,
-  TaskSettings,
-  TasksState,
+import {
+  type NotifState,
+  PRIORITIES,
+  type Recurrence,
+  type Task,
+  type TaskList,
+  type TaskPriority,
+  type TaskSettings,
+  type TasksState,
 } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import type { ActionOp, Mapper, Payload } from "../mapper"
@@ -134,6 +136,7 @@ export function taskMapper(): Mapper<TasksState, Task> {
       recurrence: t.recurrence,
       notes: t.notes,
       starred: t.starred,
+      priority: t.priority ?? "none",
       tags: t.tags ?? [],
       estimate_min: t.estimateMin ?? null,
       nag_every_min: t.nagEveryMin ?? null,
@@ -160,6 +163,9 @@ export function taskMapper(): Mapper<TasksState, Task> {
         recurrence: (row.recurrence as Recurrence | null) ?? null,
         notes: str(row.notes),
         starred: Boolean(row.starred),
+        priority: PRIORITIES.includes(row.priority as TaskPriority)
+          ? (row.priority as TaskPriority)
+          : "none",
         tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
         ...(row.estimate_min ? { estimateMin: Number(row.estimate_min) } : {}),
         ...(row.nag_every_min
