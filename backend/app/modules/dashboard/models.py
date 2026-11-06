@@ -76,6 +76,22 @@ class MissNote(OwnedRow, table=True):
     note: str = Field(max_length=1000)
 
 
+class MissAnalysis(OwnedRow, table=True):
+    """Fern's analysis of one day's misses, kept so reopening the page does
+    not run the model again. One row per person per day; ``fingerprint`` is
+    the hash of that day's miss ids when it was written, so the analysis is
+    redone only when the misses themselves changed (a habit ticked late, a
+    task done after all), never on a plain reopen."""
+
+    __tablename__ = "miss_analysis"
+    __table_args__ = (UniqueConstraint("owner_id", "day", name="uq_miss_analysis_day"),)
+
+    day: date
+    fingerprint: str = Field(max_length=64)
+    points: list[str] = Field(default_factory=list, sa_type=JSONB)
+    model: str = Field(default="", max_length=200)
+
+
 class Notification(OwnedRow, table=True):
     """The one inbox (IA ruling X-11). ``dedupe_key`` stops a job from posting
     the same reminder twice."""
@@ -109,6 +125,7 @@ class ShareDefault(OwnedRow, table=True):
 
 __all__ = [
     "Goal",
+    "MissAnalysis",
     "MissNote",
     "Notification",
     "Review",

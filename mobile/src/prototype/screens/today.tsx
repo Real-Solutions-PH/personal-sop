@@ -1720,7 +1720,7 @@ function RecapCard({ evening }: { evening: boolean }) {
       </Line>
     </Tap>
   ) : misses.length ? (
-    <Tap onPress={() => go("/stats/misses")} style={{ gap: 8 }}>
+    <Tap onPress={() => go("/today/yesterday")} style={{ gap: 8 }}>
       <Line style={{ justifyContent: "space-between" }}>
         <Copy weight="semibold" style={{ color: t.bad }}>
           {misses.length.toLocaleString("en-US")}{" "}
@@ -1797,7 +1797,7 @@ function TomorrowCard({ evening }: { evening: boolean }) {
 }
 /** For yesterday's habit misses, the streak each one ended (3 days or more,
  * as the habit screen counts a run), keyed by the miss id. */
-function useEndedRuns(misses: Miss[]) {
+export function useEndedRuns(misses: Miss[]) {
   const hs = habitsStore.use((x) => x)
   return useMemo(() => {
     const out = new Map<string, number>()

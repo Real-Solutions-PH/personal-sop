@@ -15039,6 +15039,33 @@
         }
       }
     },
+    "/api/v1/dashboard/misses/yesterday/analysis": {
+      "post": {
+        "tags": ["dashboard"],
+        "summary": "Yesterday Analysis",
+        "description": "Fern's short analysis of yesterday's misses (the person's own day\nbefore today), asked for when the Yesterday page opens. Kept per day:\nreopening returns the kept answer without a model call. 503\n``analysis_failed`` when the provider fails; nothing is kept then.",
+        "operationId": "dashboard-yesterday_analysis",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MissAnalysisOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/api/v1/dashboard/misses/{miss_key}/note": {
       "put": {
         "tags": ["dashboard"],
@@ -26671,6 +26698,43 @@
           "shareable"
         ],
         "title": "MetricOut"
+      },
+      "MissAnalysisOut": {
+        "properties": {
+          "day": { "type": "string", "format": "date", "title": "Day" },
+          "state": {
+            "type": "string",
+            "enum": ["celebrate", "analysis"],
+            "title": "State"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["fern", "rules", "none"],
+            "title": "Source"
+          },
+          "points": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Points"
+          },
+          "misses": { "type": "integer", "title": "Misses" },
+          "due": { "type": "integer", "title": "Due" },
+          "done": { "type": "integer", "title": "Done" },
+          "on_target": { "type": "boolean", "title": "On Target" }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "state",
+          "source",
+          "points",
+          "misses",
+          "due",
+          "done",
+          "on_target"
+        ],
+        "title": "MissAnalysisOut",
+        "description": "Fern's read of yesterday. ``state`` is ``celebrate`` when nothing was\nmissed (``points`` empty). ``source`` says who wrote the points: ``fern``\n(the model, kept for the day), ``rules`` (AI off, cap reached or no\nmodel: the same beats from the data alone) or ``none``."
       },
       "MissNoteIn": {
         "properties": {

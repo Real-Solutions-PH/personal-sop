@@ -11257,6 +11257,56 @@ export const MetricOutSchema = {
     title: 'MetricOut'
 } as const;
 
+export const MissAnalysisOutSchema = {
+    properties: {
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        state: {
+            type: 'string',
+            enum: ['celebrate', 'analysis'],
+            title: 'State'
+        },
+        source: {
+            type: 'string',
+            enum: ['fern', 'rules', 'none'],
+            title: 'Source'
+        },
+        points: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Points'
+        },
+        misses: {
+            type: 'integer',
+            title: 'Misses'
+        },
+        due: {
+            type: 'integer',
+            title: 'Due'
+        },
+        done: {
+            type: 'integer',
+            title: 'Done'
+        },
+        on_target: {
+            type: 'boolean',
+            title: 'On Target'
+        }
+    },
+    type: 'object',
+    required: ['day', 'state', 'source', 'points', 'misses', 'due', 'done', 'on_target'],
+    title: 'MissAnalysisOut',
+    description: `Fern's read of yesterday. \`\`state\`\` is \`\`celebrate\`\` when nothing was
+missed (\`\`points\`\` empty). \`\`source\`\` says who wrote the points: \`\`fern\`\`
+(the model, kept for the day), \`\`rules\`\` (AI off, cap reached or no
+model: the same beats from the data alone) or \`\`none\`\`.`
+} as const;
+
 export const MissNoteInSchema = {
     properties: {
         note: {
