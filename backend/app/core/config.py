@@ -342,6 +342,9 @@ class Settings(BaseSettings):
     # Endpoint presigned URLs are signed for, as phones reach object storage
     # (e.g. https://media.example.com). Unset: MINIO_ENDPOINT.
     MEDIA_PUBLIC_ENDPOINT: str | None = None
+    # Origin a shared post link is built on (``/share/p/{id}``, e.g.
+    # https://api.example.com). Unset: the request's own host.
+    PUBLIC_API_URL: str | None = None
 
     # Mobile API — realtime + push.
     EVENTS_REPLAY_SECONDS: int = 300
