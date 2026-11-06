@@ -293,6 +293,74 @@ def test_a_macros_question_answered_without_the_tool_still_shows_the_card(
     assert [b["t"] for b in blocks] == ["nutrition"]
 
 
+def test_a_money_turn_shows_the_finance_card_and_no_nutrition_card(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Kai, 2026-11-06: a budget question pulled up the nutrition card,
+    because the model read "left" as the day's macros and called
+    nutrition_status beside finance_status."""
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("nutrition_status"), call("finance_status")),
+        say("Your budget has room left this month."),
+    )
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "how much do I have left in my budget?"},
+    )
+    events = parse_agui(r.text)
+    streamed = [e["value"]["t"] for e in events if e.get("name") == "block"]
+    stored = [b["t"] for b in events[-1]["result"]["messages"][1]["blocks"]]
+    assert "nutrition" not in streamed and "nutrition" not in stored
+    assert stored.count("finance") == 1 and "finance" in streamed
+    card = next(
+        b for b in events[-1]["result"]["messages"][1]["blocks"] if b["t"] == "finance"
+    )
+    assert len(card["day"]) == 10 and card["day"][4] == "-"
+    steps = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert [s["summary"] for s in steps] == [
+        "Checked today's macros",
+        "Checked your money",
+    ]
+
+
+def test_a_nutrition_card_drawn_before_a_money_write_is_taken_back(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The model looked at the day's food first, then logged an expense: the
+    turn was about money, so the stored reply keeps no nutrition card."""
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("nutrition_status")),
+        say(
+            "",
+            call(
+                "log_expense",
+                amount=250,
+                payee="Grab",
+                category="Transport",
+            ),
+        ),
+        say("Logged 250 for Grab."),
+    )
+    r = client.post(
+        "/api/v1/companion/ask/stream",
+        headers=api.h,
+        json={"text": "how much can i still use today? also grab 250"},
+    )
+    events = parse_agui(r.text)
+    streamed = [e["value"]["t"] for e in events if e.get("name") == "block"]
+    stored = [b["t"] for b in events[-1]["result"]["messages"][1]["blocks"]]
+    # Drawn while the turn still looked like food, then taken back.
+    assert "nutrition" in streamed
+    assert "nutrition" not in stored and "finance" in stored
+
+
 def test_a_question_about_something_else_shows_no_nutrition_card(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
