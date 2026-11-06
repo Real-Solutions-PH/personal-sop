@@ -3,7 +3,7 @@ import { newId } from "@domain/lib/ids"
 import { getConnectivity, toast } from "@domain/lib/platform"
 import { createStore, uid } from "@domain/lib/store"
 import { create } from "zustand"
-import { liveMode } from "@/live/config"
+import { API_URL, liveMode } from "@/live/config"
 import type { Accent } from "../theme"
 import type { Framing } from "./crop"
 
@@ -2148,5 +2148,9 @@ export function lastMineSeen(chat: Chat): boolean {
 }
 
 /** Links that open the post or profile in the app. */
-export const postLink = (id: string) => `personalsop://social/post/${id}`
+/** A post's shareable link: the API's public share page, which unfurls into
+ * a preview (Open Graph) when pasted into Messenger, X or Facebook and opens
+ * the post in the app. A ``personalsop://`` link is not a link anywhere
+ * outside the app, so it is only the page's "Open in Unfurl" target. */
+export const postLink = (id: string) => `${API_URL}/share/p/${id}`
 export const profileLink = (id: string) => `personalsop://social/u/${id}`
