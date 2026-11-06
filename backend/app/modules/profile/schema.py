@@ -1,9 +1,9 @@
 import re
 import uuid
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.shared.currency import check_currency
 from app.shared.day import check_timezone, parse_hm
@@ -38,6 +38,32 @@ ReferralSource = Literal[
     "search",
     "other",
 ]
+
+# A Home section id. Not an enum: the app owns the list and adds sections in
+# new releases, and an older server must keep a newer phone's ids rather than
+# refuse the whole profile edit.
+SectionId = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{0,31}$")]
+
+
+def _dedupe(ids: list[str]) -> list[str]:
+    return list(dict.fromkeys(ids))
+
+
+class HomeLayout(BaseModel):
+    """Home's sections in the person's order, and the ones they hid there.
+
+    Hiding here is Home only: a module or extra switched off in Settings stays
+    hidden whatever this says, and the app places a section missing from
+    ``order`` at its default position."""
+
+    order: list[SectionId] = Field(default=[], max_length=64)
+    hidden: list[SectionId] = Field(default=[], max_length=64)
+
+    @field_validator("order", "hidden")
+    @classmethod
+    def _unique(cls, v: list[str]) -> list[str]:
+        return _dedupe(v)
+
 
 HANDLE_RE = re.compile(r"^[a-z0-9._]{3,20}$")
 # Never assignable: product and staff-looking names.
@@ -85,6 +111,8 @@ class ProfilePublic(BaseModel):
     seen_trophies: list[str]
     # Extras kept shown; null = never chosen, so every extra is shown.
     enabled_extras: list[ExtraKey] | None = None
+    # Home's arrangement; null = never edited, so the default.
+    home_layout: HomeLayout | None = None
     # Hidden parts Fern has offered once, and those turned down for good.
     intro_offered: list[IntroKey] = []
     intro_dismissed: list[IntroKey] = []
@@ -124,6 +152,9 @@ class ProfileUpdate(BaseModel):
     # The whole set of extras to keep shown (an empty list hides them all);
     # null leaves the stored choice as it is.
     enabled_extras: list[ExtraKey] | None = Field(default=None, max_length=4)
+    # The whole arrangement (Reset sends the default one); null leaves the
+    # stored one as it is.
+    home_layout: HomeLayout | None = None
     # Added to what is stored (never removes one).
     intro_offered: list[IntroKey] | None = Field(default=None, max_length=9)
     intro_dismissed: list[IntroKey] | None = Field(default=None, max_length=9)

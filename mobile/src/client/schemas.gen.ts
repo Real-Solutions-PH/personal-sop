@@ -7525,6 +7525,38 @@ export const HistoryPointOutSchema = {
     title: 'HistoryPointOut'
 } as const;
 
+export const HomeLayoutSchema = {
+    properties: {
+        order: {
+            items: {
+                type: 'string',
+                pattern: '^[a-z][a-z0-9_]{0,31}$'
+            },
+            type: 'array',
+            maxItems: 64,
+            title: 'Order',
+            default: []
+        },
+        hidden: {
+            items: {
+                type: 'string',
+                pattern: '^[a-z][a-z0-9_]{0,31}$'
+            },
+            type: 'array',
+            maxItems: 64,
+            title: 'Hidden',
+            default: []
+        }
+    },
+    type: 'object',
+    title: 'HomeLayout',
+    description: `Home's sections in the person's order, and the ones they hid there.
+
+Hiding here is Home only: a module or extra switched off in Settings stays
+hidden whatever this says, and the app places a section missing from
+\`\`order\`\` at its default position.`
+} as const;
+
 export const HomeOutSchema = {
     properties: {
         setup_done: {
@@ -14290,6 +14322,16 @@ export const ProfilePublicSchema = {
             ],
             title: 'Enabled Extras'
         },
+        home_layout: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/HomeLayout'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
         intro_offered: {
             items: {
                 type: 'string',
@@ -14611,6 +14653,16 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Enabled Extras'
+        },
+        home_layout: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/HomeLayout'
+                },
+                {
+                    type: 'null'
+                }
+            ]
         },
         intro_offered: {
             anyOf: [

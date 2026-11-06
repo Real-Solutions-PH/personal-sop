@@ -24147,6 +24147,27 @@
         ],
         "title": "HistoryPointOut"
       },
+      "HomeLayout": {
+        "properties": {
+          "order": {
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+            "type": "array",
+            "maxItems": 64,
+            "title": "Order",
+            "default": []
+          },
+          "hidden": {
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$" },
+            "type": "array",
+            "maxItems": 64,
+            "title": "Hidden",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "HomeLayout",
+        "description": "Home's sections in the person's order, and the ones they hid there.\n\nHiding here is Home only: a module or extra switched off in Settings stays\nhidden whatever this says, and the app places a section missing from\n``order`` at its default position."
+      },
       "HomeOut": {
         "properties": {
           "setup_done": { "type": "boolean", "title": "Setup Done" },
@@ -28627,6 +28648,12 @@
             ],
             "title": "Enabled Extras"
           },
+          "home_layout": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/HomeLayout" },
+              { "type": "null" }
+            ]
+          },
           "intro_offered": {
             "items": {
               "type": "string",
@@ -28867,6 +28894,12 @@
               { "type": "null" }
             ],
             "title": "Enabled Extras"
+          },
+          "home_layout": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/HomeLayout" },
+              { "type": "null" }
+            ]
           },
           "intro_offered": {
             "anyOf": [

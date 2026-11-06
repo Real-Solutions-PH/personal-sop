@@ -1847,6 +1847,18 @@ export type HistoryPointOut = {
 };
 
 /**
+ * Home's sections in the person's order, and the ones they hid there.
+ *
+ * Hiding here is Home only: a module or extra switched off in Settings stays
+ * hidden whatever this says, and the app places a section missing from
+ * ``order`` at its default position.
+ */
+export type HomeLayout = {
+    order?: Array<(string)>;
+    hidden?: Array<(string)>;
+};
+
+/**
  * FIN-01 in one read.
  */
 export type HomeOut = {
@@ -3122,6 +3134,7 @@ export type ProfilePublic = {
     fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
+    home_layout?: (HomeLayout | null);
     intro_offered?: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')>;
     intro_dismissed?: Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')>;
     occupation?: ('student' | 'employed' | 'self_employed' | 'business_owner' | 'between_jobs' | 'other' | null);
@@ -3160,6 +3173,7 @@ export type ProfileUpdate = {
     fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
+    home_layout?: (HomeLayout | null);
     intro_offered?: (Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')> | null);
     intro_dismissed?: (Array<('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social')> | null);
 };
