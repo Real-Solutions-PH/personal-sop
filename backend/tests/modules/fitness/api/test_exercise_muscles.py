@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import get_args
 
 from fastapi.testclient import TestClient
+from pydantic import TypeAdapter
 from sqlalchemy import text
 from sqlmodel import Session
 
@@ -48,7 +49,10 @@ def test_every_muscle_list_is_the_same_and_keeps_the_old_values() -> None:
     want = BROAD | set(FINER)
     assert set(models.MUSCLES) == want
     assert set(get_args(schema.Muscle)) == want
-    assert set(get_args(fitness_tools.Muscle)) == want
+    # Fern's tools offer the fitness module's list and accept each value.
+    fern = TypeAdapter(fitness_tools.Muscle)
+    assert set(fern.json_schema()["enum"]) == want
+    assert all(fern.validate_python(m) == m for m in want)
     # The column is String(12).
     assert max(len(m) for m in want) <= 12
 

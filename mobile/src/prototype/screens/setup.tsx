@@ -282,20 +282,29 @@ export function Setup() {
           />
           {step && (
             <>
-              <Line style={{ flex: 1, gap: 6 }}>
-                {steps.map((k) => (
-                  <View
-                    key={k}
-                    style={{
-                      height: 6,
-                      flex: 1,
-                      borderRadius: 3,
-                      backgroundColor:
-                        k === step || has[k] ? t.primary : t.soft,
-                    }}
-                  />
-                ))}
-              </Line>
+              {/* The progress bar is onboarding's: a module set up later
+                  (from its own screen, or "Run setup again") gets a plain
+                  header with Back. */}
+              {firstRun && !single ? (
+                <Line testID="setup-progress" style={{ flex: 1, gap: 6 }}>
+                  {steps.map((k) => (
+                    <View
+                      key={k}
+                      style={{
+                        height: 6,
+                        flex: 1,
+                        borderRadius: 3,
+                        backgroundColor:
+                          k === step || has[k] ? t.primary : t.soft,
+                      }}
+                    />
+                  ))}
+                </Line>
+              ) : (
+                <Copy weight="semibold" style={{ flex: 1 }}>
+                  Set up {AREA[step].label}
+                </Copy>
+              )}
               <Tap
                 label={`Skip ${AREA[step].label} setup`}
                 onPress={() => {

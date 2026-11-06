@@ -16,7 +16,7 @@ from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from langchain_core.tools import BaseTool, StructuredTool
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, WithJsonSchema
 
 from app.modules.capture import ports
 from app.modules.capture.parse import RecordDraft, meal_label
@@ -29,36 +29,39 @@ Manage = Callable[..., dict[str, Any]]
 Card = Callable[..., dict[str, Any]]
 
 Name = Annotated[str, Field(min_length=1, max_length=80)]
-Muscle = Literal[
-    "chest",
-    "back",
-    "shoulders",
-    "biceps",
-    "triceps",
-    "quads",
-    "hamstrings",
-    "glutes",
-    "core",
-    "cardio",
-    "calves",
-    "forearms",
-    "upper_chest",
-    "front_delts",
-    "side_delts",
-    "rear_delts",
-    "lats",
-    "traps",
-    "rhomboids",
-    "lower_back",
-    "obliques",
-    "abductors",
-    "adductors",
-    "tibialis",
-    "hip_flexors",
-    "neck",
+
+
+def _one_of(values: tuple[str, ...], what: str) -> Callable[[str], str]:
+    def check(v: str) -> str:
+        v = v.strip().lower()
+        if v not in values:
+            raise ValueError(f"{what} is one of: {', '.join(values)}")
+        return v
+
+    return check
+
+
+def _choice(values: tuple[str, ...]) -> WithJsonSchema:
+    return WithJsonSchema({"type": "string", "enum": list(values)})
+
+
+# Read from the fitness module's own lists (the table's checks), so a muscle
+# added there is offered here with no second copy to keep in step.
+Muscle = Annotated[
+    str,
+    AfterValidator(_one_of(ports.fitness.MUSCLES, "muscle")),
+    _choice(ports.fitness.MUSCLES),
 ]
-Equipment = Literal["barbell", "dumbbell", "machine", "cable", "bodyweight"]
-LoadType = Literal["weight", "bodyweight", "reps", "time"]
+Equipment = Annotated[
+    str,
+    AfterValidator(_one_of(ports.fitness.EQUIPMENT, "equipment")),
+    _choice(ports.fitness.EQUIPMENT),
+]
+LoadType = Annotated[
+    str,
+    AfterValidator(_one_of(ports.fitness.LOAD_TYPES, "type")),
+    _choice(ports.fitness.LOAD_TYPES),
+]
 Reps = Annotated[int, Field(ge=1, le=1000)]
 Kg = Annotated[float, Field(ge=0, le=2000)]
 Minutes = Annotated[float, Field(gt=0, le=1440)]
@@ -116,11 +119,14 @@ class FindLogsArgs(BaseModel):
 
 
 class ExerciseFields(BaseModel):
-    muscle: Muscle | None = None
+    muscle: Muscle | None = Field(
+        default=None, description="The primary muscle it works."
+    )
     equipment: Equipment | None = None
     type: LoadType | None = Field(
         default=None,
-        description="time for a timed exercise (plank, treadmill walk); "
+        description="weight for an added load (barbell, dumbbell, machine, "
+        "cable); time for a timed exercise (plank, treadmill walk); "
         "bodyweight or reps for no added load.",
     )
     rep_min: Reps | None = None
@@ -136,6 +142,10 @@ class ExerciseFields(BaseModel):
 
 
 class ExerciseCreateArgs(ExerciseFields):
+    """A new exercise: give its equipment, muscle and type every time,
+    inferred from the name ("Bulgarian split squat": dumbbell, quads,
+    weight). One left out is read off the name (``exercise_shape``)."""
+
     name: Name
 
 
@@ -560,7 +570,12 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                 "exercise": fx.exercise_public(same),
                 "note": "already in the exercise list; use this one",
             }
-        ch = {"name": a.name.strip()} | _exercise_changes(a)
+        # Never the form's barbell-chest default: what the model left out is
+        # read off the name.
+        shape = ports.fitness.exercise_shape(a.name)
+        if a.type not in (None, "time"):
+            shape.pop("track", None)
+        ch = {"name": a.name.strip()} | shape | _exercise_changes(a)
         if ch.get("rep_min") and not ch.get("rep_max"):
             ch["rep_max"] = max(ch["rep_min"], 12)
         if ch.get("rep_max") and not ch.get("rep_min"):
@@ -1096,7 +1111,13 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             "weigh-ins, workouts (with numbered sets), exercises in the "
             "library, workout templates.",
         ),
-        (create_exercise, ExerciseCreateArgs, "Add an exercise to the library."),
+        (
+            create_exercise,
+            ExerciseCreateArgs,
+            "Add an exercise to the library, always with its equipment, "
+            "primary muscle and type, inferred from the name (Bulgarian "
+            "split squat: dumbbell, quads, weight).",
+        ),
         (
             edit_exercise,
             ExerciseEditArgs,

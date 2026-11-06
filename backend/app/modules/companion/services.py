@@ -31,6 +31,7 @@ from app.modules.ai_providers import public as ai
 from app.modules.capture import public as capture
 from app.modules.companion import (
     brain,
+    cards,
     grounding,
     intent,
     loop,
@@ -1218,8 +1219,13 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
     def nutrition_status(**kw: Any) -> dict[str, Any]:
         NoArgs(**kw)
         # The person sees the day as a card (rings for the goals, bars for
-        # the limits), once per reply however often the model asks.
-        if not any(b["t"] == "nutrition" for b in run.blocks):
+        # the limits), once per reply however often the model asks, and
+        # only on a turn about food (cards.py): a budget's "what is left"
+        # reads the same to the model and drew it on money turns.
+        called = [n for n, _ in run.results] + ["nutrition_status"]
+        if not any(b["t"] == "nutrition" for b in run.blocks) and cards.relevant(
+            "nutrition", run.said, called
+        ):
             run.block({"t": "nutrition", "day": ctx.today.isoformat()})
         # Fresh from the records, so a meal logged earlier in this turn
         # counts; a meal waiting for the user's OK does not, yet.
@@ -1433,7 +1439,9 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             "Today's food against the macro target: eaten (calories, protein, "
             "carbs, fat, fiber, saturated fat, sugar, sodium), target, what is "
             "left, meals logged, latest weigh-in. Call it for any question "
-            "about macros, calories or what is left, and after logging a meal.",
+            "about macros, calories or food still left to eat, and after "
+            "logging a meal; never for money (a budget's left is "
+            "finance_status).",
         ),
         (
             focus_status,
@@ -1792,6 +1800,31 @@ def learn(
         return []
     ctx.commit()
     return saved
+
+
+def _module_cards(ctx: Ctx, run: SolRun, text: str) -> None:
+    """The reply's module cards, settled once every tool has run
+    (cards.py): a nutrition card drawn early in a turn that turned out to
+    be about money goes; a turn about food or money that drew no card gets
+    one."""
+    called = [n for n, _ in run.results]
+    day = ctx.today.isoformat()
+    has = {b["t"] for b in run.blocks}
+    if "nutrition" in has and not cards.relevant("nutrition", text, called):
+        run.blocks[:] = [b for b in run.blocks if b["t"] != "nutrition"]
+    elif (
+        "nutrition" not in has
+        and _ABOUT_NUTRITION.search(text)
+        and cards.relevant("nutrition", text, called)
+    ):
+        # Asked about the day's food and answered from memory: the card
+        # still shows, since a model copying its earlier replies may skip
+        # the tool that draws it.
+        run.block({"t": "nutrition", "day": day})
+    if "finance" not in has and cards.relevant("finance", text, called):
+        # Today's spending against the month's budget and what is due in
+        # the week ahead, drawn on the phone from its own records.
+        run.block({"t": "finance", "day": day})
 
 
 # The day's food: macros, calories, nutrition, what is left to eat.
@@ -2813,13 +2846,7 @@ def _ask_ai(
         run.block(reintro.block(part))
     for note in capture.off_module_notes(ctx, wrun.made, skip=offers, quiet=dismissed):
         run.block(note)
-    if _ABOUT_NUTRITION.search(text) and not any(
-        b["t"] == "nutrition" for b in run.blocks
-    ):
-        # Asked about the day's food and answered from memory: the card
-        # still shows, since a model copying its earlier replies may skip
-        # the tool that draws it.
-        run.block({"t": "nutrition", "day": ctx.today.isoformat()})
+    _module_cards(ctx, run, text)
     cap_id = capture.finish_chat_capture(ctx, wrun, reply=answer)
     _settle_step_states(ctx, stream.steps)
     steps = stream.steps_block()

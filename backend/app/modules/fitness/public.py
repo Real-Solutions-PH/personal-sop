@@ -13,7 +13,11 @@ from sqlmodel import col
 from app.modules.fitness import calc as C
 from app.modules.fitness import calc as calc
 from app.modules.fitness import catalog, repo, services
+from app.modules.fitness import exercise_shape as shape
 from app.modules.fitness import foods as F
+from app.modules.fitness.models import EQUIPMENT as EQUIPMENT
+from app.modules.fitness.models import LOAD_TYPES as LOAD_TYPES
+from app.modules.fitness.models import MUSCLES as MUSCLES
 from app.modules.fitness.models import (
     Exercise,
     FoodItem,
@@ -104,6 +108,11 @@ def log_workout_from_chat(ctx: Ctx, draft: WorkoutDraft) -> Workout:
 
 def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
     return services.find_or_create_exercise(ctx, name)
+
+
+def exercise_shape(name: str) -> dict[str, Any]:
+    """Equipment, muscle and load type read off an exercise's name."""
+    return shape.guess(name)
 
 
 def log_weigh_in(
