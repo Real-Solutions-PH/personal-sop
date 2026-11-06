@@ -6,13 +6,17 @@ import * as L from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
 import {
   AlarmClock,
+  Bell,
   CalendarDays,
   Check,
   Copy as CopyIcon,
+  Flag,
   Hourglass,
   Inbox,
   Plus,
   Repeat,
+  RotateCcw,
+  SkipForward,
   Star,
   Trash2,
   X,
@@ -24,6 +28,13 @@ import { FocusTimeCard } from "../focus-kit"
 import { AnimatedCheck, TickRow } from "../motion"
 import { border, Copy, chosen, Frame, IconTap, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
+import {
+  DueShortcuts,
+  EditorSection,
+  PriorityPicker,
+  type Remind,
+  RemindChoices,
+} from "../task-editor"
 import { fonts, useTheme } from "../theme"
 import {
   Button,
@@ -333,6 +344,14 @@ export function TaskDetail({ id }: { id: string }) {
           </Tap>
         ))}
       </ScrollView>
+      <EditorSection icon={Flag} title="Priority">
+        {/* Saves on tap, like every field here; the chosen outline is
+            what says it changed. */}
+        <PriorityPicker
+          value={task.priority ?? "none"}
+          onChange={(priority) => A.updateTask(id, { priority })}
+        />
+      </EditorSection>
       <Frame style={{ paddingHorizontal: 12, backgroundColor: "transparent" }}>
         {[
           {
@@ -537,16 +556,18 @@ export function TaskDetail({ id }: { id: string }) {
                       recurrence: task.recurrence,
                       notes: task.notes,
                       starred: task.starred,
+                      priority: task.priority,
                       remind: !!task.remindAt,
                     })
                   remove()
                 }}
+                icon={SkipForward}
               >
                 This one
               </Button>
             </View>
             <View style={{ flex: 1 }}>
-              <Button tone="danger" onPress={remove}>
+              <Button icon={Trash2} tone="danger" onPress={remove}>
                 All future
               </Button>
             </View>
@@ -573,7 +594,7 @@ export function TaskDetail({ id }: { id: string }) {
           </View>
           <View style={{ flex: 1 }}>
             <Button
-              icon={deleted ? undefined : Trash2}
+              icon={deleted ? RotateCcw : Trash2}
               tone={deleted ? "quiet" : "danger"}
               onPress={() =>
                 deleted
@@ -621,51 +642,38 @@ export function TaskWhen({
     )
   return (
     <Sheet title="Date & reminder" open onClose={onClose}>
-      <Line style={{ gap: 8, flexWrap: "wrap" }}>
-        {[
-          { label: "Today", day: L.today() },
-          { label: "Tomorrow", day: L.addDays(L.today(), 1) },
-          { label: "Next week", day: L.addDays(L.today(), 7) },
-        ].map((p) => (
-          <Button
-            key={p.label}
-            small
-            tone="quiet"
-            onPress={() => setDate(p.day)}
-          >
-            {p.label}
-          </Button>
-        ))}
-      </Line>
-      <DateField
-        label="Date"
-        value={date}
-        onChangeText={setDate}
-        clearable
-        placeholder="No date"
-      />
-      <DateField
-        label="Time (optional)"
-        value={time}
-        onChangeText={setTime}
-        mode="time"
-        defaultValue={defaultTime}
-        clearable
-        placeholder="Any time"
-      />
-      <Choices
-        label="Remind me"
-        value={remind}
-        onChange={setRemind}
-        options={[
-          { value: "off", label: "Off" },
-          { value: "0", label: "At time" },
-          { value: "15", label: "15 min before" },
-          { value: "60", label: "1 hour before" },
-          { value: "1440", label: "1 day before" },
-        ]}
-      />
+      <EditorSection icon={CalendarDays} title="When">
+        <DueShortcuts
+          value={date}
+          onChange={setDate}
+          onClear={() => {
+            setDate("")
+            setTime("")
+            setRemind("off")
+          }}
+        />
+        <DateField
+          label="Date"
+          value={date}
+          onChangeText={setDate}
+          clearable
+          placeholder="No date"
+        />
+        <DateField
+          label="Time (optional)"
+          value={time}
+          onChangeText={setTime}
+          mode="time"
+          defaultValue={defaultTime}
+          clearable
+          placeholder="Any time"
+        />
+      </EditorSection>
+      <EditorSection icon={Bell} title="Remind me">
+        <RemindChoices value={remind as Remind} onChange={setRemind} />
+      </EditorSection>
       <Button
+        icon={Check}
         onPress={() => {
           if (
             (date && !isDay(date)) ||
@@ -686,15 +694,6 @@ export function TaskWhen({
         }}
       >
         Save
-      </Button>
-      <Button
-        tone="quiet"
-        onPress={() => {
-          A.setDue(task.id, null, null, null)
-          onClose()
-        }}
-      >
-        No date
       </Button>
     </Sheet>
   )
@@ -784,6 +783,7 @@ export function TaskRepeat({
         Next one counts from the day you finish, not the schedule.
       </Copy>
       <Button
+        icon={Repeat}
         disabled={kind === "weekly" && !days.length}
         onPress={() => {
           if (
@@ -819,6 +819,7 @@ export function TaskRepeat({
       </Button>
       {task.recurrence && (
         <Button
+          icon={X}
           tone="quiet"
           onPress={() => {
             A.updateTask(task.id, { recurrence: null })

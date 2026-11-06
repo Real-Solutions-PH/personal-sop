@@ -26,6 +26,7 @@
       "recurrence": null,
       "notes": "hero + pricing",
       "starred": true,
+      "priority": "none",
       "tags": [],
       "estimate_min": null,
       "nag_every_min": null,
@@ -49,6 +50,63 @@
     "name": "task",
     "data": {
       "nag_every_min": 60
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "title": "File taxes",
+      "list_id": null,
+      "due_date": null,
+      "due_time": null,
+      "remind_at": null,
+      "recurrence": null,
+      "notes": null,
+      "starred": false,
+      "priority": "high",
+      "tags": [],
+      "estimate_min": null,
+      "nag_every_min": null,
+      "cleared_at": null,
+      "source": "manual",
+      "parse_state": "parsed",
+      "sort_order": 0
+    }
+  },
+  {
+    "entity": "task_settings",
+    "kind": "upsert",
+    "name": "task_settings",
+    "data": {
+      "default_remind_time": "09:00",
+      "digest_on": false,
+      "digest_time": "07:30",
+      "quiet_start": "22:00",
+      "quiet_end": "07:00",
+      "count_groceries": true,
+      "week_start": 1
+    }
+  },
+  {
+    "entity": "task_notif_state",
+    "kind": "upsert",
+    "name": "task_notif_state",
+    "data": {
+      "platform": "ios",
+      "installed": false,
+      "permission": "default",
+      "remind_later_at": null,
+      "test_sent_at": null
+    }
+  },
+  {
+    "entity": "task",
+    "kind": "upsert",
+    "name": "task",
+    "data": {
+      "priority": "low"
     }
   },
   {
@@ -103,6 +161,7 @@
       },
       "notes": null,
       "starred": false,
+      "priority": "none",
       "tags": [],
       "estimate_min": null,
       "nag_every_min": null,
@@ -141,6 +200,7 @@
       "recurrence": null,
       "notes": null,
       "starred": false,
+      "priority": "none",
       "tags": [],
       "estimate_min": null,
       "nag_every_min": null,

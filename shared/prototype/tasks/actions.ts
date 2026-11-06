@@ -12,6 +12,7 @@ import type {
   TaskEvent,
   TaskEventType,
   TaskList,
+  TaskPriority,
   TaskSettings,
   TaskSource,
   TasksState,
@@ -53,6 +54,7 @@ export interface NewTask {
   recurrence?: Recurrence | null
   notes?: string | null
   starred?: boolean
+  priority?: TaskPriority
   source?: TaskSource
   tags?: string[]
 }
@@ -96,6 +98,7 @@ function build(input: NewTask, order: number): Task {
     recurrence: input.recurrence ?? null,
     notes: input.notes ?? null,
     starred: !!input.starred,
+    priority: input.priority ?? "none",
     tags: cleanTags(input.tags ?? []),
     status: "open",
     completedAt: null,
@@ -208,6 +211,7 @@ export function completeTask(id: string): Task | null {
           recurrence: t.recurrence,
           notes: t.notes,
           starred: t.starred,
+          priority: t.priority,
           tags: t.tags,
           source: t.source,
         },
@@ -268,6 +272,7 @@ export function updateTask(
       | "notes"
       | "listId"
       | "starred"
+      | "priority"
       | "recurrence"
       | "remindAt"
       | "dueTime"
@@ -391,6 +396,7 @@ export function duplicateTask(id: string): Task | null {
     recurrence: t.recurrence,
     notes: t.notes,
     starred: t.starred,
+    priority: t.priority,
     tags: t.tags,
   })
 }

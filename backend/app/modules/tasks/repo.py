@@ -7,11 +7,12 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
-from sqlalchemy import ColumnElement, func, or_
+from sqlalchemy import ColumnElement, case, func, or_
 from sqlmodel import col, select
 
 from app.modules.tasks.logic import EventView, ListView, TasksState, TaskView
 from app.modules.tasks.models import (
+    PRIORITY_RANK,
     Task,
     TaskEvent,
     TaskList,
@@ -188,9 +189,11 @@ def _order(sort: Sort) -> list[Any]:
         return [col(Task.created_at).desc(), col(Task.id)]
     if sort == "manual":
         return [col(Task.sort_order), col(Task.id)]
-    # ``byDue``: date (none last), starred first, time (none last), order.
+    # ``byDue``: date (none last), priority (high first), starred first,
+    # time (none last), order.
     return [
         col(Task.due_date).asc().nulls_last(),
+        case(PRIORITY_RANK, value=col(Task.priority), else_=len(PRIORITY_RANK)),
         col(Task.starred).desc(),
         col(Task.due_time).asc().nulls_last(),
         col(Task.sort_order),
@@ -308,6 +311,7 @@ def task_view(t: Task) -> TaskView:
         remind_at=t.remind_at,
         recurrence=t.recurrence,
         starred=t.starred,
+        priority=t.priority,
         completed_at=t.completed_at,
         deleted_at=t.deleted_at,
         source=t.source,

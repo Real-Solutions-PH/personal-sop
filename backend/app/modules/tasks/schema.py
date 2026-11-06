@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
-from app.modules.tasks.models import LIST_COLORS, LIST_ICONS
+from app.modules.tasks.models import LIST_COLORS, LIST_ICONS, TASK_PRIORITIES
 
 ListKind = Literal["standard", "shopping"]
 ListColor = Literal["tsk", "fin", "hab", "fit", "life", "warn"]
@@ -20,12 +20,14 @@ ListIcon = Literal[
 TaskStatus = Literal["open", "done", "deleted"]
 TaskSource = Literal["manual", "capture-text", "capture-voice", "capture-photo"]
 ParseState = Literal["parsed", "pending"]
+TaskPriority = Literal["none", "low", "medium", "high"]
 DeleteMode = Literal["inbox", "delete"]
 Platform = Literal["ios", "android", "desktop"]
 Permission = Literal["default", "granted", "denied"]
 
 assert set(ListColor.__args__) == set(LIST_COLORS)  # type: ignore[attr-defined]
 assert set(ListIcon.__args__) == set(LIST_ICONS)  # type: ignore[attr-defined]
+assert TaskPriority.__args__ == TASK_PRIORITIES  # type: ignore[attr-defined]
 
 HM = Annotated[str, Field(pattern=r"^([01]\d|2[0-3]):[0-5]\d$")]
 
@@ -151,6 +153,7 @@ class TaskCreate(BaseModel):
     recurrence: Recurrence | None = None
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool = False
+    priority: TaskPriority = "none"
     tags: Tags = Field(default_factory=list)
     source: TaskSource = "manual"
     parse_state: ParseState = "parsed"
@@ -168,6 +171,7 @@ class TaskUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=4000)
     list_id: uuid.UUID | None = None
     starred: bool | None = None
+    priority: TaskPriority | None = None
     tags: Tags | None = None
     recurrence: Recurrence | None = None
     remind_at: Instant | None = None
@@ -189,6 +193,7 @@ class TaskSync(BaseModel):
     recurrence: Recurrence | None = None
     notes: str | None = Field(default=None, max_length=4000)
     starred: bool | None = None
+    priority: TaskPriority | None = None
     tags: Tags | None = None
     estimate_min: int | None = Field(default=None, ge=1, le=6000)
     nag_every_min: int | None = Field(default=None, ge=15, le=720)
@@ -249,6 +254,7 @@ class TaskPublic(BaseModel):
     recurrence: Recurrence | None
     notes: str | None
     starred: bool
+    priority: TaskPriority = "none"
     tags: list[str] = []
     status: TaskStatus
     completed_at: datetime | None

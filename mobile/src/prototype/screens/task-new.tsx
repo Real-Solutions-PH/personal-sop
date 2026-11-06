@@ -1,20 +1,36 @@
 // "Add task": a plain form that creates one task as entered (ADR-0015).
 // Free text belongs to Fern; this screen never splits or interprets.
 import * as A from "@domain/tasks/actions"
+import type { TaskPriority } from "@domain/tasks/data"
 import * as L from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
+import {
+  Bell,
+  CalendarDays,
+  Flag,
+  FolderOpen,
+  Inbox,
+  Plus,
+} from "lucide-react-native"
 import { useMemo, useState } from "react"
 import { View } from "react-native"
-import { Copy, Line } from "../native-kit"
+import { Copy } from "../native-kit"
 import { go } from "../navigation"
+import {
+  Chip,
+  ChipRow,
+  DueShortcuts,
+  EditorSection,
+  PriorityPicker,
+  type Remind,
+  RemindChoices,
+} from "../task-editor"
 import { useTheme } from "../theme"
-import { Button, Choices, DateField, Field, Screen } from "../ui"
+import { Button, DateField, Field, Screen } from "../ui"
 import { isDay } from "../validation"
-import { ListEditor } from "./task-lists"
+import { LIST_GLYPHS, ListEditor } from "./task-lists"
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
-type Remind = "off" | "0" | "15" | "60" | "1440"
-const NEW_LIST = "__new"
 
 export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
   const t = useTheme(),
@@ -27,6 +43,7 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
     [date, setDate] = useState(day ?? ""),
     [time, setTime] = useState(""),
     [remind, setRemind] = useState<Remind>("off"),
+    [priority, setPriority] = useState<TaskPriority>("none"),
     [errors, setErrors] = useState<{ title?: string; when?: string }>({}),
     [making, setMaking] = useState(false)
 
@@ -53,6 +70,7 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
       dueDate: date || null,
       dueTime: time || null,
       remindAt,
+      priority,
       source: "manual",
     })
     go(list ? `/tasks/list/${list}` : "/tasks")
@@ -77,75 +95,85 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
           onChangeText={setNotes}
           multiline
         />
-        <Choices
-          label="List"
-          value={list}
-          onChange={(v) => (v === NEW_LIST ? setMaking(true) : setList(v))}
-          wrap
-          options={[
-            { value: "", label: "Inbox" },
-            ...lists.map((l) => ({ value: l.id, label: l.name })),
-            { value: NEW_LIST, label: "New list…" },
-          ]}
-        />
+        {/* Grouped by meaning, in the order a task is thought through:
+            when it is due, whether to be nudged, how much it matters,
+            where it lives. */}
+        <EditorSection icon={CalendarDays} title="When">
+          <DueShortcuts
+            value={date}
+            onChange={setDate}
+            onClear={() => {
+              setDate("")
+              setTime("")
+            }}
+          />
+          <DateField
+            label="Date"
+            value={date}
+            onChangeText={setDate}
+            clearable
+            placeholder="No date"
+          />
+          <DateField
+            label="Time (optional)"
+            value={time}
+            onChangeText={setTime}
+            mode="time"
+            defaultValue={defaultTime}
+            clearable
+            placeholder="Any time"
+          />
+        </EditorSection>
+        <EditorSection icon={Bell} title="Remind me">
+          <RemindChoices value={remind} onChange={setRemind} />
+        </EditorSection>
+        <EditorSection icon={Flag} title="Priority">
+          <PriorityPicker value={priority} onChange={setPriority} />
+        </EditorSection>
+        <EditorSection icon={FolderOpen} title="List">
+          <ChipRow
+            apart={
+              <Chip
+                icon={Plus}
+                label="New list…"
+                color={t.tsk}
+                onPress={() => setMaking(true)}
+              />
+            }
+          >
+            <Chip
+              icon={Inbox}
+              label="Inbox"
+              color={t.tsk}
+              selected={!list}
+              onPress={() => setList("")}
+            />
+            {lists.map((l) => (
+              <Chip
+                key={l.id}
+                icon={LIST_GLYPHS[l.icon]}
+                label={l.name}
+                color={t[l.color]}
+                selected={list === l.id}
+                onPress={() => setList(l.id)}
+              />
+            ))}
+          </ChipRow>
+        </EditorSection>
         {making && (
           <ListEditor
             onClose={() => setMaking(false)}
             onCreated={(l) => setList(l.id)}
           />
         )}
-        <Line style={{ gap: 8, flexWrap: "wrap", marginTop: 6 }}>
-          {[
-            { label: "Today", day: L.today() },
-            { label: "Tomorrow", day: L.addDays(L.today(), 1) },
-            { label: "Next week", day: L.addDays(L.today(), 7) },
-            { label: "No date", day: "" },
-          ].map((p) => (
-            <Button
-              key={p.label}
-              small
-              tone={date === p.day ? "primary" : "quiet"}
-              onPress={() => setDate(p.day)}
-            >
-              {p.label}
-            </Button>
-          ))}
-        </Line>
-        <DateField
-          label="Date"
-          value={date}
-          onChangeText={setDate}
-          clearable
-          placeholder="No date"
-        />
-        <DateField
-          label="Time (optional)"
-          value={time}
-          onChangeText={setTime}
-          mode="time"
-          defaultValue={defaultTime}
-          clearable
-          placeholder="Any time"
-        />
-        <Choices
-          label="Remind me"
-          value={remind}
-          onChange={setRemind}
-          wrap
-          options={[
-            { value: "off", label: "Off" },
-            { value: "0", label: "At time" },
-            { value: "15", label: "15 min before" },
-            { value: "60", label: "1 hour before" },
-            { value: "1440", label: "1 day before" },
-          ]}
-        />
         {errors.when ? (
           <Copy size={13} style={{ color: t.bad }}>
             {errors.when}
           </Copy>
         ) : null}
-        <Button onPress={save}>Add task</Button>
+        <Button icon={Plus} onPress={save}>
+          Add task
+        </Button>
       </View>
     </Screen>
   )
