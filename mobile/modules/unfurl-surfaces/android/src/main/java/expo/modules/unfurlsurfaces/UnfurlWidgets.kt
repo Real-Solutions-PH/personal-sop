@@ -4,12 +4,14 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
 import org.json.JSONObject
 import java.time.Instant
+import java.time.LocalDate
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -35,9 +37,11 @@ object UnfurlWidgets {
   private val providers = listOf(
     TodayWidget::class.java, HabitsWidget::class.java, MacrosWidget::class.java,
     TasksWidget::class.java, MoneyWidget::class.java, AppsWidget::class.java,
+    StepsWidget::class.java,
   )
 
   fun updateAll(ctx: Context) {
+    StepsWidget.offerOnceCounted(ctx)
     val manager = AppWidgetManager.getInstance(ctx)
     for (p in providers) {
       val ids = manager.getAppWidgetIds(ComponentName(ctx, p))
@@ -293,5 +297,62 @@ class AppsWidget : UnfurlWidget() {
     }
     v.setViewVisibility(R.id.app_row_1, if (keys.size > 4) View.VISIBLE else View.GONE)
     return UnfurlWidgets.frame(ctx, v, false, "/today")
+  }
+}
+
+/** Today's steps against the step goal (the snapshot's ``steps``). The app
+ * has no step source on Android yet (it reads Apple Health only), so the
+ * widget is declared disabled in the manifest, which keeps it out of the
+ * widget picker, and is enabled the first time a snapshot arrives with a
+ * count. It is never disabled again: that would remove a placed widget, so
+ * Fitness turned off later shows it dimmed instead, like Macros. */
+class StepsWidget : UnfurlWidget() {
+  override fun views(ctx: Context, snap: JSONObject, dimmed: Boolean): RemoteViews {
+    val steps = snap.optJSONObject("steps")
+    val off = dimmed || steps == null
+    val today = LocalDate.now().toString()
+    val goal = steps?.optInt("goal")?.takeIf { it > 0 } ?: SAMPLE_GOAL
+    // A count from an earlier day is not today's: start from 0.
+    val count = when {
+      steps == null -> SAMPLE_COUNT
+      steps.optString("day") == today -> max(0, steps.optInt("count"))
+      else -> 0
+    }
+    val hit = count >= goal
+    val pct = UnfurlWidgets.pct(count.toDouble(), goal.toDouble())
+    val left = if (hit) "Goal reached" else "${"%,d".format(goal - count)} to go"
+    val spoken = if (off) "Steps. Open Unfurl" else "${"%,d".format(count)} of ${"%,d".format(goal)} steps today, " +
+      if (hit) "goal reached" else left
+    fun fill(layout: Int, wide: Boolean): RemoteViews {
+      val v = RemoteViews(ctx.packageName, layout)
+      v.setProgressBar(R.id.steps_ring, 100, pct, false)
+      v.setTextViewText(R.id.steps_count, "%,d".format(count))
+      v.setTextViewText(R.id.steps_pct, "$pct%")
+      v.setTextViewText(R.id.steps_left, left)
+      v.setTextColor(R.id.steps_left, ctx.getColor(if (hit) R.color.unfurl_good else R.color.unfurl_text))
+      if (wide) {
+        v.setTextViewText(R.id.steps_big, "%,d".format(count))
+        v.setTextViewText(R.id.steps_goal, "of ${"%,d".format(goal)}")
+        v.setProgressBar(R.id.steps_bar, 100, pct, false)
+      }
+      v.setContentDescription(R.id.unfurl_root, spoken)
+      return UnfurlWidgets.frame(ctx, v, off, "/fitness/steps")
+    }
+    return UnfurlWidgets.responsive(fill(R.layout.unfurl_steps_small, false), fill(R.layout.unfurl_steps_medium, true))
+  }
+
+  companion object {
+    private const val SAMPLE_COUNT = 6_240
+    private const val SAMPLE_GOAL = 10_000
+
+    /** Puts the widget in the picker once the app has a count to show. */
+    fun offerOnceCounted(ctx: Context) {
+      val steps = SurfaceStore.snapshot(ctx)?.optJSONObject("steps") ?: return
+      if (!steps.has("count")) return
+      val component = ComponentName(ctx, StepsWidget::class.java)
+      val pm = ctx.packageManager
+      if (pm.getComponentEnabledSetting(component) == PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return
+      pm.setComponentEnabledSetting(component, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+    }
   }
 }

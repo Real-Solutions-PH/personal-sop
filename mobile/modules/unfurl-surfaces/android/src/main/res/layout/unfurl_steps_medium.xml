@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/unfurl_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:padding="14dp" android:background="@drawable/unfurl_widget_bg">
+<FrameLayout android:layout_width="92dp" android:layout_height="92dp" android:layout_gravity="center_vertical">
+  <ProgressBar android:id="@+id/steps_ring" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="match_parent" android:max="100" android:progressDrawable="@drawable/unfurl_ring_fit" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center" android:paddingStart="10dp" android:paddingEnd="10dp">
+    <TextView android:id="@+id/steps_count" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="18sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="18sp" />
+    <TextView android:id="@+id/steps_pct" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" />
+  </LinearLayout>
+</FrameLayout>
+<LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginStart="16dp" android:orientation="vertical" android:gravity="center_vertical">
+  <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="10sp" android:textColor="@color/unfurl_muted" android:textAllCaps="true" android:letterSpacing="0.08" android:textStyle="bold" android:text="Steps today" />
+  <TextView android:id="@+id/steps_big" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="26sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+  <TextView android:id="@+id/steps_goal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/unfurl_muted" android:maxLines="1" android:ellipsize="end" />
+  <ProgressBar android:id="@+id/steps_bar" style="?android:attr/progressBarStyleHorizontal" android:layout_width="match_parent" android:layout_height="6dp" android:layout_marginTop="8dp" android:max="100" android:progressDrawable="@drawable/unfurl_bar_fit" />
+  <TextView android:id="@+id/steps_left" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textSize="12sp" android:textColor="@color/unfurl_text" android:maxLines="1" android:ellipsize="end" android:textStyle="bold" />
+</LinearLayout>
+</LinearLayout>

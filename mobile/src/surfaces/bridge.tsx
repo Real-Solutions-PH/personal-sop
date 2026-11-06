@@ -25,6 +25,7 @@ import {
 } from "./native"
 import { runShortcutRequests } from "./requests"
 import { buildSnapshot, snapshotKey } from "./snapshot"
+import { useTodaySteps } from "./steps"
 
 // Keeps the home-screen widgets and the lock-screen activity in step with
 // the app's stores, and applies taps made on them (ADR-0020). Mounted once,
@@ -72,6 +73,7 @@ function Bridge() {
   const streak = D.useOnTarget(7).current
   const journal = useShown("journal")
   const minute = useMinute()
+  const steps = useTodaySteps(minute)
   const day = dayKey(new Date(minute * 60_000))
 
   const lastSnapshot = useRef("")
@@ -137,6 +139,7 @@ function Bridge() {
       streak,
       journal,
       screenTime: screenTimeAvailable(),
+      steps,
     })
     const key = snapshotKey(snapshot)
     if (key === lastSnapshot.current) return
@@ -159,6 +162,7 @@ function Bridge() {
     lifeScore,
     streak,
     journal,
+    steps,
     day,
   ])
 
