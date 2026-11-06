@@ -3,6 +3,7 @@ expected instant and total below is worked out from the lengths in the
 test, never read back from the module."""
 
 import uuid
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 
 from app.modules.focus import logic as L
@@ -224,6 +225,24 @@ def test_a_stopwatch_has_no_target_and_stops_at_twelve_hours() -> None:
     assert tl.segs[0].ended_at == T + 12 * 60 * M
     assert tl.sess.ended_at == T + 12 * 60 * M and tl.sess.end_reason == "completed"
     assert L.sets_completed(tl, T + 13 * 60 * M) == 0
+
+
+def test_a_session_switched_to_the_stopwatch_keeps_its_finished_sets() -> None:
+    # The rows the phone writes when it switches to the stopwatch two minutes
+    # into the first break: the session's mode, the break closed, and a
+    # stopwatch block (no planned length) as the next set.
+    tl = L.advance(pomodoro(), T + 27 * M)
+    brk = tl.segs[1]
+    switched = L.Timeline(
+        sess=replace(tl.sess, mode="stopwatch"),
+        segs=[
+            tl.segs[0],
+            replace(brk, ended_at=T + 27 * M),
+            L.Seg(uuid.UUID(int=50), "focus", T + 27 * M, T + 37 * M, 1, None, TASK),
+        ],
+    )
+    assert L.sets_completed(switched, T + 40 * M) == 1
+    assert L.focus_sec(switched, T + 40 * M) == 35 * 60
 
 
 def test_a_pause_nobody_resumed_ends_the_session_at_the_cap() -> None:

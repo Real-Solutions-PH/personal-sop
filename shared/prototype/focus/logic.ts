@@ -338,7 +338,9 @@ export function focusSec(tl: Timeline, now: number): number {
 }
 
 export function setsCompleted(tl: Timeline, now: number): number {
-  if (tl.sess.mode !== "pomodoro") return 0
+  // No mode check: only a Pomodoro block has a planned length, so a pure
+  // stopwatch session counts 0 and a session switched part-way keeps the
+  // sets it finished as a Pomodoro.
   const doneBy = new Map<number, number>()
   const planned = new Map<number, number>()
   for (const s of tl.segs) {
@@ -518,6 +520,85 @@ export function switchItem(
       segs.push({ ...cur, id: newId(), start: now, end: null, item })
     }
   }
+  return { sess, segs: ordered(segs) }
+}
+
+/** Switch the running session between Pomodoro and the stopwatch without
+ * losing time. Focus already done is never moved, shortened or copied: the
+ * totals are the union of the focus segments, and a switch only changes
+ * the session's mode and the planned length of the current work block, so
+ * nothing is counted twice and nothing is lost.
+ *
+ * The current work block is the focus set the session is in (its
+ * `setIndex`); its elapsed time is the focus of that set, pauses excluded.
+ *
+ * - To the stopwatch, during focus (running or paused): the block drops its
+ *   planned length and counts up from its elapsed time; it no longer counts
+ *   as a Pomodoro set. During a break, or waiting between phases, a
+ *   stopwatch block opens now as the next set (choosing the stopwatch means
+ *   working now, and a stopwatch has no breaks).
+ * - To Pomodoro, during focus: if the block's elapsed focus is under the set
+ *   length, the block becomes that set and carries on (time left = length −
+ *   elapsed). If it has already reached the length, the block stays a free
+ *   stopwatch block (it is not credited as a set after the fact) and a new
+ *   full-length set starts now, with no break in between (paused stays
+ *   paused). During a break or while waiting, only the mode changes.
+ *
+ * Device-only: the server never runs this. It re-derives from the rows the
+ * switch writes (the session's `mode`, the segments' `planned_sec`, and at
+ * most one closed and one new segment), the same rows a pause or an
+ * extension writes. */
+export function switchMode(
+  t: Timeline,
+  now: number,
+  mode: FocusMode,
+  newId: NewId,
+): Timeline {
+  const tl = advance(t, now)
+  if (tl.sess.end !== null || tl.sess.mode === mode) return tl
+  const sess = { ...tl.sess, mode }
+  let segs = [...tl.segs]
+  const cur = openOf(segs)
+  const onFocus =
+    cur !== null &&
+    (cur.kind === "focus" ||
+      (cur.kind === "pause" && resumeKind(segs, cur) === "focus"))
+  const k = cur ? cur.setIndex : (segs[segs.length - 1]?.setIndex ?? 0)
+  const inBlock = (s: Seg) =>
+    s.setIndex === k && (s.kind === "focus" || s.kind === "pause")
+  /** Close what is open and begin set `setIndex` now. */
+  const begin = (
+    kind: "focus" | "pause",
+    setIndex: number,
+    plannedSec: number | null,
+  ) => {
+    if (cur) closeOpen(segs, now)
+    segs.push({
+      id: newId(),
+      kind,
+      start: now,
+      end: null,
+      setIndex,
+      plannedSec,
+      item: sess.item,
+    })
+  }
+  if (mode === "stopwatch") {
+    if (onFocus)
+      segs = segs.map((s) => (inBlock(s) ? { ...s, plannedSec: null } : s))
+    // On a break (running or paused) or between phases, the next set.
+    else begin("focus", k + 1, null)
+    return { sess, segs: ordered(segs) }
+  }
+  if (!onFocus || !cur) return { sess, segs: tl.segs }
+  const length = sess.focusMin * 60
+  const elapsed =
+    done(segs, "focus", k, cur.id) +
+    (cur.kind === "focus" ? (now - cur.start) / 1000 : 0)
+  if (elapsed < length)
+    segs = segs.map((s) => (inBlock(s) ? { ...s, plannedSec: length } : s))
+  // Paused stays paused: the new set waits on Resume.
+  else begin(cur.kind === "pause" ? "pause" : "focus", k + 1, length)
   return { sess, segs: ordered(segs) }
 }
 

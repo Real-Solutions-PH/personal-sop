@@ -265,8 +265,9 @@ def focus_sec(tl: Timeline, now: datetime) -> int:
 
 
 def sets_completed(tl: Timeline, now: datetime) -> int:
-    if tl.sess.mode != "pomodoro":
-        return 0
+    # No mode check: only a Pomodoro block has a planned length, so a pure
+    # stopwatch session counts 0 and a session switched part-way on the
+    # device keeps the sets it finished as a Pomodoro.
     done: dict[int, float] = {}
     planned: dict[int, int] = {}
     for s in tl.segs:

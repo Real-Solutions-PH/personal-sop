@@ -117,6 +117,10 @@ export const extendFocus = (sec: number) =>
   act((tl, now) => L.extend(tl, now, sec))
 export const switchFocusItem = (item: FocusItem | null) =>
   act((tl, now) => L.switchItem(tl, now, item, newId))
+/** Switch the running session between Pomodoro and the stopwatch; the
+ * time already focused carries over (the rule is on `L.switchMode`). */
+export const switchFocusMode = (mode: FocusMode) =>
+  act((tl, now) => L.switchMode(tl, now, mode, newId))
 export const stopFocus = (abandon = false) =>
   act((tl, now) => L.stop(tl, now, abandon))
 
