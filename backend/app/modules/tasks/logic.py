@@ -16,6 +16,7 @@ from math import floor
 from typing import Any
 
 from app.modules.stats.contract import CalendarItem, Metric, Miss
+from app.modules.tasks.models import PRIORITY_RANK
 from app.shared.day import DayClock, js_weekday
 
 WEEKDAYS = ("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -77,6 +78,7 @@ class TaskView:
     remind_at: datetime | None = None
     recurrence: Recurrence | None = None
     starred: bool = False
+    priority: str = "none"
     completed_at: datetime | None = None
     deleted_at: datetime | None = None
     source: str = "manual"
@@ -206,6 +208,9 @@ def _by_due_cmp(a: TaskView, b: TaskView) -> int:
     bd = b.due_date.isoformat() if b.due_date else "9"
     if ad != bd:
         return -1 if ad < bd else 1
+    ap, bp = PRIORITY_RANK.get(a.priority, 9), PRIORITY_RANK.get(b.priority, 9)
+    if ap != bp:
+        return ap - bp
     if a.starred != b.starred:
         return -1 if a.starred else 1
     at, bt = a.due_time or "99", b.due_time or "99"

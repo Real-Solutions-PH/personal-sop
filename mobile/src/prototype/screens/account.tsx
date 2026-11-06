@@ -6,7 +6,9 @@ import {
   KeyRound,
   LogOut,
   Mail,
+  MailCheck,
   MonitorSmartphone,
+  Send,
   Trash2,
   UserRound,
 } from "lucide-react-native"
@@ -180,21 +182,42 @@ function EmailSheet({
   current: string
   onClose: () => void
 }) {
+  const t = useTheme()
   const [email, setEmail] = useState("")
   const [error, setError] = useState<string>()
   const [busy, setBusy] = useState(false)
+  // Live: the address the confirmation went to. The change waits on the
+  // links, so the sheet says where to look instead of closing silently.
+  // The current address is kept as it was when the link went out.
+  const [sent, setSent] = useState<{ to: string; from: string }>()
   const save = async () => {
     setBusy(true)
     setError(undefined)
     try {
       await changeEmail(email)
-      onClose()
+      if (liveMode) setSent({ to: email.trim().toLowerCase(), from: current })
+      else onClose()
     } catch (e) {
       report(e, (_, message) => setError(message))
     } finally {
       setBusy(false)
     }
   }
+  if (sent)
+    return (
+      <Sheet title="Check your inbox" open onClose={onClose}>
+        <View style={{ alignItems: "center", gap: 8, paddingVertical: 8 }}>
+          <MailCheck size={40} color={t.good} />
+          <Copy size={15}>{`Confirmation sent to ${sent.to}`}</Copy>
+        </View>
+        <Copy size={14} muted>
+          {`Open the link in that email to finish.${sent.from ? ` We also sent one to ${sent.from}: open both, and your email changes to ${sent.to}.` : ""} Until then you keep signing in with ${sent.from || "your current email"}.`}
+        </Copy>
+        <Button icon={MailCheck} onPress={onClose}>
+          Done
+        </Button>
+      </Sheet>
+    )
   return (
     <Sheet title="Change email" open onClose={onClose}>
       <Copy size={14} muted>
@@ -214,7 +237,11 @@ function EmailSheet({
         textContentType="emailAddress"
         placeholder="name@example.com"
       />
-      <Button disabled={busy || !email.trim()} onPress={() => void save()}>
+      <Button
+        icon={liveMode ? Send : Mail}
+        disabled={busy || !email.trim()}
+        onPress={() => void save()}
+      >
         {busy ? "Sending…" : liveMode ? "Send confirmation link" : "Save email"}
       </Button>
     </Sheet>
