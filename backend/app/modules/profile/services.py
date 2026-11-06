@@ -145,9 +145,10 @@ def update_profile(ctx: Ctx, data: ProfileUpdate) -> UserProfile:
             # Only grows, like seen_trophies: a reintroduction offered or
             # turned down stays so whatever an older device sends.
             values[k] = sorted(set(getattr(profile, k)) | set(values[k] or []))
-    if "enabled_extras" in values and values["enabled_extras"] is None:
-        # Null means "not changing it": never reset a choice to unchosen.
-        del values["enabled_extras"]
+    for k in ("enabled_extras", "home_layout"):
+        if k in values and values[k] is None:
+            # Null means "not changing it": never reset a choice to unchosen.
+            del values[k]
     consent = values.get("fern_eval_consent")
     if consent is not None and consent != profile.fern_eval_consent:
         # When it was given or withdrawn: the export reads the flag as it

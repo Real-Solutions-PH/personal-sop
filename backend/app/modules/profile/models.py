@@ -114,6 +114,11 @@ class UserProfile(OwnedRow, table=True):
     # choose (an account from before this field, or one whose phone has not
     # uploaded its old on-device choice yet): every extra counts as shown.
     enabled_extras: list[str] | None = Field(default=None, sa_type=JSONB)
+    # Home's sections as the person arranged them: {"order": [...], "hidden":
+    # [...]} of section ids (the app owns the id list; ids it does not know
+    # are kept, so a newer phone's sections survive an older one). NULL until
+    # they first edit Home: the default arrangement.
+    home_layout: dict[str, list[str]] | None = Field(default=None, sa_type=JSONB)
     # The one-time reintroduction of a hidden part (INTRO_KEYS): offered by
     # Fern once, and turned down for good with "Not for me". Both only grow.
     intro_offered: list[str] = Field(
