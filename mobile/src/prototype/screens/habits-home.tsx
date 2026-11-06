@@ -5,14 +5,18 @@ import { dayKey, dayOffset } from "@domain/lib/day"
 import {
   CalendarDays,
   ChevronRight,
+  CircleCheck,
+  Clock,
   Flame,
   Gauge,
   ListChecks,
   Repeat,
   Settings,
   Share2,
+  Sprout,
   TrendingDown,
   TriangleAlert,
+  Trophy,
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
@@ -36,6 +40,7 @@ import { Screen } from "../ui"
 import { Ring } from "../visual"
 import { HabitActions } from "./habit-actions"
 import { LockedPreview } from "./locked-preview"
+import { HabitsToday } from "./today"
 
 const fmtDay = (day: string) =>
   new Date(`${day}T12:00:00`).toLocaleDateString("en-PH", {
@@ -118,9 +123,7 @@ function RoutineProgress({
             <Copy size={20}>{r.icon}</Copy>
           </View>
           <View style={{ flex: 1 }}>
-            <Copy weight="semibold" lines={1}>
-              {r.name}
-            </Copy>
+            <Copy weight="semibold">{r.name}</Copy>
             <Copy size={12} muted>
               {r.steps.length} steps · {H.plannedMin(r)}m planned
               {r.schedule[0]?.time ? ` · ${r.schedule[0].time}` : ""}
@@ -431,37 +434,52 @@ export function HabitsHome() {
                 label="7-day rolling completion"
               />
             </Frame>
-            <Line style={{ gap: 8, marginTop: 12 }}>
-              {[
-                { label: "Habits", href: "/habits/manage", icon: ListChecks },
-                { label: "Routines", href: "/habits/routines", icon: Repeat },
-                {
-                  label: "Share",
-                  href: "/habits/share?t=scoreboard",
-                  icon: Share2,
-                },
-              ].map((a) => (
-                <Tap
-                  key={a.href}
-                  onPress={() => go(a.href)}
-                  style={{
-                    flex: 1,
-                    height: 44,
-                    backgroundColor: t.soft,
-                    borderRadius: 16,
-                    justifyContent: "center",
-                  }}
-                >
-                  <Line style={{ gap: 8, justifyContent: "center" }}>
-                    <a.icon size={16} color={t.text} />
-                    <Copy size={14} weight="semibold">
-                      {a.label}
-                    </Copy>
-                  </Line>
-                </Tap>
-              ))}
-            </Line>
-            <SectionHeading>Reflection</SectionHeading>
+          </SwipeSegments>
+          {/* Outside the period swipe: a habit row swipes to complete, and
+              the two gestures must not fight over one drag. */}
+          <Line style={{ gap: 8, marginTop: 12 }}>
+            {[
+              { label: "Habits", href: "/habits/manage", icon: ListChecks },
+              { label: "Routines", href: "/habits/routines", icon: Repeat },
+              {
+                label: "Share",
+                href: "/habits/share?t=scoreboard",
+                icon: Share2,
+              },
+            ].map((a) => (
+              <Tap
+                key={a.href}
+                onPress={() => go(a.href)}
+                style={{
+                  flex: 1,
+                  height: 44,
+                  backgroundColor: t.soft,
+                  borderRadius: 16,
+                  justifyContent: "center",
+                }}
+              >
+                <Line style={{ gap: 8, justifyContent: "center" }}>
+                  <a.icon size={16} color={t.text} />
+                  <Copy size={14} weight="semibold">
+                    {a.label}
+                  </Copy>
+                </Line>
+              </Tap>
+            ))}
+          </Line>
+          <SectionHeading icon={CircleCheck}>Today</SectionHeading>
+          <Frame testID="habits-page-today">
+            {/* The first row's divider sits under the card's own edge. */}
+            <View style={{ marginTop: -1 }}>
+              <HabitsToday page />
+            </View>
+          </Frame>
+          <SwipeSegments
+            value={period}
+            options={["7", "30", "90", "365"]}
+            onChange={setPeriod}
+          >
+            <SectionHeading icon={Sprout}>Reflection</SectionHeading>
             <Frame style={{ padding: 16, gap: 12, borderColor: `${t.bad}33` }}>
               <Line style={{ gap: 8 }}>
                 <TriangleAlert size={16} color={t.bad} />
@@ -538,7 +556,7 @@ export function HabitsHome() {
                 </Copy>
               )}
             </Frame>
-            <SectionHeading>Last 13 weeks</SectionHeading>
+            <SectionHeading icon={CalendarDays}>Last 13 weeks</SectionHeading>
             <Frame style={{ padding: 16 }}>
               <ScrollView
                 horizontal
@@ -585,6 +603,7 @@ export function HabitsHome() {
               </Line>
             </Frame>
             <SectionHeading
+              icon={Trophy}
               action={
                 <Line style={{ gap: 4 }}>
                   {["rate", "streak", "skip", "name"].map((k) => (
@@ -691,7 +710,9 @@ export function HabitsHome() {
                 </Tap>
               ))}
             </Frame>
-            <SectionHeading>Time invested · 8 weeks</SectionHeading>
+            <SectionHeading icon={Clock}>
+              Time invested · 8 weeks
+            </SectionHeading>
             <Frame style={{ padding: 16 }}>
               <Line style={{ marginBottom: 8, alignItems: "baseline", gap: 8 }}>
                 <Copy size={24} weight="semibold">
@@ -720,7 +741,7 @@ export function HabitsHome() {
             </Frame>
             {routines.length > 0 && (
               <>
-                <SectionHeading>Routines</SectionHeading>
+                <SectionHeading icon={Repeat}>Routines</SectionHeading>
                 <View style={{ gap: 12 }}>
                   {routines.map(({ r, s }) => (
                     <RoutineProgress key={r.id} routine={r} stats={s} />
@@ -728,17 +749,6 @@ export function HabitsHome() {
                 </View>
               </>
             )}
-            <Tap
-              onPress={() => go("/habits/today")}
-              style={{ paddingHorizontal: 4, paddingVertical: 8 }}
-            >
-              <Line style={{ justifyContent: "space-between" }}>
-                <Copy size={12} muted>
-                  Preview the Today card
-                </Copy>
-                <ChevronRight size={14} color={t.muted} />
-              </Line>
-            </Tap>
           </SwipeSegments>
         </LockedPreview>
       </View>
