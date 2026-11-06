@@ -8,9 +8,9 @@ import * as H from "@domain/habits/logic"
 import { DAY_START_HOUR, dayKey } from "@domain/lib/day"
 import type { Live } from "@domain/lib/live"
 import { money } from "@domain/lib/money"
-import { STEP_GOAL } from "@/prototype/step-goal"
 import type { TasksState } from "@domain/tasks/data"
 import { byDue, fmtDay, isOverdue } from "@domain/tasks/logic"
+import { STEP_GOAL } from "@/prototype/step-goal"
 import {
   type AppKey,
   type ShortcutHabit,

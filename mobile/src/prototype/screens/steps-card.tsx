@@ -13,9 +13,9 @@ import {
 } from "../health"
 import { Bar, Copy, Frame, Line, Part, Tap } from "../native-kit"
 import { go } from "../navigation"
+import { STEP_GOAL } from "../step-goal"
 import { useTheme } from "../theme"
 import { Button } from "../ui"
-import { STEP_GOAL } from "../step-goal"
 import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
 export const GOAL = STEP_GOAL

@@ -12,7 +12,13 @@ module.exports = (config) => ({
   displayName: "Unfurl",
   bundleIdentifier: ".widgets",
   deploymentTarget: "17.0",
-  frameworks: ["WidgetKit", "SwiftUI", "ActivityKit", "AppIntents", "CoreMotion"],
+  frameworks: [
+    "WidgetKit",
+    "SwiftUI",
+    "ActivityKit",
+    "AppIntents",
+    "CoreMotion",
+  ],
   colors: {
     $accent: tone("primary"),
     $widgetBackground: tone("card"),
