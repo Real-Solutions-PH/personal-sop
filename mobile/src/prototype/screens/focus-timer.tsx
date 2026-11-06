@@ -236,6 +236,23 @@ export function FocusTimer() {
           alignItems: "center",
         }}
       >
+        {session && tl && tl.sess.end === null && (
+          // Switch the running session; the time focused so far carries
+          // over (the rule is on L.switchMode).
+          <View style={{ width: "100%" }}>
+            <Segmented
+              value={tl.sess.mode}
+              onChange={(m) => {
+                A.switchFocusMode(m)
+                setMode(m)
+              }}
+              options={[
+                { value: "pomodoro", label: "Pomodoro" },
+                { value: "stopwatch", label: "Stopwatch" },
+              ]}
+            />
+          </View>
+        )}
         {!session && (
           <View style={{ width: "100%", gap: 12 }}>
             <Segmented

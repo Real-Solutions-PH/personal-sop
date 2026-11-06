@@ -39,7 +39,7 @@ row-level-security policy, like every other module.
 | `item_kind`, `item_id`, `item_title` | | what is being worked on now; each new segment copies it |
 | `day` | date | **derived**: business day of `started_at` |
 | `focus_sec` | int | **derived**: seconds of focus in the session |
-| `sets_completed` | int | **derived**: Pomodoro sets whose focus reached their length |
+| `sets_completed` | int | **derived**: Pomodoro sets whose focus reached their length (any set with a `planned_sec`, whatever the session's mode now) |
 
 ### `focus_segment`
 
@@ -96,6 +96,20 @@ Derived: `day` 2026-10-20, `focus_sec` 25 + 10 + 15 = 3,000, `sets_completed`
 2 (set 1's focus is 10 + 15 = 25 minutes). Time by item: the task 35 min, the
 habit 15 min. The pause is 5 minutes on the timeline and in no total.
 (This is the fixture in `backend/tests/modules/focus/api/test_focus_api.py`.)
+
+## Switching mode (2026-11-06)
+
+A running session can switch between Pomodoro and the stopwatch on the
+phone (`switchMode` in `shared/prototype/focus/logic.ts`). It writes only
+plain fields, so the server needs no new column or action: the session's
+`mode`, the current block's `planned_sec` (null for a stopwatch block), and
+at most one closed segment plus one new one. Focus already done is never
+moved or copied, so time on an item is unchanged by a switch.
+
+| From → to | During focus (running or paused) | During a break or waiting |
+|---|---|---|
+| Pomodoro → stopwatch | the set drops its `planned_sec` and counts up from its elapsed focus | the break ends now; a stopwatch block opens as the next set |
+| stopwatch → Pomodoro | under the set length: the block becomes the set, time left = length − elapsed; at or past it: the block stays a stopwatch block and a full set starts now (paused stays paused) | only the mode changes |
 
 ## Derived numbers
 

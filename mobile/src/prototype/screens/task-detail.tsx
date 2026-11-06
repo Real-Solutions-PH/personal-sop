@@ -1,4 +1,3 @@
-import { startFocus } from "@domain/focus/actions"
 import { fmtHm } from "@domain/focus/logic"
 import * as A from "@domain/tasks/actions"
 import type { Recurrence, Task } from "@domain/tasks/data"
@@ -471,12 +470,6 @@ export function TaskDetail({ id }: { id: string }) {
         <FocusTimeCard
           item={{ kind: "task", id: task.id, title: task.title }}
           estimateMin={task.estimateMin}
-          onStart={() => {
-            startFocus({
-              item: { kind: "task", id: task.id, title: task.title },
-            })
-            go("/focus")
-          }}
         />
       )}
       <Sheet

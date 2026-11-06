@@ -1,5 +1,4 @@
 import { dashStore } from "@domain/dash/store"
-import { startFocus } from "@domain/focus/actions"
 import * as A from "@domain/habits/actions"
 import type { Habit, HabitLog as LogRow } from "@domain/habits/data"
 import * as L from "@domain/habits/logic"
@@ -452,10 +451,6 @@ export function HabitDetail({ id }: { id: string }) {
         estimateMin={h.type === "duration" ? h.target : undefined}
         estimateLabel="daily target"
         against="today"
-        onStart={() => {
-          startFocus({ item: { kind: "habit", id: h.id, title: h.name } })
-          go("/focus")
-        }}
       />
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Calendar</SectionHeading>

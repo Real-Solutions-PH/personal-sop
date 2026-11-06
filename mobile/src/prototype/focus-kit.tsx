@@ -2,8 +2,9 @@
 // for what is being worked on, and the time-spent card a task or habit page
 // shows.
 
+import { saveFocusSettings, startFocus } from "@domain/focus/actions"
 import * as C from "@domain/focus/calc"
-import type { FocusItem } from "@domain/focus/data"
+import { type FocusItem, type FocusMode, PRESETS } from "@domain/focus/data"
 import * as L from "@domain/focus/logic"
 import { useFocusState } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -12,12 +13,13 @@ import { tasksStore } from "@domain/tasks/store"
 import {
   CheckSquare,
   CircleSlash,
+  Hourglass,
   Play,
   Search,
   Target,
   Timer,
 } from "lucide-react-native"
-import { type ReactNode, useMemo, useState } from "react"
+import { type ReactNode, useMemo, useRef, useState } from "react"
 import { TextInput, View } from "react-native"
 import Svg, {
   Circle,
@@ -29,7 +31,7 @@ import Svg, {
   Line as SvgLine,
 } from "react-native-svg"
 import { strokeAcross } from "./brand/scribble"
-import { Copy, chosen, Frame, Line, Tap } from "./native-kit"
+import { border, Copy, chosen, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { fonts, useTheme } from "./theme"
 import { Sheet } from "./ui"
@@ -571,7 +573,6 @@ export function FocusTimeCard({
   estimateMin,
   estimateLabel = "estimate",
   against = "total",
-  onStart,
 }: {
   item: FocusItem
   estimateMin?: number
@@ -579,10 +580,10 @@ export function FocusTimeCard({
   /** What the estimate is measured against: all time spent (a task), or
    * today's (a habit's daily target). */
   against?: "total" | "today"
-  onStart: () => void
 }) {
   const t = useTheme()
   const s = useFocusState()
+  const [choosing, setChoosing] = useState(false)
   const time = useMemo(
     () => C.itemTime(s, item.kind, item.id),
     [s, item.kind, item.id],
@@ -600,7 +601,7 @@ export function FocusTimeCard({
         </Copy>
         <Tap
           label={`Start focusing on ${item.title ?? "this"}`}
-          onPress={onStart}
+          onPress={() => setChoosing(true)}
           style={{
             flexDirection: "row",
             alignItems: "center",
@@ -696,6 +697,115 @@ export function FocusTimeCard({
           Time you spend on this with the focus timer adds up here.
         </Copy>
       )}
+      {choosing && (
+        <StartFocusSheet item={item} onClose={() => setChoosing(false)} />
+      )}
     </Frame>
+  )
+}
+
+/** Pick how to focus on a task or habit: one tap on Pomodoro or Stopwatch
+ * starts it. The highlighted one is the default: the last choice made here
+ * (saved as the settings' default mode, so the Focus screen opens on it
+ * too). */
+export function StartFocusSheet({
+  item,
+  onClose,
+}: {
+  item: FocusItem
+  onClose: () => void
+}) {
+  const t = useTheme()
+  const st = useFocusState().settings
+  const [open, setOpen] = useState(true)
+  // Navigate once the sheet's modal is gone: iOS ignores a navigation
+  // presented while it is still leaving.
+  const then = useRef<(() => void) | null>(null)
+  const [f, b] =
+    st.preset === "custom"
+      ? [st.focusMin, st.shortBreakMin]
+      : PRESETS[st.preset].lengths
+  const begin = (mode: FocusMode) => {
+    saveFocusSettings({ mode })
+    startFocus({ mode, item })
+    then.current = () => go("/focus")
+    setOpen(false)
+  }
+  const options: {
+    mode: FocusMode
+    icon: typeof Timer
+    title: string
+    detail: string
+  }[] = [
+    {
+      mode: "pomodoro",
+      icon: Hourglass,
+      title: "Pomodoro",
+      detail: `${f} min focus, then a ${b} min break`,
+    },
+    {
+      mode: "stopwatch",
+      icon: Timer,
+      title: "Stopwatch",
+      detail: "Counts up until you stop",
+    },
+  ]
+  return (
+    <Sheet
+      title="How do you want to focus?"
+      open={open}
+      onClose={() => setOpen(false)}
+      onClosed={() => {
+        onClose()
+        then.current?.()
+      }}
+    >
+      {item.title ? (
+        <Copy size={14} muted>
+          On {item.title}. You can switch while it runs.
+        </Copy>
+      ) : null}
+      {options.map((o) => {
+        const sel = st.mode === o.mode
+        return (
+          <Tap
+            key={o.mode}
+            label={`Start ${o.title}`}
+            selected={sel}
+            onPress={() => begin(o.mode)}
+            style={{ ...chosen(t, sel), padding: 12, borderRadius: 16 }}
+          >
+            <Line>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: border(t.foc, 0.15),
+                }}
+              >
+                <o.icon size={20} color={t.foc} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Line style={{ gap: 8, flexWrap: "wrap" }}>
+                  <Copy weight="medium">{o.title}</Copy>
+                  {sel && (
+                    <Copy size={12} style={{ color: t.foc }}>
+                      Default
+                    </Copy>
+                  )}
+                </Line>
+                <Copy size={12} muted>
+                  {o.detail}
+                </Copy>
+              </View>
+              <Play size={16} color={t.text} fill={t.text} />
+            </Line>
+          </Tap>
+        )
+      })}
+    </Sheet>
   )
 }
