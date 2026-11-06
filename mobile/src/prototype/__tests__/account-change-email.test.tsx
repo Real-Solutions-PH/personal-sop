@@ -100,7 +100,14 @@ async function send(address: string) {
 }
 
 test("a sent link says where to look and that nothing changed yet", async () => {
-  mockChangeEmail.mockResolvedValue(undefined)
+  // The session's email may change before the sheet re-renders (prototype
+  // mode applies it at once): the sheet still names the address it was.
+  mockChangeEmail.mockImplementation(async (address: string) => {
+    sessionStore.set((s) => ({
+      ...s,
+      user: s.user ? { ...s.user, email: address.toLowerCase() } : s.user,
+    }))
+  })
   await send("New@Example.test")
   expect(mockChangeEmail).toHaveBeenCalledWith("New@Example.test")
   expect(screen.getByText("Check your inbox")).toBeTruthy()

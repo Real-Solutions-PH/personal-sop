@@ -188,13 +188,14 @@ function EmailSheet({
   const [busy, setBusy] = useState(false)
   // Live: the address the confirmation went to. The change waits on the
   // links, so the sheet says where to look instead of closing silently.
-  const [sentTo, setSentTo] = useState<string>()
+  // The current address is kept as it was when the link went out.
+  const [sent, setSent] = useState<{ to: string; from: string }>()
   const save = async () => {
     setBusy(true)
     setError(undefined)
     try {
       await changeEmail(email)
-      if (liveMode) setSentTo(email.trim().toLowerCase())
+      if (liveMode) setSent({ to: email.trim().toLowerCase(), from: current })
       else onClose()
     } catch (e) {
       report(e, (_, message) => setError(message))
@@ -202,15 +203,15 @@ function EmailSheet({
       setBusy(false)
     }
   }
-  if (sentTo)
+  if (sent)
     return (
       <Sheet title="Check your inbox" open onClose={onClose}>
         <View style={{ alignItems: "center", gap: 8, paddingVertical: 8 }}>
           <MailCheck size={40} color={t.good} />
-          <Copy size={15}>{`Confirmation sent to ${sentTo}`}</Copy>
+          <Copy size={15}>{`Confirmation sent to ${sent.to}`}</Copy>
         </View>
         <Copy size={14} muted>
-          {`Open the link in that email to finish.${current ? ` We also sent one to ${current}: open both, and your email changes to ${sentTo}.` : ""} Until then you keep signing in with ${current || "your current email"}.`}
+          {`Open the link in that email to finish.${sent.from ? ` We also sent one to ${sent.from}: open both, and your email changes to ${sent.to}.` : ""} Until then you keep signing in with ${sent.from || "your current email"}.`}
         </Copy>
         <Button icon={MailCheck} onPress={onClose}>
           Done
