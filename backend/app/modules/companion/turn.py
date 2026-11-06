@@ -376,6 +376,7 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
         "suggest": "Suggested next questions",
         "web_search": f"Searched the web: {args.get('query', '')}",
         "nutrition_status": "Checked today's macros",
+        "finance_status": "Checked your money",
         "focus_status": "Checked your focus time",
         "start_focus": "Started the focus timer",
         "focus_control": f"Focus timer: {str(args.get('action', '')).replace('_', ' ')}",
