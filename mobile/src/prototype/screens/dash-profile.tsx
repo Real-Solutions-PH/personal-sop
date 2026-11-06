@@ -21,6 +21,7 @@ import {
   ChevronRight,
   CloudSun,
   Dumbbell,
+  LayoutList,
   ListChecks,
   type LucideIcon,
   Minus,
@@ -739,6 +740,17 @@ export function Settings() {
           Drag a section by its grip to set the order of its cards on Today and
           in Your apps.
         </Copy>
+        <Frame
+          style={{ paddingHorizontal: 8, paddingVertical: 4, marginTop: 12 }}
+        >
+          <LinkRow
+            title="Edit Home"
+            detail="Choose which sections show on Home, and in what order"
+            icon={LayoutList}
+            accent="primary"
+            href="/today/edit"
+          />
+        </Frame>
         {Platform.OS === "ios" && (
           <>
             <SectionHeading>Shortcuts</SectionHeading>

@@ -41,6 +41,7 @@ import { toast } from "@domain/lib/platform"
 import { privacyStore } from "@domain/lib/privacy"
 import { createStore, type Store } from "@domain/lib/store"
 import { EXTRAS, type Extra, extrasStore } from "@/prototype/extras"
+import { homeLayoutFromServer, homeLayoutStore } from "@/prototype/home-layout"
 import { appearanceStore } from "@/prototype/theme"
 import type { Mapper, Payload } from "../mapper"
 import { singleton } from "./helpers"
@@ -125,13 +126,14 @@ function keyedRecord<V>(opts: {
 
 // --------------------------------------------------------------- profile
 
-/** The five stores the profile row spans, read and written as one. */
+/** The six stores the profile row spans, read and written as one. */
 interface ProfileState {
   dash: DashState
   appearance: ReturnType<typeof appearanceStore.get>
   privacy: ReturnType<typeof privacyStore.get>
   currency: ReturnType<typeof currencyStore.get>
   extras: ReturnType<typeof extrasStore.get>
+  homeLayout: ReturnType<typeof homeLayoutStore.get>
 }
 
 function combined(): Store<ProfileState> {
@@ -142,15 +144,17 @@ function combined(): Store<ProfileState> {
     const privacy = privacyStore.get()
     const currency = currencyStore.get()
     const extras = extrasStore.get()
+    const homeLayout = homeLayoutStore.get()
     if (
       !last ||
       last.dash !== dash ||
       last.appearance !== appearance ||
       last.privacy !== privacy ||
       last.currency !== currency ||
-      last.extras !== extras
+      last.extras !== extras ||
+      last.homeLayout !== homeLayout
     )
-      last = { dash, appearance, privacy, currency, extras }
+      last = { dash, appearance, privacy, currency, extras, homeLayout }
     return last
   }
   const set: Store<ProfileState>["set"] = (next) => {
@@ -161,6 +165,7 @@ function combined(): Store<ProfileState> {
     if (v.privacy !== cur.privacy) privacyStore.set(v.privacy)
     if (v.currency !== cur.currency) currencyStore.set(v.currency)
     if (v.extras !== cur.extras) extrasStore.set(v.extras)
+    if (v.homeLayout !== cur.homeLayout) homeLayoutStore.set(v.homeLayout)
   }
   return {
     get,
@@ -175,6 +180,7 @@ function combined(): Store<ProfileState> {
         privacyStore.subscribe(l),
         currencyStore.subscribe(l),
         extrasStore.subscribe(l),
+        homeLayoutStore.subscribe(l),
       ]
       return () => {
         for (const off of offs) off()
@@ -254,6 +260,8 @@ export function profileToServer(v: ProfileState): Payload {
     intro_dismissed: d.intro.dismissed,
     enabled_extras: extrasToServer(v.extras),
   }
+  // Never edited: leave the account's as it is (another phone's may stand).
+  if (v.homeLayout) out.home_layout = v.homeLayout
   const name = d.profile.name.trim()
   if (name.length >= 2 && name.length <= 80) out.name = name
   const handle = d.profile.handle.replace(/^@/, "")
@@ -333,6 +341,7 @@ export function profileFromServer(
     // An unknown code keeps the device's (fail closed: never a blank symbol).
     currency: isCurrency(row.currency) ? { code: row.currency } : cur.currency,
     extras: extrasFromServer(row.enabled_extras, cur.extras),
+    homeLayout: homeLayoutFromServer(row.home_layout, cur.homeLayout),
   }
 }
 
