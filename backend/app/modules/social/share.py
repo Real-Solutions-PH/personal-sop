@@ -36,6 +36,14 @@ router = APIRouter(tags=["share"], include_in_schema=False)
 # The app's URL scheme (mobile/app.json ``scheme``) and its post route.
 APP_POST_URL = "personalsop://social/post/{id}"
 SITE_NAME = "Unfurl"
+# Lucide "external-link", inline so the page loads nothing but its photo.
+OPEN_ICON = (
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" '
+    'stroke="currentColor" stroke-width="2" stroke-linecap="round" '
+    'stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6"/>'
+    '<path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 '
+    '1-2-2V8a2 2 0 0 1 2-2h6"/></svg>'
+)
 DESCRIPTION_MAX = 200
 
 # The page has no script; only its own inline style and https images load.
@@ -91,7 +99,9 @@ def _page(
     )
     figure = f'<img src="{e(image)}" alt="">' if image else ""
     button = (
-        f'<a class="open" href="{e(app_url)}">Open in Unfurl</a>' if app_url else ""
+        f'<a class="open" href="{e(app_url)}">{OPEN_ICON}Open in Unfurl</a>'
+        if app_url
+        else ""
     )
     body = f"""<!doctype html>
 <html lang="en">
@@ -107,7 +117,7 @@ main{{max-width:480px;margin:0 auto;padding:32px 16px;display:flex;flex-directio
 img{{width:100%;border-radius:16px}}
 h1{{font-size:20px;margin:0}}
 p{{font-size:16px;line-height:1.5;margin:0;white-space:pre-wrap}}
-.open{{display:block;text-align:center;padding:14px;border-radius:12px;background:#2f6b4f;color:#fff;font-weight:600;text-decoration:none}}
+.open{{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:12px;background:#2f6b4f;color:#fff;font-weight:600;text-decoration:none}}
 @media (prefers-color-scheme:dark){{body{{background:#121a15;color:#e8efe9}}}}
 </style>
 </head>
