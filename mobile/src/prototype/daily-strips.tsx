@@ -1,6 +1,7 @@
 // Two strips at the top of Today. Yesterday's recap says plainly what a
 // missed day cost (off target, the streak it ended, how many things were
-// missed), with Fern consoling beside it, and leads to the Misses page; it
+// missed), with Fern consoling beside it, and leads to the Yesterday page
+// (Fern's read of the day, then each miss); it
 // shows on the day after and goes once dismissed. The first-week strip keeps the promise onboarding makes
 // ("log one thing today to light up day 1"): days 1–7 from the first log,
 // lit as they are logged, until the first week is over.
@@ -17,12 +18,16 @@ import { Copy, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
 import { claimDay, firstWeek, rewardStore, yesterdayRecap } from "./rewards"
 import { useTheme } from "./theme"
+import { missesOn } from "./yesterday"
 
 export function YesterdayStrip() {
   const today = dayKey()
   const yesterday = addDays(today, -1)
   const series = D.useOnTarget(7).series
-  const missed = D.useAllMisses(yesterday, yesterday).length
+  const missed = missesOn(
+    D.useAllMisses(yesterday, yesterday),
+    yesterday,
+  ).length
   const dismissed = rewardStore.use((s) => s.days["yesterday-strip"] === today)
   const recap = yesterdayRecap(series, today)
   if (dismissed || (!recap.offTarget && !missed)) return null
@@ -60,7 +65,7 @@ export function YesterdayStripView({
       <Frame style={{ flexDirection: "row" }}>
         <Tap
           label={`${headline}. ${detail} See what slipped`}
-          onPress={() => go("/stats/misses")}
+          onPress={() => go("/today/yesterday")}
           style={{
             flex: 1,
             flexDirection: "row",

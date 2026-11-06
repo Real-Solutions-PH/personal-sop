@@ -43,8 +43,8 @@ jest.mock("@domain/dash/hooks", () => ({
     logged: mockDay.logged,
     series: mockDay.series,
   }),
-  useAllMisses: () =>
-    Array.from({ length: mockDay.misses }, (_, i) => ({ id: i })),
+  useAllMisses: (from: string) =>
+    Array.from({ length: mockDay.misses }, (_, i) => ({ id: i, day: from })),
 }))
 jest.mock("expo-router", () => ({
   router: {
@@ -378,6 +378,11 @@ describe("Today strips", () => {
     expect(
       screen.getByTestId("fern-consoling", { includeHiddenElements: true }),
     ).toBeTruthy()
+    // The card opens the Yesterday page (Fern's read, then each miss).
+    fireEvent.press(screen.getByLabelText(/See what slipped$/))
+    expect(require("expo-router").router.push).toHaveBeenCalledWith(
+      "/today/yesterday",
+    )
     fireEvent.press(screen.getByLabelText("Dismiss"))
     expect(screen.queryByTestId("yesterday-strip")).toBeNull()
   })
