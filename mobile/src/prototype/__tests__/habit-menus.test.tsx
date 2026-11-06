@@ -9,10 +9,20 @@ import {
   within,
 } from "@testing-library/react-native"
 import { router } from "expo-router"
-import { Archive, Pause, Play } from "lucide-react-native"
+import {
+  Archive,
+  Eraser,
+  Info,
+  Pause,
+  Pencil,
+  PenLine,
+  Play,
+  Timer,
+} from "lucide-react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { HabitForm } from "../screens/habits"
+import { HabitForm, HabitLog } from "../screens/habits"
+import { HabitsCard } from "../screens/today"
 
 const mockParams: { current: Record<string, string> } = { current: {} }
 jest.mock("expo-router", () => ({
@@ -111,5 +121,69 @@ test("Edit habit: Pause first, Archive set apart below it, each with its icon", 
   expect(habitsStore.get().habits.find((x) => x.id === h.id)?.status).toBe(
     "paused",
   )
-  void push
+})
+
+/** Each group's buttons as [label, has its icon]. */
+const group = (id: string, icons: unknown[]) =>
+  within(screen.getByTestId(id))
+    .getAllByRole("button")
+    .map((b, i) => [textOf(b), b.findAllByType(icons[i] as never).length > 0])
+
+test("Home's ⋯ opens the actions menu: today, then edit, then Archive apart", () => {
+  A.createHabit({ name: "Walk", icon: "🚶" })
+  render(<HabitsCard />, { wrapper })
+  fireEvent.press(screen.getByLabelText("More actions for Walk"))
+  expect(group("habit-actions-today", [PenLine, Info])).toEqual([
+    ["Log…", true],
+    ["Open details", true],
+  ])
+  expect(group("habit-actions-edit", [Pencil, Pause])).toEqual([
+    ["Edit habit", true],
+    ["Pause…", true],
+  ])
+  expect(group("habit-actions-danger", [Archive])).toEqual([["Archive", true]])
+  // Archive is the last button in the menu.
+  const all = screen.getAllByRole("button").map(textOf)
+  expect(all.indexOf("Archive")).toBeGreaterThan(all.indexOf("Pause…"))
+  expect(all.indexOf("Pause…")).toBeGreaterThan(all.indexOf("Log…"))
+})
+
+test("a timed habit's menu offers Start timer among today's actions", () => {
+  const h = A.createHabit({ name: "Read", icon: "📖", type: "duration" })
+  render(<HabitsCard />, { wrapper })
+  fireEvent.press(screen.getByLabelText("More actions for Read"))
+  expect(group("habit-actions-today", [PenLine, Timer, Info])).toEqual([
+    ["Log…", true],
+    ["Start timer", true],
+    ["Open details", true],
+  ])
+  fireEvent.press(screen.getByText("Start timer"))
+  act(() => jest.advanceTimersByTime(600))
+  expect(push).toHaveBeenCalledWith(`/habits/${h.id}/timer`)
+})
+
+test("the Log sheet puts Clear log last, apart, with its icon", () => {
+  const h = A.createHabit({ name: "Walk", icon: "🚶" })
+  render(<HabitLog habit={h} day="2026-01-01" open onClose={() => {}} />, {
+    wrapper,
+  })
+  expect(group("habit-log-more", [Pencil])).toEqual([["Edit habit", true]])
+  expect(group("habit-log-danger", [Eraser])).toEqual([["Clear log", true]])
+  // Last in the sheet's body (Save log is pinned in its footer).
+  const body = screen
+    .getAllByRole("button")
+    .map(textOf)
+    .filter((x) => x !== "Save log")
+  expect(body.at(-1)).toBe("Clear log")
+})
+
+test("Edit habit in the Log sheet opened from the menu opens the form", () => {
+  const h = A.createHabit({ name: "Walk", icon: "🚶" })
+  render(<HabitsCard />, { wrapper })
+  fireEvent.press(screen.getByLabelText("More actions for Walk"))
+  fireEvent.press(screen.getByText("Log…"))
+  act(() => jest.advanceTimersByTime(600))
+  fireEvent.press(screen.getByText("Edit habit"))
+  act(() => jest.advanceTimersByTime(600))
+  expect(push).toHaveBeenCalledWith(`/habits/${h.id}/edit`)
 })

@@ -8,6 +8,14 @@ import {
 import * as L from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey, dayOffset } from "@domain/lib/day"
+import {
+  CalendarCheck,
+  Check,
+  Eraser,
+  History,
+  Pencil,
+  Timer,
+} from "lucide-react-native"
 import { useState } from "react"
 import {
   Text as NativeText,
@@ -41,7 +49,7 @@ import {
   undo,
 } from "../ui"
 import { IconButton, Metric, Ring, Section } from "../visual"
-import { HabitActions } from "./habit-actions"
+import { HabitActions, MenuGroup } from "./habit-actions"
 import {
   AutoMark,
   RuleRing,
@@ -320,16 +328,27 @@ export function HabitLog({
         maximumDate={dayKey()}
       />
       <Actions>
-        <Button tone="quiet" onPress={() => setDate(dayKey())}>
+        <Button
+          tone="quiet"
+          small
+          icon={CalendarCheck}
+          onPress={() => setDate(dayKey())}
+        >
           Today
         </Button>
-        <Button tone="quiet" onPress={() => setDate(dayOffset(-1))}>
+        <Button
+          tone="quiet"
+          small
+          icon={History}
+          onPress={() => setDate(dayOffset(-1))}
+        >
           Yesterday
         </Button>
       </Actions>
       <Field label="Note" value={note} onChangeText={setNote} multiline />
       <PinnedFooter>
         <Button
+          icon={Check}
           onPress={() => {
             if (
               !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
@@ -352,19 +371,11 @@ export function HabitLog({
           Save log
         </Button>
       </PinnedFooter>
-      <Actions>
-        <Button
-          tone="quiet"
-          onPress={() => {
-            const removed = A.clearLog(habit.id, date)
-            if (removed) undo("Log cleared", () => A.restoreLog(removed))
-            onClose()
-          }}
-        >
-          Clear log
-        </Button>
+      <MenuGroup testID="habit-log-more">
         {habit.type === "duration" && (
           <Button
+            tone="quiet"
+            icon={Timer}
             onPress={() => {
               onClose()
               go(`/habits/${habit.id}/timer`)
@@ -375,6 +386,7 @@ export function HabitLog({
         )}
         <Button
           tone="quiet"
+          icon={Pencil}
           onPress={() => {
             setEditNext(true)
             onClose()
@@ -382,7 +394,20 @@ export function HabitLog({
         >
           Edit habit
         </Button>
-      </Actions>
+      </MenuGroup>
+      <MenuGroup divided testID="habit-log-danger">
+        <Button
+          tone="danger"
+          icon={Eraser}
+          onPress={() => {
+            const removed = A.clearLog(habit.id, date)
+            if (removed) undo("Log cleared", () => A.restoreLog(removed))
+            onClose()
+          }}
+        >
+          Clear log
+        </Button>
+      </MenuGroup>
     </Sheet>
   )
 }

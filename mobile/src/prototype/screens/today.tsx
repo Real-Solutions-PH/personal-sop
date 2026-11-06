@@ -125,7 +125,6 @@ import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
 import { DueSheet } from "./finance-planned"
 import { HabitActions } from "./habit-actions"
-import { HabitLog } from "./habits"
 import { ModuleIntroCard } from "./module-intro-card"
 import { MoodCheckIn } from "./mood-check-in"
 import { NutritionDay } from "./nutrition-day"
@@ -552,7 +551,6 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
 function ManualTodayHabit({ habit }: { habit: Habit }) {
   const t = useTheme(),
     logs = habitsStore.use((s) => s.logs),
-    [sheet, setSheet] = useState(false),
     [actions, setActions] = useState(false),
     today = dayKey(),
     idx = H.logIndex(logs),
@@ -592,7 +590,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
       <Animated.View entering={rowEnter} exiting={rowExit}>
         <SwipeRow
           onComplete={swipe.onComplete}
-          onMore={() => setSheet(true)}
+          onMore={() => setActions(true)}
           background={t.card}
         >
           <TickRow>
@@ -672,19 +670,15 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
               )}
               <IconTap
                 icon={MoreHorizontal}
-                label={`More options for ${habit.name}`}
-                onPress={() => setSheet(true)}
+                label={`More actions for ${habit.name}`}
+                onPress={() => setActions(true)}
               />
             </Line>
           </TickRow>
         </SwipeRow>
       </Animated.View>
-      <HabitLog
-        habit={habit}
-        day={today}
-        open={sheet}
-        onClose={() => setSheet(false)}
-      />
+      {/* The ⋯ button, a swipe's More and a long press all open the one
+          actions menu; logging by hand is its first item. */}
       <HabitActions
         habit={habit}
         day={today}
