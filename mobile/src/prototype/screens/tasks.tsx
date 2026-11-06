@@ -176,9 +176,6 @@ export function TaskRow({
     }
     if (listId === prev) return
     A.updateTask(task.id, { listId })
-    undo(`Moved to ${target?.name ?? "Inbox"}`, () =>
-      A.updateTask(task.id, { listId: prev }),
-    )
   }
   // An empty meta line would sit under the title and pull it above the
   // checkbox's centre, so it only renders when it has something to say.
@@ -197,21 +194,14 @@ export function TaskRow({
     task.rescheduleCount > 1 ||
     (!!list && showList)
   const toggle = () => {
-    const done = task.status === "done"
-    if (done) A.uncompleteTask(task.id)
-    else A.completeTask(task.id)
-    undo(done ? "Task reopened" : "Task complete", () =>
-      done ? A.completeTask(task.id) : A.uncompleteTask(task.id),
-    )
+    if (task.status === "done") {
+      A.uncompleteTask(task.id)
+      return
+    }
+    A.completeTask(task.id)
+    undo("Task complete", () => A.uncompleteTask(task.id))
   }
   const swipe = useSwipeComplete(task.status === "done", toggle)
-  // A new date for the task, with an Undo that puts back the old date, time
-  // and reminder.
-  const redate = (message: string, change: () => void) => {
-    const { dueDate, dueTime, remindAt } = task
-    change()
-    undo(message, () => A.setDue(task.id, dueDate, dueTime, remindAt))
-  }
   // A quick action fires once per version of the task: a second tap before
   // the row leaves (or re-renders with the change) does nothing.
   const acted = useRef<Task | null>(null)
@@ -227,9 +217,8 @@ export function TaskRow({
     markCompletion(true)
     toggle()
   }
-  const toToday = () => redate("Moved to today", () => A.moveToToday(task.id))
-  const toTomorrow = () =>
-    redate("Moved to tomorrow", () => A.rescheduleBy(task.id, 1))
+  const toToday = () => A.moveToToday(task.id)
+  const toTomorrow = () => A.rescheduleBy(task.id, 1)
   return (
     <>
       {/* No layout transition: rows move between sections whose
@@ -619,7 +608,6 @@ export function TaskRow({
               tone="danger"
               onPress={() => {
                 A.deleteTask(task.id)
-                undo("Task deleted", () => A.restoreTask(task.id))
                 setOpen(false)
               }}
             >
@@ -632,11 +620,7 @@ export function TaskRow({
         <NativeListEditor
           onClose={() => setMaking(false)}
           onCreated={(l) => {
-            const prev = task.listId
             A.updateTask(task.id, { listId: l.id })
-            undo(`Moved to ${l.name}`, () =>
-              A.updateTask(task.id, { listId: prev }),
-            )
           }}
         />
       )}
@@ -826,26 +810,7 @@ export function Tasks({
             </Button>
           </Actions>
           {filter === "overdue" && (
-            <Button
-              tone="quiet"
-              onPress={() => {
-                const old = tasksStore
-                  .get()
-                  .tasks.filter((x) => L.isOverdue(x))
-                  .map(({ id, dueDate, dueTime, remindAt }) => ({
-                    id,
-                    dueDate,
-                    dueTime,
-                    remindAt,
-                  }))
-                A.moveAllOverdueToToday()
-                undo("Moved overdue tasks to today", () =>
-                  old.forEach((x) => {
-                    A.setDue(x.id, x.dueDate, x.dueTime, x.remindAt)
-                  }),
-                )
-              }}
-            >
+            <Button tone="quiet" onPress={() => A.moveAllOverdueToToday()}>
               Move overdue to today
             </Button>
           )}
@@ -859,8 +824,7 @@ export function Tasks({
                   <Button
                     tone="quiet"
                     onPress={() => {
-                      const ids = A.clearChecked(list.id)
-                      undo("Checked items cleared", () => A.unclear(ids))
+                      A.clearChecked(list.id)
                     }}
                   >
                     Clear checked

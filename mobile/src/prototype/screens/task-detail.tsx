@@ -208,13 +208,10 @@ export function TaskDetail({ id }: { id: string }) {
     shopping = s.lists.find((l) => l.id === task.listId)?.kind === "shopping"
   const tick = () => {
       A.toggleTask(id)
-      undo(done ? "Task reopened" : "Task complete", () =>
-        done ? A.completeTask(id) : A.uncompleteTask(id),
-      )
+      if (!done) undo("Task complete", () => A.uncompleteTask(id))
     },
     remove = () => {
       A.deleteTask(id)
-      undo("Task deleted", () => A.restoreTask(id))
       go("/tasks")
     }
   return (
@@ -578,8 +575,7 @@ export function TaskDetail({ id }: { id: string }) {
               icon={CopyIcon}
               tone="quiet"
               onPress={() => {
-                const copy = A.duplicateTask(id)
-                if (copy) undo("Duplicated", () => A.removeTasks([copy.id]))
+                A.duplicateTask(id)
               }}
             >
               Copy

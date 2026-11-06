@@ -19,7 +19,6 @@ import {
   forget,
   type Memory,
   remember,
-  restoreMemory,
 } from "../companion/store"
 import {
   border,
@@ -40,7 +39,6 @@ import {
   PinnedFooter,
   Screen,
   Sheet,
-  undo,
 } from "../ui"
 import { LockedPreview } from "./locked-preview"
 
@@ -291,12 +289,8 @@ function MemoryEditor({
   const remove = () => {
     if (!memory) return
     confirm("Forget this?", `${name} stops using “${memory.text}”.`, () => {
-      const index = companionStore
-        .get()
-        .memories.findIndex((m) => m.id === memory.id)
       forget(memory.id)
       onClose()
-      undo("Memory forgotten", () => restoreMemory(memory, index))
     })
   }
   return (

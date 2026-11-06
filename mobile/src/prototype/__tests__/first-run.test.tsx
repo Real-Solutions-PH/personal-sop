@@ -454,9 +454,8 @@ describe("setup's Screen time step", () => {
     fireEvent.press(screen.getByText("Not now"))
     expect(requestScreenTime).not.toHaveBeenCalled()
     expect(dashStore.get().enabled.screen).toBe(false)
-    expect(toast.warning).toHaveBeenCalledWith(
-      "Screen time is off. Turn it on anytime in Settings.",
-    )
+    // Saying no is not a failure: nothing to report.
+    expect(toast.warning).not.toHaveBeenCalled()
   })
 })
 

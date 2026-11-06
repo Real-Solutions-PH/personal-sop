@@ -10,15 +10,7 @@ import { MoneyInput } from "../money-input"
 import { Copy, Line, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import {
-  Button,
-  confirm,
-  DateField,
-  Field,
-  PinnedFooter,
-  Sheet,
-  undo,
-} from "../ui"
+import { Button, confirm, DateField, Field, PinnedFooter, Sheet } from "../ui"
 import { isDay } from "../validation"
 import { ACCOUNT_COLORS, accountColorKey } from "./finance-account-card"
 import { FinChip } from "./finance-projection"
@@ -291,9 +283,6 @@ export function AccountEditor({
                   () => {
                     if (count) {
                       A.updateAccount(ex.id, { archived: true })
-                      undo(`${ex.name} archived`, () =>
-                        A.updateAccount(ex.id, { archived: false }),
-                      )
                     } else A.deleteAccount(ex.id)
                     onClose()
                   },

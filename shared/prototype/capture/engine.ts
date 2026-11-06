@@ -89,7 +89,7 @@ export interface CaptureBackend {
   confirm(cardId: string): void
   confirmAll(captureId: string): void
   discard(cardId: string): void
-  undo(cardId: string, quiet: boolean): void
+  undo(cardId: string): void
   redo(cardId: string): void
   edit(cardId: string, payload: Payload): void
   answer(cardId: string, value: string): void
@@ -481,7 +481,7 @@ function execute(
     case "command": {
       const target = p.recordId ? findCard(p.recordId) : null
       if (!target) return { refs: [] }
-      if (p.op === "delete") undoCard(target.card.id, true)
+      if (p.op === "delete") undoCard(target.card.id)
       else if (p.amount !== undefined && "amount" in target.card.payload)
         editCard(target.card.id, {
           ...target.card.payload,
@@ -575,8 +575,8 @@ export function discardCard(cardId: string) {
     ask: undefined,
   }))
 }
-export function undoCard(cardId: string, quiet = false) {
-  if (backend) return backend.undo(cardId, quiet)
+export function undoCard(cardId: string) {
+  if (backend) return backend.undo(cardId)
   const hit = findCard(cardId)
   if (!hit || (hit.card.state !== "saved" && hit.card.state !== "edited"))
     return
@@ -589,10 +589,6 @@ export function undoCard(cardId: string, quiet = false) {
           warn: "Changed or deleted since — open the entry instead.",
         },
   )
-  if (!quiet && ok)
-    toast("Undone", {
-      action: { label: "Redo", onClick: () => redoCard(cardId) },
-    })
 }
 export function redoCard(cardId: string) {
   if (backend) return backend.redo(cardId)
@@ -1116,9 +1112,6 @@ export function processCapture(id: string) {
         ? saveCard(it, cur, "ai")
         : it,
     )
-    const saved = items.filter(
-      (it): it is RecordCard => it.t === "record" && it.state === "saved",
-    )
     patchCapture(id, (c) => ({
       ...c,
       status: statusOf(items),
@@ -1139,20 +1132,6 @@ export function processCapture(id: string) {
         calls: s.spend.calls + 1,
       },
     }))
-    if (saved.length)
-      toast.success(
-        `Saved ${saved.length} entr${saved.length === 1 ? "y" : "ies"}`,
-        {
-          duration: 5000,
-          action: {
-            label: "Undo",
-            onClick: () => {
-              for (const r of saved) undoCard(r.id, true)
-              toast("Undone")
-            },
-          },
-        },
-      )
   }, THINK_MS(cap.text))
 }
 export function sendCapture(input: SendInput): string {
@@ -1254,9 +1233,5 @@ export function logQuickAdd(
       { ...cap, reply: { text: "Added by hand.", items: [saved] } },
     ],
   }))
-  toast.success(`Saved · ${text}`, {
-    duration: 5000,
-    action: { label: "Undo", onClick: () => undoCard(saved.id, true) },
-  })
   return saved
 }

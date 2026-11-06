@@ -264,7 +264,7 @@ describe.each(Object.keys(ENTITY))("%s Fern records", (kind) => {
     }
     expect(screen.getByText("shown")).toBeTruthy()
 
-    await act(async () => undoCard(card.id, true))
+    await act(async () => undoCard(card.id))
     await flush()
     expect(screen.getByText("absent")).toBeTruthy()
     // Every pull came back held: the rows came with the answers.

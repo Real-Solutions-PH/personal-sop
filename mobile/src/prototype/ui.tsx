@@ -1572,6 +1572,8 @@ export function confirm(
     { text: label, style: "destructive", onPress: onConfirm },
   ])
 }
+/** The one success toast: after a habit or a task is ticked off, with Undo.
+ * Nothing else confirms with a toast; the screen changing is the feedback. */
 export function undo(message: string, action: () => void) {
   toast(message, {
     action: { label: "Undo", onClick: action },

@@ -166,21 +166,19 @@ it("Done completes it at once and the row leaves, with Undo", () => {
   expect(get("b")?.status).toBe("open")
 })
 
-it("Today moves it by the today rule (a past time is dropped), with Undo", () => {
+it("Today moves it by the today rule (a past time is dropped), without a toast", () => {
   openTriage()
   fireEvent.press(quick("Today", LONG))
   expect(get("a")).toMatchObject({ dueDate: L.today(), dueTime: null })
   expect(L.isOverdue(get("a") as Task)).toBe(false)
-  act(() => lastUndo().onClick())
-  expect(get("a")).toMatchObject({ dueDate: lateDay(), dueTime: "09:00" })
+  expect(mockToast).not.toHaveBeenCalled()
 })
 
-it("Tomorrow moves it, with Undo", () => {
+it("Tomorrow moves it, without a toast", () => {
   openTriage()
   fireEvent.press(quick("Tomorrow", "Pay the plumber"))
   expect(get("b")?.dueDate).toBe(L.addDays(L.today(), 1))
-  act(() => lastUndo().onClick())
-  expect(get("b")?.dueDate).toBe(lateDay())
+  expect(mockToast).not.toHaveBeenCalled()
 })
 
 it("More opens the task's full actions, Delete included", () => {
@@ -226,16 +224,11 @@ it("rows outside triage keep their actions button and no quick row", () => {
   ).toBeNull()
 })
 
-it("the actions sheet's Tomorrow now has an Undo too", () => {
+it("the actions sheet's Tomorrow moves it, without a toast", () => {
   const t = get("b") as Task
   render(<TaskRow task={t} compact showActions />, { wrapper })
   fireEvent.press(screen.getByLabelText("Actions for Pay the plumber"))
   fireEvent.press(screen.getByText("Tomorrow"))
   expect(get("b")?.dueDate).toBe(L.addDays(L.today(), 1))
-  expect(mockToast).toHaveBeenCalledWith(
-    "Moved to tomorrow",
-    expect.objectContaining({
-      action: expect.objectContaining({ label: "Undo" }),
-    }),
-  )
+  expect(mockToast).not.toHaveBeenCalled()
 })

@@ -38,7 +38,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Empty, PinnedFooter, Screen, Sheet, Toggle, undo } from "../ui"
+import { Button, Empty, PinnedFooter, Screen, Sheet, Toggle } from "../ui"
 import { LockedPreview } from "./locked-preview"
 import { TaskRow } from "./tasks"
 
@@ -651,10 +651,7 @@ export function TaskListPage({ id }: { id: string }) {
             action={
               <Tap
                 onPress={() => {
-                  const cleared = A.clearChecked(id)
-                  undo(`Cleared ${cleared.length} items`, () =>
-                    A.unclear(cleared),
-                  )
+                  A.clearChecked(id)
                 }}
               >
                 <Copy size={12} weight="medium" style={{ color: t.primary }}>

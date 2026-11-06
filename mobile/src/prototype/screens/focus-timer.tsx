@@ -751,14 +751,13 @@ function TaskCheck({
   useEffect(() => () => onDone(false), [onDone])
   if (!task) return null
   const toggle = () => {
-    if (done) TA.uncompleteTask(id)
-    else {
-      TA.completeTask(id)
-      markCompletion()
+    if (done) {
+      TA.uncompleteTask(id)
+      return
     }
-    undo(done ? "Task reopened" : "Task complete", () =>
-      done ? TA.completeTask(id) : TA.uncompleteTask(id),
-    )
+    TA.completeTask(id)
+    markCompletion()
+    undo("Task complete", () => TA.uncompleteTask(id))
   }
   return (
     <AnimatedCheck
@@ -804,7 +803,6 @@ function HabitCheck({
   const toggle = () => {
     if (done) {
       HA.clearLog(id, today)
-      undo("Log cleared", restore)
       return
     }
     let minutes = 0
@@ -832,10 +830,10 @@ function HabitCheck({
   const step = () => {
     HA.incrementCount(id, undefined, today)
     const next = H.logIndex(habitsStore.get().logs).get(H.lk(id, today))
-    if (H.progressOf(habit, next) >= 1) {
-      markCompletion()
-      setStepped((n) => n + 1)
-    }
+    // Only the step that reaches the target ticks the habit off.
+    if (H.progressOf(habit, next) < 1) return
+    markCompletion()
+    setStepped((n) => n + 1)
     undo(`${habit.name} · ${H.valueLabel(habit, next?.value)}`, restore)
   }
   return (

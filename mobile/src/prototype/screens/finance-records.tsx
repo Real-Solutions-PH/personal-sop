@@ -38,7 +38,6 @@ import {
   Sheet,
   SwipeRow,
   Toggle,
-  undo,
 } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
 import {
@@ -181,8 +180,7 @@ export function Records({ accountId }: { accountId?: string }) {
       "Delete selected transactions?",
       `${selected.length} records will be removed.`,
       () => {
-        const removed = A.deleteRecords(selected)
-        undo("Records deleted", () => A.restoreRecords(removed))
+        A.deleteRecords(selected)
         setSelected([])
         setSelecting(false)
       },
@@ -397,8 +395,7 @@ export function Records({ accountId }: { accountId?: string }) {
                     selecting
                       ? undefined
                       : () => {
-                          const gone = A.deleteRecords([r.id])
-                          undo("Record deleted", () => A.restoreRecords(gone))
+                          A.deleteRecords([r.id])
                         }
                   }
                 >
@@ -864,8 +861,7 @@ export function RecordDetail({ id }: { id: string }) {
                 "Delete transaction?",
                 "This removes the transaction from your records.",
                 () => {
-                  const gone = A.deleteRecords([id])
-                  undo("Transaction deleted", () => A.restoreRecords(gone))
+                  A.deleteRecords([id])
                   go("/finance/records")
                 },
               ),

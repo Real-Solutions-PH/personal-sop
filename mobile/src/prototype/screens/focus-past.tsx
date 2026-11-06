@@ -18,7 +18,7 @@ import { Stepper } from "../fitness-controls"
 import { Copy, Line, Segmented } from "../native-kit"
 import { useTheme } from "../theme"
 import { TimeInput } from "../time-input"
-import { Button, DateField, Field, PinnedFooter, Sheet, undo } from "../ui"
+import { Button, DateField, Field, PinnedFooter, Sheet } from "../ui"
 
 const pad = (n: number) => String(n).padStart(2, "0")
 const dateOf = (t: number) => {
@@ -138,9 +138,8 @@ export function PastSessionSheet({
   }
   const remove = () => {
     if (!editId) return
-    const taken = P.takeSession(editId)
+    P.takeSession(editId)
     onClose()
-    if (taken) undo("Focus session deleted", () => P.putBackSession(taken))
   }
   // Errors show once something was tried, or as soon as a time is set in
   // the future (that one is never a typo in progress).

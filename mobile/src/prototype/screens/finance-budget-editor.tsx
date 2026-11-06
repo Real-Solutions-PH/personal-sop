@@ -11,7 +11,7 @@ import { MoneyInput } from "../money-input"
 import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { useTheme } from "../theme"
-import { Button, Field, PinnedFooter, Sheet, undo } from "../ui"
+import { Button, Field, PinnedFooter, Sheet } from "../ui"
 import { useMoney } from "./finance"
 import { FinPill } from "./finance-planned"
 export function BudgetEditor({
@@ -174,9 +174,6 @@ export function BudgetEditor({
                     tone="danger"
                     onPress={() => {
                       A.updateBudget(ex.id, { archived: true })
-                      undo(`${ex.name} archived`, () =>
-                        A.updateBudget(ex.id, { archived: false }),
-                      )
                       onClose()
                     }}
                   >

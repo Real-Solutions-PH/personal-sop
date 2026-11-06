@@ -110,7 +110,7 @@ test("starter lists skip a name already taken, in any case", () => {
   expect(names()).toEqual(["work", "Life", "Groceries"])
 })
 
-test("Move to list moves the task, toasts, and Undo puts it back", () => {
+test("Move to list moves the task, without a toast", () => {
   const life = list("Life")
   const task = A.createTask({ title: "Pay rent", source: "manual" })
   render(<TaskRow task={task} />, { wrapper })
@@ -121,10 +121,7 @@ test("Move to list moves the task, toasts, and Undo puts it back", () => {
   ).toMatchObject({ selected: true })
   fireEvent.press(screen.getByRole("radio", { name: "Life" }))
   expect(tasksStore.get().tasks[0].listId).toBe(life.id)
-  const [message, options] = (toast as unknown as jest.Mock).mock.calls[0]
-  expect(message).toBe("Moved to Life")
-  act(() => options.action.onClick())
-  expect(tasksStore.get().tasks[0].listId).toBeNull()
+  expect(toast).not.toHaveBeenCalled()
 })
 
 test("a list deleted elsewhere while choosing leaves the task where it was", () => {

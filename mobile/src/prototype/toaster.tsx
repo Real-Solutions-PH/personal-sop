@@ -2,10 +2,11 @@
 // thumb is, clear of the header), one compact row with the action ("Undo")
 // as a text button on the right.
 //
-// The rule: a toast either carries Undo or reports an error (or a warning
-// for a degraded outcome, like "offline, saved for later"). No success or
-// info toasts: the screen changing is the confirmation. A toast with an
-// action shows no icon; errors and warnings keep theirs.
+// The rule: the only success toast is the one after ticking off a habit or
+// a task, and it carries Undo. Every other toast reports an error (or a
+// warning for a degraded outcome, like "offline, saved for later"). No
+// other success or info toasts: the screen changing is the confirmation.
+// A toast with an action shows no icon; errors and warnings keep theirs.
 import { Toaster } from "sonner-native"
 import { fonts, useTheme } from "./theme"
 

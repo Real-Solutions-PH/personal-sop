@@ -128,13 +128,13 @@ it("a focused task is checked off on the page, and Undo reopens it", () => {
   expect(TA.getTask(task.id)?.status).toBe("open")
 })
 
-it("a done task can be reopened from the pill", () => {
+it("a done task can be reopened from the pill, without a toast", () => {
   const task = TA.createTask({ title: "Write brief" })
   TA.completeTask(task.id)
   focusOn("task", task.id, task.title)
   check("Reopen Write brief")
   expect(TA.getTask(task.id)?.status).toBe("open")
-  expect(lastUndo().message).toBe("Task reopened")
+  expect(toast).not.toHaveBeenCalled()
 })
 
 it("a check habit is ticked and Undo clears it", () => {
@@ -153,9 +153,11 @@ it("a count habit steps up from the pill and completes at its target", () => {
   focusOn("habit", h.id, h.name)
   fireEvent.press(screen.getByLabelText("Add 1 glasses"))
   expect(todayLog(h.id)).toMatchObject({ value: 1, status: "partial" })
-  expect(lastUndo().message).toBe("Stretch · 1/2 glasses")
+  // A step short of the target is not a tick: no toast.
+  expect(toast).not.toHaveBeenCalled()
   fireEvent.press(screen.getByLabelText("Add 1 glasses"))
   expect(todayLog(h.id)).toMatchObject({ value: 2, status: "done" })
+  expect(lastUndo().message).toBe("Stretch · 2/2 glasses")
   // Done: nothing left to add.
   expect(screen.queryByLabelText("Add 1 glasses")).toBeNull()
   act(() => lastUndo().run())

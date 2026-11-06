@@ -147,10 +147,8 @@ test("the changed amount and category are recorded against that date", () => {
     plannedOn: DAY,
     source: "planned",
   })
-  expect(toastMock).toHaveBeenCalledWith(
-    "Recorded Salary",
-    expect.objectContaining({ action: expect.any(Object) }),
-  )
+  // The record is the feedback: no toast.
+  expect(toastMock).not.toHaveBeenCalled()
 })
 
 test("closing the editor without saving records nothing", () => {
@@ -169,12 +167,13 @@ test("saving the same date twice keeps one record and updates it quietly", () =>
   editor(p).unmount()
   editor(p)
   fireEvent.press(screen.getByText("Received"))
-  expect(toastMock).toHaveBeenCalledWith("Recorded Salary", expect.anything())
+  expect(recordsOf(p)).toHaveLength(1)
   screen.unmount()
   editor(p)
   fireEvent.changeText(screen.getByLabelText("Amount ₱"), "28,000")
   fireEvent.press(screen.getByText("Received"))
-  // An update has no Undo, so no toast: the record itself is the feedback.
+  // The record itself is the feedback: no toast.
+  expect(toastMock).not.toHaveBeenCalled()
   expect(toastMock.success).not.toHaveBeenCalled()
   const rows = recordsOf(p)
   expect(rows).toHaveLength(1)
@@ -204,18 +203,6 @@ test("a transfer plan records one transfer and offers no fee", () => {
       toAccountId: to.id,
     }),
   ])
-})
-
-test("undo takes the recorded payment away", () => {
-  const p = plan()
-  editor(p)
-  fireEvent.press(screen.getByText("Received"))
-  expect(recordsOf(p)).toHaveLength(1)
-  const [, opts] = toastMock.mock.calls.find(
-    ([m]) => m === "Recorded Salary",
-  ) as [string, { action: { onClick: () => void } }]
-  act(() => opts.action.onClick())
-  expect(recordsOf(p)).toHaveLength(0)
 })
 
 test("Review & record leaves the date's sheet, then opens the editor", async () => {

@@ -75,7 +75,6 @@ import {
   MoreRows,
   Screen,
   Sheet,
-  undo,
   useNow,
   usePaged,
 } from "../ui"
@@ -888,10 +887,9 @@ export function RunDetail({
     avg !== null && prevPace !== null ? Math.round(avg - prevPace) : null
   const weight = R.weightAt(s, r.startedAt)
   const remove = () =>
-    confirm(`Delete this ${r.kind}?`, "You can undo right after.", () => {
-      const del = RL.deleteRun(id)
+    confirm(`Delete this ${r.kind}?`, "It's removed from your history.", () => {
+      RL.deleteRun(id)
       replace("/fitness/runs")
-      if (del) undo(`${del.name} deleted`, () => RL.restoreRun(del))
     })
   const save = () =>
     RL.patchRun(id, (x) => ({ ...x, name: name.trim() || x.name }))
@@ -1150,15 +1148,9 @@ export function RunDetail({
           switched={switched}
           // Only right after a switch: once saved, the record is the truth.
           suggestedM={switched ? motionM : undefined}
-          onClose={(how) => {
+          onClose={() => {
             setReadings(false)
             setSwitched(undefined)
-            // Closed with the switch kept but nothing saved: the sheet's
-            // own Undo is gone, so the toast carries it.
-            if (switched && how === "closed") {
-              const back = switched
-              undo("Switched to treadmill", () => RL.unmarkTreadmill(id, back))
-            }
           }}
         />
       )}
@@ -1194,8 +1186,6 @@ function ReadingsSheet({
     if (!touched) setKm(toKm(latest))
   }, [latest, touched])
   const save = () => {
-    const prev = run
-    const back = switched
     RL.setTreadmillReadings(
       run.id,
       {
@@ -1203,11 +1193,6 @@ function ReadingsSheet({
         inclinePct: incline > 0 ? incline : null,
       },
       true,
-    )
-    undo("Treadmill readings saved", () =>
-      back
-        ? RL.unmarkTreadmill(run.id, back)
-        : RL.restoreReadings(run.id, prev),
     )
     onClose("saved")
   }

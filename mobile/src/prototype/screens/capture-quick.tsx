@@ -114,7 +114,7 @@ export function QuickAdd({
         )}
         <Copy size={13} muted>
           {cur
-            ? "Saved straight away. Undo from the toast."
+            ? "Saved straight away. Undo it from Capture history."
             : "Pick what to log. Works offline and when AI is off."}
         </Copy>
         {!cur ? (

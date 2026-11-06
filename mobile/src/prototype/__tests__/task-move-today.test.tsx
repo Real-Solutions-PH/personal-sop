@@ -5,7 +5,7 @@
 import { configureStorage, resetAll } from "@domain/lib/store"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
-import { act, fireEvent, render, screen } from "@testing-library/react-native"
+import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
@@ -234,24 +234,13 @@ describe("the task actions sheet", () => {
     expect(at("Today")).toBeLessThan(at("Tomorrow"))
   })
 
-  it("Today moves it, with an Undo that puts the old date back", () => {
+  it("Today moves it, without a toast", () => {
     const old = L.addDays(L.today(), -3)
     const remindAt = L.isoAt(old, "08:45")
     open(late({ dueTime: "09:00", remindAt }))
     fireEvent.press(action("Today") as never)
     expect(get("late")).toMatchObject({ dueDate: L.today(), dueTime: null })
-    expect(mockToast).toHaveBeenCalledWith(
-      "Moved to today",
-      expect.objectContaining({
-        action: expect.objectContaining({ label: "Undo" }),
-      }),
-    )
-    act(() => mockToast.mock.calls[0][1].action.onClick())
-    expect(get("late")).toMatchObject({
-      dueDate: old,
-      dueTime: "09:00",
-      remindAt,
-    })
+    expect(mockToast).not.toHaveBeenCalled()
   })
 
   // Only a late task: moving a later or undated one to today and undoing it

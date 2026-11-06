@@ -191,8 +191,7 @@ function DayRow({ habit: h, day }: { habit: Habit; day: string }) {
     slot = L.slotFor(h.schedule, day)
   const set = (status: LogStatus | "clear") => {
     if (status === "clear") {
-      const old = A.clearLog(h.id, day)
-      if (old) undo(`Cleared ${h.name}`, () => A.restoreLog(old))
+      A.clearLog(h.id, day)
       return
     }
     const next = A.logHabit({
@@ -204,8 +203,10 @@ function DayRow({ habit: h, day }: { habit: Habit; day: string }) {
           ? Number(v || h.target || 1)
           : undefined,
     })
-    if (next)
-      undo(`${h.name} → ${status}`, () =>
+    // Marking the day done ticks the habit off; skipped or missed is a
+    // correction the grid already shows.
+    if (next && status === "done")
+      undo(`${h.name} done`, () =>
         log ? A.restoreLog(log) : A.deleteLog(next.id),
       )
   }

@@ -23,7 +23,6 @@ import {
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, TextInput, View } from "react-native"
-import { toast } from "sonner-native"
 import { useNoteGoals } from "../goal-ledger"
 import { MissedGoals } from "../missed-goals"
 import { MoneyInput } from "../money-input"
@@ -359,15 +358,8 @@ export function Goals() {
                   g.goal.status === "active" ? "Archive goal" : "Restore goal"
                 }
                 onPress={() => {
-                  if (g.goal.status === "active") {
-                    archiveGoal(g.goal.id)
-                    toast("Goal archived", {
-                      action: {
-                        label: "Undo",
-                        onClick: () => restoreGoal(g.goal.id),
-                      },
-                    })
-                  } else restoreGoal(g.goal.id)
+                  if (g.goal.status === "active") archiveGoal(g.goal.id)
+                  else restoreGoal(g.goal.id)
                 }}
               />
             </Line>

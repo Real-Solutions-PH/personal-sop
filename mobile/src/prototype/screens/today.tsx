@@ -560,9 +560,12 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
     lost = streakLost(st.broken, st.current, today),
     done = log?.status === "done"
   const toggle = () => {
-    if (done) HA.clearLog(habit.id, today)
-    else HA.checkHabit(habit.id, today)
-    undo(done ? "Log cleared" : "Habit checked", () => {
+    if (done) {
+      HA.clearLog(habit.id, today)
+      return
+    }
+    HA.checkHabit(habit.id, today)
+    undo("Habit checked", () => {
       HA.clearLog(habit.id, today)
       if (log) HA.restoreLog(log)
     })
@@ -573,11 +576,11 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
   const step = () => {
     HA.incrementCount(habit.id)
     const next = H.logIndex(habitsStore.get().logs).get(H.lk(habit.id, today))
-    if (H.progressOf(habit, next) >= 1) {
-      markCompletion()
-      setStepped((n) => n + 1)
-    }
-    undo(`Updated ${habit.name}`, () => {
+    // Only the step that reaches the target ticks the habit off.
+    if (H.progressOf(habit, next) < 1) return
+    markCompletion()
+    setStepped((n) => n + 1)
+    undo(`${habit.name} done`, () => {
       HA.clearLog(habit.id, today)
       if (log) HA.restoreLog(log)
     })
@@ -1504,9 +1507,6 @@ function FinanceCard() {
                     accent="fin"
                     onPress={() => {
                       FA.skipOccurrence(o.item.id, o.orig)
-                      undo(`Skipped ${o.item.name}`, () =>
-                        FA.unskipOccurrence(o.item.id, o.orig),
-                      )
                     }}
                   >
                     Skip

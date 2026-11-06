@@ -49,7 +49,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { liveMode } from "@/live/config"
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { confirm, Field, Sheet, Toggle, undo } from "../ui"
+import { confirm, Field, Sheet, Toggle } from "../ui"
 import { GroupFace, useChatTitle } from "./inbox"
 import { Avatar, Bounce, haptic, ProgressCard, VideoMedia } from "./kit"
 import { pickMedia } from "./media"
@@ -725,8 +725,7 @@ function ActionMenu({
                         "Delete message?",
                         "Everyone in the chat will see that a message was deleted.",
                         () => {
-                          const restore = unsend(chatId, m.id)
-                          undo("Message deleted", restore)
+                          unsend(chatId, m.id)
                         },
                         "Delete",
                       ),

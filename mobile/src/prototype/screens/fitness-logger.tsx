@@ -70,7 +70,6 @@ import {
   Screen,
   Sheet,
   SwipeRow,
-  undo,
   useNow,
 } from "../ui"
 import { displayMass } from "../units"
@@ -459,8 +458,7 @@ export function WorkoutLogger() {
       },
     )
   const deleteSet = (weId: string, setId: string) => {
-    const removed = A.removeSet(w.id, weId, setId)
-    if (removed) undo("Set deleted", () => A.restoreSet(w.id, weId, removed))
+    A.removeSet(w.id, weId, setId)
   }
   /** "Create" named an exercise the catalog already has: use that one. */
   const pickExisting = (e: Exercise) => {

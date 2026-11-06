@@ -45,16 +45,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import {
-  Button,
-  Choices,
-  confirm,
-  Empty,
-  Field,
-  Screen,
-  Sheet,
-  undo,
-} from "../ui"
+import { Button, Choices, confirm, Empty, Field, Screen, Sheet } from "../ui"
 import { useMoney } from "./finance"
 import { AccountIcon } from "./finance-accounts"
 import { FinPill } from "./finance-planned"
@@ -1404,23 +1395,8 @@ export function Imports() {
                       label="Discard import"
                       onPress={() => {
                         if (liveMode)
-                          void liveImport()
-                            .discard(i.id)
-                            .then(
-                              () =>
-                                undo(
-                                  "Import discarded",
-                                  () =>
-                                    void liveImport()
-                                      .restore(i)
-                                      .catch(liveError),
-                                ),
-                              liveError,
-                            )
-                        else {
-                          A.deleteImport(i.id)
-                          undo("Import discarded", () => A.restoreImport(i))
-                        }
+                          void liveImport().discard(i.id).catch(liveError)
+                        else A.deleteImport(i.id)
                       }}
                     />
                   )}

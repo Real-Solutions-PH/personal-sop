@@ -35,7 +35,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Empty, Screen, Sheet, undo } from "../ui"
+import { Button, Empty, Screen, Sheet } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 
 /** A timed exercise's goal in a template: 5-minute steps for cardio
@@ -392,9 +392,8 @@ export function Templates({ id }: { id?: string }) {
           </Button>
           <Tap
             onPress={() => {
-              const del = A.deleteTemplate(existing.id)
+              A.deleteTemplate(existing.id)
               go("/fitness/templates")
-              if (del) undo(`${del.name} deleted`, () => A.upsertTemplate(del))
             }}
             style={{
               height: 44,

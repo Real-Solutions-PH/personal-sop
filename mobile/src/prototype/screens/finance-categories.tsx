@@ -28,7 +28,6 @@ import {
   PinnedFooter,
   Screen,
   Sheet,
-  undo,
 } from "../ui"
 import { FinChip } from "./finance-projection"
 
@@ -147,7 +146,7 @@ export function CategoryForm({
       `Delete ${ex.name}?`,
       "Nothing uses it. Its sub-categories will become main categories.",
       () => {
-        undo(`${ex.name} deleted`, A.deleteCategoryMoving(ex.id))
+        A.deleteCategoryMoving(ex.id)
         onClose()
       },
     )
@@ -173,7 +172,7 @@ export function CategoryForm({
             disabled={!to}
             onPress={() => {
               if (!ex || !to) return
-              undo(`${ex.name} deleted`, A.deleteCategoryMoving(ex.id, to))
+              A.deleteCategoryMoving(ex.id, to)
               onClose()
             }}
           >
@@ -340,14 +339,12 @@ export function Categories() {
     for (let i = to - 1; i >= 0 && !parent; i--)
       if (next[i].type === "main") parent = next[i].c
     if (!parent) return
-    const after = next[to + 1],
-      restore = A.moveSubCategory(
-        row.c.id,
-        parent.id,
-        after?.type === "sub" ? after.c.id : undefined,
-      )
-    if (parent.id !== row.c.parentId)
-      undo(`Moved ${row.c.name} to ${parent.name}`, restore)
+    const after = next[to + 1]
+    A.moveSubCategory(
+      row.c.id,
+      parent.id,
+      after?.type === "sub" ? after.c.id : undefined,
+    )
   }
   const body = (c: Category, count: number, kids = 0) => (
     <>
