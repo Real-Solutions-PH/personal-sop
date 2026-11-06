@@ -12,7 +12,13 @@ module.exports = (config) => ({
   displayName: "Unfurl",
   bundleIdentifier: ".widgets",
   deploymentTarget: "17.0",
-  frameworks: ["WidgetKit", "SwiftUI", "ActivityKit", "AppIntents"],
+  frameworks: [
+    "WidgetKit",
+    "SwiftUI",
+    "ActivityKit",
+    "AppIntents",
+    "CoreMotion",
+  ],
   colors: {
     $accent: tone("primary"),
     $widgetBackground: tone("card"),
@@ -29,6 +35,7 @@ module.exports = (config) => ({
     fin: tone("fin"),
     life: tone("life"),
     warn: tone("warn"),
+    good: tone("good"),
     foc: tone("foc"),
     scr: tone("scr"),
     // Fern's own greens: the orb and the Fern buttons only (docs/brand/fern.md).

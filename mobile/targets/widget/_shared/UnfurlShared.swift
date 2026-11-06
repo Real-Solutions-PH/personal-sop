@@ -75,6 +75,12 @@ struct WidgetSnapshot: Codable {
     var daysLeft: Double
     var hidden: Bool
   }
+  /** Today's steps (calendar `day`, midnight to midnight). */
+  struct Steps: Codable {
+    var day: String
+    var count: Int
+    var goal: Int
+  }
   struct Live: Codable {
     var kind: String
     var title: String
@@ -93,6 +99,9 @@ struct WidgetSnapshot: Codable {
   /** The apps the in-app launcher shows, in its order (keys such as
    * "finance"); missing from snapshots written before the Apps widget. */
   var apps: [String]?
+  /** Nil when Fitness is off, Health is not connected, or the snapshot
+   * predates the Steps widgets. */
+  var steps: Steps?
 
   var dayEndsDate: Date? { UnfurlISO.date(dayEnds) }
 }

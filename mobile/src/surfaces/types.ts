@@ -78,6 +78,13 @@ export interface WidgetSnapshot {
     daysLeft: number
     hidden: boolean
   } | null
+  /** Today's steps for the Steps widgets. Null when Fitness is off or this
+   * device has no step source the app can read (Apple Health not connected,
+   * or Android, which reads none yet). ``day`` is the calendar day the count
+   * is for (Health's days run midnight to midnight, not the 4:00 ``day``
+   * above), so a widget never shows yesterday's steps as today's. Missing
+   * from snapshots written before the Steps widgets. */
+  steps?: { day: string; count: number; goal: number } | null
   /** The routine, workout or timer running now, for the Today widget. */
   live: { kind: LiveKind; title: string; href: string } | null
   /** The apps the Apps widget opens: the ones the in-app launcher shows, in

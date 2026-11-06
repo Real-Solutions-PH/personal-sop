@@ -7,4 +7,5 @@
   <string name="unfurl_widget_money_desc">What you can spend today and what\'s left of your budget.</string>
   <string name="unfurl_widget_fern_desc">Chat with Fern, dictate, or send a photo in one tap.</string>
   <string name="unfurl_widget_apps_desc">Open Habits, Tasks, Finance, Journal and the rest in one tap.</string>
+  <string name="unfurl_widget_steps_desc">Today\'s steps against your daily goal.</string>
 </resources>
