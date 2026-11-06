@@ -271,7 +271,7 @@ describe("the list", () => {
       screen.getByText("File the quarterly taxes before the bank closes"),
     ).toBeTruthy()
     expect(screen.getByText("overdue 1d")).toBeTruthy()
-    expect(screen.getByText("3 of 6 done · 2 misses")).toBeTruthy()
+    expect(screen.getByText("3 of 6 done · off target · 2 misses")).toBeTruthy()
   })
 
   it("a row opens its record", () => {

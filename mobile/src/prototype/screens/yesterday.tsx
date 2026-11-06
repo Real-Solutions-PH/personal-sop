@@ -90,6 +90,7 @@ export function Yesterday() {
       ended={ended}
       done={ring?.done ?? null}
       due={ring?.due ?? null}
+      onTarget={ring?.onTarget ?? null}
       read={read}
       onRetry={() =>
         client.refetchQueries({ queryKey: yesterdayAnalysisKey(day) })
@@ -105,6 +106,7 @@ export function YesterdayView({
   ended,
   done,
   due,
+  onTarget,
   read,
   onRetry,
 }: {
@@ -114,22 +116,28 @@ export function YesterdayView({
   ended: Map<string, number>
   done: number | null
   due: number | null
+  /** The day's verdict at the person's threshold, as Home's card says it. */
+  onTarget: boolean | null
   read: ReadState
   onRetry: () => void
 }) {
   const t = useTheme()
   const [noting, setNoting] = useState<Miss | null>(null)
   const [text, setText] = useState("")
-  const offTarget = due !== null && done !== null && due > 0 && done < due
   return (
     <Screen title="Yesterday" eyebrow={longDay(day)}>
       {due !== null && done !== null && due > 0 && (
         <Copy
           size={14}
           weight="medium"
-          style={{ color: offTarget ? t.bad : t.good }}
+          style={{ color: onTarget === false ? t.bad : t.good }}
         >
           {done.toLocaleString("en-US")} of {due.toLocaleString("en-US")} done
+          {onTarget === false
+            ? " · off target"
+            : onTarget
+              ? " · on target"
+              : ""}
           {misses.length
             ? ` · ${misses.length.toLocaleString("en-US")} ${misses.length === 1 ? "miss" : "misses"}`
             : ""}
@@ -151,8 +159,8 @@ export function YesterdayView({
       </SectionHeading>
       <LockedPreview
         locked={!misses.length}
-        title="Nothing slipped yesterday"
-        detail="Every habit, task and target held. Misses show here the day after, each with what it cost."
+        title="Every habit, task and target held"
+        detail="When something slips, it shows here the next day with what it cost, and a place to note why."
         action={{ label: "See all misses", href: "/stats/misses" }}
         color={t.good}
         icon={Trophy}
