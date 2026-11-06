@@ -62,6 +62,7 @@ import { useMoney } from "../screens/finance"
 import { NutritionDay } from "../screens/nutrition-day"
 import { type Accent, fonts, useTheme } from "../theme"
 import { ask, metricLabel } from "./brain"
+import { FinanceBlock } from "./finance-block"
 import { ModuleIntroBlock } from "./module-intro-block"
 import {
   addTracker,
@@ -1669,6 +1670,12 @@ export function BlockView({ block, live }: { block: Block; live?: boolean }) {
       return <ThinkingBlock text={block.text} done={block.done} />
     case "nutrition":
       return <NutritionBlock day={block.day} />
+    case "finance":
+      return (
+        <Panel accent={t.fin}>
+          <FinanceBlock day={block.day} />
+        </Panel>
+      )
     case "module_off":
       return (
         <ModuleOffBlock

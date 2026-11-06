@@ -38,6 +38,9 @@ export type Block =
   | { t: "module_intro"; module: string; text: string }
   /** The day's food against the target, as Fern pulled it up. */
   | { t: "nutrition"; day: string }
+  /** The money side of a reply about money: spent that day, the month's
+   * budget and the next seven days' bills (finance-block.tsx). */
+  | { t: "finance"; day: string }
   /** Photos sent with a message: media ids, and links when known (local
    * while sending, signed by the server when read). */
   | { t: "photos"; media?: string[]; urls?: (string | null)[] }
