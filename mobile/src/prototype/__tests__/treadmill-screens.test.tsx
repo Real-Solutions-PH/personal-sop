@@ -166,7 +166,7 @@ it("a treadmill record shows the machine, its incline, and no climb", () => {
   expect(screen.getByText(/treadmill/)).toBeTruthy()
 })
 
-it("entering the treadmill's distance and incline re-estimates calories, with Undo", () => {
+it("entering the treadmill's distance and incline re-estimates calories, without a toast", () => {
   fitStore.set((s) => ({ ...s, runs: [treadmill()] }))
   render(<RunDetail id="w1" />, { wrapper })
   fireEvent.press(screen.getByLabelText("Edit treadmill distance and incline"))
@@ -176,16 +176,7 @@ it("entering the treadmill's distance and incline re-estimates calories, with Un
   const r = R.runsOf(fitStore.get())[0]
   // 75 m/min at 5%, 70 kg assumed: 14.25 × 70 × 40 / 200 = 199.5 → 200.
   expect(r).toMatchObject({ distanceM: 3000, inclinePct: 5, kcal: 200 })
-  expect(toast).toHaveBeenCalledWith(
-    "Treadmill readings saved",
-    expect.objectContaining({
-      action: expect.objectContaining({ label: "Undo" }),
-    }),
-  )
-  const undo = (toast as unknown as jest.Mock).mock.calls.at(-1)[1].action
-    .onClick
-  act(() => undo())
-  expect(R.runsOf(fitStore.get())[0].distanceM).toBe(500)
+  expect(toast).not.toHaveBeenCalled()
 })
 
 it("a GPS walk that was on a treadmill is switched, with Undo in the sheet", () => {
@@ -241,7 +232,7 @@ it("a treadmill walk is celebrated even before its distance is known", () => {
   ).toBeTruthy()
 })
 
-it("a switch closed without saving can still be undone, from a toast", async () => {
+it("a switch closed without saving stays switched, without a toast", async () => {
   fitStore.set((s) => ({ ...s, runs: [walk()] }))
   render(<RunDetail id="w1" />, { wrapper })
   fireEvent.press(screen.getByText("Recorded on a treadmill?"))
@@ -249,20 +240,11 @@ it("a switch closed without saving can still be undone, from a toast", async () 
   await act(async () => {})
   expect(screen.getByLabelText("Distance").props.value).toBe("2.31")
   fireEvent.press(screen.getByLabelText("Close"))
-  expect(toast).toHaveBeenCalledWith(
-    "Switched to treadmill",
-    expect.objectContaining({
-      action: expect.objectContaining({ label: "Undo" }),
-    }),
-  )
-  const undo = (toast as unknown as jest.Mock).mock.calls.at(-1)[1].action
-    .onClick
-  act(() => undo())
-  expect(R.runsOf(fitStore.get())[0]).toMatchObject({ distanceM: 500 })
-  expect(R.runsOf(fitStore.get())[0].route).toHaveLength(2)
+  expect(toast).not.toHaveBeenCalled()
+  expect(R.runsOf(fitStore.get())[0]).toMatchObject({ indoor: true, route: [] })
 })
 
-it("saving right after a switch: Undo goes back to the GPS record", async () => {
+it("saving right after a switch keeps the treadmill record, without a toast", async () => {
   fitStore.set((s) => ({ ...s, runs: [walk()] }))
   render(<RunDetail id="w1" />, { wrapper })
   fireEvent.press(screen.getByText("Recorded on a treadmill?"))
@@ -272,12 +254,7 @@ it("saving right after a switch: Undo goes back to the GPS record", async () => 
     indoor: true,
     distanceM: 2310,
   })
-  const undo = (toast as unknown as jest.Mock).mock.calls.at(-1)[1].action
-    .onClick
-  act(() => undo())
-  const r = R.runsOf(fitStore.get())[0]
-  expect(r.route).toHaveLength(2)
-  expect(r.indoor).toBeUndefined()
+  expect(toast).not.toHaveBeenCalled()
 })
 
 it("the calorie note says when a steep incline is counted as 15%", () => {

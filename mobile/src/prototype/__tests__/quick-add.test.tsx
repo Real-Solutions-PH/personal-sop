@@ -240,10 +240,8 @@ test("saving a new card's expense remembers its account; the next tap saves on i
     categoryId: "dining",
     source: "quick-add",
   })
-  // Undo takes it back.
-  const [, opts] = (toast as unknown as jest.Mock).mock.calls.at(-1)
-  opts.action.onClick()
-  expect(finStore.get().records).toHaveLength(count + 1)
+  // Saved quietly: the records list is the feedback.
+  expect(toast).not.toHaveBeenCalled()
 })
 
 test("a tied card with an uncategorised merchant still asks", () => {

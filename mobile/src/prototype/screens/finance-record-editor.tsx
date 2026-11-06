@@ -27,7 +27,7 @@ import { Copy, Line, Segmented, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
-import { Button, Choices, DateField, Field, Sheet, undo } from "../ui"
+import { Button, Choices, DateField, Field, Sheet } from "../ui"
 import { isDay } from "../validation"
 import { CategoryPicker } from "./finance-category-picker"
 import {
@@ -167,20 +167,20 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     const before = finStore.get()
     // After the write: warn for a budget it broke, cheer a savings goal it
     // reached. Both ride on the Undo toast's line, since the sheet closes.
-    const outcome = () => {
+    /** Haptics for what the save changed. A budget it broke is a miss with
+     * a cost: when the editor closes (so the sheet's own line is gone), it
+     * says so in a warning. */
+    const outcome = (closing: boolean) => {
       const after = finStore.get()
       const broke = budgetHits(before, after, date)
       const reached = goalsReached(before, after)
-      if (broke.length)
+      if (broke.length) {
         void Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Warning,
         ).catch(() => {})
-      else if (reached.length) feel.success()
-      const say = [
-        ...broke.slice(0, 1).map((h) => hitLine(h, (v) => money(v, cur))),
-        ...reached.map((a) => `${a.name} goal reached 🎉`),
-      ]
-      return { broke, say: say.length ? ` · ${say.join(" · ")}` : "" }
+        if (closing) toast.warning(hitLine(broke[0], (v) => money(v, cur)))
+      } else if (reached.length) feel.success()
+      return { broke }
     }
     const at = new Date(`${date}T${time}:00`).toISOString(),
       input = {
@@ -215,20 +215,17 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         fxRate: foreign ? fx?.rate : undefined,
       })
       if (!r) toast.error("That scheduled payment no longer exists")
-      // An update has no undo (it would delete a record that existed
-      // before this save), so it says nothing: the list shows it.
+      // The list shows it; an update is not a new record to report.
       else if (!r.updated) {
         onSaved?.(r.record)
-        undo(`Recorded ${plan?.name ?? "payment"}${outcome().say}`, () =>
-          A.deleteRecords([r.record.id]),
-        )
+        outcome(true)
       }
       onClose()
       return
     }
     if (record) {
       A.updateRecord(record.id, input)
-      outcome()
+      outcome(false)
       onClose()
       return
     }
@@ -284,15 +281,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
           })
       created = r ? [r.record] : []
       onSaved?.(created[0])
-      const result = outcome()
-      const next = C.nextOccurrence(finStore.get(), p, C.addDays(date, 1))
-      undo(
-        `Saved ${money(n, cur)} · ${repeatText(rule).toLowerCase()}${next ? `, next ${C.shortDate(next)}` : ""}${result.say}`,
-        () => {
-          A.deleteRecords(created.map((x) => x.id))
-          A.deletePlanned(p.id)
-        },
-      )
+      const result = outcome(!again)
       if (again) {
         setLanded(result.broke)
         setAmount("")
@@ -304,10 +293,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
       return
     } else created = [A.addRecord({ ...input, source: "manual" })]
     onSaved?.(created[0])
-    const result = outcome()
-    undo(`Saved ${money(n, cur)}${result.say}`, () =>
-      A.deleteRecords(created.map((r) => r.id)),
-    )
+    const result = outcome(!again)
     if (again) {
       setLanded(result.broke)
       setAmount("")
@@ -354,9 +340,8 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               <Button
                 tone="danger"
                 onPress={() => {
-                  const gone = A.deleteRecords([record.id])
+                  A.deleteRecords([record.id])
                   onClose()
-                  undo("Transaction deleted", () => A.restoreRecords(gone))
                 }}
               >
                 Delete

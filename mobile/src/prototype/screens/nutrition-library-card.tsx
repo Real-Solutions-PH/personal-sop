@@ -34,7 +34,7 @@ import { dayIntake } from "../body-rewards"
 import { border, Copy, Frame, Line, Tap } from "../native-kit"
 import { go, replace } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, Field, undo } from "../ui"
+import { Button, Field } from "../ui"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 import { FoodThumb, fmt, SAMPLE_FOODS } from "./nutrition-food-detail"
 import { amountLabel, defaultAmount, libraryItem } from "./nutrition-food-pick"
@@ -411,7 +411,6 @@ function MealRow({ meal: m, day }: { meal: Meal; day: string }) {
         const c = A.duplicateMeal(m.id, day)
         if (!c) return
         mealSaved(before, day)
-        undo(`Logged ${c.label} · ${kcal} kcal`, () => A.deleteMeal(c.id))
         replace(`/nutrition?day=${day}`)
       }}
       style={{

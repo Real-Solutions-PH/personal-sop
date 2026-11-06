@@ -41,7 +41,6 @@ import {
   MoreRows,
   Screen,
   Sheet,
-  undo,
   usePaged,
 } from "../ui"
 export function Workouts() {
@@ -441,11 +440,10 @@ export function WorkoutDetail({
       "Delete this workout?",
       prs.length
         ? `It holds ${prs.length} PR${prs.length > 1 ? "s" : ""} — they’ll be recomputed.`
-        : "You can undo right after.",
+        : "It's removed from your history.",
       () => {
-        const del = A.deleteWorkout(id)
+        A.deleteWorkout(id)
         replace("/fitness/workouts")
-        if (del) undo(`${del.name} deleted`, () => A.restoreWorkout(del))
       },
     )
   const heading = (title: string) => (
@@ -684,9 +682,8 @@ export function WorkoutDetail({
       {summary && (
         <Tap
           onPress={() => {
-            const del = A.deleteWorkout(id)
+            A.deleteWorkout(id)
             replace("/fitness")
-            if (del) undo("Workout discarded", () => A.restoreWorkout(del))
           }}
           style={{ padding: 12, alignItems: "center" }}
         >

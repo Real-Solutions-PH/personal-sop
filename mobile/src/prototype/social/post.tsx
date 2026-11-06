@@ -15,7 +15,7 @@ import Animated, { FadeIn, FadeInDown } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { back } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { confirm, Empty, undo } from "../ui"
+import { confirm, Empty } from "../ui"
 import { Avatar, Bounce, CheerSprout, haptic, Name, PersonAvatar } from "./kit"
 import { PostCard } from "./post-card"
 import {
@@ -177,8 +177,7 @@ function remove(postId: string, c: Comment) {
       ? `Its ${replies === 1 ? "reply goes" : `${replies} replies go`} with it.`
       : "It will be removed for everyone.",
     () => {
-      const restore = deleteComment(postId, c.id)
-      undo("Comment deleted", restore)
+      deleteComment(postId, c.id)
     },
     "Delete",
   )

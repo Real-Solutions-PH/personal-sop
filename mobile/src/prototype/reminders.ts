@@ -50,7 +50,7 @@ export async function enableReminders(
     if (!p.canAskAgain) {
       toast.warning("Turn on notifications for Unfurl in Settings")
       await openSettings()
-    } else toast.warning("Reminders stay off. You can turn them on any time.")
+    }
     return status
   } catch {
     toast.error("Couldn't change notification settings. Try again.")

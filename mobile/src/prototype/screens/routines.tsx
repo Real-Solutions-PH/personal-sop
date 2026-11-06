@@ -34,16 +34,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import {
-  Button,
-  confirm,
-  Empty,
-  Field,
-  Screen,
-  ScrollLock,
-  Sheet,
-  undo,
-} from "../ui"
+import { Button, confirm, Empty, Field, Screen, ScrollLock, Sheet } from "../ui"
 
 function HabitIcon({ icon }: { icon: string }) {
   const t = useTheme()
@@ -419,7 +410,6 @@ export function RoutineDetail({ id }: { id: string }) {
                         id,
                         prev.filter((_, j) => j !== i),
                       )
-                      undo("Step removed", () => A.setRoutineSteps(id, prev))
                     }}
                   />
                 </View>

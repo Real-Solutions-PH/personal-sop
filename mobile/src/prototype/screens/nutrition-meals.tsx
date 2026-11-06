@@ -44,7 +44,7 @@ import {
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
-import { Button, Empty, Screen, undo } from "../ui"
+import { Button, Empty, Screen } from "../ui"
 import { isDay } from "../validation"
 import { MealThumb } from "./nutrition"
 import { LibraryPickSheet } from "./nutrition-food-pick"
@@ -295,12 +295,8 @@ export function MealDetail({ id }: { id: string }) {
     conf = meal.confidence ?? 0,
     back = `/nutrition?day=${dayKey(new Date(meal.eatenAt))}`
   const del = () => {
-      const m = A.deleteMeal(id)
+      A.deleteMeal(id)
       replace(back)
-      if (m)
-        undo(review ? "Estimate discarded" : "Meal deleted", () =>
-          A.restoreMeal(m),
-        )
     },
     rehint = () => {
       if (!hint.trim()) return
@@ -555,8 +551,7 @@ export function MealDetail({ id }: { id: string }) {
                   icon={CopyIcon}
                   tone="quiet"
                   onPress={() => {
-                    const c = A.duplicateMeal(id)
-                    if (c) undo("Added to today", () => A.deleteMeal(c.id))
+                    A.duplicateMeal(id)
                   }}
                 >
                   Duplicate to today
@@ -658,16 +653,12 @@ export function ManualMeal() {
               const eatenAt = stamp()
               if (!eatenAt) return
               const before = dayIntake(fitStore.get(), day)
-              const meal = A.logMeal({
+              A.logMeal({
                 items: items.map(({ id: _id, ...rest }) => rest),
                 eatenAt,
                 label,
               })
               mealSaved(before, day)
-              undo(
-                `Logged ${meal.label} · ${Math.round(totals.kcal)} kcal`,
-                () => A.deleteMeal(meal.id),
-              )
               replace(`/nutrition?day=${day}`)
             }}
           >{`Save meal${items.length ? ` · ${Math.round(totals.kcal)} kcal` : ""}`}</Button>
@@ -868,12 +859,6 @@ export function ManualMeal() {
                   label={`Delete recipe ${r.name}`}
                   onPress={() => {
                     A.deleteRecipe(r.id)
-                    undo(`Deleted ${r.name}`, () =>
-                      fitStore.set((s) => ({
-                        ...s,
-                        recipes: [...s.recipes, r],
-                      })),
-                    )
                   }}
                 >
                   <X size={12} color={t.muted} />

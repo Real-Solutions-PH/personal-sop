@@ -7,7 +7,7 @@ import * as C from "@domain/finance/calc"
 import type { PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { act, fireEvent, render, screen } from "@testing-library/react-native"
+import { fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
@@ -102,7 +102,7 @@ function plan(extra: Partial<PlannedItem> = {}): PlannedItem {
 }
 const ids = () => finStore.get().planned.map((p) => p.id)
 
-test("Delete removes a scheduled payment, with Undo, even once it was paid", () => {
+test("Delete removes a scheduled payment, even once it was paid", () => {
   const p = plan()
   A.settleOccurrence(
     p.id,
@@ -119,15 +119,8 @@ test("Delete removes a scheduled payment, with Undo, even once it was paid", () 
   expect(ids()).not.toContain(p.id)
   // Its paid history stays, still linked.
   expect(finStore.get().records.some((r) => r.plannedId === p.id)).toBe(true)
-  expect(toastMock).toHaveBeenCalledWith(
-    "Deleted Netflix",
-    expect.objectContaining({
-      action: expect.objectContaining({ label: "Undo" }),
-    }),
-  )
-  const undo = toastMock.mock.calls[0][1].action.onClick as () => void
-  act(() => undo())
-  expect(ids()).toEqual(before)
+  expect(toastMock).not.toHaveBeenCalled()
+  expect(ids()).toEqual(before.filter((x) => x !== p.id))
 })
 
 test("items that already ended are off the scheduled list", () => {

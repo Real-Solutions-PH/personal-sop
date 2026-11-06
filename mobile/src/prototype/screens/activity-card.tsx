@@ -9,7 +9,7 @@ import { AppState, View } from "react-native"
 import { type Activity, healthAvailable, readActivity } from "../health"
 import { scheduleEatBackReminder } from "../local-reminders"
 import { Copy, Frame, Line } from "../native-kit"
-import { Button, undo } from "../ui"
+import { Button } from "../ui"
 import { ConnectHealthCard, useHealthAsked } from "./health-connect"
 
 /** What the button offers: nothing added yet, more once the burn has grown
@@ -27,11 +27,7 @@ export function eatBackOffer(
 const n = (v: number) => v.toLocaleString("en-US")
 
 function addBurn(day: string, kcal: number) {
-  const before = adjustmentOn(fitStore.get(), day)
   setBurnAdjustment(day, kcal)
-  undo("Added burned calories to the budget", () =>
-    setBurnAdjustment(day, before),
-  )
 }
 
 export function ActivityCard({ day }: { day: string }) {

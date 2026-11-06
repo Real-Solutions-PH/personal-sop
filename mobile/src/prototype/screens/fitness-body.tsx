@@ -34,15 +34,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import {
-  Button,
-  DateField,
-  Field,
-  PinnedFooter,
-  Screen,
-  Sheet,
-  undo,
-} from "../ui"
+import { Button, DateField, Field, PinnedFooter, Screen, Sheet } from "../ui"
 import { isDay } from "../validation"
 import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 import { StatsShell } from "./stats-shell"
@@ -213,9 +205,7 @@ export function WeighInEditor({
         <Button
           tone="quiet"
           onPress={() => {
-            const removed = A.deleteWeighIn(entry.id)
-            if (removed)
-              undo("Weigh-in deleted", () => A.restoreWeighIn(removed))
+            A.deleteWeighIn(entry.id)
             onClose()
           }}
         >

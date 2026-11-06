@@ -10,7 +10,7 @@ import { toast } from "sonner-native"
 import { copyText } from "../media"
 import { Copy, Frame } from "../native-kit"
 import { quickAdd } from "../quick-add"
-import { Button, Screen, undo } from "../ui"
+import { Button, Screen } from "../ui"
 import { FinanceHome } from "./finance-home"
 
 export const QUICK_ADD_URL =
@@ -30,17 +30,14 @@ export function FinanceQuickAdd() {
     if (q.error) toast.error(q.error)
     else if (q.auto && saved.current !== key) {
       saved.current = key
-      const { amount = 0, accountId, categoryId, payee } = q.prefill,
-        r = A.logExpense({
-          amount,
-          accountId,
-          categoryId,
-          payee,
-          source: "quick-add",
-        })
-      undo(`Saved ${q.prefill.payee ?? "Apple Pay"} expense`, () =>
-        A.deleteRecord(r.id),
-      )
+      const { amount = 0, accountId, categoryId, payee } = q.prefill
+      A.logExpense({
+        amount,
+        accountId,
+        categoryId,
+        payee,
+        source: "quick-add",
+      })
     }
   }, [q, key])
   function remember(r: FinRecord) {
@@ -64,7 +61,7 @@ const STEPS = [
   "Pick the cards to watch (or all of them), keep “When I tap” on, choose Run Immediately, then Next → New Blank Automation.",
   "Add a URL Encode action and set its text to the Merchant variable (tap the field, then Shortcut Input → Merchant). Add a second URL Encode for Card or Pass.",
   "Add an Open URLs action and paste the link below. Replace each [bracket] with the matching variable: Amount from Shortcut Input, and the two URL Encode results for Merchant and Card or Pass.",
-  "Tap Done. Next time you pay, the expense saves straight away to the account named like the card, with Undo. If no account (or more than one) matches, the app opens the expense to pick one — after that, that card saves straight away too.",
+  "Tap Done. Next time you pay, the expense saves straight away to the account named like the card. If no account (or more than one) matches, the app opens the expense to pick one — after that, that card saves straight away too.",
 ]
 
 export function ApplePaySetup() {

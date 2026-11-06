@@ -518,7 +518,7 @@ test("a reply streams into the capture frame by frame", async () => {
   expect(kick).toHaveBeenCalled()
 })
 
-test("auto-saved cards toast with Undo, which goes to the card endpoint", async () => {
+test("auto-saved cards save without a toast; each card's Undo goes to the card endpoint", async () => {
   let ids: Record<string, string> = {}
   const done = (REC.stream_rules.frames as Frame[]).at(-1)?.[1] as Row
   const [exp, weigh] = done.cards as Row[]
@@ -552,9 +552,9 @@ test("auto-saved cards toast with Undo, which goes to the card endpoint", async 
   })
   const info = cap(id).reply?.items.find((i) => i.t === "info")
   expect(info).toMatchObject({ tone: "fallback" })
-  const saved = toasts.find((t) => t.message === "Saved 2 entries")
-  expect(saved?.options?.action?.label).toBe("Undo")
-  saved?.options?.action?.onClick()
+  // Saving says nothing: the cards show it, and each card carries Undo.
+  expect(toasts).toEqual([])
+  for (const c of cards(id)) undoCard(c.id)
   await flush()
   expect(calls.map((c) => `${c.method} ${c.path}`)).toEqual([
     `POST /capture/cards/${exp.id}/undo`,
@@ -845,9 +845,8 @@ test("card decisions call the card endpoints and apply the server's card", async
   undoCard(String(exp.id))
   await flush()
   expect(cards(id)[0].state).toBe("undone")
-  const undone = toasts.find((t) => t.message === "Undone")
-  expect(undone?.options?.action?.label).toBe("Redo")
-  undone?.options?.action?.onClick()
+  expect(toasts.map((t) => t.message)).not.toContain("Undone")
+  redoCard(String(exp.id))
   await flush()
   expect(cards(id)[0].state).toBe("saved")
   expect(cards(id)[0].log.map((l) => l.action)).toEqual([
@@ -989,7 +988,7 @@ test("retry, re-run and quick add use their endpoints", async () => {
     },
   })
   expect(cap(quick.id)).toBeDefined()
-  expect(toasts.map((t) => t.message)).toContain("Saved · Coffee 165")
+  expect(toasts).toEqual([])
 })
 
 test("offline, every decision shows at once and queues as an outbox action", () => {
@@ -1008,7 +1007,7 @@ test("offline, every decision shows at once and queues as an outbox action", () 
   expect(cards(capId)[0].state).toBe("saved")
   undoCard(String(exp.id))
   expect(cards(id)[0].state).toBe("undone")
-  expect(toasts.at(-1)?.message).toBe("Undone")
+  expect(toasts.map((t) => t.message)).not.toContain("Undone")
   redoCard(String(exp.id))
   expect(cards(id)[0].state).toBe("saved")
   const edited = { ...cards(id)[1].payload } as CardPayload
@@ -1075,8 +1074,8 @@ test("offline quick add writes straight to the module store, and undoes there", 
   const [ref] = saved.refs
   expect(finStore.get().records.map((r) => r.id)).toContain(ref)
   expect(finStore.get().records).toHaveLength(before + 1)
-  expect(toasts.map((t) => t.message)).toContain("Saved · Coffee 165")
-  undoCard(saved.id, true)
+  expect(toasts).toEqual([])
+  undoCard(saved.id)
   expect(finStore.get().records.map((r) => r.id)).not.toContain(ref)
   expect(calls).toEqual([])
   expect(act).not.toHaveBeenCalled()

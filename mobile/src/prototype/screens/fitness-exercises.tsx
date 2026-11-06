@@ -39,7 +39,7 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, confirm, Empty, Field, Screen, Sheet, undo } from "../ui"
+import { Button, confirm, Empty, Field, Screen, Sheet } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
 
 /** What an exercise is logged as: a rep range and step, or a timed one
@@ -610,9 +610,6 @@ export function Exercises({ id }: { id?: string }) {
           <Tap
             onPress={() => {
               A.setExerciseArchived(ex.id, !ex.archived)
-              undo(ex.archived ? "Unarchived" : "Archived — history kept", () =>
-                A.setExerciseArchived(ex.id, !!ex.archived),
-              )
             }}
             style={{ paddingVertical: 16, alignItems: "center" }}
           >

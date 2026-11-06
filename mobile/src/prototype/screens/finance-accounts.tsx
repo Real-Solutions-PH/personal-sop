@@ -37,7 +37,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, confirm, Empty, Screen, Sheet, undo } from "../ui"
+import { Button, confirm, Empty, Screen, Sheet } from "../ui"
 import { RecordEditor, useMoney } from "./finance"
 import { AccountCard, useAccountColor } from "./finance-account-card"
 import { AccountEditor } from "./finance-account-editor"
@@ -351,9 +351,6 @@ export function Accounts({ id }: { id?: string }) {
                     `It has ${recs.length} transactions, so it can't be deleted. Archiving hides it from lists and pickers but keeps history.`,
                     () => {
                       A.updateAccount(a.id, { archived: true })
-                      undo(`${a.name} archived`, () =>
-                        A.updateAccount(a.id, { archived: false }),
-                      )
                     },
                   ),
               },

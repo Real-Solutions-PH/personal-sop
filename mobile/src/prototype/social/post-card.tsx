@@ -17,7 +17,7 @@ import Animated, { FadeIn } from "react-native-reanimated"
 import { copyText } from "../media"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { confirm, Sheet, undo } from "../ui"
+import { confirm, Sheet } from "../ui"
 import {
   Avatar,
   Bounce,
@@ -341,8 +341,7 @@ function PostMenu({
                 "Delete post?",
                 "This removes it from your profile.",
                 () => {
-                  const restore = deletePost(post.id)
-                  undo("Post deleted", restore)
+                  deletePost(post.id)
                 },
               ),
           },

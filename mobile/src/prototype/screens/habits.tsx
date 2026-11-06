@@ -205,12 +205,8 @@ function ManualHabitRow({ habit, day }: { habit: Habit; day: string }) {
   const [actions, setActions] = useState(false)
   const done = () => {
     const old = log
-    if (log?.status === "done") {
-      A.clearLog(habit.id, day)
-      undo("Log cleared", () => {
-        if (old) A.restoreLog(old)
-      })
-    } else {
+    if (log?.status === "done") A.clearLog(habit.id, day)
+    else {
       A.checkHabit(habit.id, day)
       undo("Habit checked", () => {
         A.clearLog(habit.id, day)
@@ -400,8 +396,7 @@ export function HabitLog({
           tone="danger"
           icon={Eraser}
           onPress={() => {
-            const removed = A.clearLog(habit.id, date)
-            if (removed) undo("Log cleared", () => A.restoreLog(removed))
+            A.clearLog(habit.id, date)
             onClose()
           }}
         >

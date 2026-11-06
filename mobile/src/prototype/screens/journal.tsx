@@ -689,12 +689,6 @@ function JournalList() {
               tags: d.payload.tags,
               transcript: text,
             })
-            toast.success("Journal entry saved", {
-              action: {
-                label: "Undo",
-                onClick: () => A.deleteJournalEntry(e.id),
-              },
-            })
             setTalk(false)
             go(`/journal/${e.id}`)
           }}
@@ -947,19 +941,10 @@ function JournalEditor({ id }: { id?: string }) {
               icon={Trash2}
               label="Delete entry"
               onPress={() => {
-                const gone = entryId.current
-                  ? A.deleteJournalEntry(entryId.current)
-                  : undefined
+                if (entryId.current) A.deleteJournalEntry(entryId.current)
                 edited.current = false
                 createdHere.current = false
                 go("/journal")
-                if (gone)
-                  toast("Entry deleted", {
-                    action: {
-                      label: "Undo",
-                      onClick: () => A.restoreJournalEntry(gone),
-                    },
-                  })
               }}
             />
           )}

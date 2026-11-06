@@ -336,25 +336,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }
   }
 
-  function toastSaved(capId: string) {
-    const saved = (find(capId)?.reply?.items ?? []).filter(
-      (i): i is RecordCard => i.t === "record" && i.state === "saved",
-    )
-    if (!saved.length) return
-    toast.success(
-      `Saved ${saved.length} entr${saved.length === 1 ? "y" : "ies"}`,
-      {
-        duration: 5000,
-        action: {
-          label: "Undo",
-          onClick: () => {
-            for (const r of saved) backend.undo(r.id, true)
-          },
-        },
-      },
-    )
-  }
-
   // -------------------------------------------------------------------------
   // Media
   // -------------------------------------------------------------------------
@@ -531,7 +512,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       throw new NetworkError(String(error))
     }
     if (find(id)?.status === "processing") await refresh(id)
-    toastSaved(id)
   }
 
   async function runSend(id: string) {
@@ -737,28 +717,16 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           ),
       )
     },
-    undo(cardId, quiet) {
-      if (onlyHere(cardId)) return runLocally(() => undoCard(cardId, quiet))
+    undo(cardId) {
+      if (onlyHere(cardId)) return runLocally(() => undoCard(cardId))
       const state = findCard(cardId)?.card.state
       if (state !== "saved" && state !== "edited") return
-      const undone = () => {
-        if (!quiet)
-          toast("Undone", {
-            action: { label: "Redo", onClick: () => backend.redo(cardId) },
-          })
-      }
       decide(
         "capture.undo",
         { card_id: cardId },
-        () => {
-          patchCardHere(cardId, (c) => ({ ...c, state: "undone" }))
-          undone()
-        },
+        () => patchCardHere(cardId, (c) => ({ ...c, state: "undone" })),
         () =>
-          void call<Row>("POST", cardPath(cardId, "undo"), undefined, (row) => {
-            putCard(row)
-            if (row.state === "undone") undone()
-          }),
+          void call<Row>("POST", cardPath(cardId, "undo"), undefined, putCard),
       )
     },
     redo(cardId) {
@@ -902,16 +870,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           (d) => {
             detail(d)
             deps.kick()
-            const saved = ((d.cards ?? []) as Row[])[0]
-            // Only with Undo: nothing to take back, no toast.
-            if (saved)
-              toast.success(`Saved · ${text}`, {
-                duration: 5000,
-                action: {
-                  label: "Undo",
-                  onClick: () => backend.undo(String(saved.id), true),
-                },
-              })
           },
           (error: unknown) => {
             if (error instanceof NetworkError) here()
@@ -1180,7 +1138,6 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         case "done":
           if (!open) return
           captureFrame("done", d, open)
-          toastSaved(String(d.id))
           open = undefined
           return
         default:

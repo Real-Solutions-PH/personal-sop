@@ -1,6 +1,7 @@
 // The money moments on screen: the record editor warns before and after a
-// save that breaks a budget (with a warning haptic, never a toast of its
-// own), and the budget list cheers last month's kept budgets once.
+// save that breaks a budget (with a warning haptic; a warning toast only
+// once the editor has closed and its own line is gone), and the budget list
+// cheers last month's kept budgets once.
 import { palette } from "@domain/design/tokens"
 import type { Budget, FinRecord } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
@@ -112,6 +113,7 @@ beforeEach(() => {
   anchor.measure = (_, done) => done({ x: 0, y: 0, width: 100, height: 100 })
   Haptics.notificationAsync.mockClear()
   ;(toast as jest.Mock).mockClear()
+  ;(toast.warning as jest.Mock).mockClear()
   finStore.set((s) => ({
     ...s,
     settings: { ...s.settings, monthStartDay: 1 },
@@ -142,7 +144,7 @@ it("warns beside the amount before a save breaks a budget", () => {
   ).toBeTruthy()
 })
 
-it("after Save & add another: the warning stays, a warning haptic, Undo toast", () => {
+it("after Save & add another: the warning stays and a warning haptic, no toast", () => {
   finStore.set((s) => ({
     ...s,
     budgets: [budget("Food", 5000, ["food"])],
@@ -161,9 +163,32 @@ it("after Save & add another: the warning stays, a warning haptic, Undo toast", 
   expect(
     screen.getByText("Food budget now over by ₱420", { exact: false }),
   ).toBeTruthy()
-  const [msg, opts] = (toast as jest.Mock).mock.calls[0]
-  expect(msg).toContain("Food budget now over by ₱420")
-  expect(opts.action.label).toBe("Undo")
+  expect(toast).not.toHaveBeenCalled()
+  expect(toast.warning).not.toHaveBeenCalled()
+})
+
+it("a Save that breaks a budget and closes the editor says so in a warning", () => {
+  finStore.set((s) => ({
+    ...s,
+    budgets: [budget("Food", 5000, ["food"])],
+    records: [spend("a", 4600, "food", "2026-11-05")],
+  }))
+  const onClose = jest.fn()
+  render(
+    <RecordEditor
+      open
+      prefill={{ type: "expense", amount: 820, categoryId: "food" }}
+      onClose={onClose}
+    />,
+    { wrapper },
+  )
+  fireEvent.press(screen.getByText("Save"))
+  expect(onClose).toHaveBeenCalled()
+  expect(Haptics.notificationAsync).toHaveBeenCalledWith("warning")
+  expect(toast).not.toHaveBeenCalled()
+  expect(toast.warning).toHaveBeenCalledWith(
+    expect.stringContaining("Food budget now over by ₱420"),
+  )
 })
 
 it("cheers last month's kept budgets once, and names the one that went over", () => {

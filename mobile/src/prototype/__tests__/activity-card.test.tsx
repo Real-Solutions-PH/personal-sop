@@ -67,6 +67,7 @@ const act1 = (activeKcal: number): Activity => ({
 })
 
 beforeEach(() => {
+  mockUndo = undefined
   configureStorage({
     getItem: () => null,
     setItem: () => {},
@@ -171,17 +172,16 @@ test("coming back to the app reads Health again", async () => {
   expect(await screen.findByText("Add 900 kcal to budget")).toBeTruthy()
 })
 
-test("an eat-back can be undone from its toast", async () => {
+test("an eat-back lands on the card without a toast", async () => {
   mockRead.mockImplementation(async (d) => (d === dayKey() ? act1(420) : null))
   render(<ActivityCard day={dayKey()} />)
   const btn = await screen.findByText("Add 420 kcal to budget")
   await act(async () => fireEvent.press(btn))
   expect(adjustmentOn(fitStore.get(), dayKey())).toBe(420)
-  await act(async () => mockUndo?.())
-  expect(adjustmentOn(fitStore.get(), dayKey())).toBe(0)
+  expect(mockUndo).toBeUndefined()
 })
 
-test("undoing an add-more puts back what was added before", async () => {
+test("an add-more raises the eat-back to the new total", async () => {
   fitStore.set((s) => ({
     ...s,
     adjustments: [{ id: "a", day: dayKey(), kcal: 420 }],
@@ -190,8 +190,7 @@ test("undoing an add-more puts back what was added before", async () => {
   render(<ActivityCard day={dayKey()} />)
   const btn = await screen.findByText("Add 80 more kcal")
   await act(async () => fireEvent.press(btn))
-  await act(async () => mockUndo?.())
-  expect(adjustmentOn(fitStore.get(), dayKey())).toBe(420)
+  expect(adjustmentOn(fitStore.get(), dayKey())).toBe(500)
 })
 
 test("before Health is allowed, Connect even though reads come back", async () => {

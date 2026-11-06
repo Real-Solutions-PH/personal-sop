@@ -210,7 +210,7 @@ test("Log… in the actions opens the Log sheet once the actions have left", () 
   expect(screen.getByText("Log Walk")).toBeTruthy()
 })
 
-test("Archive confirms, archives with an undo toast, and Undo restores", () => {
+test("Archive confirms and archives, without a toast", () => {
   const h = walk()
   const alert = jest
     .spyOn(Alert, "alert")
@@ -223,12 +223,8 @@ test("Archive confirms, archives with an undo toast, and Undo restores", () => {
   expect(habitsStore.get().habits.find((x) => x.id === h.id)?.status).toBe(
     "archived",
   )
-  const [message, options] = (toast as unknown as jest.Mock).mock.calls[0]
-  expect(message).toBe("Habit archived")
-  act(() => options.action.onClick())
-  expect(habitsStore.get().habits.find((x) => x.id === h.id)?.status).toBe(
-    "active",
-  )
+  // Restoring lives in Archived, as the confirmation says.
+  expect(toast).not.toHaveBeenCalled()
 })
 
 test("a paused habit offers Resume now, which resumes without a toast", () => {

@@ -76,7 +76,7 @@ import {
 import { fmt } from "./share-format"
 import { CENTRED, frameRatio } from "./social/crop"
 import { framePhoto, keep, prepareImage } from "./social/media"
-import { addStory, deleteStory, type Media, setPostDraft } from "./social/store"
+import { addStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 import { Button, Field, Sheet } from "./ui"
 
@@ -1887,18 +1887,13 @@ export function ShareComposer<K extends string>({
       return
     }
     const m = await asMedia(uri)
-    const story = addStory({
+    // The story ring shows it landed.
+    addStory({
       kind: "image",
       uri: m.uri,
       previewUri: m.previewUri,
       lqip: m.lqip,
       ratio: m.ratio,
-    })
-    // The story ring shows it landed; the toast is only there to take it
-    // back.
-    toast("Added to your story", {
-      action: { label: "Undo", onClick: () => deleteStory(story.id) },
-      duration: 5000,
     })
   }
   if (shareRef) shareRef.current = doShare

@@ -27,7 +27,7 @@ import {
 } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
-import { Button, Empty, Screen, Sheet, undo } from "../ui"
+import { Button, Empty, Screen, Sheet } from "../ui"
 import { PlannedEditor, RecordEditor, useMoney } from "./finance"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 export function FinPill({
@@ -194,18 +194,13 @@ export function DueSheet({
                 label: "Skip",
                 press: () => {
                   A.skipOccurrence(id, day)
-                  undo(`Skipped ${p.name}`, () => A.unskipOccurrence(id, day))
                   onClose()
                 },
               },
               {
                 label: "Snooze",
                 press: () => {
-                  const prev = p.snoozed
                   A.snoozeOccurrence(id, day)
-                  undo(`Snoozed ${p.name} to tomorrow`, () =>
-                    A.updatePlanned(id, { snoozed: prev }),
-                  )
                   onClose()
                 },
               },
@@ -419,9 +414,6 @@ export function Planned({ id }: { id?: string }) {
                   onPress={() => {
                     if (!next[0]) return
                     A.skipOccurrence(p.id, next[0].orig)
-                    undo(`Skipped ${C.shortDate(next[0].orig)}`, () =>
-                      A.unskipOccurrence(p.id, next[0].orig),
-                    )
                   }}
                 >
                   Skip next
@@ -452,10 +444,6 @@ export function Planned({ id }: { id?: string }) {
                     onPress={() => {
                       const paused = !p.archived
                       A.updatePlanned(p.id, { archived: paused })
-                      undo(
-                        paused ? `Paused ${p.name}` : `Resumed ${p.name}`,
-                        () => A.updatePlanned(p.id, { archived: !paused }),
-                      )
                     }}
                   >
                     {p.archived ? "Resume" : "Pause"}
@@ -472,7 +460,6 @@ export function Planned({ id }: { id?: string }) {
                     const gone = A.deletePlanned(p.id)
                     if (!gone) return
                     back("/finance/planned")
-                    undo(`Deleted ${p.name}`, () => A.restorePlanned(gone))
                   }}
                 >
                   Delete

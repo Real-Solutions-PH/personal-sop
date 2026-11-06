@@ -23,7 +23,7 @@ import Animated, { FadeIn, FadeInDown, ZoomIn } from "react-native-reanimated"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Sheet, undo } from "../ui"
+import { Sheet } from "../ui"
 import {
   Avatar,
   Bounce,
@@ -173,8 +173,7 @@ function ChatRow({ chat }: { chat: Chat }) {
             toggleMute(chat.id),
           )}
           {action("Delete", Trash2, t.bad, () => {
-            const restore = deleteChat(chat.id)
-            undo("Chat deleted", restore)
+            deleteChat(chat.id)
           })}
         </View>
       )}

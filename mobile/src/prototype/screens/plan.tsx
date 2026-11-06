@@ -71,7 +71,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, confirm, Screen, Sheet, undo } from "../ui"
+import { Button, confirm, Screen, Sheet } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
 import { LockedPreview } from "./locked-preview"
@@ -466,15 +466,9 @@ export function TaskPlanPanel({
           onPress={() =>
             confirm(
               "Move all overdue tasks to today?",
-              "The current dates will be replaced. You can undo this change.",
+              "The current dates will be replaced.",
               () => {
-                const old = d.overdue.map((task) => ({ ...task }))
                 A.moveAllOverdueToToday()
-                undo("Moved overdue tasks to today", () =>
-                  old.forEach((task) => {
-                    A.setDue(task.id, task.dueDate, task.dueTime, task.remindAt)
-                  }),
-                )
                 setTriage(false)
               },
             )

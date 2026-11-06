@@ -26,7 +26,6 @@ import {
   PinnedFooter,
   Sheet,
   Toggle,
-  undo,
 } from "../ui"
 import { isDay } from "../validation"
 import { CategoryPicker } from "./finance-category-picker"
@@ -324,7 +323,6 @@ function Editor({
                 onClose()
                 if (!gone) return
                 back("/finance/planned")
-                undo(`Deleted ${p.name}`, () => A.restorePlanned(gone))
               }}
             >
               Delete

@@ -18,7 +18,7 @@ import { View } from "react-native"
 import { border } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, confirm, Sheet, undo } from "../ui"
+import { Button, confirm, Sheet } from "../ui"
 import { HabitLog } from "./habits"
 
 /** One group of a menu; groups after the first sit below a rule, so the
@@ -168,7 +168,6 @@ export function HabitActions({
                   "History and stats are kept, and you can restore it from Archived.",
                   () => {
                     A.archiveHabit(h.id)
-                    undo("Habit archived", () => A.restoreHabit(h.id))
                   },
                 ),
               )

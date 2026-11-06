@@ -45,7 +45,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
-import { Button, Screen, SwipeRow, undo } from "../ui"
+import { Button, Screen, SwipeRow } from "../ui"
 import { Ring } from "../visual"
 
 const colors = {
@@ -110,14 +110,10 @@ export function Inbox() {
                       onComplete={() => markNotifRead(n.id)}
                       dismissLabel="Dismiss"
                       onDismiss={() => {
-                        const before = dashStore.get().notifs
                         dashStore.set((s) => ({
                           ...s,
                           notifs: s.notifs.filter((x) => x.id !== n.id),
                         }))
-                        undo("Notification dismissed", () =>
-                          dashStore.set((s) => ({ ...s, notifs: before })),
-                        )
                       }}
                     >
                       <Tap

@@ -43,7 +43,6 @@ import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { toast } from "sonner-native"
 import { Stepper } from "../fitness-controls"
 import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
 import { logFunnel } from "../funnel"
@@ -654,7 +653,6 @@ function FitnessStep({ onDone }: { onDone: () => void }) {
  * section turns off until it is switched back on in Settings. */
 function screenTimeOff() {
   setEnabled("screen", false)
-  toast.warning("Screen time is off. Turn it on anytime in Settings.")
 }
 /** The Screen Time permission, asked here because first-run setup can't
  * leave for the settings screen; groups and apps are picked there later.
