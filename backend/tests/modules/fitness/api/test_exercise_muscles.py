@@ -90,6 +90,9 @@ def test_downgrade_folds_finer_muscles_into_their_group(
     client: TestClient, db: Session
 ) -> None:
     user, h = signed_in(db)
+    # The fixture session's open read of "user" would block the downgrade's
+    # DDL on any later revision with a foreign key to it.
+    db.commit()
     for m in FINER:
         body = {"name": f"Fold {m}", "equipment": "cable", "muscle": m}
         ok(client.post(f"{API}/exercises", headers=h, json=body))
@@ -98,7 +101,8 @@ def test_downgrade_folds_finer_muscles_into_their_group(
         folded = _muscles(user.id)
         assert {m: folded[f"Fold {m}"] for m in FINER} == FINER
     finally:
-        _alembic("upgrade", REVISION)
+        # Back to head, not just this revision: later revisions exist.
+        _alembic("upgrade", "head")
     # Back up, the old values still save.
     body = {"name": "Fold calves again", "equipment": "cable", "muscle": "calves"}
     ok(client.post(f"{API}/exercises", headers=h, json=body))

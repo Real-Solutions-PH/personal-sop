@@ -219,6 +219,22 @@ class MissNotePublic(BaseModel):
     version: int
 
 
+class MissAnalysisOut(BaseModel):
+    """Fern's read of yesterday. ``state`` is ``celebrate`` when nothing was
+    missed (``points`` empty). ``source`` says who wrote the points: ``fern``
+    (the model, kept for the day), ``rules`` (AI off, cap reached or no
+    model: the same beats from the data alone) or ``none``."""
+
+    day: date
+    state: Literal["celebrate", "analysis"]
+    source: Literal["fern", "rules", "none"]
+    points: list[str]
+    misses: int
+    due: int
+    done: int
+    on_target: bool
+
+
 # ---------------------------------------------------------------- share
 
 

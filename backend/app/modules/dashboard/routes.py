@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Path, Query
 
 from app.modules.dashboard import logic as D
+from app.modules.dashboard import miss_analysis
 from app.modules.dashboard import schema as S
 from app.modules.dashboard import services as svc
 from app.modules.iam.deps import require_permission
@@ -213,6 +214,27 @@ def dismiss(ctx: CtxDep, notification_id: uuid.UUID) -> Any:
 def undismiss(ctx: CtxDep, notification_id: uuid.UUID) -> Any:
     """Undo of a dismiss."""
     return svc.undismiss(ctx, notification_id)
+
+
+@router.post(
+    "/misses/yesterday/analysis", response_model=S.MissAnalysisOut, dependencies=WRITE
+)
+def yesterday_analysis(ctx: CtxDep) -> Any:
+    """Fern's short analysis of yesterday's misses (the person's own day
+    before today), asked for when the Yesterday page opens. Kept per day:
+    reopening returns the kept answer without a model call. 503
+    ``analysis_failed`` when the provider fails; nothing is kept then."""
+    a = miss_analysis.analyse_yesterday(ctx)
+    return S.MissAnalysisOut(
+        day=a.day,
+        state=a.state,
+        source=a.source,
+        points=a.points,
+        misses=a.misses,
+        due=a.due,
+        done=a.done,
+        on_target=a.on_target,
+    )
 
 
 @router.put("/misses/{miss_key}/note", response_model=Message, dependencies=WRITE)
