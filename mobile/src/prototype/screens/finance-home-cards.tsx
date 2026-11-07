@@ -52,6 +52,76 @@ export function SpentLeft({ spent, limit }: { spent: number; limit: number }) {
 /** The month's budget headline (the overall budget, or the category
  * budgets added together when there is none) and the three fullest
  * category budgets. Dimmed only when there is no budget at all. */
+/** Under net worth: what went out today, then the usual pace a day and a
+ * month. Supporting figures, so small, but each keeps its meaning colour
+ * against the overall budget: green inside it, orange or red past it, plain
+ * only when there is no overall budget to judge by. Opens the
+ * transactions. */
+export function SpendPace({ s }: { s: FinState }) {
+  const t = useTheme(),
+    money = useMoney(),
+    r = N.spendRates(s),
+    // Averages to the whole peso: centavos on an average are false precision.
+    perDay = Math.round(r.perDay),
+    perMonth = Math.round(r.perMonth),
+    lim = N.spendLimits(s),
+    tone = (v: number, limit: number | undefined, past: string) =>
+      limit === undefined ? t.text : v > limit ? past : t.good,
+    unit = { color: t.muted, fontSize: 12, fontWeight: "400" as const }
+  return (
+    <Tap
+      label={`Spent today ${money(r.today)}; on average ${money(perDay)} a day, ${money(perMonth)} a month`}
+      onPress={() => go("/finance/records")}
+    >
+      <Line
+        style={{
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          gap: 12,
+          paddingHorizontal: 4,
+          paddingTop: 12,
+        }}
+      >
+        <View style={{ flexGrow: 1 }}>
+          <Copy size={12} muted>
+            Spent today
+          </Copy>
+          <Copy
+            size={20}
+            weight="semibold"
+            style={{ color: tone(r.today, lim?.today, t.bad) }}
+          >
+            {money(r.today)}
+          </Copy>
+        </View>
+        <View style={{ alignItems: "flex-end" }}>
+          <Copy size={12} muted>
+            {r.months ? "Average spend" : "Average spend so far"}
+          </Copy>
+          <Line style={{ gap: 8 }}>
+            <Copy
+              size={15}
+              weight="semibold"
+              style={{ color: tone(perDay, lim?.perDay, t.warn) }}
+            >
+              {money(perDay)}
+              <Text style={unit}> /day</Text>
+            </Copy>
+            <View style={{ width: 1, height: 14, backgroundColor: t.line }} />
+            <Copy
+              size={15}
+              weight="semibold"
+              style={{ color: tone(perMonth, lim?.perMonth, t.bad) }}
+            >
+              {money(perMonth)}
+              <Text style={unit}> /month</Text>
+            </Copy>
+          </Line>
+        </View>
+      </Line>
+    </Tap>
+  )
+}
 export function BudgetsSection({ s }: { s: FinState }) {
   const t = useTheme()
   const money = useMoney()

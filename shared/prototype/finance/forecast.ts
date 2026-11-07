@@ -284,3 +284,18 @@ export function expectedTrend(
     gapToday,
   }
 }
+
+/** Scheduled money in and out on the days ``from``–``to``: income and
+ * expense items not yet paid or skipped (a transfer only moves money
+ * between accounts, so it is neither). The Cash flow chart's future months,
+ * on the same terms as the current month's "still scheduled". */
+export function scheduledBetween(s: FinState, from: string, to: string) {
+  let income = 0
+  let spend = 0
+  for (const o of occurrencesIn(s, from, to)) {
+    if (o.status === "paid" || o.status === "skipped") continue
+    if (o.item.type === "income") income += o.item.amount
+    else if (o.item.type === "expense") spend += o.item.amount
+  }
+  return { income, spend }
+}
