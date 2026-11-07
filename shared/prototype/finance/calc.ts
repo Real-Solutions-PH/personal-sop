@@ -225,6 +225,76 @@ export function flowIn(s: FinState, from: string, to: string): Flow {
   }
   return f
 }
+export interface SpendRates {
+  /** Spent on ``on`` itself. */
+  today: number
+  /** The average a day over the last ``window`` days (fewer when tracking
+   * began more recently). */
+  perDay: number
+  /** The average of the last three complete budget months; estimated from
+   * ``perDay`` over this budget month while none is complete. */
+  perMonth: number
+  /** Days the daily average covers. */
+  days: number
+  /** Complete budget months the monthly average covers (0 = estimated). */
+  months: number
+}
+/** What went out today, and the usual pace of spending a day and a month.
+ * Only money spent counts: transfers and balance adjustments do not, and
+ * refunds come off. A month is counted only when tracking had begun by its
+ * first day, so a part-tracked month never drags the average down. */
+export function spendRates(s: FinState, on = today(), window = 30): SpendRates {
+  const spent = flowIn(s, on, on).spend
+  let first = ""
+  for (const r of s.records) {
+    if (!isFlow(r)) continue
+    const k = recDay(r)
+    if (k <= on && (!first || k < first)) first = k
+  }
+  if (!first)
+    return { today: spent, perDay: 0, perMonth: 0, days: 0, months: 0 }
+  const back = addDays(on, -(window - 1))
+  const from = back > first ? back : first
+  const days = diffDays(on, from) + 1
+  const perDay = flowIn(s, from, on).spend / days
+  const sd = s.settings.monthStartDay
+  const cur = monthOf(on, sd)
+  let sum = 0
+  let months = 0
+  for (let i = 1; i <= 3; i++) {
+    const [f, t] = monthRange(addMonths(cur, -i), sd)
+    if (f < first) break
+    sum += flowIn(s, f, t).spend
+    months++
+  }
+  const [mf, mt] = monthRange(cur, sd)
+  return {
+    today: spent,
+    perDay,
+    perMonth: months ? sum / months : perDay * (diffDays(mt, mf) + 1),
+    days,
+    months,
+  }
+}
+/** The lines the home's spend figures are judged against, from the overall
+ * budget: what was safe to spend today as the day began (today's spending
+ * added back, so the line does not fall as money goes out), the month's
+ * limit spread evenly by day, and the limit itself. Null without an overall
+ * budget: category budgets cover only part of the spending, so they cannot
+ * judge all of it. */
+export function spendLimits(
+  s: FinState,
+): { today: number; perDay: number; perMonth: number } | null {
+  const b = s.budgets.find((x) => !x.archived && x.categoryIds === null)
+  if (!b) return null
+  const t = today()
+  const v = budgetView(s, b)
+  return {
+    today: todayAllowance(v, flowIn(s, t, t).spend),
+    perDay: v.limit / (diffDays(v.to, v.from) + 1),
+    perMonth: v.limit,
+  }
+}
 export const savingsRate = (f: Flow) =>
   f.income > 0 ? (f.income - f.spend) / f.income : 0
 export function spendIn(

@@ -219,7 +219,8 @@ export function adjustBalance(
   const s = finStore.get()
   const acct = s.accounts.find((a) => a.id === accountId)
   if (!acct) return
-  const diff = actual - balanceOf(s, acct)
+  // In cents, so 2,000 − 1,300.10 records 699.90, not 699.8999….
+  const diff = Math.round((actual - balanceOf(s, acct)) * 100) / 100
   if (!diff) return
   return addRecord({
     type: diff > 0 ? "income" : "expense",
@@ -231,6 +232,21 @@ export function adjustBalance(
     isAdjustment: true,
     source: "adjustment",
   })
+}
+/** Make an account show ``balance`` today. One with no records takes it as
+ * its opening balance; one with records gets an adjustment record for the
+ * difference, so its history stays true (editing the opening balance of an
+ * account with history would shift every past balance instead). */
+export function setAccountBalance(accountId: string, balance: number) {
+  const s = finStore.get()
+  const used = s.records.some(
+    (r) => r.accountId === accountId || r.toAccountId === accountId,
+  )
+  if (!used) {
+    updateAccount(accountId, { opening: balance })
+    return
+  }
+  return adjustBalance(accountId, balance)
 }
 export function addCategory(
   input: Omit<Category, "id" | "archived">,
