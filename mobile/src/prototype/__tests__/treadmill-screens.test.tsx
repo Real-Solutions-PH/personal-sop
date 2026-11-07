@@ -274,3 +274,13 @@ it("after a switch and a save, the sheet reopens on the saved distance", async (
   fireEvent.press(screen.getByLabelText("Edit treadmill distance and incline"))
   expect(screen.getByLabelText("Distance").props.value).toBe("2.5")
 })
+
+it("the walk summary's Share opens its share card", () => {
+  const { router } = require("expo-router") as {
+    router: { push: jest.Mock }
+  }
+  fitStore.set((s) => ({ ...s, runs: [treadmill()] }))
+  render(<RunDetail id="w1" summary />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Share walk"))
+  expect(router.push).toHaveBeenCalledWith("/fitness/runs/w1/share")
+})

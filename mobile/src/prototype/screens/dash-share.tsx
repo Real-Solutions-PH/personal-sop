@@ -121,9 +121,8 @@ const score = (x: CardData["w7"]["range"][number]) =>
  * each tip carries its area's icon and value at 15 kit points. When that
  * room is too short for labels (a square card) the flower is drawn bare and
  * larger, and the card's line names the strongest and weakest area. Over a
- * photo it sits on a soft ground of the card colour so petals and values
- * stay readable. */
-function Flower({ facets, photo }: { facets: Facet[]; photo: boolean }) {
+ * photo the card's scrim and shadows carry it, with no ground behind. */
+function Flower({ facets }: { facets: Facet[] }) {
   const { q, c } = useCard(),
     [room, setRoom] = useState({ width: 0, height: 0 }),
     h = room.width > 0 ? Math.min(312, (312 * room.height) / room.width) : 0
@@ -143,7 +142,6 @@ function Flower({ facets, photo }: { facets: Facet[]; photo: boolean }) {
           petals={petalsOf(facets, c.area)}
           height={h}
           font={15 * P * q}
-          halo={photo ? c.bg : undefined}
           ink={{
             ink: c.ink,
             muted: c.muted,
@@ -238,7 +236,7 @@ export function Artwork({
         {on.level && <Sub bad={down}>{line}</Sub>}
         {on.hexagon ? (
           <Body fill>
-            <Flower facets={d.facets30} photo={look.backdrop === "photo"} />
+            <Flower facets={d.facets30} />
           </Body>
         ) : (
           on.areas && (
@@ -548,7 +546,7 @@ export function Artwork({
           d.identities.slice(0, 2).map((x) => <Sub key={x}>{`“${x}”`}</Sub>)}
         {on.hexagon && (
           <Body fill>
-            <Flower facets={d.facets30} photo={look.backdrop === "photo"} />
+            <Flower facets={d.facets30} />
           </Body>
         )}
         <Figures

@@ -6,6 +6,7 @@ import type { WorkoutCardData } from "../screens/fitness-share"
 import type { HabitCardData } from "../screens/habit-share"
 import type { JournalCardData } from "../screens/journal-share"
 import type { FoodCardData } from "../screens/nutrition-share"
+import type { RunCardData } from "../screens/run-share"
 import type { TaskCardData } from "../screens/task-share"
 import type { Dot } from "../share-kit"
 
@@ -282,5 +283,34 @@ export function journalData(long = false): JournalCardData {
     days30: long ? 30 : 22,
     grid: dots(42, 4),
     start: "2026-09-13",
+  }
+}
+
+/** A run (outdoor, with route and splits) or a treadmill walk. */
+export function runData(long = false, indoor = false): RunCardData {
+  const route = Array.from(
+    { length: 80 },
+    (_, i): RunCardData["route"][number] => [
+      14.55 + Math.sin(i / 9) * 0.004 + i * 0.00005,
+      121.02 + Math.cos(i / 7) * 0.005 + i * 0.00008,
+      null,
+      i,
+    ],
+  )
+  return {
+    name: long ? LONG_TITLE : indoor ? "Morning walk" : "Evening run",
+    kind: indoor ? "walk" : "run",
+    indoor,
+    inclinePct: indoor ? 4 : undefined,
+    date: "Sat 7 Nov",
+    distanceM: long ? 1234567 : indoor ? 1090 : 5230,
+    movingSec: long ? 987654 : indoor ? 1223 : 1688,
+    pace: indoor ? 1123 : 323,
+    paceDelta: indoor ? -734 : 8,
+    record: indoor ? null : "Best pace yet",
+    route: indoor ? [] : route,
+    splits: indoor ? [] : [331, 322, 318, 326, 315],
+    climbM: indoor ? null : long ? 12345 : 42,
+    kcal: long ? 123456 : 312,
   }
 }

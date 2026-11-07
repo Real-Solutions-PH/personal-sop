@@ -81,13 +81,14 @@ import { type Accent, fonts, useTheme } from "./theme"
 import { Button, Field, Sheet } from "./ui"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
+// Photo leads: a card on the person's own picture is the one most shared.
 const BACKDROPS = [
+  { key: "photo", label: "Photo" },
   { key: "fern", label: "Fern" },
   { key: "dusk", label: "Dusk" },
   { key: "dark", label: "Dark" },
   { key: "light", label: "Light" },
   { key: "custom", label: "Colour" },
-  { key: "photo", label: "Photo" },
   { key: "sticker", label: "Sticker" },
 ] as const
 export type CardBackdrop = (typeof BACKDROPS)[number]["key"]
@@ -133,6 +134,9 @@ export type CardInk = {
   /** A gradient ground (share artwork only, ADR-0028): its stops from the
    * top-left corner to the bottom-right. ``bg`` is the first stop. */
   gradient?: { stops: string[] }
+  /** On a photo: the shadow under every word and number, so text holds on
+   * any picture without a box behind it. */
+  shadow?: string
 }
 /** The stops of each gradient ground. Fern stops at moss: a lighter stop
  * (``frond``) or a sprout glow drops ink and muted text below 4.5:1. */
@@ -146,15 +150,21 @@ const GRADIENTS: Partial<Record<CardBackdrop, string[]>> = {
 }
 export function cardInk(look: CardLook): CardInk {
   const custom = look.backdrop === "custom" ? (look.color ?? null) : null
-  const stops = GRADIENTS[look.backdrop]
+  // A Photo ground with no photo chosen yet is drawn on Fern, so the card
+  // still looks finished until one is picked.
+  const stops =
+    GRADIENTS[look.backdrop] ??
+    (look.backdrop === "photo" && !look.photo ? GRADIENTS.fern : undefined)
   const dark =
     look.backdrop === "light" ? false : custom ? luminance(custom) <= 0.4 : true
   const p: Tokens = palette[dark ? "dark" : "light"]
   const see = look.backdrop === "photo" || look.backdrop === "sticker"
+  const onPhoto = look.backdrop === "photo"
   const tinted = !!custom || see || !!stops
   return {
     dark,
     ...(stops ? { gradient: { stops } } : {}),
+    ...(onPhoto ? { shadow: alpha(palette.dark.background, 0.6) } : {}),
     bg:
       stops?.[0] ??
       custom ??
@@ -162,7 +172,13 @@ export function cardInk(look: CardLook): CardInk {
     panel: tinted ? alpha(p.foreground, dark ? 0.1 : 0.07) : p.card,
     line: tinted ? alpha(p.foreground, 0.14) : p.border,
     ink: p.foreground,
-    muted: tinted ? alpha(p.foreground, 0.78) : p["muted-foreground"],
+    // On a photo, muted text stays nearer full ink: the picture under the
+    // scrim varies, and 0.78 of it can sink into a bright patch.
+    muted: onPhoto
+      ? alpha(p.foreground, 0.88)
+      : tinted
+        ? alpha(p.foreground, 0.78)
+        : p["muted-foreground"],
     track: alpha(p.foreground, dark ? 0.16 : 0.1),
     mark: stops ? palette.light.sprout : dark ? p.sprout : p.primary,
     good: p.good,
@@ -182,11 +198,28 @@ function contrast(a: string, b: string): number {
  * are given here in those points, as a share of ``q``. */
 export const P = 100 / 360
 
-const CardContext = createContext<{ q: number; c: CardInk; f: CardFormat }>({
+const CardContext = createContext<{
+  q: number
+  c: CardInk
+  f: CardFormat
+  /** The smallest a line of words may be drawn, in ``q``: on a photo the
+   * data is drawn smaller, and its captions stop at a readable floor. */
+  floor?: number
+}>({
   q: 1,
   c: cardInk({ format: "9:16", backdrop: "dark", photo: null }),
   f: "9:16",
 })
+/** The text shadow that keeps words legible on a photo; none elsewhere. */
+function shadowOf(c: CardInk, px: number) {
+  return c.shadow
+    ? {
+        textShadowColor: c.shadow,
+        textShadowOffset: { width: 0, height: px * 0.08 },
+        textShadowRadius: px * 0.22,
+      }
+    : null
+}
 /** Where a composer wants the node it exports: the card without its
  * on-screen rounding and border. */
 const CardShotContext = createContext<
@@ -279,6 +312,7 @@ export function Num({
 }) {
   const { q, c } = useCard()
   const glued = !!unit && /^[%×/]/.test(unit)
+  const shade = shadowOf(c, size * q)
   return (
     <Text
       numberOfLines={1}
@@ -293,6 +327,7 @@ export function Num({
         color: color ?? c.ink,
         textAlign: align,
         fontVariant: ["tabular-nums"],
+        ...shade,
       }}
     >
       {children}
@@ -331,7 +366,8 @@ export function Words({
   align?: "left" | "center" | "right"
   muted?: boolean
 }) {
-  const { q, c } = useCard()
+  const { q, c, floor } = useCard(),
+    px = Math.max(size, floor ?? 0) * q
   return (
     <Text
       numberOfLines={lines}
@@ -341,11 +377,12 @@ export function Words({
       ellipsizeMode="tail"
       style={{
         fontFamily: fonts[weight],
-        fontSize: size * q,
-        lineHeight: size * q * (size >= 8 ? 1.1 : 1.3),
-        letterSpacing: size >= 5 ? -0.02 * size * q : 0,
+        fontSize: px,
+        lineHeight: px * (size >= 8 ? 1.1 : 1.3),
+        letterSpacing: size >= 5 ? -0.02 * px : 0,
         color: color ?? (muted ? c.muted : c.ink),
         textAlign: align,
+        ...shadowOf(c, px),
       }}
     >
       {children}
@@ -449,10 +486,12 @@ export function Hero({
   /** A long unit line or a crowded card: the smaller tier. */
   small?: boolean
 }) {
-  const { q, f } = useCard(),
+  const { q, f, floor } = useCard(),
     tier = small || value.length >= 7 ? 2 : value.length >= 5 ? 1 : 0,
+    // On a photo a story's hero takes the post size: the block stays
+    // compact and the picture keeps the room.
     size =
-      f === "9:16"
+      f === "9:16" && floor === undefined
         ? [96, 76, 56][tier]
         : f === "1:1"
           ? [56, 56, 44][tier]
@@ -599,14 +638,23 @@ export function Body({
    * flower), so it grows into it rather than being dropped. */
   fill?: boolean
 }) {
-  const { q } = useCard(),
+  const { q, floor } = useCard(),
     { measure } = useContext(FitContext),
-    hidden = useDrop("chart")
+    hidden = useDrop("chart"),
+    // On a photo the block hugs the foot of the card: the chart's room is
+    // its own height (shrinking first when the block runs out of room),
+    // not all the room left, so no gap opens above a short chart.
+    hug = floor !== undefined && !fill,
+    [own, setOwn] = useState(0)
   if (hidden) return null
   return (
     <View
       testID="card-body"
-      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+      style={
+        hug
+          ? { height: own, flexShrink: 1, minHeight: 0, overflow: "hidden" }
+          : { flex: 1, minHeight: 0, overflow: "hidden" }
+      }
       onLayout={(e) => measure("box", e.nativeEvent.layout.height)}
     >
       <View
@@ -618,7 +666,11 @@ export function Body({
           ...(fill ? { top: 0, bottom: 0 } : end ? { bottom: 0 } : { top: 0 }),
           gap: 6 * P * q,
         }}
-        onLayout={(e) => measure("inner", e.nativeEvent.layout.height)}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height
+          setOwn((v) => (Math.abs(v - h) < 0.5 ? v : h))
+          measure("inner", h)
+        }}
       >
         {children}
       </View>
@@ -1244,6 +1296,7 @@ export function XBars({
                     color: c.ink,
                     textAlign: "right",
                     fontVariant: ["tabular-nums"],
+                    ...shadowOf(c, 14 * p),
                   }}
                 >
                   {r.sets ? (
@@ -1509,10 +1562,106 @@ export function Lockup({ size }: { size: number }) {
           lineHeight: size * q * 1.2,
           letterSpacing: -0.03 * size * q,
           color: c.ink,
+          ...shadowOf(c, size * q),
         }}
       >
         unfurl
       </Text>
+    </View>
+  )
+}
+
+/** On a photo the data is drawn at this share of its usual size, so it
+ * sits as a compact block and the picture keeps most of the card. */
+export const COMPACT = 0.7
+/** How much of the card's height the photo keeps clear, against the data
+ * block's 1: a story leaves the top half to the picture, a square less. */
+const ROOM: Record<CardFormat, number> = {
+  "9:16": 0.35,
+  "4:5": 0.3,
+  "1:1": 0.2,
+}
+
+/** The person's photo, full bleed, under two soft scrims (darker at the
+ * foot where the data sits, faint at the top) instead of a box: the words
+ * also carry a shadow, so they hold on a bright photo. */
+function PhotoGround({
+  uri,
+  width,
+  height,
+}: {
+  uri: string
+  width: number
+  height: number
+}) {
+  const id = `scrim-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`,
+    shade = palette.dark.background
+  return (
+    <View
+      testID="card-photo"
+      pointerEvents="none"
+      style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <Image
+        source={{ uri }}
+        resizeMode="cover"
+        accessibilityIgnoresInvertColors
+        style={{ position: "absolute", top: 0, left: 0, width, height }}
+      />
+      <Svg
+        width={width}
+        height={height}
+        preserveAspectRatio="none"
+        style={{ position: "absolute", top: 0, left: 0 }}
+      >
+        <Defs>
+          <LinearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset={0} stopColor={shade} stopOpacity={0.32} />
+            <Stop offset={0.16} stopColor={shade} stopOpacity={0} />
+            <Stop offset={0.4} stopColor={shade} stopOpacity={0} />
+            <Stop offset={0.7} stopColor={shade} stopOpacity={0.5} />
+            <Stop offset={1} stopColor={shade} stopOpacity={0.82} />
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width={width} height={height} fill={`url(#${id})`} />
+      </Svg>
+    </View>
+  )
+}
+
+/** A short hand-drawn strand above the data on a photo: the nature line in
+ * its smallest form, where the full motif would fight the picture. */
+function Strand({ kind }: { kind: DecoKind }) {
+  const { q, c } = useCard(),
+    p = P * q,
+    d = useMemo(() => {
+      const random = rng(kind.length * 13 + 5),
+        pts: Point[] = Array.from({ length: 8 }, (_, i) => [
+          2 + i * 9,
+          9 + Math.sin(i * 0.9) * 3,
+        ])
+      return smooth(jitter(pts, 1.2, random))
+    }, [kind])
+  return (
+    <View testID="card-strand">
+      <Svg width={84 * p} height={18 * p} viewBox="0 0 84 18">
+        <Path
+          d={d}
+          fill="none"
+          stroke={c.mark}
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <Path
+          d={ribLeaf(66, 9, 12, -0.6)}
+          fill="none"
+          stroke={c.mark}
+          strokeWidth={1.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </Svg>
     </View>
   )
 }
@@ -1544,7 +1693,8 @@ export function CardFrame({
     f = look.format,
     tall = f === "9:16",
     height = width * ratioOf(f),
-    shot = useContext(CardShotContext)
+    shot = useContext(CardShotContext),
+    onPhoto = look.backdrop === "photo"
   const [fit, setFit] = useState<Fit>({ stage: 0, rows: 0 }),
     parts = useRef<FitParts>(new Map()),
     size = useRef({ box: -1, inner: -1 }),
@@ -1614,44 +1764,78 @@ export function CardFrame({
             }}
           >
             <CardGround width={width} height={height} />
-            {look.backdrop === "photo" && look.photo && (
-              <>
-                <Image
-                  source={{ uri: look.photo }}
-                  style={{ position: "absolute", inset: 0 }}
-                />
-                <View
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    backgroundColor: alpha(c.bg, 0.65),
-                  }}
-                />
-              </>
+            {onPhoto && look.photo && (
+              <PhotoGround uri={look.photo} width={width} height={height} />
             )}
-            {look.backdrop !== "sticker" && look.backdrop !== "photo" && (
+            {!onPhoto && look.backdrop !== "sticker" && (
               <Deco
                 kind={deco ?? decoFor(accent)}
                 width={width}
                 height={height}
               />
             )}
-            {!!date && (
-              <Words
-                size={13 * P}
-                weight="medium"
-                lines={1}
-                align="right"
-                muted
-              >
-                {date}
-              </Words>
+            {onPhoto ? (
+              <>
+                {/* The photo's room: nothing is drawn over it. */}
+                <View testID="card-photo-room" style={{ flex: ROOM[f] }} />
+                <CardContext.Provider
+                  value={{ q: q * COMPACT, c, f, floor: 11 * (P / COMPACT) }}
+                >
+                  <View
+                    testID="card-overlay"
+                    style={{
+                      flex: 1,
+                      minHeight: 0,
+                      justifyContent: "flex-end",
+                      gap: 10 * p * COMPACT,
+                    }}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8 * p * COMPACT,
+                      }}
+                    >
+                      <Strand kind={deco ?? decoFor(accent)} />
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        {!!date && (
+                          <Words
+                            size={13 * P}
+                            weight="medium"
+                            lines={1}
+                            align="right"
+                            muted
+                          >
+                            {date}
+                          </Words>
+                        )}
+                      </View>
+                    </View>
+                    {children}
+                  </View>
+                </CardContext.Provider>
+              </>
+            ) : (
+              <>
+                {!!date && (
+                  <Words
+                    size={13 * P}
+                    weight="medium"
+                    lines={1}
+                    align="right"
+                    muted
+                  >
+                    {date}
+                  </Words>
+                )}
+                {children}
+              </>
             )}
-            {children}
             {(mark || !!foot) && (
               <View
                 style={{
-                  marginTop: "auto",
+                  marginTop: onPhoto ? 0 : "auto",
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
@@ -2142,9 +2326,15 @@ export function ShareComposer<K extends string>({
               {Array.isArray(swatch(b.key)) && (
                 <Swatch stops={[swatch(b.key)].flat()} />
               )}
-              {b.key === "photo" && (
-                <ImageIcon size={18} color={t.text} strokeWidth={1.75} />
-              )}
+              {b.key === "photo" &&
+                (photo ? (
+                  <Image
+                    source={{ uri: photo }}
+                    style={{ position: "absolute", width: 44, height: 44 }}
+                  />
+                ) : (
+                  <ImageIcon size={18} color={t.text} strokeWidth={1.75} />
+                ))}
               {b.key === "custom" && (
                 <Palette
                   size={18}
@@ -2200,8 +2390,8 @@ export function ShareComposer<K extends string>({
               </Copy>
               <Copy size={12} muted>
                 {photo
-                  ? "Your photo sits behind the card, dimmed so text stays readable."
-                  : "From your library or camera. It sits behind the card, dimmed."}
+                  ? "Your photo fills the card. The numbers sit small at the bottom."
+                  : "From your library or camera. It fills the card, with the numbers small at the bottom."}
               </Copy>
             </View>
             {Platform.OS !== "web" && (

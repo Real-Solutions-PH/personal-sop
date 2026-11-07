@@ -22,7 +22,6 @@ import {
   Sub,
   Title,
   Win,
-  Words,
   XBars,
 } from "../share-kit"
 import { useTheme } from "../theme"
@@ -173,13 +172,8 @@ export function WorkoutCard({
   } else if (kind === "photo")
     body = (
       <>
-        <View style={{ flex: 1, justifyContent: "center" }}>
-          {look.backdrop === "photo" && !look.photo && (
-            <Words size={3.6} align="center" muted>
-              Add your gym photo
-            </Words>
-          )}
-        </View>
+        {/* Room for the picture; on a Photo ground the card keeps it. */}
+        {look.backdrop !== "photo" && <View style={{ flex: 1 }} />}
         <Title>{d.name}</Title>
         <Hero
           value={fmt(Math.round(d.volume))}
