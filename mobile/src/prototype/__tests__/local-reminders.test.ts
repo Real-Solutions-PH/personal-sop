@@ -10,9 +10,9 @@ import { fitStore } from "@domain/fitness/store"
 import type { Habit, HabitLog, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { setShown } from "../extras"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
+import { setShown } from "../extras"
 import {
   BILL_OVERDUE_DAYS,
   inQuiet,

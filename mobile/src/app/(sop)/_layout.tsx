@@ -38,6 +38,7 @@ import { LiveBar } from "@/prototype/live-bar"
 import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { replace, switchTab } from "@/prototype/navigation"
+import { OfflineNote } from "@/prototype/offline-note"
 import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { FinishWatcher } from "@/prototype/routine-done"
@@ -373,19 +374,11 @@ export default function PrototypeLayout() {
           </View>
         </GestureDetector>
         {!focus && <LiveBar path={path} />}
-        {!online && (
-          <Text
-            accessibilityRole="alert"
-            style={{
-              padding: 8,
-              textAlign: "center",
-              color: t.text,
-              backgroundColor: t.soft,
-            }}
-          >
-            Offline · changes stay on this device
-          </Text>
-        )}
+        <OfflineNote
+          offline={!online}
+          withBar={!focus}
+          bottomInset={inset.bottom}
+        />
         {/* Before the bar: the + button rises above the bar into the room the
             drawer leaves for it, so it must draw over the drawer. */}
         {!firstRun && (
