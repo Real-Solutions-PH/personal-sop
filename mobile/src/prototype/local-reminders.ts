@@ -96,10 +96,9 @@ export interface MoreReminders {
 export const isJournalHabit = (h: Pick<Habit, "name">) =>
   h.name.toLowerCase().includes("journal")
 
-/** A routine that is only journaling: named for it, or every step is a
- * journal habit. One with other steps in it still reminds. */
+/** A routine that is only journaling: every step is a journal habit. One
+ * with any other step in it still reminds, whatever it is called. */
 export function isJournalRoutine(r: Routine, habits: readonly Habit[]) {
-  if (isJournalHabit(r)) return true
   const steps = r.steps.map((s) => habits.find((h) => h.id === s.habitId))
   return steps.length > 0 && steps.every((h) => !!h && isJournalHabit(h))
 }

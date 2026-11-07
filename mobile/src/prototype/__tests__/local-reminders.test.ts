@@ -728,7 +728,8 @@ describe("Journal turned off sends no journal reminders", () => {
   const routines = [
     routine("r-mixed", "Wind-down", ["hj", "h1"]),
     routine("r-only", "Night pages", ["hj"]),
-    routine("r-named", "Journal time", ["h1"]),
+    // Named for journaling but holding other steps: it still reminds.
+    routine("r-named", "Journal & stretch", ["h1"]),
   ]
   const ids = (journal: boolean | undefined) =>
     planReminders([], [journalHabit, stretch], NOW, {
@@ -750,11 +751,11 @@ describe("Journal turned off sends no journal reminders", () => {
     const off = ids(false)
     expect(off.filter((i) => i.startsWith("habit-hj-"))).toEqual([])
     expect(off.filter((i) => i.startsWith("routine-r-only-"))).toEqual([])
-    expect(off.filter((i) => i.startsWith("routine-r-named-"))).toEqual([])
     // Everything else still reminds: other habits, and a routine that
     // has more than journaling in it.
     expect(off.some((i) => i.startsWith("habit-h1-"))).toBe(true)
     expect(off.some((i) => i.startsWith("routine-r-mixed-"))).toBe(true)
+    expect(off.some((i) => i.startsWith("routine-r-named-"))).toBe(true)
   })
 
   test("turning Journal off cancels its pending reminders; on brings them back", async () => {
@@ -822,36 +823,68 @@ describe("the running app rebuilds when Journal is switched", () => {
       },
     }
     jest.doMock("expo-notifications", () => N, { virtual: true })
-    tasksStore.set((s) => ({ ...s, tasks: [] }))
-    fitStore.set((s) => ({
-      ...s,
-      settings: { ...s.settings, weighInReminder: "" },
-    }))
-    finStore.set((s) => ({ ...s, planned: [] }))
-    habitsStore.set((s) => ({
-      ...s,
-      habits: [
-        habit({
-          id: "hj",
-          name: "Journal",
-          pauses: [],
-          schedule: [{ days: [1], time: "21:00" }],
-        }),
-      ],
-      routines: [],
-      logs: [],
-    }))
+    // A fresh copy of the module and its stores: ``startReminders`` runs
+    // once per module and subscribes for good, so nothing leaks into other
+    // tests.
+    let m!: {
+      start: () => void
+      shown: typeof setShown
+    }
+    jest.isolateModules(() => {
+      const lib =
+        require("@domain/lib/store") as typeof import("@domain/lib/store")
+      lib.configureStorage({
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      })
+      const tasks = require("@domain/tasks/store") as {
+        tasksStore: typeof tasksStore
+      }
+      const fit = require("@domain/fitness/store") as {
+        fitStore: typeof fitStore
+      }
+      const fin = require("@domain/finance/store") as {
+        finStore: typeof finStore
+      }
+      const habits = require("@domain/habits/store") as {
+        habitsStore: typeof habitsStore
+      }
+      tasks.tasksStore.set((s) => ({ ...s, tasks: [] }))
+      fit.fitStore.set((s) => ({
+        ...s,
+        settings: { ...s.settings, weighInReminder: "" },
+      }))
+      fin.finStore.set((s) => ({ ...s, planned: [] }))
+      habits.habitsStore.set((s) => ({
+        ...s,
+        habits: [
+          habit({
+            id: "hj",
+            name: "Journal",
+            pauses: [],
+            schedule: [{ days: [1], time: "21:00" }],
+          }),
+        ],
+        routines: [],
+        logs: [],
+      }))
+      m = {
+        start: (
+          require("../local-reminders") as typeof import("../local-reminders")
+        ).startReminders,
+        shown: (require("../extras") as typeof import("../extras")).setShown,
+      }
+    })
     const settle = async () => {
       await jest.advanceTimersByTimeAsync(2000)
       for (let i = 0; i < 10; i++) await Promise.resolve()
     }
     try {
-      const { startReminders } =
-        require("../local-reminders") as typeof import("../local-reminders")
-      startReminders()
+      m.start()
       await settle()
       expect(pending).toEqual(["habit-hj-1-21:00"])
-      setShown("journal", false)
+      m.shown("journal", false)
       await settle()
       expect(pending).toEqual([])
     } finally {

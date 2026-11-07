@@ -7,8 +7,8 @@
 // transform only); under Reduce Motion it simply appears and goes.
 
 import { CloudOff } from "lucide-react-native"
-import { useEffect, useState } from "react"
-import { Text, View } from "react-native"
+import { useEffect, useRef, useState } from "react"
+import { AccessibilityInfo, Text, View } from "react-native"
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -48,6 +48,17 @@ export function OfflineNote({
   const reduced = useReducedMotion()
   const [shown, setShown] = useState(offline)
   const seen = useSharedValue(offline ? 1 : 0)
+  // The fade-out ends on the UI thread a frame or more later; by then the
+  // phone may be offline again, so the room goes only if it still is online.
+  const live = useRef(offline)
+  live.current = offline
+  const hide = () => {
+    if (!live.current) setShown(false)
+  }
+  useEffect(() => {
+    // A view appearing is not spoken on iOS: say it once on the way in.
+    if (offline) AccessibilityInfo.announceForAccessibility?.(OFFLINE_LABEL)
+  }, [offline])
   useEffect(() => {
     if (offline) setShown(true)
     if (reduced) {
@@ -59,7 +70,7 @@ export function OfflineNote({
       offline ? 1 : 0,
       { duration: offline ? IN_MS : OUT_MS },
       (done) => {
-        if (done && !offline) runOnJS(setShown)(false)
+        if (done && !offline) runOnJS(hide)()
       },
     )
   }, [offline, reduced, seen])
