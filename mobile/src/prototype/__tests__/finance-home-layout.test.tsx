@@ -1,7 +1,7 @@
 // The Finance home in one fixed order with no period switcher; the Reports
 // screen with its periods plus a custom range; the projection with a custom
 // From–To range alongside its months.
-import { addDays } from "@domain/finance/calc"
+import { addDays, spendRates } from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { privacyStore } from "@domain/lib/privacy"
@@ -335,4 +335,23 @@ test("an end date before the start is refused and the range stays", () => {
     "Pick an end date after the start date",
   )
   expect(allText().match(/Available money on\s+[^\n]+/)?.[0]).toBe(before)
+})
+
+test("spent today and the usual pace sit between net worth and the next 7 days, and open the transactions", () => {
+  render(<FinanceHome />, { wrapper })
+  const all = allText()
+  const at = ["Net worth", "Spent today", "/day", "/month", "Next 7 days"].map(
+    (x) => all.indexOf(x),
+  )
+  expect(at.every((i) => i >= 0)).toBe(true)
+  expect(at).toEqual([...at].sort((a, b) => a - b))
+  const { router } = require("expo-router")
+  const r = spendRates(finStore.get())
+  const strip = screen.getByRole("button", { name: /^Spent today / })
+  expect(strip.props.accessibilityLabel).toMatch(
+    /^Spent today ₱[\d,]+(\.\d{2})?; usually ₱[\d,]+(\.\d{2})? a day, ₱[\d,]+(\.\d{2})? a month$/,
+  )
+  expect(r.days).toBeGreaterThan(0)
+  fireEvent.press(strip)
+  expect(router.push).toHaveBeenCalledWith("/finance/records")
 })

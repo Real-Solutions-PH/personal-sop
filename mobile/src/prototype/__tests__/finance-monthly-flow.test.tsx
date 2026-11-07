@@ -1,7 +1,7 @@
 // The Cash flow page's monthly bars: in and out per budget month, the
 // current month split into what happened and what is still scheduled.
 import * as N from "@domain/finance/calc"
-import type { FinRecord, FinState } from "@domain/finance/data"
+import type { FinRecord, FinState, PlannedItem } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import {
@@ -198,6 +198,125 @@ describe("monthlyFlow", () => {
   })
 })
 
+const plan = (
+  id: string,
+  type: PlannedItem["type"],
+  amount: number,
+  schedule: PlannedItem["schedule"],
+  extra: Partial<PlannedItem> = {},
+): PlannedItem => ({
+  id,
+  name: id,
+  type,
+  amount,
+  estimated: false,
+  accountId: "a1",
+  schedule,
+  start: "2026-01-01",
+  end: { kind: "never" },
+  autoLog: false,
+  isWhatIf: false,
+  inProjection: true,
+  archived: false,
+  skipped: [],
+  snoozed: {},
+  ...extra,
+})
+
+describe("monthlyFlow into future months", () => {
+  const s = (): FinState => ({
+    ...only([rec("i1", "income", 1_000, "2026-11-01")]),
+    planned: [
+      plan("salary", "income", 50_000, { kind: "monthly", day: 15, every: 1 }),
+      plan("rent", "expense", 12_000, { kind: "monthly", day: 5, every: 1 }),
+      plan("gift", "expense", 3_000, { kind: "once", date: "2026-12-20" }),
+      // A transfer moves money between accounts: neither in nor out.
+      plan(
+        "save",
+        "transfer",
+        5_000,
+        { kind: "monthly", day: 16, every: 1 },
+        { toAccountId: "a2" },
+      ),
+      // Skipped in January; a what-if never counts.
+      plan(
+        "gym",
+        "expense",
+        2_000,
+        { kind: "monthly", day: 1, every: 1 },
+        { skipped: ["2027-01-01"] },
+      ),
+      plan(
+        "car",
+        "expense",
+        9_999,
+        { kind: "monthly", day: 2, every: 1 },
+        { isWhatIf: true },
+      ),
+    ],
+  })
+
+  it("shifts the six-month window to end a chosen number of months ahead", () => {
+    const m = monthlyFlow(s(), 6, "2026-11-04", 2)
+    expect(m.map((x) => x.key)).toEqual([
+      "2026-08",
+      "2026-09",
+      "2026-10",
+      "2026-11",
+      "2026-12",
+      "2027-01",
+    ])
+    expect(m.map((x) => x.future)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+    ])
+    expect(m.map((x) => x.current)).toEqual([
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+    ])
+  })
+
+  it("gives each future month what is scheduled in it, and nothing as happened", () => {
+    const m = monthlyFlow(s(), 6, "2026-11-04", 2)
+    // December: salary in; rent, the gift and the gym out.
+    expect(m[4]).toMatchObject({
+      income: 0,
+      spend: 0,
+      aheadIn: 50_000,
+      aheadOut: 12_000 + 3_000 + 2_000,
+    })
+    // January: the gym is skipped.
+    expect(m[5]).toMatchObject({
+      income: 0,
+      spend: 0,
+      aheadIn: 50_000,
+      aheadOut: 12_000,
+    })
+  })
+
+  it("follows the month start day into the future", () => {
+    const base = s()
+    const m = monthlyFlow(
+      { ...base, settings: { ...base.settings, monthStartDay: 10 } },
+      2,
+      "2026-11-04",
+      1,
+    )
+    // 4 Nov is in the month that runs 10 Oct – 9 Nov; the next one runs
+    // 10 Nov – 9 Dec: salary 15 Nov, gym 1 Dec, rent 5 Dec.
+    expect(m.map((x) => x.key)).toEqual(["2026-10", "2026-11"])
+    expect(m[1]).toMatchObject({ aheadIn: 50_000, aheadOut: 14_000 })
+  })
+})
+
 describe("MonthlyFlowBars", () => {
   const months = () => monthlyFlow(finStore.get())
 
@@ -230,6 +349,65 @@ describe("MonthlyFlowBars", () => {
     // Amounts in pesos with thousands separators.
     expect(text).toMatch(/₱\d{1,3}(,\d{3})*(\.\d{2})?/)
     expect(text).not.toMatch(/scheduled/)
+  })
+
+  it("steps into future months and shows what each one expects", () => {
+    render(<MonthlyFlowBars s={finStore.get()} />, { wrapper })
+    const detail = () => within(screen.getByTestId("monthly-flow-detail"))
+    const now = N.monthOf(N.today(), finStore.get().settings.monthStartDay)
+    expect(screen.queryByLabelText("Earlier month")).toBeTruthy()
+    for (let i = 1; i <= 2; i++) {
+      fireEvent.press(screen.getByLabelText("Later month"))
+      const key = N.addMonths(now, i)
+      expect(
+        detail().getByText(`${N.monthLabel(key, true)} · scheduled`),
+      ).toBeTruthy()
+      expect(detail().getByText("Expected net")).toBeTruthy()
+      // The window follows: the picked future month has its own bar.
+      const bar = screen.getByRole("button", {
+        name: new RegExp(`^${N.monthLabel(key, true)}: in `),
+      })
+      expect(bar.props.accessibilityState).toEqual({ selected: true })
+    }
+    expect(screen.getAllByRole("button", { name: /: in ₱/ })).toHaveLength(6)
+    // And back to this month.
+    fireEvent.press(screen.getByLabelText("Earlier month"))
+    fireEvent.press(screen.getByLabelText("Earlier month"))
+    expect(
+      detail().getByText(new RegExp(`^${N.monthLabel(now, true)}`)),
+    ).toBeTruthy()
+  })
+
+  it("leaves the bars where they are when a month is tapped", () => {
+    render(<MonthlyFlowBars s={finStore.get()} />, { wrapper })
+    const now = N.monthOf(N.today(), finStore.get().settings.monthStartDay)
+    fireEvent.press(screen.getByLabelText("Later month"))
+    fireEvent.press(screen.getByLabelText("Later month"))
+    const names = () =>
+      screen
+        .getAllByRole("button", { name: /: in ₱/ })
+        .map((b) => b.props.accessibilityLabel.split(":")[0])
+    const before = names()
+    const next = N.monthLabel(N.addMonths(now, 1), true)
+    fireEvent.press(
+      screen.getByRole("button", { name: new RegExp(`^${next}: in `) }),
+    )
+    expect(names()).toEqual(before)
+    expect(before[before.length - 1]).toBe(
+      N.monthLabel(N.addMonths(now, 2), true),
+    )
+    expect(
+      within(screen.getByTestId("monthly-flow-detail")).getByText(
+        `${next} · scheduled`,
+      ),
+    ).toBeTruthy()
+  })
+
+  it("goes no further than a year ahead", () => {
+    render(<MonthlyFlowBars s={finStore.get()} />, { wrapper })
+    for (let i = 0; i < 12; i++)
+      fireEvent.press(screen.getByLabelText("Later month"))
+    expect(screen.queryByLabelText("Later month")).toBeNull()
   })
 
   it("draws a bar pair for each of the six months", () => {

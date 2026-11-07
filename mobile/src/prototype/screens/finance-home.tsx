@@ -40,6 +40,7 @@ import {
   BudgetsSection,
   CashFlowSection,
   SavingsSection,
+  SpendPace,
 } from "./finance-home-cards"
 import { FinPill } from "./finance-planned"
 import {
@@ -380,6 +381,9 @@ export function FinanceHome({
               </Line>
             </Tap>
           </Frame>
+          {/* Today's spending and the usual pace, under what it all adds up
+              to. */}
+          <SpendPace s={s} />
           {/* What falls due this week, straight under the net worth so it is
               on the first screen. */}
           <UpcomingWeek />

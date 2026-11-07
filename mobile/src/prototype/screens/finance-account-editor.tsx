@@ -1,4 +1,5 @@
 import * as A from "@domain/finance/actions"
+import { balanceOf } from "@domain/finance/calc"
 import type { Account } from "@domain/finance/data"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
@@ -30,6 +31,22 @@ export function AccountEditor({
   const ex = account,
     seed = ex ?? prefill
   const s = finStore.use((s) => s),
+    count = ex
+      ? s.records.filter(
+          (r) => r.accountId === ex.id || r.toAccountId === ex.id,
+        ).length
+      : 0,
+    // An account with history edits its balance today (saved as an
+    // adjustment for the difference); a new or unused one edits its
+    // opening balance.
+    history = count > 0,
+    [startBalance] = useState(() =>
+      !ex
+        ? 0
+        : history
+          ? Math.round(balanceOf(s, ex) * 100) / 100
+          : ex.opening,
+    ),
     t = useTheme(),
     sym = useCurrency().symbol,
     [name, setName] = useState(seed?.name ?? ""),
@@ -47,7 +64,7 @@ export function AccountEditor({
     // A card's balance owed is typed as a positive amount and stored negative.
     [opening, setOpening] = useState(
       ex
-        ? String(ex.type === "credit" ? Math.abs(ex.opening) : ex.opening)
+        ? String(ex.type === "credit" ? -startBalance : startBalance)
         : "",
     ),
     [date, setDate] = useState(ex?.openingDate ?? dayKey()),
@@ -60,12 +77,7 @@ export function AccountEditor({
     }),
     [nw, setNw] = useState(ex?.inNetWorth ?? true),
     [proj, setProj] = useState(ex?.inProjection ?? !seed?.maturesOn),
-    [tried, setTried] = useState(false),
-    count = ex
-      ? s.records.filter(
-          (r) => r.accountId === ex.id || r.toAccountId === ex.id,
-        ).length
-      : 0
+    [tried, setTried] = useState(false)
   return (
     <Sheet
       title={ex ? "Edit account" : "New account"}
@@ -110,22 +122,31 @@ export function AccountEditor({
             label={
               type === "credit"
                 ? `Balance owed ${sym}`
-                : `Opening balance ${sym}`
+                : history
+                  ? `Balance now ${sym}`
+                  : `Opening balance ${sym}`
             }
             value={opening}
             onChange={setOpening}
             signed={type !== "credit"}
           />
         </View>
-        <View style={{ flex: 1 }}>
-          <DateField
-            label="As of"
-            value={date}
-            onChangeText={setDate}
-            maximumDate={dayKey()}
-          />
-        </View>
+        {!history && (
+          <View style={{ flex: 1 }}>
+            <DateField
+              label="As of"
+              value={date}
+              onChangeText={setDate}
+              maximumDate={dayKey()}
+            />
+          </View>
+        )}
       </Line>
+      {history && (
+        <Copy size={12} muted>
+          A new amount is saved as a balance adjustment for the difference.
+        </Copy>
+      )}
       {type === "credit" && (
         <MoneyInput
           label={`Credit limit ${sym}`}
@@ -316,12 +337,13 @@ export function AccountEditor({
                   toast.error("Check the interest, goal and dates")
                   return
                 }
+                const typed =
+                  Number(opening || 0) *
+                  (type === "credit" && Number(opening) > 0 ? -1 : 1)
                 const input = {
                   name: name.trim(),
                   type,
-                  opening:
-                    Number(opening || 0) *
-                    (type === "credit" && Number(opening) > 0 ? -1 : 1),
+                  opening: typed,
                   openingDate: date,
                   limit: type === "credit" ? Number(limit || 0) : undefined,
                   color,
@@ -335,8 +357,14 @@ export function AccountEditor({
                   goalBy:
                     savings && Number(goal) > 0 && dated ? goalBy : undefined,
                 }
-                if (ex) A.updateAccount(ex.id, input)
-                else A.addAccount(input)
+                if (ex) {
+                  // The balance goes through setAccountBalance, never by
+                  // rewriting the opening: that would shift every past
+                  // balance of an account with history.
+                  const { opening: _, ...rest } = input
+                  A.updateAccount(ex.id, rest)
+                  if (typed !== startBalance) A.setAccountBalance(ex.id, typed)
+                } else A.addAccount(input)
                 onClose()
               }}
             >
