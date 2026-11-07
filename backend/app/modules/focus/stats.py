@@ -139,7 +139,7 @@ class FocusContributor:
                         title=title,
                         module=KEY,
                         done=True,
-                        href=f"/focus/day?day={d.isoformat()}",
+                        href=f"/focus?day={d.isoformat()}",
                     )
                 )
         return out
@@ -157,7 +157,7 @@ class FocusContributor:
                 day=d,
                 title=f"Focused {L.fmt_hm(by_day.get(d, 0))} of {L.fmt_hm(goal)}",
                 module=KEY,
-                href=f"/focus/day?day={d.isoformat()}",
+                href=f"/focus?day={d.isoformat()}",
                 kind="goal",
             )
             for d in days

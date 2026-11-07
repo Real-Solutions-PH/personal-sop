@@ -22,13 +22,11 @@ import { liveStore } from "@domain/lib/live"
 import * as TA from "@domain/tasks/actions"
 import { tasksStore } from "@domain/tasks/store"
 import {
-  CalendarClock,
   ChartColumn,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
   Coffee,
-  History,
   Pause,
   Play,
   Plus,
@@ -38,18 +36,13 @@ import {
   Timer,
   X,
 } from "lucide-react-native"
-import { useEffect, useMemo, useState } from "react"
-import { ScrollView, Text, View } from "react-native"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { ScrollView, type ScrollViewInstance, Text, View } from "react-native"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { useMomentTimer } from "../big-moment"
 import { TrophyBadge } from "../brand/badge"
 import { CornerMotif } from "../brand/corner"
-import {
-  FocusTimeline,
-  ItemPicker,
-  SessionStrip,
-  TimerRing,
-} from "../focus-kit"
+import { ItemPicker, SessionStrip, TimerRing } from "../focus-kit"
 import { MomentCard } from "../moment"
 import { claimOnce } from "../moments-seen"
 import { AnimatedCheck, markCompletion } from "../motion"
@@ -67,11 +60,11 @@ import {
 import { back, go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, confirm, Sheet, undo, useNow } from "../ui"
-import { PastSessionSheet } from "./focus-past"
+import { FocusDayPanel } from "./focus-day"
 
 type PresetChoice = PresetKey | "custom"
 
-export function FocusTimer() {
+export function FocusTimer({ day }: { day?: string } = {}) {
   const t = useTheme(),
     safe = useSafeAreaInsets(),
     s = useFocusState(),
@@ -82,10 +75,11 @@ export function FocusTimer() {
     [pick, setPick] = useState(false),
     [next, setNext] = useState<FocusItem | null>(null),
     [ending, setEnding] = useState(false),
-    [logging, setLogging] = useState(false),
     // The session just ended, shown as a card in place of a silent stop.
     [ended, setEnded] = useState<Ended | null>(null),
     [goalMoment, setGoalMoment] = useState(false)
+  const scroll = useRef<ScrollViewInstance>(null),
+    scrolled = useRef(false)
   // Write down a set that ended on screen, so it syncs as it happens.
   // biome-ignore lint/correctness/useExhaustiveDependencies: now is the clock tick
   useEffect(() => A.tickFocus(), [now])
@@ -229,6 +223,7 @@ export function FocusTimer() {
         />
       </Line>
       <ScrollView
+        ref={scroll}
         contentContainerStyle={{
           paddingHorizontal: 20,
           paddingBottom: 32,
@@ -436,19 +431,7 @@ export function FocusTimer() {
           </Frame>
         )}
         <TodayGoal sec={todaySec} goal={goal} />
-        <View style={{ width: "100%", gap: 8 }}>
-          <NavRow
-            icon={CalendarClock}
-            label="Today's timeline"
-            detail="Every block, pause and switch"
-            onPress={() => go(`/focus/day?day=${today}`)}
-          />
-          <NavRow
-            icon={History}
-            label="Log a past session"
-            detail="Forgot the timer? Add the block afterwards"
-            onPress={() => setLogging(true)}
-          />
+        <View style={{ width: "100%" }}>
           <NavRow
             icon={ChartColumn}
             label="Focus stats"
@@ -456,15 +439,21 @@ export function FocusTimer() {
             onPress={() => go("/focus/stats")}
           />
         </View>
-        {!session && (
-          <View style={{ width: "100%" }}>
-            <FocusTimeline
-              blocks={C.dayBlocks(s, today, now)}
-              day={today}
-              dimmed={!C.dayBlocks(s, today, now).length}
-            />
-          </View>
-        )}
+        {/* The day's blocks, here rather than a page of their own; a link
+            to a day (/focus?day=…) scrolls down to it. */}
+        <View
+          style={{ width: "100%" }}
+          onLayout={(e) => {
+            if (!day || scrolled.current) return
+            scrolled.current = true
+            const y = e.nativeEvent.layout.y
+            requestAnimationFrame(() =>
+              scroll.current?.scrollTo({ y: Math.max(0, y - 8) }),
+            )
+          }}
+        >
+          <FocusDayPanel day={day} />
+        </View>
         <Copy size={12} muted style={{ textAlign: "center" }}>
           Safe to lock your phone or close the app: the timer keeps time from
           when each block started.
@@ -531,7 +520,6 @@ export function FocusTimer() {
           Discard session
         </Button>
       </Sheet>
-      <PastSessionSheet open={logging} onClose={() => setLogging(false)} />
       {endedUp && ended && (
         <SessionDone
           key={ended.key}

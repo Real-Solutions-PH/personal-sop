@@ -31,7 +31,6 @@ import {
 import { applySurfaceAction } from "@/surfaces/actions"
 import { buildLiveState } from "@/surfaces/live-state"
 import { focusLive, phaseNotice, syncLiveBar } from "../focus-live"
-import { FocusDay } from "../screens/focus-day"
 import { FocusStats } from "../screens/focus-stats"
 import { FocusTimer } from "../screens/focus-timer"
 import { TaskDetail } from "../screens/task-detail"
@@ -398,7 +397,7 @@ describe("screens", () => {
     expect(screen.getByText("Write the ADR")).toBeTruthy()
   })
 
-  it("draws the day with the pause hatched and labelled", () => {
+  it("draws the day on the Focus page, the pause hatched and labelled", () => {
     const day = dayKey()
     A.startFocus({ preset: "25-5", item: TASK })
     at(10)
@@ -407,11 +406,76 @@ describe("screens", () => {
     A.resumeFocus()
     at(20)
     A.stopFocus()
-    render(<FocusDay day={day} />, { wrapper })
+    render(<FocusTimer day={day} />, { wrapper })
+    expect(screen.getByText("Timeline")).toBeTruthy()
     expect(screen.getByText("Paused 7m")).toBeTruthy()
     expect(screen.getAllByText("Review PR #214").length).toBeGreaterThan(0)
     // 10 + 3 minutes of focus: the day's total and the item's.
-    expect(screen.getAllByText("13m")).toHaveLength(2)
+    expect(screen.getAllByText("13m").length).toBeGreaterThanOrEqual(2)
+    // No separate page to open for it any more.
+    expect(screen.queryByLabelText("Today's timeline")).toBeNull()
+    expect(screen.getByLabelText("Log a past session")).toBeTruthy()
+  })
+
+  it("steps the page's timeline back a day and not past today", () => {
+    render(<FocusTimer />, { wrapper })
+    expect(screen.getAllByText("Today").length).toBeGreaterThan(0)
+    fireEvent.press(screen.getByLabelText("Next day"))
+    expect(screen.queryByText("Monday, Oct 19")).toBeNull()
+    fireEvent.press(screen.getByLabelText("Previous day"))
+    expect(screen.getByText("Monday, Oct 19")).toBeTruthy()
+  })
+
+  it("lists the picker's tasks with priority, lateness and list, the way out apart", () => {
+    const base = tasksStore.get().tasks[0]
+    const list = tasksStore.get().lists[0]
+    tasksStore.set((s) => ({
+      ...s,
+      tasks: [
+        {
+          ...base,
+          id: "p-late",
+          title: "Fix the late invoice",
+          status: "open",
+          dueDate: "2026-10-18",
+          dueTime: null,
+          priority: "high",
+          listId: list.id,
+          estimateMin: 45,
+          starred: false,
+        },
+        {
+          ...base,
+          id: "p-later",
+          title: "Plan the offsite",
+          status: "open",
+          dueDate: null,
+          dueTime: null,
+          priority: "low",
+          listId: null,
+          starred: false,
+        },
+      ],
+    }))
+    render(<FocusTimer />, { wrapper })
+    fireEvent.press(screen.getByLabelText("Pick what you're working on"))
+    expect(screen.getByText("Today and overdue")).toBeTruthy()
+    expect(screen.getByText("No date")).toBeTruthy()
+    expect(screen.getByLabelText("High priority")).toBeTruthy()
+    expect(screen.getByLabelText("Low priority")).toBeTruthy()
+    expect(screen.getByText("late 2d")).toBeTruthy()
+    expect(screen.getAllByText(list.name).length).toBeGreaterThan(0)
+    expect(screen.getByLabelText("Estimate 45m")).toBeTruthy()
+    // The way out comes before every task and is not one of the choices.
+    const json = JSON.stringify(screen.toJSON())
+    expect(json.indexOf("Nothing in particular")).toBeLessThan(
+      json.indexOf("Fix the late invoice"),
+    )
+    expect(json.indexOf("Fix the late invoice")).toBeLessThan(
+      json.indexOf("Plan the offsite"),
+    )
+    fireEvent.press(screen.getByLabelText("Fix the late invoice"))
+    expect(screen.getByText("Fix the late invoice")).toBeTruthy()
   })
 
   it("shows stats by item, and an empty period as the dimmed real page", () => {
