@@ -10,6 +10,10 @@ import type { Habit } from "@domain/habits/data"
 import type { Task } from "@domain/tasks/data"
 import { priorityRank } from "@domain/tasks/logic"
 
+/** Rows per group before a search narrows it: enough for a day's choices
+ * without drawing hundreds of open tasks each time the sheet opens. */
+export const PER_SECTION = 30
+
 export type PickerSectionKey = "today" | "upcoming" | "undated" | "habits"
 
 export interface PickerRow {
@@ -23,6 +27,8 @@ export interface PickerSection {
   key: PickerSectionKey
   title: string
   rows: PickerRow[]
+  /** Rows left out of a long group; search finds them. */
+  more: number
 }
 
 const TITLES: Record<PickerSectionKey, string> = {
@@ -85,5 +91,10 @@ export function pickerSections(
       })
   return (Object.keys(TITLES) as PickerSectionKey[])
     .filter((k) => by[k].length)
-    .map((k) => ({ key: k, title: TITLES[k], rows: by[k] }))
+    .map((k) => ({
+      key: k,
+      title: TITLES[k],
+      rows: by[k].slice(0, PER_SECTION),
+      more: Math.max(0, by[k].length - PER_SECTION),
+    }))
 }

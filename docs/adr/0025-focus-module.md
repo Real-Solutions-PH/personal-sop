@@ -125,8 +125,10 @@ Start button), a **Focus tile** in the app launcher on Today and Me (seven
 apps now wrap into rows of four), the **Live bar** while a session runs
 (from any screen), the time-spent card on every task and habit page
 ("Focus" starts a session on it), the Plan calendar's focus items, and Fern.
-The timer is full screen (`/focus`), like the habit timer; `/focus/day`,
-`/focus/stats` and `/focus/settings` are ordinary pages.
+The timer is full screen (`/focus`), like the habit timer, and the day's
+timeline sits at its bottom (`/focus?day=…` scrolls to a day; the old
+`/focus/day` redirects there, 2026-11-07); `/focus/stats` and
+`/focus/settings` are ordinary pages.
 
 ### Fern
 

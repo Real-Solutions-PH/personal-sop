@@ -5,7 +5,7 @@
 
 import type { Habit } from "@domain/habits/data"
 import type { Task } from "@domain/tasks/data"
-import { pickerSections } from "../focus-picker"
+import { PER_SECTION, pickerSections } from "../focus-picker"
 
 const TODAY = "2026-11-07"
 let n = 0
@@ -96,5 +96,18 @@ describe("picker order", () => {
 
   it("returns no sections when nothing matches", () => {
     expect(pickerSections(TASKS, [], "zzz", TODAY)).toEqual([])
+  })
+
+  it("caps a long group and counts the rest, which search still finds", () => {
+    const many = Array.from({ length: PER_SECTION + 5 }, (_, i) =>
+      task(`Errand ${i}`),
+    )
+    const s = pickerSections(many, [], "", TODAY)
+    expect(s[0].rows).toHaveLength(PER_SECTION)
+    expect(s[0].more).toBe(5)
+    const found = pickerSections(many, [], `Errand ${PER_SECTION + 4}`, TODAY)
+    expect(found[0].rows.map((r) => r.label)).toEqual([
+      `Errand ${PER_SECTION + 4}`,
+    ])
   })
 })

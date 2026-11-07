@@ -548,6 +548,11 @@ export function ItemPicker({
                 onPress={() => pick(r.item)}
               />
             ))}
+            {sec.more > 0 ? (
+              <Copy size={12} muted>
+                {`${sec.more.toLocaleString("en-US")} more · search to find them`}
+              </Copy>
+            ) : null}
           </View>
         ))
       ) : (
