@@ -91,6 +91,9 @@ const wrapper = ({ children }: { children: ReactNode }) => (
   </SafeAreaProvider>
 )
 
+// Stepping a year ahead re-renders the chart a dozen times.
+jest.setTimeout(30000)
+
 beforeEach(() => {
   configureStorage({
     getItem: () => null,

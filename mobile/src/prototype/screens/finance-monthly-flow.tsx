@@ -179,7 +179,9 @@ export function MonthlyFlowBars({ s }: { s: FinState }) {
               key={x.key}
               label={`${N.monthLabel(x.key, true)}: in ${money(x.income + x.aheadIn)}, out ${money(x.spend + x.aheadOut)}${x.current ? ", including what is still scheduled" : x.future ? ", all scheduled" : ""}`}
               selected={on}
-              onPress={() => setView({ at: end - (months.length - 1) + i, end })}
+              onPress={() =>
+                setView({ at: end - (months.length - 1) + i, end })
+              }
               style={{
                 flex: 1,
                 alignItems: "stretch",

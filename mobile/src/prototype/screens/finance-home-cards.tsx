@@ -60,13 +60,16 @@ export function SpendPace({ s }: { s: FinState }) {
   const t = useTheme(),
     money = useMoney(),
     r = N.spendRates(s),
+    // Averages to the whole peso: centavos on an average are false precision.
+    perDay = Math.round(r.perDay),
+    perMonth = Math.round(r.perMonth),
     b = N.budgetSummary(s),
     tone = (v: number, limit: number | undefined, past: string) =>
       limit === undefined ? t.text : v > limit ? past : t.good,
     unit = { color: t.muted, fontSize: 12, fontWeight: "400" as const }
   return (
     <Tap
-      label={`Spent today ${money(r.today)}; usually ${money(r.perDay)} a day, ${money(r.perMonth)} a month`}
+      label={`Spent today ${money(r.today)}; on average ${money(perDay)} a day, ${money(perMonth)} a month`}
       onPress={() => go("/finance/records")}
     >
       <Line
@@ -92,24 +95,24 @@ export function SpendPace({ s }: { s: FinState }) {
         </View>
         <View style={{ alignItems: "flex-end" }}>
           <Copy size={12} muted>
-            {r.months ? "Usually" : "Usually, so far"}
+            {r.months ? "Average spend" : "Average spend so far"}
           </Copy>
           <Line style={{ gap: 8 }}>
             <Copy
               size={15}
               weight="semibold"
-              style={{ color: tone(r.perDay, b?.safePerDay, t.warn) }}
+              style={{ color: tone(perDay, b?.safePerDay, t.warn) }}
             >
-              {money(r.perDay)}
+              {money(perDay)}
               <Text style={unit}> /day</Text>
             </Copy>
             <View style={{ width: 1, height: 14, backgroundColor: t.line }} />
             <Copy
               size={15}
               weight="semibold"
-              style={{ color: tone(r.perMonth, b?.limit, t.bad) }}
+              style={{ color: tone(perMonth, b?.limit, t.bad) }}
             >
-              {money(r.perMonth)}
+              {money(perMonth)}
               <Text style={unit}> /month</Text>
             </Copy>
           </Line>

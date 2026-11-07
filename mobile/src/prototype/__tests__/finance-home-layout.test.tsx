@@ -349,7 +349,7 @@ test("spent today and the usual pace sit between net worth and the next 7 days, 
   const r = spendRates(finStore.get())
   const strip = screen.getByRole("button", { name: /^Spent today / })
   expect(strip.props.accessibilityLabel).toMatch(
-    /^Spent today ₱[\d,]+(\.\d{2})?; usually ₱[\d,]+(\.\d{2})? a day, ₱[\d,]+(\.\d{2})? a month$/,
+    /^Spent today ₱[\d,]+(\.\d{2})?; on average ₱[\d,]+ a day, ₱[\d,]+ a month$/,
   )
   expect(r.days).toBeGreaterThan(0)
   fireEvent.press(strip)

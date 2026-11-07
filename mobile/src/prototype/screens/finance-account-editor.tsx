@@ -41,11 +41,7 @@ export function AccountEditor({
     // opening balance.
     history = count > 0,
     [startBalance] = useState(() =>
-      !ex
-        ? 0
-        : history
-          ? Math.round(balanceOf(s, ex) * 100) / 100
-          : ex.opening,
+      !ex ? 0 : history ? Math.round(balanceOf(s, ex) * 100) / 100 : ex.opening,
     ),
     t = useTheme(),
     sym = useCurrency().symbol,
@@ -63,9 +59,7 @@ export function AccountEditor({
     [goalBy, setGoalBy] = useState(seed?.goalBy ?? dayKey()),
     // A card's balance owed is typed as a positive amount and stored negative.
     [opening, setOpening] = useState(
-      ex
-        ? String(ex.type === "credit" ? -startBalance : startBalance)
-        : "",
+      ex ? String(ex.type === "credit" ? -startBalance : startBalance) : "",
     ),
     [date, setDate] = useState(ex?.openingDate ?? dayKey()),
     [limit, setLimit] = useState(ex?.limit ? String(ex.limit) : ""),
