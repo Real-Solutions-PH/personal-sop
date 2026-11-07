@@ -10,6 +10,7 @@ import { fitStore } from "@domain/fitness/store"
 import type { Habit, HabitLog, Routine } from "@domain/habits/data"
 import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
+import { setShown } from "../extras"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import {
@@ -701,5 +702,161 @@ describe("a module switched off sends no reminders", () => {
     await scheduleEatBackReminder(300, 0, N, new Date(2026, 9, 28, 15))
     expect(cancelled).toEqual(["eat-back"])
     expect(scheduled).toEqual([])
+  })
+})
+
+describe("Journal turned off sends no journal reminders", () => {
+  const journalHabit = habit({
+    id: "hj",
+    name: "Evening journal",
+    icon: "✍️",
+    nagEveryMin: 30,
+    pauses: [],
+    schedule: [{ days: [0, 1, 2, 3, 4, 5, 6], time: "21:00" }],
+  })
+  const stretch = habit()
+  const routine = (id: string, name: string, steps: string[]) =>
+    ({
+      id,
+      name,
+      icon: "🌙",
+      reminder: true,
+      status: "active",
+      steps: steps.map((habitId) => ({ habitId, minutes: 5 })),
+      schedule: [{ days: [0], time: "22:00" }],
+    }) as Routine
+  const routines = [
+    routine("r-mixed", "Wind-down", ["hj", "h1"]),
+    routine("r-only", "Night pages", ["hj"]),
+    routine("r-named", "Journal time", ["h1"]),
+  ]
+  const ids = (journal: boolean | undefined) =>
+    planReminders([], [journalHabit, stretch], NOW, {
+      routines,
+      journal,
+    }).map((p) => p.id)
+
+  test("Journal on: the journal habit, its repeats and its routines remind", () => {
+    const all = ids(true)
+    expect(all.some((i) => i.startsWith("habit-hj-nag-"))).toBe(true)
+    expect(all.some((i) => i.startsWith("habit-hj-"))).toBe(true)
+    expect(all.some((i) => i.startsWith("routine-r-only-"))).toBe(true)
+    expect(all.some((i) => i.startsWith("routine-r-named-"))).toBe(true)
+    // Omitted = shown, like the module switches.
+    expect(ids(undefined)).toEqual(all)
+  })
+
+  test("Journal off: no journal habit reminder or repeat, no journal-only routine", () => {
+    const off = ids(false)
+    expect(off.filter((i) => i.startsWith("habit-hj-"))).toEqual([])
+    expect(off.filter((i) => i.startsWith("routine-r-only-"))).toEqual([])
+    expect(off.filter((i) => i.startsWith("routine-r-named-"))).toEqual([])
+    // Everything else still reminds: other habits, and a routine that
+    // has more than journaling in it.
+    expect(off.some((i) => i.startsWith("habit-h1-"))).toBe(true)
+    expect(off.some((i) => i.startsWith("routine-r-mixed-"))).toBe(true)
+  })
+
+  test("turning Journal off cancels its pending reminders; on brings them back", async () => {
+    tasksStore.set((s) => ({ ...s, tasks: [] }))
+    habitsStore.set((s) => ({
+      ...s,
+      habits: [{ ...journalHabit, nagEveryMin: null }],
+      routines: [],
+      logs: [],
+    }))
+    fitStore.set((s) => ({
+      ...s,
+      settings: { ...s.settings, weighInReminder: "" },
+    }))
+    finStore.set((s) => ({ ...s, planned: [] }))
+    let pending: string[] = []
+    const N = {
+      getPermissionsAsync: async () => ({ status: "granted" }),
+      getAllScheduledNotificationsAsync: async () =>
+        pending.map((identifier) => ({ identifier })),
+      cancelScheduledNotificationAsync: async (id: string) => {
+        pending = pending.filter((p) => p !== id)
+      },
+      scheduleNotificationAsync: async (r: { identifier: string }) => {
+        pending.push(r.identifier)
+        return r.identifier
+      },
+      SchedulableTriggerInputTypes: {
+        DATE: "date",
+        WEEKLY: "weekly",
+        DAILY: "daily",
+      },
+    } as unknown as typeof import("expo-notifications")
+    expect(await syncReminders(N, NOW)).toBe(7)
+    setShown("journal", false)
+    expect(await syncReminders(N, NOW)).toBe(0)
+    expect(pending).toEqual([])
+    setShown("journal", true)
+    expect(await syncReminders(N, NOW)).toBe(7)
+  })
+})
+
+describe("the running app rebuilds when Journal is switched", () => {
+  test("hiding Journal cancels its pending reminders without another change", async () => {
+    jest.useFakeTimers({ now: NOW })
+    let pending: string[] = []
+    const N = {
+      setNotificationHandler: () => {},
+      addNotificationResponseReceivedListener: () => ({ remove() {} }),
+      getLastNotificationResponse: () => null,
+      getPermissionsAsync: async () => ({ status: "granted" }),
+      getAllScheduledNotificationsAsync: async () =>
+        pending.map((identifier) => ({ identifier })),
+      cancelScheduledNotificationAsync: async (id: string) => {
+        pending = pending.filter((p) => p !== id)
+      },
+      scheduleNotificationAsync: async (r: { identifier: string }) => {
+        pending.push(r.identifier)
+        return r.identifier
+      },
+      SchedulableTriggerInputTypes: {
+        DATE: "date",
+        WEEKLY: "weekly",
+        DAILY: "daily",
+      },
+    }
+    jest.doMock("expo-notifications", () => N, { virtual: true })
+    tasksStore.set((s) => ({ ...s, tasks: [] }))
+    fitStore.set((s) => ({
+      ...s,
+      settings: { ...s.settings, weighInReminder: "" },
+    }))
+    finStore.set((s) => ({ ...s, planned: [] }))
+    habitsStore.set((s) => ({
+      ...s,
+      habits: [
+        habit({
+          id: "hj",
+          name: "Journal",
+          pauses: [],
+          schedule: [{ days: [1], time: "21:00" }],
+        }),
+      ],
+      routines: [],
+      logs: [],
+    }))
+    const settle = async () => {
+      await jest.advanceTimersByTimeAsync(2000)
+      for (let i = 0; i < 10; i++) await Promise.resolve()
+    }
+    try {
+      const { startReminders } =
+        require("../local-reminders") as typeof import("../local-reminders")
+      startReminders()
+      await settle()
+      expect(pending).toEqual(["habit-hj-1-21:00"])
+      setShown("journal", false)
+      await settle()
+      expect(pending).toEqual([])
+    } finally {
+      jest.useRealTimers()
+      jest.dontMock("expo-notifications")
+    }
   })
 })

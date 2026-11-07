@@ -12,7 +12,8 @@
 // from the widget or Fern) drops the rest at the next rebuild.
 // A module switched off in Settings sends none of its reminders; the
 // rebuild that follows the switch cancels them, and turning it back on
-// plans them again.
+// plans them again. The Journal (an extra, not a module) works the same
+// way: hidden, its habit and a routine that is only journaling stay quiet.
 
 import type { ModuleKey } from "@domain/contract"
 import { dashStore } from "@domain/dash/store"
@@ -28,6 +29,7 @@ import { privacyStore } from "@domain/lib/privacy"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import { Platform } from "react-native"
+import { extrasStore } from "./extras"
 import {
   openNotification,
   routeLaunchNotification,
@@ -84,6 +86,22 @@ export interface MoreReminders {
   /** The module switches (Settings); a module that is off is never
    * reminded. Omitted = all on. */
   enabled?: Partial<Record<ModuleKey, boolean>>
+  /** The Journal is shown (Settings, the profile's ``enabled_extras``).
+   * Hidden = no reminders for journaling. Omitted = shown. */
+  journal?: boolean
+}
+
+/** A habit that stands for journaling: the same rule the server uses to
+ * tick it when an entry is written (capture ``_tick_journal_habit``). */
+export const isJournalHabit = (h: Pick<Habit, "name">) =>
+  h.name.toLowerCase().includes("journal")
+
+/** A routine that is only journaling: named for it, or every step is a
+ * journal habit. One with other steps in it still reminds. */
+export function isJournalRoutine(r: Routine, habits: readonly Habit[]) {
+  if (isJournalHabit(r)) return true
+  const steps = r.steps.map((s) => habits.find((h) => h.id === s.habitId))
+  return steps.length > 0 && steps.every((h) => !!h && isJournalHabit(h))
 }
 
 /** The sound bundled by the expo-notifications plugin (app.json); the
@@ -177,10 +195,17 @@ export function planReminders(
 ): Planned[] {
   const on = (k: ModuleKey) => given.enabled?.[k] !== false
   const tasks = on("tasks") ? allTasks : []
-  const habits = on("habits") ? allHabits : []
+  const journal = given.journal !== false
+  const habits = on("habits")
+    ? allHabits.filter((h) => journal || !isJournalHabit(h))
+    : []
   const more: MoreReminders = {
     ...given,
-    routines: on("habits") ? given.routines : [],
+    routines: on("habits")
+      ? given.routines?.filter(
+          (r) => journal || !isJournalRoutine(r, allHabits),
+        )
+      : [],
     weighIn: on("fitness") ? given.weighIn : null,
     bills: on("finance") ? given.bills : [],
   }
@@ -376,6 +401,7 @@ export async function syncReminders(
       },
       defaultRemindTime: tasksStore.get().settings.defaultRemindTime,
       enabled: dashStore.get().enabled,
+      journal: extrasStore.get().journal,
     },
   )
   for (const p of plan)
@@ -589,6 +615,13 @@ export function startReminders() {
     switches = now
     if (dashStore.get().enabled.nutrition === false)
       void N.cancelScheduledNotificationAsync("eat-back").catch(() => {})
+    soon()
+  })
+  // The Journal shown or hidden: same, for its one switch.
+  let journal = extrasStore.get().journal
+  extrasStore.subscribe(() => {
+    if (extrasStore.get().journal === journal) return
+    journal = extrasStore.get().journal
     soon()
   })
   soon()
