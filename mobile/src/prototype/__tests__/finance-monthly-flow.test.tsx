@@ -305,6 +305,21 @@ describe("monthlyFlow into future months", () => {
     })
   })
 
+  it("counts a record dated in a future month, and not its paid bill again", () => {
+    const base = s()
+    // December's rent paid ahead and dated on its due day.
+    const paid = rec("p", "expense", 12_000, "2026-12-05", {
+      plannedId: "rent",
+      plannedOn: "2026-12-05",
+    })
+    const m = monthlyFlow({ ...base, records: [paid] }, 6, "2026-11-04", 2)
+    expect(m[4]).toMatchObject({
+      spend: 12_000,
+      aheadIn: 50_000,
+      aheadOut: 3_000 + 2_000,
+    })
+  })
+
   it("follows the month start day into the future", () => {
     const base = s()
     const m = monthlyFlow(

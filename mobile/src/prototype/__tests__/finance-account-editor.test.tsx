@@ -167,3 +167,38 @@ test("a card's balance owed is typed positive and becomes the debt", () => {
   expect(balanceOf(finStore.get(), current())).toBe(-3_000)
   expect(current().opening).toBe(-1_000)
 })
+
+test("an overpaid card saved untouched keeps its credit and records nothing", () => {
+  // Owed 1,000, then paid 1,200: the bank owes the person 200.
+  seed(acct({ type: "credit", opening: -1_000, inProjection: false }), [
+    rec("r1", "income", 1_200),
+  ])
+  render(<AccountEditor account={current()} open onClose={() => {}} />, {
+    wrapper,
+  })
+  expect(screen.getByLabelText(/balance owed/i).props.value).toBe("-200")
+  fireEvent.press(screen.getByText("Save"))
+  expect(finStore.get().records).toHaveLength(1)
+  expect(balanceOf(finStore.get(), current())).toBe(200)
+})
+
+test("switching a card to another type keeps the balance, not the number", () => {
+  // Owes 1,500: as a bank account that is a balance of −1,500.
+  seed(acct({ type: "credit", opening: -1_000, inProjection: false }), [
+    rec("r1", "expense", 500),
+  ])
+  render(<AccountEditor account={current()} open onClose={() => {}} />, {
+    wrapper,
+  })
+  expect(screen.getByLabelText(/balance owed/i).props.value).toBe("1,500")
+  fireEvent.press(screen.getByText("Bank"))
+  expect(screen.getByLabelText(/balance now/i).props.value).toBe("-1,500")
+  fireEvent.press(screen.getByText("Credit card"))
+  expect(screen.getByLabelText(/balance owed/i).props.value).toBe("1,500")
+  fireEvent.press(screen.getByText("Bank"))
+  fireEvent.press(screen.getByText("Save"))
+  // Reclassified, same money: no adjustment.
+  expect(finStore.get().records).toHaveLength(1)
+  expect(current().type).toBe("bank")
+  expect(balanceOf(finStore.get(), current())).toBe(-1_500)
+})

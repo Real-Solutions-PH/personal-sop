@@ -16,6 +16,10 @@ import { isDay } from "../validation"
 import { ACCOUNT_COLORS, accountColorKey } from "./finance-account-card"
 import { FinChip } from "./finance-projection"
 
+/** "1300" ↔ "-1300", leaving an empty or zero draft as it is. */
+const negateDraft = (d: string) =>
+  d.startsWith("-") ? d.slice(1) : Number(d) ? `-${d}` : d
+
 export function AccountEditor({
   account,
   prefill,
@@ -106,7 +110,13 @@ export function AccountEditor({
             key={o.v}
             label={o.label}
             active={type === o.v}
-            onPress={() => setType(o.v)}
+            onPress={() => {
+              // The field reads "balance owed" on a card and "balance" on
+              // anything else: crossing over keeps the amount, so flip it.
+              if ((o.v === "credit") !== (type === "credit"))
+                setOpening(negateDraft(opening))
+              setType(o.v)
+            }}
           />
         ))}
       </Line>
@@ -122,7 +132,7 @@ export function AccountEditor({
             }
             value={opening}
             onChange={setOpening}
-            signed={type !== "credit"}
+            signed
           />
         </View>
         {!history && (
@@ -331,9 +341,10 @@ export function AccountEditor({
                   toast.error("Check the interest, goal and dates")
                   return
                 }
+                // A card's owed amount is stored negative; an overpaid card
+                // shows (and takes) a minus.
                 const typed =
-                  Number(opening || 0) *
-                  (type === "credit" && Number(opening) > 0 ? -1 : 1)
+                  Number(opening || 0) * (type === "credit" ? -1 : 1) || 0
                 const input = {
                   name: name.trim(),
                   type,

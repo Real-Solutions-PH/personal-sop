@@ -7,7 +7,7 @@ import * as N from "@domain/finance/calc"
 import type { FinState } from "@domain/finance/data"
 import { scheduledBetween } from "@domain/finance/forecast"
 import { ChevronLeft, ChevronRight } from "lucide-react-native"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { View } from "react-native"
 import { ChartLegend } from "../finance-charts"
 import { GrowBar } from "../motion"
@@ -48,7 +48,10 @@ export function monthlyFlow(
       [from, to] = N.monthRange(key, sd),
       current = key === now,
       future = key > now,
-      f = future ? { income: 0, spend: 0 } : N.flowIn(s, from, to),
+      // A future month can hold records too (a bill paid ahead and dated on
+      // its due day); paid occurrences leave the scheduled part, so nothing
+      // counts twice.
+      f = N.flowIn(s, from, to),
       ahead = current
         ? N.scheduledFlow(s, to)
         : future
@@ -133,7 +136,7 @@ export function MonthlyFlowBars({ s }: { s: FinState }) {
         end: Math.min(Math.max(end, next), Math.max(0, next + 5)),
       })
     },
-    months = monthlyFlow(s, 6, N.today(), end),
+    months = useMemo(() => monthlyFlow(s, 6, N.today(), end), [s, end]),
     m = months[months.length - 1 + at - end],
     max = Math.max(
       1,

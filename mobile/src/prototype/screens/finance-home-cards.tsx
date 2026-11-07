@@ -54,8 +54,9 @@ export function SpentLeft({ spent, limit }: { spent: number; limit: number }) {
  * category budgets. Dimmed only when there is no budget at all. */
 /** Under net worth: what went out today, then the usual pace a day and a
  * month. Supporting figures, so small, but each keeps its meaning colour
- * against the budget: green inside it, orange or red past it, plain only
- * when there is no budget to judge by. Opens the transactions. */
+ * against the overall budget: green inside it, orange or red past it, plain
+ * only when there is no overall budget to judge by. Opens the
+ * transactions. */
 export function SpendPace({ s }: { s: FinState }) {
   const t = useTheme(),
     money = useMoney(),
@@ -63,7 +64,7 @@ export function SpendPace({ s }: { s: FinState }) {
     // Averages to the whole peso: centavos on an average are false precision.
     perDay = Math.round(r.perDay),
     perMonth = Math.round(r.perMonth),
-    b = N.budgetSummary(s),
+    lim = N.spendLimits(s),
     tone = (v: number, limit: number | undefined, past: string) =>
       limit === undefined ? t.text : v > limit ? past : t.good,
     unit = { color: t.muted, fontSize: 12, fontWeight: "400" as const }
@@ -88,7 +89,7 @@ export function SpendPace({ s }: { s: FinState }) {
           <Copy
             size={20}
             weight="semibold"
-            style={{ color: tone(r.today, b?.safePerDay, t.bad) }}
+            style={{ color: tone(r.today, lim?.today, t.bad) }}
           >
             {money(r.today)}
           </Copy>
@@ -101,7 +102,7 @@ export function SpendPace({ s }: { s: FinState }) {
             <Copy
               size={15}
               weight="semibold"
-              style={{ color: tone(perDay, b?.safePerDay, t.warn) }}
+              style={{ color: tone(perDay, lim?.perDay, t.warn) }}
             >
               {money(perDay)}
               <Text style={unit}> /day</Text>
@@ -110,7 +111,7 @@ export function SpendPace({ s }: { s: FinState }) {
             <Copy
               size={15}
               weight="semibold"
-              style={{ color: tone(perMonth, b?.limit, t.bad) }}
+              style={{ color: tone(perMonth, lim?.perMonth, t.bad) }}
             >
               {money(perMonth)}
               <Text style={unit}> /month</Text>

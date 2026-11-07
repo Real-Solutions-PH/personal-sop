@@ -276,6 +276,25 @@ export function spendRates(s: FinState, on = today(), window = 30): SpendRates {
     months,
   }
 }
+/** The lines the home's spend figures are judged against, from the overall
+ * budget: what was safe to spend today as the day began (today's spending
+ * added back, so the line does not fall as money goes out), the month's
+ * limit spread evenly by day, and the limit itself. Null without an overall
+ * budget: category budgets cover only part of the spending, so they cannot
+ * judge all of it. */
+export function spendLimits(
+  s: FinState,
+): { today: number; perDay: number; perMonth: number } | null {
+  const b = s.budgets.find((x) => !x.archived && x.categoryIds === null)
+  if (!b) return null
+  const t = today()
+  const v = budgetView(s, b)
+  return {
+    today: todayAllowance(v, flowIn(s, t, t).spend),
+    perDay: v.limit / (diffDays(v.to, v.from) + 1),
+    perMonth: v.limit,
+  }
+}
 export const savingsRate = (f: Flow) =>
   f.income > 0 ? (f.income - f.spend) / f.income : 0
 export function spendIn(
