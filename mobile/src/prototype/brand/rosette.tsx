@@ -346,6 +346,7 @@ export function Rosette({
   font: fontSize,
   card = false,
   halo,
+  shadow,
 }: {
   petals: Petal[]
   ink: RosetteInk
@@ -361,6 +362,9 @@ export function Rosette({
   card?: boolean
   /** A soft ground behind the flower and its labels (a photo card). */
   halo?: string
+  /** A shadow under the values alone, with no ground (a card on a photo
+   * whose scrim already darkens it). */
+  shadow?: string
 }) {
   const [width, setWidth] = useState(0),
     haloId = `halo${useId().replace(/[^a-zA-Z0-9]/g, "")}`,
@@ -589,9 +593,9 @@ export function Rosette({
                         letterSpacing: -0.02 * font,
                       }
                     : {}),
-                  ...(halo
+                  ...(halo || shadow
                     ? {
-                        textShadowColor: halo,
+                        textShadowColor: shadow ?? halo,
                         textShadowRadius: font * 0.4,
                       }
                     : {}),

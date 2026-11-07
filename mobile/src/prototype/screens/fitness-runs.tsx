@@ -42,6 +42,7 @@ import {
   Pencil,
   Play,
   Satellite,
+  Share2,
   Trash2,
   TrendingUp,
   Undo2,
@@ -932,12 +933,20 @@ export function RunDetail({
     <Screen
       title={summary ? `${R.sessionLabel(r)} complete` : r.name}
       actions={
-        <IconTap
-          size={40}
-          icon={Trash2}
-          label={`Delete ${r.kind}`}
-          onPress={remove}
-        />
+        <Line style={{ gap: 4 }}>
+          <IconTap
+            size={40}
+            icon={Share2}
+            label={`Share ${r.kind}`}
+            onPress={() => go(`/fitness/runs/${r.id}/share`)}
+          />
+          <IconTap
+            size={40}
+            icon={Trash2}
+            label={`Delete ${r.kind}`}
+            onPress={remove}
+          />
+        </Line>
       }
     >
       {summary && (

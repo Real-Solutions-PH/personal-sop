@@ -6,10 +6,11 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { act, fireEvent, render } from "@testing-library/react-native"
+import { act, fireEvent, render, within } from "@testing-library/react-native"
 import type { ReactElement, ReactNode } from "react"
 import {
   Dimensions,
+  Image,
   PixelRatio,
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ import {
 } from "../screens/habit-share"
 import { addDays, JournalCard, journalStats } from "../screens/journal-share"
 import { FoodCard, runOf } from "../screens/nutrition-share"
+import { paceChange, RunCard, runCardData } from "../screens/run-share"
 import { TaskCard } from "../screens/task-share"
 import { clock, compact, fmt, group, pct, signed } from "../share-format"
 import {
@@ -35,6 +37,7 @@ import {
   type CardFormat,
   CardFrame,
   type CardLook,
+  COMPACT,
   cardInk,
   endedRun,
   FIT_SETTLE_MS,
@@ -339,6 +342,19 @@ const CARDS: [string, Make][] = [
       />
     ),
   ]),
+  ...(["route", "splits", "overlay"] as const).flatMap((k) =>
+    [false, true].map((indoor): [string, Make] => [
+      `run ${k}${indoor ? " treadmill" : ""}`,
+      (look, long) => (
+        <RunCard
+          kind={k}
+          width={300}
+          look={look}
+          data={F.runData(long, indoor)}
+        />
+      ),
+    ]),
+  ),
   ...(["day", "week"] as const).map((k): [string, Make] => [
     `food ${k}`,
     (look, long) => (
@@ -601,6 +617,7 @@ test("gradients only in share-kit's CardGround, and no raw colour", () => {
     "screens/fitness-share.tsx",
     "screens/nutrition-share.tsx",
     "screens/journal-share.tsx",
+    "screens/run-share.tsx",
   ]) {
     const code = readFileSync(join(dir, file), "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
@@ -710,6 +727,29 @@ describe("the fit rule", () => {
     expect(r.queryByTestId("card-body")).toBeNull()
     expect(r.getByText("Title")).toBeTruthy()
     expect(r.getByTestId("card-hero")).toBeTruthy()
+  })
+  test("on a photo, a chart left no room at all still steps the rule", () => {
+    const r = render(
+      <CardFrame
+        width={300}
+        look={{ format: "1:1", backdrop: "photo", photo: "file:///p.jpg" }}
+      >
+        <Title>Title</Title>
+        <Hero value="12" unit="days" />
+        <Sub>The sub line</Sub>
+        <Body>
+          <XBars rows={rows} color="#3e63dd" />
+        </Body>
+      </CardFrame>,
+    )
+    // The box first lays out at 0 (its height is not known yet) and, the
+    // block being full, stays 0 once it is: no second layout arrives.
+    layout(r, "card-body", 0)
+    layout(r, "card-body-fit", 150)
+    act(() => {
+      jest.advanceTimersByTime(FIT_SETTLE_MS + 1)
+    })
+    expect(r.getAllByTestId("card-row").length).toBeLessThan(5)
   })
   test("skips a kind the card does not have", () => {
     const parts = new Map([
@@ -1164,4 +1204,214 @@ test("a failed capture shows the share error toast", async () => {
   expect(toast.error).toHaveBeenCalledWith(
     "Could not share this image. You can still copy its caption.",
   )
+})
+
+describe("on the person's photo", () => {
+  const photo = "file:///photo.jpg"
+  test.each(
+    CARDS,
+  )("%s sits as a compact block over the full photo", (_, make) => {
+    for (const format of FORMATS) {
+      const r = render(make({ format, backdrop: "photo", photo }, false))
+      // The photo is the whole ground, in the exported node, and it is
+      // not dimmed by a box: only the soft gradient scrim sits over it.
+      const shot = r.getByTestId("card-shot")
+      expect(within(shot).getByTestId("card-photo")).toBeTruthy()
+      const img = r
+        .UNSAFE_getAllByType(Image)
+        .find((i) => (i.props.source as { uri?: string })?.uri === photo)
+      expect(img).toBeTruthy()
+      // The data sits in one block under a clear room for the picture.
+      expect(r.getByTestId("card-photo-room")).toBeTruthy()
+      expect(within(shot).getByTestId("card-overlay")).toBeTruthy()
+      expect(r.queryAllByTestId("card-deco")).toHaveLength(0)
+      // Every line of words and numbers carries a shadow to hold on any
+      // photo; none is boxed.
+      for (const t of r.UNSAFE_getAllByType(Text)) {
+        const st = StyleSheet.flatten(t.props.style)
+        if (nested(t)) continue
+        expect(st.textShadowColor).toMatch(valid)
+      }
+      r.unmount()
+    }
+  })
+
+  test("chart words drawn in SVG carry an outline in the shadow colour", () => {
+    const { Text: SvgText } = require("react-native-svg") as {
+      Text: React.ComponentType
+    }
+    const look: CardLook = { format: "9:16", backdrop: "photo", photo }
+    const r = render(
+      <RunCard kind="splits" width={300} look={look} data={F.runData()} />,
+    )
+    const words = r.UNSAFE_getAllByType(SvgText)
+    const outlined = words.filter(
+      (w) => w.props.stroke === cardInk(look).shadow,
+    )
+    const filled = words.filter((w) => w.props.fill !== "none")
+    expect(filled.length).toBeGreaterThan(0)
+    expect(outlined).toHaveLength(filled.length)
+    // Off a photo there is no outline.
+    r.rerender(
+      <RunCard
+        kind="splits"
+        width={300}
+        look={{ ...look, backdrop: "fern", photo: null }}
+        data={F.runData()}
+      />,
+    )
+    expect(
+      r.UNSAFE_getAllByType(SvgText).filter((w) => w.props.fill === "none"),
+    ).toHaveLength(0)
+  })
+
+  test("the data is drawn smaller than on a plain ground", () => {
+    const size = (look: CardLook) => {
+      const r = render(
+        <CardFrame width={300} look={look}>
+          <Title>Evening run</Title>
+        </CardFrame>,
+      )
+      const t = r.getByText("Evening run")
+      const fs = StyleSheet.flatten(t.props.style).fontSize as number
+      r.unmount()
+      return fs
+    }
+    const plain = size({ format: "9:16", backdrop: "fern", photo: null }),
+      on = size({ format: "9:16", backdrop: "photo", photo })
+    expect(on).toBeCloseTo(plain * COMPACT, 3)
+  })
+
+  test("no shadow and no compact block off a photo", () => {
+    const r = render(
+      <CardFrame
+        width={300}
+        look={{ format: "4:5", backdrop: "dark", photo: null }}
+      >
+        <Title>Evening run</Title>
+      </CardFrame>,
+    )
+    expect(r.queryByTestId("card-overlay")).toBeNull()
+    expect(
+      StyleSheet.flatten(r.getByText("Evening run").props.style)
+        .textShadowColor,
+    ).toBeUndefined()
+  })
+
+  test("Photo with no picture yet is still a finished card on Fern", () => {
+    const c = cardInk({ format: "9:16", backdrop: "photo", photo: null })
+    expect(c.gradient?.stops).toEqual(
+      cardInk({ format: "9:16", backdrop: "fern", photo: null }).gradient
+        ?.stops,
+    )
+    expect(c.shadow).toMatch(valid)
+  })
+
+  test("Photo leads the background row", () => {
+    const r = render(
+      <ShareComposer
+        value="card"
+        onChange={() => {}}
+        caption=""
+        items={[
+          {
+            key: "card",
+            label: "Card",
+            render: (w, look) => (
+              <CardFrame width={w} look={look}>
+                <Title>x</Title>
+              </CardFrame>
+            ),
+          },
+        ]}
+      >
+        {null}
+      </ShareComposer>,
+    )
+    const labels = r
+      .UNSAFE_queryAllByProps({ accessibilityRole: "button" })
+      .map((n) => n.props.accessibilityLabel as string)
+      .filter((l) => / background$/.test(l ?? ""))
+    expect(labels[0]).toBe("Photo background")
+  })
+})
+
+describe("the run card", () => {
+  test("pace change reads in seconds under a minute, else m:ss", () => {
+    expect(paceChange(-8)).toBe("8 s faster than last")
+    expect(paceChange(734)).toBe("12:14 slower than last")
+  })
+
+  test("shows distance, pace, time, the change and the route", () => {
+    const r = render(
+      <RunCard
+        kind="route"
+        width={300}
+        look={{ format: "4:5", backdrop: "fern", photo: null }}
+        data={F.runData(false, false)}
+      />,
+    )
+    expect(r.getByText(/^5\.23/)).toBeTruthy()
+    expect(r.getByText(/5:23/)).toBeTruthy()
+    expect(r.getByText("28:08")).toBeTruthy()
+    expect(r.getByText("8 s slower than last")).toBeTruthy()
+    expect(r.getByTestId("card-cost")).toBeTruthy()
+    expect(r.getByLabelText("Route")).toBeTruthy()
+  })
+
+  test("a treadmill session draws the machine, never a route", () => {
+    const r = render(
+      <RunCard
+        kind="route"
+        width={300}
+        look={{ format: "9:16", backdrop: "dark", photo: null }}
+        data={F.runData(false, true)}
+      />,
+    )
+    expect(r.getByLabelText("Treadmill at 4% incline")).toBeTruthy()
+    expect(r.queryByLabelText("Route")).toBeNull()
+    expect(r.getByText("12:14 faster than last")).toBeTruthy()
+    expect(r.getByTestId("card-gain")).toBeTruthy()
+  })
+
+  test("its data compares against the last like session only", () => {
+    const base = {
+      kind: "walk" as const,
+      endedAt: "2026-11-01T01:00:00.000Z",
+      route: [],
+      splits: [],
+    }
+    const runs = [
+      {
+        ...base,
+        id: "a",
+        name: "A",
+        startedAt: "2026-10-30T00:00:00.000Z",
+        movingSec: 1200,
+        distanceM: 2000,
+        indoor: true,
+      },
+      {
+        ...base,
+        id: "b",
+        name: "B",
+        startedAt: "2026-10-31T00:00:00.000Z",
+        movingSec: 600,
+        distanceM: 2000,
+      },
+      {
+        ...base,
+        id: "c",
+        name: "C",
+        startedAt: "2026-11-01T00:00:00.000Z",
+        movingSec: 1000,
+        distanceM: 2000,
+        indoor: true,
+      },
+    ]
+    const d = runCardData(runs, runs[2])
+    // C's 500 s/km against treadmill A's 600, not outdoor B's 300.
+    expect(d.paceDelta).toBe(-100)
+    expect(d.indoor).toBe(true)
+  })
 })
