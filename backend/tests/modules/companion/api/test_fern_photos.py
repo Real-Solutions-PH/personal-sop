@@ -263,7 +263,12 @@ def test_a_photo_turn_the_model_failed_stays_in_the_chat(
     events = ask(
         client,
         api,
-        {"text": "log this receipt", "media_ids": [mid], "thread_id": thread, "id": me_id},
+        {
+            "text": "log this receipt",
+            "media_ids": [mid],
+            "thread_id": thread,
+            "id": me_id,
+        },
     )
     assert events[-1]["type"] == "RUN_FINISHED"
     msgs = [
