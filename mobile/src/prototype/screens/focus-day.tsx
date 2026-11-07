@@ -1,5 +1,6 @@
 // One business day of focus as time blocks (ADR-0025): when each focus,
-// break and pause ran and what it was on. Swipe or tap to step days.
+// break and pause ran and what it was on. Swipe or tap to step days. It sits
+// at the bottom of the Focus page; the old /focus/day route redirects there.
 
 import * as C from "@domain/focus/calc"
 import * as L from "@domain/focus/logic"
@@ -19,7 +20,7 @@ import { clockOf, FocusTimeline } from "../focus-kit"
 import { SwipeStep } from "../motion"
 import { Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
-import { Screen, useNow } from "../ui"
+import { useNow } from "../ui"
 import { PastSessionSheet } from "./focus-past"
 import { LockedPreview } from "./locked-preview"
 
@@ -30,7 +31,7 @@ const longDay = (d: string) =>
     day: "numeric",
   })
 
-export function FocusDay({ day: initial }: { day?: string }) {
+export function FocusDayPanel({ day: initial }: { day?: string }) {
   const t = useTheme(),
     s = useFocusState(),
     now = useNow(),
@@ -64,18 +65,37 @@ export function FocusDay({ day: initial }: { day?: string }) {
     if (next <= today) setDay(next)
   }
   return (
-    <Screen
-      title="Focus timeline"
-      actions={
-        <IconTap
-          size={40}
-          icon={History}
+    <View style={{ width: "100%", gap: 4 }}>
+      <Line>
+        <Copy
+          size={17}
+          weight="semibold"
+          style={{ flex: 1, fontFamily: fonts.displayMedium }}
+        >
+          Timeline
+        </Copy>
+        <Tap
           label="Log a past session"
           onPress={() => setLogging("")}
-        />
-      }
-    >
-      <Line style={{ marginBottom: 12 }}>
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            minHeight: 36,
+            paddingHorizontal: 12,
+            borderRadius: 18,
+            borderWidth: 1,
+            borderColor: t.input,
+            backgroundColor: t.card,
+          }}
+        >
+          <History size={14} color={t.text} />
+          <Copy size={13} weight="medium">
+            Log past
+          </Copy>
+        </Tap>
+      </Line>
+      <Line style={{ marginBottom: 8 }}>
         <IconTap
           size={40}
           icon={ChevronLeft}
@@ -143,6 +163,7 @@ export function FocusDay({ day: initial }: { day?: string }) {
                     style={{
                       width: 10,
                       height: 10,
+                      marginTop: 5,
                       borderRadius: 3,
                       backgroundColor:
                         b.kind === "focus"
@@ -157,9 +178,9 @@ export function FocusDay({ day: initial }: { day?: string }) {
                   <Copy size={14} style={{ fontFamily: fonts.mono, width: 96 }}>
                     {clockOf(b.start)}–{b.running ? "now" : clockOf(b.end)}
                   </Copy>
+                  {/* What the block was on wraps, never truncated. */}
                   <Copy
                     size={14}
-                    lines={1}
                     muted={b.kind !== "focus"}
                     style={{ flex: 1 }}
                   >
@@ -197,7 +218,7 @@ export function FocusDay({ day: initial }: { day?: string }) {
         day={day}
         {...(logging ? { editId: logging } : {})}
       />
-    </Screen>
+    </View>
   )
 }
 
@@ -213,14 +234,15 @@ function BlockRow({
   children: React.ReactNode
 }) {
   const t = useTheme()
-  if (!logged) return <Line style={{ gap: 10 }}>{children}</Line>
+  if (!logged)
+    return <Line style={{ gap: 10, alignItems: "flex-start" }}>{children}</Line>
   return (
     <Tap
       onPress={onEdit}
       label="Edit logged session"
       style={{ minHeight: 32, justifyContent: "center" }}
     >
-      <Line style={{ gap: 10 }}>
+      <Line style={{ gap: 10, alignItems: "flex-start" }}>
         {children}
         <Pencil size={14} color={t.muted} />
       </Line>

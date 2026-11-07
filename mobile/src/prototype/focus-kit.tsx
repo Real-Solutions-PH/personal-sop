@@ -9,6 +9,8 @@ import * as L from "@domain/focus/logic"
 import { useFocusState } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
+import type { TaskList } from "@domain/tasks/data"
+import * as TL from "@domain/tasks/logic"
 import { tasksStore } from "@domain/tasks/store"
 import {
   CheckSquare,
@@ -18,6 +20,7 @@ import {
   Search,
   Target,
   Timer,
+  X,
 } from "lucide-react-native"
 import { type ReactNode, useMemo, useRef, useState } from "react"
 import { TextInput, View } from "react-native"
@@ -31,8 +34,10 @@ import Svg, {
   Line as SvgLine,
 } from "react-native-svg"
 import { strokeAcross } from "./brand/scribble"
+import { type PickerRow, pickerSections } from "./focus-picker"
 import { border, Copy, chosen, Frame, Line, Tap } from "./native-kit"
 import { go } from "./navigation"
+import { PriorityMark } from "./task-editor"
 import { fonts, useTheme } from "./theme"
 import { Sheet } from "./ui"
 
@@ -47,10 +52,6 @@ export function dayLabel(day: string, today = dayKey()) {
     day: "numeric",
   })
 }
-const relative = (label: string) =>
-  ["Today", "Yesterday", "Tomorrow"].includes(label)
-    ? label.toLowerCase()
-    : label
 export const clockOf = (ms: number) => {
   const d = new Date(ms)
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -434,14 +435,10 @@ export function SessionStrip({ blocks }: { blocks: C.Block[] }) {
 
 // ---------------------------------------------------------------- picker
 
-interface Choice {
-  item: FocusItem | null
-  label: string
-  detail: string
-  icon: "task" | "habit" | "none"
-}
-
-/** Pick what the time goes to: an open task, an active habit, or nothing. */
+/** Pick what the time goes to: an open task, an active habit, or nothing.
+ * Tasks come by when they are due, then by priority (the order is in
+ * focus-picker); "Nothing in particular" is the way out, drawn apart above
+ * the list rather than as one more choice. */
 export function ItemPicker({
   open,
   onClose,
@@ -455,78 +452,19 @@ export function ItemPicker({
 }) {
   const t = useTheme()
   const tasks = tasksStore.use((s) => s.tasks)
+  const lists = tasksStore.use((s) => s.lists)
   const habits = habitsStore.use((s) => s.habits)
   const [q, setQ] = useState("")
-  const choices = useMemo(() => {
-    const text = q.trim().toLowerCase()
-    const out: Choice[] = []
-    for (const x of tasks)
-      if (x.status === "open")
-        out.push({
-          item: { kind: "task", id: x.id, title: x.title },
-          label: x.title,
-          detail: x.dueDate
-            ? `Task · due ${relative(dayLabel(x.dueDate))}`
-            : "Task",
-          icon: "task",
-        })
-    for (const h of habits)
-      if (h.status === "active")
-        out.push({
-          item: { kind: "habit", id: h.id, title: h.name },
-          label: `${h.icon} ${h.name}`,
-          detail: "Habit",
-          icon: "habit",
-        })
-    return out
-      .filter((c) => !text || c.label.toLowerCase().includes(text))
-      .slice(0, 40)
-  }, [tasks, habits, q])
-  const row = (c: Choice) => {
-    const picked =
-      (c.item === null && current === null) ||
-      (c.item && current && L.itemKey(c.item) === L.itemKey(current))
-    const Icon =
-      c.icon === "task"
-        ? CheckSquare
-        : c.icon === "habit"
-          ? Target
-          : CircleSlash
-    return (
-      <Tap
-        key={c.item ? L.itemKey(c.item) : "none"}
-        label={c.label}
-        onPress={() => {
-          onPick(c.item)
-          onClose()
-        }}
-        style={{
-          paddingVertical: 10,
-          paddingHorizontal: 12,
-          borderRadius: 12,
-          ...chosen(t, !!picked),
-        }}
-      >
-        {/* A long title wraps and the row grows; the icon stays on its
-            first line. */}
-        <Line style={{ alignItems: "flex-start" }}>
-          <Icon
-            size={18}
-            style={{ marginTop: 3 }}
-            color={
-              c.icon === "task" ? t.tsk : c.icon === "habit" ? t.hab : t.muted
-            }
-          />
-          <View style={{ flex: 1 }}>
-            <Copy weight="medium">{c.label}</Copy>
-            <Copy size={12} muted lines={1}>
-              {c.detail}
-            </Copy>
-          </View>
-        </Line>
-      </Tap>
-    )
+  const today = dayKey()
+  const sections = useMemo(
+    () => pickerSections(tasks, habits, q, today),
+    [tasks, habits, q, today],
+  )
+  const pick = (item: FocusItem | null) => {
+    onPick(item)
+    onClose()
   }
+  const none = current === null
   return (
     <Sheet title="What are you working on?" open={open} onClose={onClose}>
       <Line
@@ -552,15 +490,196 @@ export function ItemPicker({
             fontSize: 16,
           }}
         />
+        {q ? (
+          <Tap
+            label="Clear search"
+            onPress={() => setQ("")}
+            style={{ padding: 6 }}
+          >
+            <X size={16} color={t.muted} />
+          </Tap>
+        ) : null}
       </Line>
-      {row({
-        item: null,
-        label: "Nothing in particular",
-        detail: "Just focus",
-        icon: "none",
-      })}
-      {choices.map(row)}
+      {/* The way out: an outlined action, dashed, not a card like the
+          tasks below it. */}
+      <Tap
+        label="Nothing in particular"
+        selected={none}
+        onPress={() => pick(null)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 8,
+          minHeight: 44,
+          paddingHorizontal: 12,
+          borderRadius: 22,
+          borderWidth: none ? 2 : 1,
+          borderStyle: none ? "solid" : "dashed",
+          borderColor: none ? t.text : t.input,
+          alignSelf: "flex-start",
+        }}
+      >
+        <CircleSlash size={16} color={t.muted} />
+        <Copy size={14} weight="medium">
+          Nothing in particular
+        </Copy>
+        <Copy size={13} muted>
+          · just focus
+        </Copy>
+      </Tap>
+      {sections.length ? (
+        sections.map((sec) => (
+          <View key={sec.key} style={{ gap: 8, marginTop: 4 }}>
+            <Copy
+              size={12}
+              weight="semibold"
+              muted
+              style={{ letterSpacing: 0.4, textTransform: "uppercase" }}
+            >
+              {sec.title}
+            </Copy>
+            {sec.rows.map((r) => (
+              <PickerRowView
+                key={L.itemKey(r.item)}
+                row={r}
+                lists={lists}
+                today={today}
+                picked={!!current && L.itemKey(r.item) === L.itemKey(current)}
+                onPress={() => pick(r.item)}
+              />
+            ))}
+          </View>
+        ))
+      ) : (
+        <Copy size={14} muted style={{ paddingVertical: 8 }}>
+          {q.trim()
+            ? `Nothing matches \u201c${q.trim()}\u201d`
+            : "No open tasks or active habits"}
+        </Copy>
+      )}
     </Sheet>
+  )
+}
+
+/** One choice: its icon, the title (wraps, never truncated), and for a task
+ * what decides whether to work on it now: priority first, then when it is
+ * due (late in red), its time, list and estimate. */
+function PickerRowView({
+  row: r,
+  lists,
+  today,
+  picked,
+  onPress,
+}: {
+  row: PickerRow
+  lists: TaskList[]
+  today: string
+  picked: boolean
+  onPress: () => void
+}) {
+  const t = useTheme()
+  const x = r.task
+  const habit = r.item.kind === "habit"
+  const Icon = habit ? Target : CheckSquare
+  const list = x?.listId ? lists.find((l) => l.id === x.listId) : undefined
+  const late = !!x?.dueDate && x.dueDate < today
+  const meta = !!x && (
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: 8,
+        rowGap: 2,
+      }}
+    >
+      <PriorityMark priority={x.priority} />
+      {x.dueDate && (late || x.dueDate > today) ? (
+        <Copy
+          size={12}
+          weight={late ? "medium" : undefined}
+          muted={!late}
+          style={late ? { color: t.bad } : undefined}
+        >
+          {late
+            ? `late ${TL.diffDays(x.dueDate, today)}d`
+            : TL.fmtDay(x.dueDate, today)}
+        </Copy>
+      ) : null}
+      {x.dueTime ? (
+        <Copy size={12} muted>
+          {TL.fmtTime(x.dueTime)}
+        </Copy>
+      ) : null}
+      {list ? (
+        <Line style={{ gap: 4 }}>
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: 3,
+              backgroundColor: t[list.color],
+            }}
+          />
+          <Copy size={12} muted>
+            {list.name}
+          </Copy>
+        </Line>
+      ) : null}
+      {x.estimateMin ? (
+        <View
+          accessible
+          accessibilityLabel={`Estimate ${L.fmtHm(x.estimateMin * 60)}`}
+          style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+        >
+          <Hourglass size={12} color={t.muted} />
+          <Copy size={12} muted>
+            {L.fmtHm(x.estimateMin * 60)}
+          </Copy>
+        </View>
+      ) : null}
+    </View>
+  )
+  const hasMeta =
+    !!x &&
+    ((!!x.priority && x.priority !== "none") ||
+      (!!x.dueDate && x.dueDate !== today) ||
+      !!x.dueTime ||
+      !!list ||
+      !!x.estimateMin)
+  return (
+    <Tap
+      label={r.label}
+      selected={picked}
+      onPress={onPress}
+      style={{
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 12,
+        ...chosen(t, picked),
+      }}
+    >
+      {/* A long title wraps and the row grows; the icon stays on its
+          first line. */}
+      <Line style={{ alignItems: "flex-start" }}>
+        <Icon
+          size={18}
+          style={{ marginTop: 3 }}
+          color={habit ? t.hab : t.tsk}
+        />
+        <View style={{ flex: 1, gap: 3 }}>
+          <Copy weight="medium">
+            {r.label}
+            {x?.starred ? (
+              <Copy size={14} style={{ color: t.warn }}>
+                {" \u2605"}
+              </Copy>
+            ) : null}
+          </Copy>
+          {hasMeta ? meta : null}
+        </View>
+      </Line>
+    </Tap>
   )
 }
 
@@ -679,7 +798,7 @@ export function FocusTimeCard({
             <Tap
               key={r.sessionId}
               label={`Session on ${r.day}`}
-              onPress={() => go(`/focus/day?day=${r.day}`)}
+              onPress={() => go(`/focus?day=${r.day}`)}
             >
               <Line>
                 <Copy size={14} muted style={{ flex: 1 }}>

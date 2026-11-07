@@ -139,7 +139,7 @@ function useCalendar(from: string, to: string): CalendarItem[] {
           title: `Focus ${L.fmtHm(total)}${top?.title ? ` · ${top.title}` : ""}`,
           module: "focus",
           done: true,
-          href: `/focus/day?day=${d}`,
+          href: `/focus?day=${d}`,
         })
       }
     }
@@ -162,7 +162,7 @@ function useMisses(from: string, to: string): Miss[] {
         day: d,
         title: `Focused ${L.fmtHm(by[d] ?? 0)} of ${L.fmtHm(goal)}`,
         module: "focus" as const,
-        href: `/focus/day?day=${d}`,
+        href: `/focus?day=${d}`,
       }))
       .sort((a, b) => b.day.localeCompare(a.day))
   }, [s, from, to])
