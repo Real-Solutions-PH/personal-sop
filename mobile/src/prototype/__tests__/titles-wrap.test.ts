@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
 const TITLES: [file: string, child: string][] = [
-  ["focus-kit.tsx", "{c.label}"],
+  ["focus-kit.tsx", "{r.label}"],
   ["screens/today.tsx", "{i.title}"],
   ["screens/today.tsx", "{habit.icon} {habit.name}"],
   ["screens/plan.tsx", "{i.title}"],
@@ -19,6 +19,7 @@ const TITLES: [file: string, child: string][] = [
   ["screens/dash-reviews.tsx", "{x.title}"],
   ["screens/dash-reviews.tsx", "{m.title}"],
   ["screens/focus-day.tsx", '{x.item?.title ?? "Nothing in particular"}'],
+  ["screens/focus-day.tsx", '{b.kind === "focus"'],
   ["screens/focus-stats.tsx", '{x.item?.title ?? "Nothing in particular"}'],
   ["screens/habits-home.tsx", "{h.name}"],
   ["screens/habit-secondary.tsx", "{h.name}"],
