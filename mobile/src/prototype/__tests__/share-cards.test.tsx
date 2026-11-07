@@ -1213,6 +1213,35 @@ describe("on the person's photo", () => {
     }
   })
 
+  test("chart words drawn in SVG carry an outline in the shadow colour", () => {
+    const { Text: SvgText } = require("react-native-svg") as {
+      Text: React.ComponentType
+    }
+    const look: CardLook = { format: "9:16", backdrop: "photo", photo }
+    const r = render(
+      <RunCard kind="splits" width={300} look={look} data={F.runData()} />,
+    )
+    const words = r.UNSAFE_getAllByType(SvgText)
+    const outlined = words.filter(
+      (w) => w.props.stroke === cardInk(look).shadow,
+    )
+    const filled = words.filter((w) => w.props.fill !== "none")
+    expect(filled.length).toBeGreaterThan(0)
+    expect(outlined).toHaveLength(filled.length)
+    // Off a photo there is no outline.
+    r.rerender(
+      <RunCard
+        kind="splits"
+        width={300}
+        look={{ ...look, backdrop: "fern", photo: null }}
+        data={F.runData()}
+      />,
+    )
+    expect(
+      r.UNSAFE_getAllByType(SvgText).filter((w) => w.props.fill === "none"),
+    ).toHaveLength(0)
+  })
+
   test("the data is drawn smaller than on a plain ground", () => {
     const size = (look: CardLook) => {
       const r = render(

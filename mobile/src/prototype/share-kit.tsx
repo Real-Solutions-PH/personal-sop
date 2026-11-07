@@ -655,7 +655,12 @@ export function Body({
           ? { height: own, flexShrink: 1, minHeight: 0, overflow: "hidden" }
           : { flex: 1, minHeight: 0, overflow: "hidden" }
       }
-      onLayout={(e) => measure("box", e.nativeEvent.layout.height)}
+      onLayout={(e) => {
+        // A hugging box is 0 until it knows its chart's height: that first
+        // pass is not an overflow, so it is not reported.
+        if (hug && own === 0) return
+        measure("box", e.nativeEvent.layout.height)
+      }}
     >
       <View
         testID="card-body-fit"
@@ -747,17 +752,39 @@ function VizText({
   color: string
   anchor?: "start" | "middle" | "end"
 }) {
+  const { c, floor } = useCard(),
+    // On a photo a chart's words grow toward the caption floor (in drawing
+    // units, capped so stem labels keep clear of each other) and draw over
+    // a soft outline of the shadow colour: SVG text takes no text shadow.
+    size = floor === undefined ? 12 : Math.min(14, floor / P)
   return (
-    <SvgText
-      x={x}
-      y={y}
-      fill={color}
-      fontFamily={fonts.medium}
-      fontSize={12}
-      textAnchor={anchor}
-    >
-      {children}
-    </SvgText>
+    <>
+      {c.shadow ? (
+        <SvgText
+          x={x}
+          y={y}
+          fill="none"
+          stroke={c.shadow}
+          strokeWidth={size * 0.28}
+          strokeLinejoin="round"
+          fontFamily={fonts.medium}
+          fontSize={size}
+          textAnchor={anchor}
+        >
+          {children}
+        </SvgText>
+      ) : null}
+      <SvgText
+        x={x}
+        y={y}
+        fill={color}
+        fontFamily={fonts.medium}
+        fontSize={size}
+        textAnchor={anchor}
+      >
+        {children}
+      </SvgText>
+    </>
   )
 }
 const f1 = (n: number) => Math.round(n * 10) / 10
@@ -1213,7 +1240,7 @@ export function XBars({
   /** Rows already left out by the caller, counted into "+N more". */
   more?: number
 }) {
-  const { q, c } = useCard(),
+  const { q, c, floor } = useCard(),
     p = P * q,
     shown = useRows(rows.length),
     max = Math.max(1, ...rows.map((r) => r.value)),
@@ -1291,8 +1318,8 @@ export function XBars({
                   allowFontScaling={false}
                   style={{
                     fontFamily: fonts.medium,
-                    fontSize: 14 * p,
-                    lineHeight: 19 * p,
+                    fontSize: Math.max(14 * P, floor ?? 0) * q,
+                    lineHeight: Math.max(14 * P, floor ?? 0) * q * 1.36,
                     color: c.ink,
                     textAlign: "right",
                     fontVariant: ["tabular-nums"],

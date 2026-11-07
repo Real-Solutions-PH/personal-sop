@@ -142,6 +142,7 @@ function Flower({ facets }: { facets: Facet[] }) {
           petals={petalsOf(facets, c.area)}
           height={h}
           font={15 * P * q}
+          shadow={c.shadow}
           ink={{
             ink: c.ink,
             muted: c.muted,
