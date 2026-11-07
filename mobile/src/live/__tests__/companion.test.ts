@@ -958,3 +958,97 @@ test("after a streamed reply the next question goes, and Fern is not left thinki
   expect(thinking.getState().on).toBe(false)
   expect(replying.getState().id).toBeNull()
 })
+
+// Kai, 2026-11-07: "the log manually through photo is not saving the chat
+// convo". A photo sent while the phone counted itself offline became a
+// photo capture that no chat held and the server never stored as a turn,
+// and a log handed to capture was not tied to the chat it was sent from:
+// reopened, the chat no longer showed either.
+
+/** Media uploads that always succeed; the ids sent, in order. */
+function uploadingHttp(uploads: string[]): Http {
+  return {
+    request: async <T>(method: string, path: string, body?: unknown) => {
+      if (method === "POST" && path === "/media/uploads") {
+        uploads.push(String((body as Row).id))
+        return {
+          id: (body as Row).id,
+          upload_url: "https://store.example/put",
+          expires_in: 600,
+          headers: {},
+        } as T
+      }
+      const done = /^\/media\/(.+)\/complete$/.exec(path)
+      if (method === "POST" && done)
+        return { id: done[1], kind: "image", state: "ready", url: null } as T
+      throw new Error(`unexpected ${method} ${path}`)
+    },
+    raw: async () => {
+      throw new Error("unused")
+    },
+  }
+}
+
+test("a photo sent offline waits in the chat as a question, then goes to Fern with it", async () => {
+  const photo = "data:image/jpeg;base64,/9j/4AAQSkZJRg=="
+  const uploads: string[] = []
+  let online = false
+  const post = jest.fn(async (_p: string, body: Row) =>
+    sseResponse(replayAsk(REC.ask_reply, body)),
+  )
+  installLiveCapture({
+    http: uploadingHttp(uploads),
+    post: post as LiveCaptureDeps["post"],
+    fetch: async () => new Response("{}", { status: 200 }),
+    online: () => online,
+    kick: jest.fn(),
+    cats: categoryIds(USER),
+    watch: (onChange) => {
+      reconnect = onChange
+      return () => {}
+    },
+  })
+  ask("log this receipt", undefined, [photo])
+  await flush()
+  // Not a capture outside the chat: a question in it, with its photo.
+  expect(captureStore.get().captures).toEqual([])
+  const [queued] = companionStore.get().messages
+  expect(queued).toMatchObject({ role: "me", text: "log this receipt" })
+  expect(queued.status).toBe("queued")
+  expect(queued.blocks).toEqual([{ t: "photos", urls: [photo] }])
+  expect(queued.threadId).toBe(currentThread(companionStore.get()))
+  online = true
+  reconnect()
+  await flush()
+  const [path, body] = post.mock.calls[0] as unknown as [string, Row]
+  expect(path).toBe("/companion/ask/stream")
+  expect(body).toMatchObject({
+    text: "log this receipt",
+    id: queued.id,
+    media_ids: uploads,
+    thread_id: queued.threadId,
+  })
+})
+
+test("a log sent offline stays in the chat it was sent from", async () => {
+  install(
+    async () => {
+      throw new Error("no stream offline")
+    },
+    () => false,
+  )
+  ask("spent 200 on lunch")
+  await flush()
+  const [cap] = captureStore.get().captures
+  const s = companionStore.get()
+  expect(s.captureChats?.[cap.id]).toBe(currentThread(s))
+})
+
+test("a log Fern hands to capture stays in the chat it was sent from", async () => {
+  install(async (_p, body) => sseResponse(replayAsk(REC.ask_capture, body)))
+  ask("spent 120 on lunch")
+  await flush()
+  const [cap] = captureStore.get().captures
+  const s = companionStore.get()
+  expect(s.captureChats?.[cap.id]).toBe(currentThread(s))
+})
