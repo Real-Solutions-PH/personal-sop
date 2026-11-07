@@ -728,6 +728,29 @@ describe("the fit rule", () => {
     expect(r.getByText("Title")).toBeTruthy()
     expect(r.getByTestId("card-hero")).toBeTruthy()
   })
+  test("on a photo, a chart left no room at all still steps the rule", () => {
+    const r = render(
+      <CardFrame
+        width={300}
+        look={{ format: "1:1", backdrop: "photo", photo: "file:///p.jpg" }}
+      >
+        <Title>Title</Title>
+        <Hero value="12" unit="days" />
+        <Sub>The sub line</Sub>
+        <Body>
+          <XBars rows={rows} color="#3e63dd" />
+        </Body>
+      </CardFrame>,
+    )
+    // The box first lays out at 0 (its height is not known yet) and, the
+    // block being full, stays 0 once it is: no second layout arrives.
+    layout(r, "card-body", 0)
+    layout(r, "card-body-fit", 150)
+    act(() => {
+      jest.advanceTimersByTime(FIT_SETTLE_MS + 1)
+    })
+    expect(r.getAllByTestId("card-row").length).toBeLessThan(5)
+  })
   test("skips a kind the card does not have", () => {
     const parts = new Map([
       ["figures", 1],

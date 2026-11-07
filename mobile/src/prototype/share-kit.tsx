@@ -645,7 +645,16 @@ export function Body({
     // its own height (shrinking first when the block runs out of room),
     // not all the room left, so no gap opens above a short chart.
     hug = floor !== undefined && !fill,
-    [own, setOwn] = useState(0)
+    [own, setOwn] = useState(0),
+    // The box's last laid-out height, held while it is not yet reported.
+    box = useRef(0)
+  // Once a hugging box knows its chart's height, report the box as it last
+  // laid out: if the block left it no room it stays 0, and no new layout
+  // would ever report that.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: report once own is known
+  useEffect(() => {
+    if (hug && own > 0) measure("box", box.current)
+  }, [hug, own > 0])
   if (hidden) return null
   return (
     <View
@@ -656,10 +665,11 @@ export function Body({
           : { flex: 1, minHeight: 0, overflow: "hidden" }
       }
       onLayout={(e) => {
+        box.current = e.nativeEvent.layout.height
         // A hugging box is 0 until it knows its chart's height: that first
-        // pass is not an overflow, so it is not reported.
+        // pass is not an overflow, so it waits for the effect above.
         if (hug && own === 0) return
-        measure("box", e.nativeEvent.layout.height)
+        measure("box", box.current)
       }}
     >
       <View
