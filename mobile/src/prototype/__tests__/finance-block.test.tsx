@@ -167,3 +167,18 @@ test("loading and a failed first sync are not drawn as an empty month", () => {
   expect(screen.getByText(/Couldn't load your money/)).toBeTruthy()
   expect(screen.queryByTestId("finance-block")).toBeNull()
 })
+
+test("an expense confirmed after the card was drawn shows on it", () => {
+  // Kai, 2026-11-07: after "Keep both" on a duplicate, the card drawn with
+  // the earlier reply must count the expense the confirm saved.
+  seed({ budgets: [budget] })
+  draw()
+  expect(text()).toMatch(/₱350(\.00)?\b/)
+  act(() =>
+    finStore.set((s) => ({
+      ...s,
+      records: [...s.records, spend("r4", 29, new Date(2026, 10, 6, 9, 45))],
+    })),
+  )
+  expect(text()).toMatch(/₱379(\.00)?\b/)
+})

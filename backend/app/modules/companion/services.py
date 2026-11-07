@@ -509,6 +509,11 @@ def _ask(
             # answers instead, reusing the question already stored.
             pass
     r = brain.route(text, user_name=user_name, sol_name=sol.name, currency=ctx.currency)
+    if photos:
+        # The router cannot see photos: handed to capture as words, a photo
+        # log lost its photo and left nothing of the turn in the chat. The
+        # question stays, photos and all, with a reply saying to send again.
+        r = brain.Route("reply", PHOTO_NOT_READ)
     if r.kind == "capture":
         stored = owned_repo.get(ctx, CompanionMessage, me_id)
         if stored is not None:
@@ -520,7 +525,11 @@ def _ask(
         ctx.commit()
         return AskOut(kind="capture", engine="rules", capture=cap)
     me = owned_repo.get(ctx, CompanionMessage, me_id) or _message(
-        ctx, "me", text, [], me_id
+        ctx,
+        "me",
+        text,
+        [{"t": "photos", "media": [str(p) for p in photos]}] if photos else [],
+        me_id,
     )
     stream.custom("message", _pub(ctx, me).model_dump(mode="json"))
     blocks = _apply(ctx, r)
@@ -807,8 +816,12 @@ class SolRun:
 
 
 _CONFIRM_WORD = re.compile(r"\b(confirm(ed)?|approve[ds]?)\b", re.I)
+# "Keep both" answers the duplicate check's own "Keep both?" (seen live
+# 2026-11-07: the chip "Keep both — separate purchases" was refused as no
+# confirmation, so the expense never saved and the money card stayed ₱0).
 _CONFIRM_SHORT = re.compile(
     r"^\W*(yes|yeah|yep|yup|ok(ay)?|sure|go( ahead)?|save( it| them| both| all)?|"
+    r"keep (them|both|all)\b(?! of)|"
     r"do it|add it|log it|record it|continue|proceed|sige|oo|opo|g|tama)\b",
     re.I,
 )
@@ -1955,6 +1968,10 @@ ANSWER_NUDGE = (
 )
 # Said when a turn did nothing and even the extra pass had no words.
 NOTHING_DONE = "Sorry, I lost that answer. Could you send it once more?"
+PHOTO_NOT_READ = (
+    "I couldn't look at your photo just now, so nothing was logged from it. "
+    "Send it again in a moment."
+)
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."

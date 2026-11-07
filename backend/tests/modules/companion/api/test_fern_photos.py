@@ -238,3 +238,61 @@ def test_a_second_message_with_many_photos_carries_the_first_as_text(
     assert "image_url" not in str([m.content for m in chat])
     text = " ".join(str(m.content) for m in chat)
     assert "Lunch plate 0" in text and "Breakfast label 3" in text
+
+
+def test_a_photo_turn_the_model_failed_stays_in_the_chat(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    storage: FakeStorage,
+) -> None:
+    """Kai, 2026-11-07: a log sent as a photo was gone from the chat when it
+    was opened again. With the chat model failing, the fallback router read
+    "log this receipt" as a log, tombstoned the stored question and handed
+    only its words to capture: the photo was dropped and nothing of the
+    turn stayed in the chat."""
+    from uuid import uuid4
+
+    api = user(client, db)
+    api.assign("chat")
+    api.assign("vision", vision=True)
+    install(monkeypatch, fail=True)
+    thread = str(uuid4())
+    mid = media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+    me_id = str(uuid4())
+    events = ask(
+        client,
+        api,
+        {
+            "text": "log this receipt",
+            "media_ids": [mid],
+            "thread_id": thread,
+            "id": me_id,
+        },
+    )
+    assert events[-1]["type"] == "RUN_FINISHED"
+    msgs = [
+        m for m in api.get("/companion/messages")["data"] if m["thread_id"] == thread
+    ]
+    me = next(m for m in msgs if m["id"] == me_id)
+    assert me["role"] == "me" and me["text"] == "log this receipt"
+    assert [b["t"] for b in me["blocks"]] == ["photos"]
+    sol = [m for m in msgs if m["role"] == "sol"]
+    assert len(sol) == 1 and sol[0]["text"]
+
+
+def test_a_photo_sent_with_the_ai_off_stays_in_the_chat_with_its_photo(
+    client: TestClient,
+    db: Session,
+    storage: FakeStorage,
+) -> None:
+    from uuid import uuid4
+
+    api = user(client, db)
+    mid = media(api, storage, kind="image", mime="image/jpeg", data=JPEG)  # type: ignore[arg-type]
+    me_id = str(uuid4())
+    ask(client, api, {"text": "spent 120 on lunch", "media_ids": [mid], "id": me_id})
+    msgs = api.get("/companion/messages")["data"]
+    me = next(m for m in msgs if m["id"] == me_id)
+    assert [b["t"] for b in me["blocks"]] == ["photos"]
+    assert [m["role"] for m in msgs] == ["me", "sol"]

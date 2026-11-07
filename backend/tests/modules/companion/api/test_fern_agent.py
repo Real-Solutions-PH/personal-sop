@@ -1369,12 +1369,18 @@ def test_what_counts_as_saying_confirm() -> None:
         "sige",
         "save them",
         "I approve the breakfast change, please",
+        # The duplicate check asks "Keep both?"; its chip answers it.
+        "Keep both — separate purchases",
+        "keep them",
     ]
     no = [
         "record the following meals for lunch and dinner",
         "can I have a protein shake?",
         "yes I had rice and two eggs and a big glass of milk with some oats "
         "for breakfast this morning",
+        "keep it under 500 this week",
+        "keep all of my receipts",
+        "keep track of my spending",
     ]
     assert all(services.said_confirm(t) for t in yes)
     assert not any(services.said_confirm(t) for t in no)

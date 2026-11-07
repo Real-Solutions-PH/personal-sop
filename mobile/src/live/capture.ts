@@ -57,6 +57,7 @@ import {
   COMPANION_NAME,
   type CompanionState,
   companionStore,
+  logCaptureIn,
   type Msg,
   replying,
   type StepItem,
@@ -254,6 +255,12 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   const detail = (d: Row) => {
     const id = String(d.id)
     putCapture(captureFromDetail(d, cats, find(id)))
+  }
+  /** A question read as a log: its capture shows in the chat it was asked
+   * in, there and only there, whenever the chat is opened again. */
+  const chatCapture = (d: Row, threadId: string | null | undefined) => {
+    detail(d)
+    if (threadId) logCaptureIn(String(d.id), threadId)
   }
 
   const putCard = (row: Row) => {
@@ -956,9 +963,12 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             lastRead = Date.now()
             return finish(() => {
               const msgs = ((r.messages ?? []) as Row[]).map(messageFromServer)
+              const asked = companionStore
+                .get()
+                .messages.find((m) => m.id === meId)?.threadId
               putMessages(msgs)
               if (r.capture && typeof r.capture === "object")
-                detail(r.capture as Row)
+                chatCapture(r.capture as Row, asked)
               if (Array.isArray(r.changes))
                 deps.applyRows?.(r.changes as Change[])
               // Read as a log: the capture shows in the thread instead.
@@ -1027,6 +1037,30 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       },
     ])
     touchThread(threadId, { role: "me", text })
+  }
+
+  /** A queued question's photos sit in the OS cache, which may be purged
+   * while it waits for a connection: point it at durable copies. */
+  async function keepAskPhotos(id: string, photos: string[]) {
+    const keep = deps.keep
+    if (!keep) return
+    const kept = await Promise.all(
+      photos.map((u) => (u.startsWith("file:") ? keep(u) : u)),
+    )
+    if (kept.every((u, i) => u === photos[i])) return
+    companionStore.set((s) => ({
+      ...s,
+      messages: s.messages.map((m) =>
+        m.id === id && m.status === "queued"
+          ? {
+              ...m,
+              blocks: (m.blocks ?? []).map((b) =>
+                b.t === "photos" ? { ...b, urls: kept } : b,
+              ),
+            }
+          : m,
+      ),
+    }))
   }
 
   const setInFlight = (v: CompanionState["inFlight"]) =>
@@ -1228,7 +1262,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             dropAsk(meId)
           }
           if (out.capture && typeof out.capture === "object")
-            detail(out.capture as Row)
+            chatCapture(out.capture as Row, threadId)
           // What Fern recorded shows on every screen now, not after a pull
           // the server may hold back while a transaction is still open.
           if (Array.isArray(out.changes))
@@ -1454,6 +1488,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         }
       } finally {
         view.calm()
+        // The server stored the question with its photos: copies kept while
+        // it waited offline (keepAskPhotos) are no longer needed.
+        if (view.echoed) for (const u of photos) deps.release?.(u)
         // A stream that ended without RUN_FINISHED or an error frame.
         if (
           !view.echoed &&
@@ -1488,18 +1525,19 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
 
   const ask: AskBackend = (text, hint, routedToCapture, photos) => {
     if (!deps.online()) {
-      // Offline photos wait as a photo capture, read when back online.
-      if (photos?.length)
-        send({
-          text,
-          source: "photo",
-          photo: photos[0],
-          photos: photos.slice(1),
-          hint,
-        })
-      else if (routedToCapture) send({ text, source: "text", hint })
+      const thread = threadForSend()
+      // Photos wait in the chat as the question they are, sent to Fern with
+      // it once back online: the turn is then stored like any other, not a
+      // photo capture outside the chat.
+      if (photos?.length) {
+        const id = newId()
+        putAsk(id, text, hint, photos, "queued", thread)
+        void keepAskPhotos(id, photos)
+        toast.warning(`${companionName()} will answer when you're back online.`)
+      } else if (routedToCapture)
+        logCaptureIn(send({ text, source: "text", hint }), thread)
       else {
-        putAsk(newId(), text, hint, [], "queued", threadForSend())
+        putAsk(newId(), text, hint, [], "queued", thread)
         toast.warning(`${companionName()} will answer when you're back online.`)
       }
       return
