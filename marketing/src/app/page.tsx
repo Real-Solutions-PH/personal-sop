@@ -7,7 +7,6 @@ import {
   Dumbbell,
   ListChecks,
   MessageCircle,
-  Plus,
   RefreshCw,
   Smartphone,
   Target,
@@ -16,13 +15,12 @@ import {
   Wallet,
 } from "lucide-react"
 import type { ReactNode } from "react"
-import { CaptureDemo } from "@/components/CaptureDemo"
 import { Fern } from "@/components/Fern"
-import { FernMoods } from "@/components/FernMoods"
 import { HeroVideo } from "@/components/HeroVideo"
-import { Logo, Mark } from "@/components/Logo"
+import { Logo } from "@/components/Logo"
 import { PrimaryCta } from "@/components/PrimaryCta"
 import { Reveal } from "@/components/Reveal"
+import { FernScene, ProblemScene, ShareScene } from "@/components/Scenes"
 import { ScrollFx } from "@/components/ScrollFx"
 import { ScrollStory } from "@/components/ScrollStory"
 import { SiteFooter } from "@/components/SiteFooter"
@@ -34,17 +32,9 @@ import {
   PLANS,
   REGIONAL_NOTE,
   SHOW_PRICES,
-  STACK,
   STUDENT_NOTE,
 } from "@/config/pricing"
 import { CTA, FEATURE_STATUS, SITE } from "@/config/site"
-
-const usd = (n: number) =>
-  n.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
-  })
 
 const FEATURES: {
   k: string
@@ -113,44 +103,31 @@ const FEATURES: {
   },
 ]
 
+// Four answers, shown open: nothing on the page waits behind a click. Offline
+// use and export are in the privacy section, missed days in the streak
+// section, and the not-an-adviser line in the footer.
 const FAQ: { q: string; a: ReactNode }[] = [
   {
     q: "Where does my data live?",
-    a: "Every record is saved on your phone first. Your account keeps a copy on our servers, which is how Fern reads your records to answer questions and how a new phone gets your history back. A local-only mode, with no account and nothing leaving your phone, is coming.",
+    a: "On your phone first. A copy syncs to our servers, so Fern can answer and a new phone gets your history back.",
   },
   {
-    q: "Why does Fern have a daily limit?",
-    a: `Every message to Fern has a real running cost, so the free plan comes with a daily allowance and Plus with a monthly fair-use budget, shown in the app; past it, Fern switches to a lighter model. Logging by hand, charts and streaks are never limited.`,
-  },
-  {
-    q: "Does it work offline?",
-    a: "Logging by hand works with no signal and syncs when you are back online. Fern needs a connection to read what you said.",
-  },
-  {
-    q: "Can I export my data?",
-    a: "Yes. You can download every record as a file at any time, on the free plan.",
+    q: "Why does Fern have a limit?",
+    a: "Every message has a running cost: Free has a daily allowance, Plus a monthly fair-use budget. Logging by hand is never limited.",
   },
   {
     q: "Do I need an account?",
     a:
       FEATURE_STATUS.localOnlyMode === "shipped"
-        ? "No. Start without one; sign in later only if you want sync or Fern in the cloud."
-        : "For now, yes: an email sign-in. Local-only mode, with no account at all, is coming.",
-  },
-  {
-    q: "What happens when I miss a day?",
-    a: "One lone missed day is covered by a grace day, so your streak keeps going. If you are away longer, tell Fern what happened in one sentence; it fills in the gap and pauses your streaks instead of ending them (once every 30 days).",
+        ? "No. Start without one; sign in later only if you want sync."
+        : "For now, an email sign-in. A mode with no account is coming.",
   },
   {
     q: "Is it on Android?",
     a:
       FEATURE_STATUS.android === "shipped"
         ? "Yes, on Google Play."
-        : "iPhone comes first. Join the waitlist and we will email you when Android is ready.",
-  },
-  {
-    q: "Is Fern a coach or a doctor?",
-    a: "No. Fern keeps your records and answers questions about them. It is not a medical, nutrition or financial adviser, and food estimates from photos are estimates.",
+        : "iPhone comes first. The waitlist gets an email when Android is ready.",
   },
 ]
 
@@ -200,10 +177,7 @@ export default function Home() {
                 place, in one app instead of five.
               </p>
               <div className="hero-cta">
-                <PrimaryCta
-                  id="hero-cta"
-                  secondary={{ label: "See it work", href: "#demo" }}
-                />
+                <PrimaryCta id="hero-cta" />
               </div>
             </div>
             <div className="hero-visual">
@@ -214,60 +188,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The moment: a sentence becomes records. CTA at peak desire. */}
-        <section id="demo" className="demo" aria-labelledby="demo-title">
-          <div className="wrap">
-            <CaptureDemo />
-          </div>
-        </section>
+        {/* Act one, the problem. */}
+        <ProblemScene />
 
-        {/* The real competitor is giving up. Anchor against the stack. */}
-        <section id="why" aria-labelledby="why-title">
-          <div className="wrap">
-            <div className="section-head reveal">
-              <h2 className="h2" id="why-title">
-                You didn't fail at tracking. Five apps did.
-              </h2>
-            </div>
-            <div className="why-stack">
-              <div className="reveal">
-                <ul className="stack-list" aria-label="A typical tracker stack">
-                  {STACK.apps.map((s) => (
-                    <li key={s.app}>
-                      <span>
-                        <span className="area">{s.area}</span>
-                        {s.app}
-                      </span>
-                      <span className="price num">
-                        <span className="strike" aria-hidden="true" />
-                        {usd(s.perYear)}
-                        <span style={{ color: "var(--muted-foreground)" }}>
-                          {" "}
-                          / yr
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="stack-total">
-                  <b>Five apps, five places to log one day</b>
-                  <span className="num">
-                    about{" "}
-                    <span data-count={STACK.total}>{usd(STACK.total)}</span>
-                    <span style={{ fontSize: 16 }}> / yr</span>
-                  </span>
-                </div>
-                <p className="fine">
-                  Approximate US prices, checked {STACK.checked}; some come from
-                  review sites. Prices vary by region and change, so check each
-                  app's own page.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* How it works: the pinned, scroll-scrubbed story. */}
+        {/* Act two, the solution: the pinned, scroll-scrubbed story. */}
         <ScrollStory />
 
         {/* Features grid. */}
@@ -301,12 +225,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Fern's moods. */}
-        <section id="fern" className="privacy" aria-label="Meet Fern">
-          <div className="wrap">
-            <FernMoods />
-          </div>
-        </section>
+        {/* Act three, the showcase: Fern, streaks, sharing, privacy. */}
+        <FernScene />
 
         {/* Grace day and the way back (PR 331). */}
         <section id="way-back" aria-labelledby="wayback-title">
@@ -366,43 +286,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Community preview. No invented users or quotes. */}
-        <section id="community" aria-labelledby="community-title">
-          <div className="wrap community-grid">
-            <div className="reveal">
-              <h2 className="h2" id="community-title">
-                Share the win, not the spreadsheet.
-              </h2>
-              <p className="lede">
-                Turn a streak or a PR into a clean card for your story.
-              </p>
-            </div>
-            <figure className="share-card reveal" style={{ margin: "0 auto" }}>
-              <div className="top">
-                <span>Training · this week</span>
-                <span>Sample card</span>
-              </div>
-              <p className="big num">
-                4 <small>sessions</small>
-              </p>
-              <div className="bars" aria-hidden="true">
-                {[40, 0, 72, 55, 0, 88, 64].map((h, i) => (
-                  <i
-                    key={i}
-                    className={i === 6 ? "today" : ""}
-                    style={{ height: `${Math.max(h, 4)}%` }}
-                  />
-                ))}
-              </div>
-              <figcaption className="foot">
-                <span>Squat PR · 100 kg × 5</span>
-                <span className="logo" aria-hidden="true">
-                  <Mark /> unfurl
-                </span>
-              </figcaption>
-            </figure>
-          </div>
-        </section>
+        <ShareScene />
 
         {/* Research: the customer interview. Secondary on purpose: an
             outline button, so it never competes with the waitlist. */}
@@ -466,6 +350,12 @@ export default function Home() {
                     </article>
                   ))}
                 </div>
+                {/* Phones show each plan as one row; this line carries what
+                    the plan cards list on wider screens. */}
+                <p className="plus-adds">
+                  Plus adds Fern for everyday logging, questions about your
+                  whole history and Life Score breakdowns.
+                </p>
                 <div className="pricing-foot reveal">
                   <p>{FAIR_USE}</p>
                   <p>{STUDENT_NOTE}</p>
@@ -488,17 +378,14 @@ export default function Home() {
                 Straight answers.
               </h2>
             </div>
-            <div className="faq">
+            <dl className="faq">
               {FAQ.map((f) => (
-                <details key={f.q}>
-                  <summary>
-                    {f.q}
-                    <Plus aria-hidden />
-                  </summary>
-                  <p>{f.a}</p>
-                </details>
+                <div key={f.q} className="reveal">
+                  <dt>{f.q}</dt>
+                  <dd>{f.a}</dd>
+                </div>
               ))}
-            </div>
+            </dl>
           </div>
         </section>
 

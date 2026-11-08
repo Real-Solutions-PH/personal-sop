@@ -64,6 +64,12 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
   - Headings start at half opacity, never lower, so a heading read mid-reveal still meets 3:1 contrast.
 - **Measured:** Lighthouse mobile against a compressing local server scored performance 93–98 over four runs, accessibility 100, best practices 100, and CLS 0.012.
 
+**Addendum 2026-11-09 (second pass): one screen, scroll only.** The owner set two rules for the site: everything a section says fits in one screen, and nothing waits behind a click (assume the visitor never clicks). So:
+- The page is three acts of pinned scenes (`marketing/src/components/Scenes.tsx`, `ScrollStory.tsx`): the problem (five apps strike out while the yearly total counts up), the solution (the existing story), and a showcase (Fern's five moods, then the app's real share cards fanning out).
+- The click-driven sentence demo and Fern's mood tabs are removed; the FAQ shows four answers open instead of eight behind toggles.
+- The share cards are images captured from the app itself (`mobile/src/prototype`, Fern ground) and saved to `marketing/public/share/`; recapture them when the card design changes.
+- A headless check measures every section against one screen at 375, 768 and 1280 px wide.
+
 **Follow-ups:**
 - Pick the production domain and add the Cloudflare Pages project (Kai).
 - Connect the waitlist form to a real endpoint, or remove it.

@@ -33,9 +33,8 @@ function splitWords(el: HTMLElement): HTMLElement[] {
 
 // Page-wide scroll effects, all driven by GSAP ScrollTrigger once it loads:
 // a reading-progress bar, section headings that light up word by word,
-// parallax depth on elements marked `data-speed`, a pointer tilt on elements
-// marked `data-tilt`, and the tracker-stack list striking itself out while its
-// yearly total counts up. Nothing here hides content before it runs, so the
+// parallax depth on elements marked `data-speed`, and a pointer tilt on
+// elements marked `data-tilt`. Nothing here hides content before it runs, so the
 // page reads the same without it.
 export function ScrollFx() {
   useEffect(() => {
@@ -110,49 +109,6 @@ export function ScrollFx() {
             scrub: true,
           },
         })
-
-        const stack = document.querySelector<HTMLElement>(".stack-list")
-        if (stack) {
-          gsap.fromTo(
-            ".stack-list .strike",
-            { scaleX: 0 },
-            {
-              scaleX: 1,
-              stagger: 0.15,
-              ease: "power1.inOut",
-              scrollTrigger: {
-                trigger: stack,
-                start: "top 75%",
-                end: "bottom 45%",
-                scrub: 0.5,
-              },
-            },
-          )
-          const total = document.querySelector<HTMLElement>("[data-count]")
-          if (total) {
-            const to = Number(total.dataset.count)
-            const fmt = (n: number) =>
-              n.toLocaleString("en-US", {
-                style: "currency",
-                currency: "USD",
-                maximumFractionDigits: 0,
-              })
-            const state = { n: 0 }
-            gsap.to(state, {
-              n: to,
-              ease: "power1.out",
-              onUpdate: () => {
-                total.textContent = fmt(state.n)
-              },
-              scrollTrigger: {
-                trigger: stack,
-                start: "top 75%",
-                end: "bottom 45%",
-                scrub: 0.5,
-              },
-            })
-          }
-        }
 
         if (finePointer()) {
           for (const el of gsap.utils.toArray<HTMLElement>("[data-tilt]")) {

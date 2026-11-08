@@ -153,11 +153,11 @@ a {
 
 /* Apple-style pacing: one idea per section, with room around it. */
 section {
-  padding: 96px 0;
+  padding: 72px 0;
 }
 @media (min-width: 1024px) {
   section {
-    padding: 152px 0;
+    padding: 112px 0;
   }
 }
 
@@ -193,7 +193,7 @@ section {
 /* A full-width section opens with one centred headline, at most one line
    under it, then its one visual. */
 .section-head {
-  margin: 0 auto 56px;
+  margin: 0 auto clamp(28px, 5svh, 56px);
   display: grid;
   justify-items: center;
   text-align: center;
@@ -356,7 +356,19 @@ section {
     padding: 64px 0 88px;
   }
   .hero-grid {
-    gap: 64px;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 56px;
+  }
+  .hero-copy {
+    margin: 0;
+    text-align: left;
+  }
+  .hero-copy .lede {
+    margin-inline: 0;
+  }
+  .hero-cta .cta-row,
+  .hero-cta .reassure {
+    justify-content: flex-start;
   }
 }
 .hero h1 {
@@ -385,7 +397,7 @@ section {
   max-width: 34ch;
 }
 .hero-cta {
-  margin-top: 32px;
+  margin-top: 24px;
 }
 .hero-cta .cta-row,
 .hero-cta .reassure {
@@ -466,211 +478,6 @@ section {
   color: var(--muted-foreground);
 }
 
-/* ---------- Capture demo ---------- */
-.demo {
-  background: var(--card);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.demo-grid {
-  display: grid;
-  gap: 32px;
-}
-@media (min-width: 900px) {
-  .demo-grid {
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: 56px;
-    align-items: start;
-  }
-}
-.examples {
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.example {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--input);
-  background: var(--card);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-.example svg {
-  width: 16px;
-  height: 16px;
-  color: var(--muted-foreground);
-}
-.example[aria-pressed="true"] {
-  border-color: var(--foreground);
-  box-shadow: inset 0 0 0 1px var(--foreground);
-}
-.chat {
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  padding: 16px;
-  display: grid;
-  gap: 12px;
-  min-height: 420px;
-  align-content: start;
-}
-.chat-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border);
-}
-.chat-head .fern-img {
-  width: 40px;
-  height: 40px;
-  flex: none;
-}
-.chat-head b {
-  display: block;
-  font-weight: 600;
-  font-size: 15px;
-}
-.chat-head small {
-  display: block;
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.bubble-me {
-  justify-self: end;
-  max-width: 88%;
-  padding: 10px 14px;
-  border-radius: 18px 18px 4px 18px;
-  background: var(--muted);
-  font-size: 15px;
-  min-height: 44px;
-}
-.caret {
-  display: inline-block;
-  width: 2px;
-  height: 1.1em;
-  margin-left: 1px;
-  vertical-align: -0.15em;
-  background: var(--foreground);
-  animation: caret 1s steps(1) infinite;
-}
-@keyframes caret {
-  50% {
-    opacity: 0;
-  }
-}
-.fern-says {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--muted-foreground);
-}
-.fern-says .fern-img {
-  width: 28px;
-  height: 28px;
-  flex: none;
-}
-.records {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-.record {
-  display: grid;
-  grid-template-columns: 36px 1fr auto;
-  gap: 4px 12px;
-  align-items: start;
-  padding: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-card);
-}
-.js .record {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 240ms var(--ease-out),
-    transform 240ms var(--ease-out);
-}
-.js .record.in {
-  opacity: 1;
-  transform: none;
-}
-.record .kind {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: var(--muted);
-  color: var(--k, var(--foreground));
-}
-.record .kind svg {
-  width: 18px;
-  height: 18px;
-}
-.record .what {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.35;
-}
-.record .what small {
-  display: block;
-  font-weight: 400;
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.record .val {
-  font-size: 15px;
-  text-align: right;
-  white-space: nowrap;
-}
-.record .quote {
-  grid-column: 2 / -1;
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.record .quote mark {
-  background: var(--mist);
-  color: var(--foreground);
-  border-radius: 4px;
-  padding: 0 3px;
-}
-.undo-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  color: var(--muted-foreground);
-}
-.js .undo-row {
-  opacity: 0;
-  transition: opacity 240ms var(--ease-out);
-}
-.js .undo-row.in {
-  opacity: 1;
-}
-.undo-row .lbl {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.undo-row svg {
-  width: 16px;
-  height: 16px;
-}
-
 /* ---------- Why: the stack ---------- */
 .why-stack {
   max-width: 560px;
@@ -687,13 +494,19 @@ section {
   grid-template-columns: 1fr auto;
   gap: 12px;
   align-items: baseline;
-  padding: 12px 0;
+  padding: 10px 0;
+  text-align: left;
   border-bottom: 1px solid var(--border);
 }
 .stack-list .area {
+  margin-left: 6px;
   font-size: 13px;
   color: var(--muted-foreground);
-  display: block;
+}
+.stack-list .per,
+.stack-total .per {
+  color: var(--muted-foreground);
+  font-size: 0.6em;
 }
 .stack-list .price {
   font-size: 16px;
@@ -719,7 +532,6 @@ section {
 }
 .plan .price .num,
 .stack-total .num,
-.share-card .big,
 .ring .center .num {
   letter-spacing: -0.06em;
 }
@@ -729,10 +541,6 @@ section {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: -0.03em;
-}
-.share-card .big small {
-  font-family: var(--font-sans), system-ui, sans-serif;
-  letter-spacing: 0;
 }
 .fine {
   margin-top: 12px;
@@ -859,85 +667,6 @@ section {
   border-color: transparent;
 }
 
-/* ---------- Fern moods ---------- */
-.moods-grid {
-  display: grid;
-  gap: 32px;
-  align-items: center;
-}
-@media (min-width: 900px) {
-  .moods-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 56px;
-  }
-}
-.mood-stage {
-  position: relative;
-  aspect-ratio: 1;
-  max-width: min(320px, 80vw);
-  width: 100%;
-  margin: 0 auto;
-}
-.mood-stage .fern-img {
-  position: absolute;
-  inset: 8%;
-  opacity: 0;
-  transform: scale(0.96);
-  transition:
-    opacity 240ms var(--ease-out),
-    transform 240ms var(--ease-out);
-}
-.mood-stage .fern-img.on {
-  opacity: 1;
-  transform: none;
-}
-.mood-stage .fern-img {
-  width: 84%;
-  height: 84%;
-}
-.mood-tabs {
-  margin-top: 24px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.mood-tabs button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--input);
-  background: var(--card);
-  color: var(--foreground);
-  font: inherit;
-  font-size: 14px;
-  cursor: pointer;
-}
-.mood-tabs button svg {
-  width: 16px;
-  height: 16px;
-}
-.mood-tabs button[aria-selected="true"] {
-  border-color: var(--foreground);
-  box-shadow: inset 0 0 0 1px var(--foreground);
-}
-.mood-line {
-  margin-top: 20px;
-  padding: 14px 16px;
-  border-radius: 18px 18px 18px 4px;
-  background: var(--mist);
-  font-size: 16px;
-  min-height: 56px;
-}
-.mood-line small {
-  display: block;
-  font-size: 13px;
-  color: var(--muted-foreground);
-  margin-bottom: 2px;
-}
-
 /* ---------- Way back / streak ring ---------- */
 .wayback-grid {
   display: grid;
@@ -986,10 +715,8 @@ section {
   font-size: 44px;
   line-height: 1;
 }
-.ring .center .num + small {
+.ring-sub {
   margin-top: 6px;
-}
-.ring .center small {
   font-size: 13px;
   color: var(--muted-foreground);
 }
@@ -1096,77 +823,6 @@ section {
   background: color-mix(in srgb, var(--info) 12%, transparent);
 }
 
-/* ---------- Community ---------- */
-.community-grid {
-  display: grid;
-  gap: 32px;
-  align-items: center;
-}
-@media (min-width: 900px) {
-  .community-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 56px;
-  }
-}
-.share-card {
-  max-width: 340px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 24px;
-  border-radius: 24px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-float);
-  display: grid;
-  gap: 16px;
-}
-.share-card .top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.share-card .big {
-  font-size: 56px;
-  line-height: 1;
-}
-.share-card .big small {
-  font-size: 18px;
-  color: var(--muted-foreground);
-}
-.bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 6px;
-  height: 72px;
-}
-.bars i {
-  flex: 1;
-  border-radius: 4px 4px 0 0;
-  background: color-mix(in srgb, var(--fit) 30%, transparent);
-  transform-origin: bottom;
-}
-.bars i.today {
-  background: var(--fit);
-}
-.share-card .foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 13px;
-  color: var(--muted-foreground);
-}
-.share-card .foot .logo {
-  font-size: 15px;
-}
-.share-card .foot .logo svg {
-  width: 18px;
-  height: 18px;
-}
-
 /* ---------- Pricing ---------- */
 .plans {
   display: grid;
@@ -1244,50 +900,77 @@ section {
   color: var(--good);
   margin-top: 2px;
 }
+.plus-adds {
+  display: none;
+}
+@media (max-width: 899px) {
+  .plan {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  .plans {
+    gap: 12px;
+  }
+  .plan ul {
+    display: none;
+  }
+  .plan > div {
+    text-align: right;
+  }
+  .plan .price {
+    justify-content: flex-end;
+  }
+  .plan .price .num {
+    font-size: 28px;
+  }
+  .plan .note {
+    margin-top: 2px;
+    font-size: 13px;
+  }
+  .plan .badge {
+    top: -10px;
+    left: 16px;
+    font-size: 12px;
+  }
+  .plus-adds {
+    display: block;
+    margin-top: 12px;
+    font-size: 15px;
+  }
+}
 .pricing-foot {
-  margin-top: 20px;
+  margin-top: 16px;
   display: grid;
-  gap: 6px;
-  font-size: 14px;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.45;
   color: var(--muted-foreground);
 }
 
 /* ---------- FAQ ---------- */
+/* Answers are shown open: nothing on the page waits behind a click. */
 .faq {
-  max-width: 760px;
+  display: grid;
+  gap: 28px 48px;
+  max-width: 880px;
+  margin: 0 auto;
 }
-.faq details {
-  border-bottom: 1px solid var(--border);
+@media (min-width: 740px) {
+  .faq {
+    grid-template-columns: 1fr 1fr;
+  }
 }
-.faq summary {
-  list-style: none;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  padding: 18px 0;
+.faq dt {
   font-size: 17px;
-  font-weight: 500;
-  min-height: 44px;
+  font-weight: 600;
 }
-.faq summary::-webkit-details-marker {
-  display: none;
-}
-.faq summary svg {
-  width: 20px;
-  height: 20px;
-  flex: none;
+.faq dd {
+  margin: 6px 0 0;
   color: var(--muted-foreground);
-  transition: transform 200ms var(--ease-out);
-}
-.faq details[open] summary svg {
-  transform: rotate(45deg);
-}
-.faq details p {
-  padding: 0 0 18px;
-  color: var(--muted-foreground);
-  max-width: 64ch;
+  text-wrap: pretty;
 }
 
 /* ---------- Waitlist ---------- */
@@ -1847,6 +1530,14 @@ section {
 }
 .hero-visual .phone {
   transform-origin: 50% 0;
+  /* Sized by the screen's height as well as its width, so the headline,
+     the ask and the whole film fit in one screen. */
+  width: min(320px, 82vw, calc((100svh - 470px) * 9 / 16));
+}
+@media (min-width: 900px) {
+  .hero-visual .phone {
+    width: min(320px, calc((100svh - 190px) * 9 / 16));
+  }
 }
 
 /* ---------- The scroll story ---------- */
@@ -2217,5 +1908,159 @@ section {
   }
   .motion-ok .st-step p {
     font-size: 15px;
+  }
+}
+
+/* ---------- Pinned scenes (src/components/Scenes.tsx) ----------
+   Each scene is one screen. With motion, the stage sticks while a track of
+   --beats screens scrolls past and a scrubbed timeline plays the beats.
+   Without it, the same markup is a normal section. */
+.scene {
+  padding: 0;
+}
+.sc-stage {
+  display: grid;
+  gap: 32px;
+  align-content: center;
+  padding-block: 96px;
+  overflow-x: clip;
+}
+.sc-center {
+  justify-items: center;
+  text-align: center;
+}
+.sc-split {
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .sc-split {
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
+}
+.motion-ok .sc-track {
+  height: calc((var(--beats) + 1) * 100vh);
+}
+.motion-ok .sc-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding-block: 72px 24px;
+}
+@media (max-width: 899px) {
+  .motion-ok .sc-stage {
+    gap: 20px;
+    /* Room for the header above and the sticky waitlist bar below. */
+    padding-block: 64px 84px;
+  }
+  .motion-ok .sc-split {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+}
+
+/* Fern: five moods, one per stretch of scroll. */
+.fs-lines {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.fs-line {
+  font-size: clamp(18px, 2.2vw, 22px);
+  font-weight: 500;
+  text-wrap: balance;
+}
+.fs-line small {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.fs-dots {
+  display: none;
+}
+.fs-stage {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+}
+.fs-fern {
+  grid-area: 1 / 1;
+}
+.fs-fern + .fs-fern {
+  display: none;
+}
+.fs-fern .fern-img {
+  width: min(280px, 34svh);
+  height: auto;
+}
+.motion-ok .fs-line {
+  grid-area: 1 / 1;
+}
+.motion-ok .fs-fern + .fs-fern {
+  display: block;
+}
+.motion-ok .fs-dots {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+.fs-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* Sharing: the app's real share cards. */
+.sh-win {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--muted-foreground);
+}
+.sh-win svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--good);
+}
+.motion-ok .sh-win {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+}
+.sh-fan {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+.sh-card {
+  grid-area: 1 / 1;
+  height: min(540px, 60svh);
+  width: auto;
+  aspect-ratio: 520 / 924;
+  /* The capture includes the app's preview corner; clip to the card. */
+  border-radius: 7% / 4%;
+  box-shadow: var(--shadow-float);
+}
+.sh-card:nth-child(2) {
+  z-index: 2;
+}
+:root:not(.motion-ok) .sh-card:nth-child(1) {
+  transform: translateX(-40%) rotate(-8deg) scale(0.9);
+}
+:root:not(.motion-ok) .sh-card:nth-child(3) {
+  transform: translateX(40%) rotate(8deg) scale(0.9);
+}
+@media (max-width: 899px) {
+  .sh-card {
+    height: min(420px, 42svh);
   }
 }
