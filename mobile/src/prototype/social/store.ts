@@ -240,6 +240,32 @@ export type SocialState = {
 }
 
 export const ME = "me"
+/** A demo person's flower from their four area rates (prototype only; a
+ * live scorecard sends its own petals). */
+function demoFacets(r: Record<Area, number>): Facet[] {
+  const f = (
+    key: string,
+    label: string,
+    module: Facet["module"],
+    value: number,
+  ): Facet => ({
+    key,
+    label,
+    module,
+    value,
+    prev: Math.max(0, value - 0.05),
+    off: false,
+    href: "",
+  })
+  return [
+    f("habits", "Habits", "habits", r.habits),
+    f("routines", "Routines", "habits", Math.max(0, r.habits - 0.1)),
+    f("tasks", "Tasks", "tasks", r.tasks),
+    f("training", "Training", "fitness", r.fitness),
+    f("finance", "Finance", "finance", r.finance),
+  ]
+}
+
 const MIN = 60_000,
   HOUR = 60 * MIN,
   DAY = 24 * HOUR
@@ -265,6 +291,12 @@ const people: Person[] = [
       streak: 41,
       best: 63,
       rates: { habits: 0.78, tasks: 0.7, fitness: 0.96, finance: 0.74 },
+      facets: demoFacets({
+        habits: 0.78,
+        tasks: 0.7,
+        fitness: 0.96,
+        finance: 0.74,
+      }),
       stats: [
         { label: "Workouts", value: "142" },
         { label: "PRs", value: "37" },
@@ -294,6 +326,12 @@ const people: Person[] = [
       streak: 18,
       best: 40,
       rates: { habits: 0.7, tasks: 0.62, fitness: 0.9, finance: 0.6 },
+      facets: demoFacets({
+        habits: 0.7,
+        tasks: 0.62,
+        fitness: 0.9,
+        finance: 0.6,
+      }),
       stats: [
         { label: "Runs", value: "211" },
         { label: "5K best", value: "20:41" },
@@ -323,6 +361,12 @@ const people: Person[] = [
       streak: 27,
       best: 52,
       rates: { habits: 0.85, tasks: 0.66, fitness: 0.81, finance: 0.8 },
+      facets: demoFacets({
+        habits: 0.85,
+        tasks: 0.66,
+        fitness: 0.81,
+        finance: 0.8,
+      }),
       stats: [
         { label: "Meals logged", value: "1,904" },
         { label: "Protein hit", value: "91", unit: "%" },
@@ -349,6 +393,12 @@ const people: Person[] = [
       streak: 214,
       best: 214,
       rates: { habits: 0.97, tasks: 0.84, fitness: 0.72, finance: 0.86 },
+      facets: demoFacets({
+        habits: 0.97,
+        tasks: 0.84,
+        fitness: 0.72,
+        finance: 0.86,
+      }),
       stats: [
         { label: "Habits", value: "9" },
         { label: "Tasks done", value: "2,316" },
@@ -377,6 +427,12 @@ const people: Person[] = [
       streak: 12,
       best: 33,
       rates: { habits: 0.68, tasks: 0.72, fitness: 0.55, finance: 0.98 },
+      facets: demoFacets({
+        habits: 0.68,
+        tasks: 0.72,
+        fitness: 0.55,
+        finance: 0.98,
+      }),
       stats: [
         { label: "Saved", value: "₱148k" },
         { label: "Budgets kept", value: "11/12" },
@@ -405,6 +461,12 @@ const people: Person[] = [
       streak: 96,
       best: 120,
       rates: { habits: 0.95, tasks: 0.83, fitness: 0.92, finance: 0.9 },
+      facets: demoFacets({
+        habits: 0.95,
+        tasks: 0.83,
+        fitness: 0.92,
+        finance: 0.9,
+      }),
       stats: [
         { label: "Sessions", value: "604" },
         { label: "Mindful min", value: "9.2k" },
