@@ -185,6 +185,7 @@ export interface HomeLayout {
 export const homeLayoutStore = createStore<HomeLayout | null>(
   "native-home-layout",
   () => null,
+  { upgrade: (saved) => (saved ? homeLayoutFromServer(saved, null) : null) },
 )
 
 const dedupe = (ids: readonly string[]) => [...new Set(ids)]

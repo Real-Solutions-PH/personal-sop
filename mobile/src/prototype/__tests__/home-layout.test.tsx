@@ -345,3 +345,33 @@ describe("the edit screen", () => {
     expect(rows()[0]).toBe("weekly_review")
   })
 })
+
+// Build 40: the saved layout failed to load on every launch (its default is
+// null), raising "Local data could not be read or saved" and putting Home
+// back in the default order.
+test("the saved Home order comes back on the next launch", () => {
+  const disk = new Map<string, string>()
+  const onError = jest.fn()
+  const adapter = {
+    getItem: (k: string) => disk.get(k) ?? null,
+    setItem: (k: string, v: string) => void disk.set(k, v),
+    removeItem: (k: string) => void disk.delete(k),
+  }
+  const order = ["goals", ...DEFAULT_ORDER.filter((id) => id !== "goals")]
+  jest.isolateModules(() => {
+    const store = require("@domain/lib/store") as typeof import("@domain/lib/store")
+    store.configureStorage(adapter, onError)
+    const { homeLayoutStore: layout } =
+      require("../home-layout") as typeof import("../home-layout")
+    layout.set({ order, hidden: ["weather"] })
+  })
+  // Next launch: fresh modules over the same disk.
+  jest.isolateModules(() => {
+    const store = require("@domain/lib/store") as typeof import("@domain/lib/store")
+    store.configureStorage(adapter, onError)
+    const { homeLayoutStore: layout } =
+      require("../home-layout") as typeof import("../home-layout")
+    expect(layout.get()).toEqual({ order, hidden: ["weather"] })
+  })
+  expect(onError).not.toHaveBeenCalled()
+})

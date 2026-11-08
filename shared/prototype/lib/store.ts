@@ -53,6 +53,7 @@ const registry: Array<{
   get(): unknown
   reset(): void
   flush(): boolean
+  retryRead(): boolean
 }> = []
 /** Inside a provider set to true, `store.use` re-renders for a change in a
  * transition instead of with it: for read-only summaries (a year of
@@ -101,36 +102,65 @@ export function createStore<T>(
   let state: T | undefined
   let pending: "set" | "remove" | null = null
   let queued = false
+  /** The saved value could not be fetched at all (the database refused the
+   * read). Memory then holds a stand-in, not the person's data, so nothing
+   * is written for this key until a read succeeds (`retryStoreReads`). */
+  let unread = false
   const server = seed()
   const listeners = new Set<() => void>()
+  const backupKey = `${storageKey}:unreadable`
+  const load = (raw: string, defaults: T): T => {
+    const saved: unknown = JSON.parse(raw)
+    // A store whose default is not an object (Home's layout: null until
+    // edited) holds whatever it saved; its `upgrade` checks the shape.
+    if (!isObject(defaults)) {
+      if (saved !== null && typeof saved !== "object")
+        throw new Error(`Invalid saved state: ${key}`)
+      return opts.upgrade ? opts.upgrade(saved as T) : (saved as T)
+    }
+    if (!isObject(saved)) throw new Error(`Invalid saved state: ${key}`)
+    for (const [field, value] of Object.entries(defaults)) {
+      const previous = saved[field]
+      if (previous === undefined || value === null) continue
+      if (
+        (Array.isArray(value) && !Array.isArray(previous)) ||
+        (isObject(value) && !isObject(previous)) ||
+        (!Array.isArray(value) &&
+          !isObject(value) &&
+          typeof value !== typeof previous)
+      ) {
+        throw new Error(`Invalid saved field: ${key}.${field}`)
+      }
+    }
+    const merged = { ...defaults, ...saved } as T
+    return opts.upgrade ? opts.upgrade(merged) : merged
+  }
   const get = (): T => {
     reads?.add(key)
     if (state !== undefined) return state
     const defaults = seed()
+    let raw: string | null = null
     try {
-      const raw = persist ? storage.getItem(storageKey) : null
-      if (raw !== null) {
-        const saved: unknown = JSON.parse(raw)
-        if (!isObject(saved) || !isObject(defaults))
-          throw new Error(`Invalid saved state: ${key}`)
-        for (const [field, value] of Object.entries(defaults)) {
-          const previous = saved[field]
-          if (previous === undefined || value === null) continue
-          if (
-            (Array.isArray(value) && !Array.isArray(previous)) ||
-            (isObject(value) && !isObject(previous)) ||
-            (!Array.isArray(value) &&
-              !isObject(value) &&
-              typeof value !== typeof previous)
-          ) {
-            throw new Error(`Invalid saved field: ${key}.${field}`)
-          }
-        }
-        state = { ...defaults, ...saved } as T
-        if (opts.upgrade) state = opts.upgrade(state)
-      }
+      raw = persist ? storage.getItem(storageKey) : null
     } catch (error) {
+      unread = true
       report(error)
+    }
+    if (raw !== null) {
+      try {
+        state = load(raw, defaults)
+      } catch (error) {
+        // Unreadable by this build: the app carries on from the defaults,
+        // but the saved value is set aside first, so the next save cannot
+        // destroy it. An earlier copy is kept (it is the older original).
+        try {
+          if (storage.getItem(backupKey) === null)
+            storage.setItem(backupKey, raw)
+        } catch {
+          unread = true
+        }
+        report(error)
+      }
     }
     state ??= defaults
     return state
@@ -178,6 +208,10 @@ export function createStore<T>(
       pending = null
       return true
     }
+    if (unread) {
+      report(new Error(`Not saved, the saved state was never read: ${key}`))
+      return false
+    }
     try {
       if (pending === "remove") storage.removeItem(storageKey)
       else storage.setItem(storageKey, JSON.stringify(state))
@@ -189,6 +223,8 @@ export function createStore<T>(
     }
   }
   const reset = () => {
+    // A deliberate reset (sign-out, erase) may clear what was never read.
+    unread = false
     state = seed()
     // A waiting write (its timer may never fire, e.g. a test's fake clock)
     // must not keep the next change from scheduling its own.
@@ -197,9 +233,27 @@ export function createStore<T>(
     flush()
     emit()
   }
+  /** Reads the saved state again after a refused read; true once read. The
+   * stand-in and any edit made on it are dropped: they were made without the
+   * person's data, and saving them would replace it. */
+  const retryRead = () => {
+    if (!unread) return true
+    unread = false
+    state = undefined
+    pending = null
+    queued = false
+    get()
+    if (!unread) emit()
+    return !unread
+  }
   const store = { get, set, use, reset, flush, subscribe }
-  registry.push({ key, get, reset, flush })
+  registry.push({ key, get, reset, flush, retryRead })
   return store
+}
+/** "Retry storage": reads again every store whose read was refused; true
+ * when all of them are now read. */
+export function retryStoreReads() {
+  return registry.map((store) => store.retryRead()).every(Boolean)
 }
 export function flushStores() {
   return registry.map((store) => store.flush()).every(Boolean)
