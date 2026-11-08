@@ -1612,3 +1612,28 @@ test("several photos go up first, then one capture carries them all", async () =
     ],
   })
 })
+
+describe("catch-up and check-in captures", () => {
+  const base = {
+    id: "6f1c1d1e-0000-4000-8000-000000000001",
+    at: "2026-11-08T09:00:00.000Z",
+    source: "text" as const,
+    text: "last week was chaos",
+    status: "processing" as const,
+    clientUuid: "6f1c1d1e-0000-4000-8000-000000000001",
+  }
+  it("sends the catch_up hint with its range_from", () => {
+    const out = captureToServer({
+      ...base,
+      hint: "catch_up",
+      rangeFrom: "2026-11-04",
+    })
+    expect(out.hint).toBe("catch_up")
+    expect(out.range_from).toBe("2026-11-04")
+  })
+  it("sends the checkin hint and no range", () => {
+    const out = captureToServer({ ...base, hint: "checkin" })
+    expect(out.hint).toBe("checkin")
+    expect(out.range_from).toBeUndefined()
+  })
+})
