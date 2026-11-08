@@ -365,7 +365,9 @@ export function HabitCard({
         {record ? (
           <Win>{`Best run yet: ${plural(h.best, "day")}`}</Win>
         ) : change < 0 ? (
-          <Sub bad>{`${verdict(h.rate30)}. Best run ${plural(h.best, "day")}.`}</Sub>
+          <Sub
+            bad
+          >{`${verdict(h.rate30)}. Best run ${plural(h.best, "day")}.`}</Sub>
         ) : (
           <Sub>{`Best run ${plural(h.best, "day")}`}</Sub>
         )}
@@ -544,8 +546,8 @@ export function HabitShare() {
             : layout === "habit"
               ? `${hide ? "A habit" : h.name}: ${pct(h.rate30)} done over 30 days, best run ${fmt(h.best)} days`
               : layout === "milestone"
-              ? `${fmt(milestoneOf(h.current).reached ?? h.current)} days of ${hide ? "a habit" : h.name}`
-              : `${hide ? "A habit" : h.name}: ${pct(h.rate30)} over the last 5 weeks`
+                ? `${fmt(milestoneOf(h.current).reached ?? h.current)} days of ${hide ? "a habit" : h.name}`
+                : `${hide ? "A habit" : h.name}: ${pct(h.rate30)} over the last 5 weeks`
           : "My habits"
   return (
     <Screen title="Share card">

@@ -1,5 +1,5 @@
-import { useFocusState } from "@domain/focus/store"
 import { fmtHm } from "@domain/focus/logic"
+import { useFocusState } from "@domain/focus/store"
 import { dayKey } from "@domain/lib/day"
 import { addDays } from "@domain/tasks/logic"
 import { useLocalSearchParams } from "expo-router"
@@ -67,7 +67,10 @@ export function FocusCard({
     body = (
       <>
         <Title>Pomodoro day</Title>
-        <Hero value={fmt(d.sets)} unit={d.sets === 1 ? "Pomodoro" : "Pomodoros"} />
+        <Hero
+          value={fmt(d.sets)}
+          unit={d.sets === 1 ? "Pomodoro" : "Pomodoros"}
+        />
         {d.sessions === 0 ? (
           <Sub bad>No Pomodoro session on this day.</Sub>
         ) : (
@@ -205,7 +208,9 @@ export function FocusShare() {
     layout === "pomodoro"
       ? `${plural(data.pomodoro.sets, "Pomodoro")}, ${fmtHm(data.pomodoro.focusSec)} focused · Unfurl`
       : `${fmtHm(data.stopwatch.focusSec)} of stopwatch focus · Unfurl`
-  const days = [today, yesterday].includes(day) ? [today, yesterday] : [day, today]
+  const days = [today, yesterday].includes(day)
+    ? [today, yesterday]
+    : [day, today]
   return (
     <Screen title="Share card">
       <ShareComposer
@@ -230,7 +235,12 @@ export function FocusShare() {
           onChange={setDay}
           options={days.map((d) => ({
             value: d,
-            label: d === today ? "Today" : d === yesterday ? "Yesterday" : dayName(d),
+            label:
+              d === today
+                ? "Today"
+                : d === yesterday
+                  ? "Yesterday"
+                  : dayName(d),
           }))}
         />
         {layout === "stopwatch" && (

@@ -1,5 +1,5 @@
-import { useFocusState } from "@domain/focus/store"
 import { fmtHm } from "@domain/focus/logic"
+import { useFocusState } from "@domain/focus/store"
 import { dayKey, weekday } from "@domain/lib/day"
 import { useStats } from "@domain/tasks/hooks"
 import * as L from "@domain/tasks/logic"
@@ -302,11 +302,7 @@ export function TaskCard({
                 ? `${pct(d.done / d.planned)} of today's plan done`
                 : undefined
             }
-            right={
-              d.catchUp
-                ? `+${fmt(d.catchUp)} overdue cleared`
-                : undefined
-            }
+            right={d.catchUp ? `+${fmt(d.catchUp)} overdue cleared` : undefined}
           />
         </Body>
       </>
@@ -436,13 +432,7 @@ export function TaskShare() {
         onChange={setLayout}
         caption={caption}
         items={(
-          [
-            "summary",
-            "today",
-            "timeOnTask",
-            "streak",
-            "followThrough",
-          ] as const
+          ["summary", "today", "timeOnTask", "streak", "followThrough"] as const
         ).map((key) => ({
           key,
           label: {

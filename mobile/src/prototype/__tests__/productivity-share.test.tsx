@@ -83,7 +83,10 @@ const T0 = new Date("2026-10-24T09:00:00").getTime()
 const min = (m: number) => T0 + m * 60_000
 const LONG = "Supercalifragilistic expialidocious quarterly planning review"
 
-function focusDayData(kind: "pomodoro" | "stopwatch", v: "normal" | "long" | "empty"): FocusDay {
+function focusDayData(
+  kind: "pomodoro" | "stopwatch",
+  v: "normal" | "long" | "empty",
+): FocusDay {
   const base: FocusDay = {
     day: "2026-10-24",
     mode: kind,
@@ -206,7 +209,13 @@ function financeData(v: "normal" | "long" | "empty"): FinanceCardData {
     to: "2026-10-31",
     savings: [-5, -4, -3, -2, -1, 0].map((i) => ({
       month: `2026-${String(10 + i).padStart(2, "0")}`,
-      rate: empty ? null : long ? 123.45 : i === -3 ? -0.12 : 0.1 + (i + 5) * 0.04,
+      rate: empty
+        ? null
+        : long
+          ? 123.45
+          : i === -3
+            ? -0.12
+            : 0.1 + (i + 5) * 0.04,
     })),
     budgets: empty
       ? []
@@ -231,11 +240,15 @@ type Make = (look: CardLook, v: "normal" | "long" | "empty") => ReactElement
 const CARDS: [string, Make][] = [
   ...(["today", "timeOnTask"] as const).map((k): [string, Make] => [
     `task ${k}`,
-    (look, v) => <TaskCard kind={k} width={300} look={look} data={taskData(v)} />,
+    (look, v) => (
+      <TaskCard kind={k} width={300} look={look} data={taskData(v)} />
+    ),
   ]),
   ...(["pomodoro", "stopwatch"] as const).map((k): [string, Make] => [
     `focus ${k}`,
-    (look, v) => <FocusCard kind={k} width={300} look={look} data={focusData(v)} />,
+    (look, v) => (
+      <FocusCard kind={k} width={300} look={look} data={focusData(v)} />
+    ),
   ]),
   ...(["time", "words"] as const).map((k): [string, Make] => [
     `journal ${k}`,
@@ -259,7 +272,15 @@ const CARDS: [string, Make][] = [
   ),
 ]
 const FORMATS: CardFormat[] = ["9:16", "4:5", "1:1"]
-const BACKDROPS: CardBackdrop[] = ["photo", "fern", "dusk", "dark", "light", "custom", "sticker"]
+const BACKDROPS: CardBackdrop[] = [
+  "photo",
+  "fern",
+  "dusk",
+  "dark",
+  "light",
+  "custom",
+  "sticker",
+]
 /** Every colour-valued prop in the rendered tree. */
 function colours(node: unknown, out: string[] = []): string[] {
   if (!node || typeof node !== "object") return out
@@ -278,50 +299,62 @@ const valid =
   /^(#[0-9a-f]{6}([0-9a-f]{2})?|transparent|none|currentColor|url\(#.+\))$/i
 
 describe.each(CARDS)("%s card", (_, make) => {
-  test.each(FORMATS.flatMap((f) => BACKDROPS.map((b) => [f, b] as const)))(
-    "renders %s on %s with normal, long and empty data",
-    (format, backdrop) => {
-      for (const v of ["normal", "long", "empty"] as const) {
-        const look = { format, backdrop, photo: null, color: "#3e63dd" }
-        const r = render(make(look, v))
-        const words = r
-          .UNSAFE_getAllByType(Text)
-          .map((t) => [t.props.children].flat(Infinity).join(""))
-          .join(" ")
-        expect(words).not.toMatch(/₱|\$|PHP/)
-        expect(words).not.toMatch(/\d{5,}/)
-        expect(words).not.toMatch(/NaN|undefined|Infinity/)
-        for (const c of colours(r.toJSON())) expect(c).toMatch(valid)
-        expect(r.queryAllByTestId("card-accent")).toHaveLength(0)
-        expect(r.getAllByTestId("card-lockup")).toHaveLength(1)
-        r.unmount()
-      }
-    },
-  )
+  test.each(
+    FORMATS.flatMap((f) => BACKDROPS.map((b) => [f, b] as const)),
+  )("renders %s on %s with normal, long and empty data", (format, backdrop) => {
+    for (const v of ["normal", "long", "empty"] as const) {
+      const look = { format, backdrop, photo: null, color: "#3e63dd" }
+      const r = render(make(look, v))
+      const words = r
+        .UNSAFE_getAllByType(Text)
+        .map((t) => [t.props.children].flat(Infinity).join(""))
+        .join(" ")
+      expect(words).not.toMatch(/₱|\$|PHP/)
+      expect(words).not.toMatch(/\d{5,}/)
+      expect(words).not.toMatch(/NaN|undefined|Infinity/)
+      for (const c of colours(r.toJSON())) expect(c).toMatch(valid)
+      expect(r.queryAllByTestId("card-accent")).toHaveLength(0)
+      expect(r.getAllByTestId("card-lockup")).toHaveLength(1)
+      r.unmount()
+    }
+  })
 })
 
 describe("honest wins and misses", () => {
   const look: CardLook = { format: "9:16", backdrop: "fern", photo: null }
   test("today's tasks: moved tasks are a cost, all done is a win", () => {
-    const r = render(<TaskCard kind="today" width={300} look={look} data={taskData("normal")} />)
+    const r = render(
+      <TaskCard
+        kind="today"
+        width={300}
+        look={look}
+        data={taskData("normal")}
+      />,
+    )
     expect(r.getByText("2 moved to later")).toBeTruthy()
     expect(r.getByTestId("card-miss")).toBeTruthy()
     const all = taskData("normal")
     all.today = { ...all.today, planned: 5, done: 5, moved: 0, open: 0 }
-    const w = render(<TaskCard kind="today" width={300} look={look} data={all} />)
+    const w = render(
+      <TaskCard kind="today" width={300} look={look} data={all} />,
+    )
     expect(w.getByTestId("card-win")).toBeTruthy()
     expect(w.queryAllByTestId("card-cost")).toHaveLength(0)
   })
   test("focus: short of the goal is said in the miss colour", () => {
     const d = focusData("normal")
     d.pomodoro = { ...d.pomodoro, focusSec: 3600 }
-    const r = render(<FocusCard kind="pomodoro" width={300} look={look} data={d} />)
+    const r = render(
+      <FocusCard kind="pomodoro" width={300} look={look} data={d} />,
+    )
     expect(r.getByText("1h 00m short of the 2h 00m goal")).toBeTruthy()
   })
   test("finance: a month that spent more than it earned is a miss", () => {
     const d = financeData("normal")
     d.savings[5] = { ...d.savings[5], rate: -0.2 }
-    const r = render(<FinanceCard kind="savings" width={300} look={look} data={d} />)
+    const r = render(
+      <FinanceCard kind="savings" width={300} look={look} data={d} />,
+    )
     expect(r.getByTestId("card-miss")).toBeTruthy()
   })
 })
@@ -330,7 +363,12 @@ describe("counts", () => {
   test("today's completion counts done, moved and open tasks", () => {
     const today = "2026-10-24"
     const s = seedTasks()
-    const mk = (id: string, due: string | null, status: "open" | "done", completedAt: string | null = null) => ({
+    const mk = (
+      id: string,
+      due: string | null,
+      status: "open" | "done",
+      completedAt: string | null = null,
+    ) => ({
       ...s.tasks[0],
       id,
       listId: null,
@@ -349,9 +387,23 @@ describe("counts", () => {
         mk("e", "2026-10-25", "open"),
       ],
       events: [
-        { id: "1", taskId: "c", type: "rescheduled", fromDue: today, toDue: "2026-10-26", at: `${today}T09:00:00` },
+        {
+          id: "1",
+          taskId: "c",
+          type: "rescheduled",
+          fromDue: today,
+          toDue: "2026-10-26",
+          at: `${today}T09:00:00`,
+        },
         // Moved on another day: not today's move.
-        { id: "2", taskId: "e", type: "rescheduled", fromDue: "2026-10-23", toDue: "2026-10-25", at: "2026-10-23T09:00:00" },
+        {
+          id: "2",
+          taskId: "e",
+          type: "rescheduled",
+          fromDue: "2026-10-23",
+          toDue: "2026-10-25",
+          at: "2026-10-23T09:00:00",
+        },
       ],
     }
     expect(todayCompletion(state, today)).toEqual({
@@ -371,18 +423,31 @@ describe("counts", () => {
     expect(d.focusSec).toBe(50 * 60)
     expect(d.breakSec).toBe(5 * 60)
     expect(d.pauseSec).toBe(7 * 60)
-    expect(d.spans.map((x) => x.kind)).toEqual(["focus", "break", "focus", "pause", "focus"])
+    expect(d.spans.map((x) => x.kind)).toEqual([
+      "focus",
+      "break",
+      "focus",
+      "pause",
+      "focus",
+    ])
     const t = taskFocusToday(s, seedTasks(), key, Date.now() + 86_400_000)
     expect(t.rows.map((r) => r.id)).toEqual(["t2"])
     expect(t.avgSec).toBe(35 * 60)
   })
   test("journal time sums today, the week and the month", () => {
     const tm = journalTime(
-      { "2026-10-24": 60, "2026-10-20": 120, "2026-10-01": 600, "2026-09-01": 30 },
+      {
+        "2026-10-24": 60,
+        "2026-10-20": 120,
+        "2026-10-01": 600,
+        "2026-09-01": 30,
+      },
       "2026-09-01",
       "2026-10-24",
     )
-    expect([tm.todaySec, tm.weekSec, tm.monthSec, tm.totalSec]).toEqual([60, 180, 780, 810])
+    expect([tm.todaySec, tm.weekSec, tm.monthSec, tm.totalSec]).toEqual([
+      60, 180, 780, 810,
+    ])
     expect(tm.last7.map((x) => x.sec)).toEqual([0, 0, 120, 0, 0, 0, 60])
   })
   test("journal words count per day, the average over days written", () => {
@@ -394,19 +459,26 @@ describe("counts", () => {
       ],
       "2026-10-24",
     )
-    expect([w.total, w.todayWords, w.perDay, w.daysWritten, w.best]).toEqual([6, 4, 3, 2, 4])
+    expect([w.total, w.todayWords, w.perDay, w.daysWritten, w.best]).toEqual([
+      6, 4, 3, 2, 4,
+    ])
   })
   test("typing time counts only gaps up to a minute", () => {
     expect(typed(null, 1000)).toBe(0)
     expect(typed(1000, 3000)).toBe(2000)
     expect(typed(1000, 1000 + GAP_MS + 1)).toBe(0)
     const s = addTyping({ since: null, days: {} }, "2026-10-24", 5)
-    expect(addTyping(s, "2026-10-24", 3)).toEqual({ since: "2026-10-24", days: { "2026-10-24": 8 } })
+    expect(addTyping(s, "2026-10-24", 3)).toEqual({
+      since: "2026-10-24",
+      days: { "2026-10-24": 8 },
+    })
   })
   test("finance shares carry no amount: every figure is a rate", () => {
     const d = financeShares(buildSeed().state)
     for (const x of d.shares) expect(x.share).toBeGreaterThanOrEqual(0)
-    expect(d.shares.reduce((a, x) => a + x.share, 0)).toBeCloseTo(d.shares.length ? 1 : 0)
+    expect(d.shares.reduce((a, x) => a + x.share, 0)).toBeCloseTo(
+      d.shares.length ? 1 : 0,
+    )
     for (const b of d.budgets) expect(b.pace).toBeLessThanOrEqual(1)
     expect(d.savings).toHaveLength(6)
   })

@@ -9,8 +9,8 @@ import type { FinState } from "@domain/finance/data"
 import * as FC from "@domain/focus/calc"
 import type { FocusState } from "@domain/focus/data"
 import * as FL from "@domain/focus/logic"
-import * as HL from "@domain/habits/logic"
 import type { Habit, HabitLog } from "@domain/habits/data"
+import * as HL from "@domain/habits/logic"
 import type { Task, TasksState } from "@domain/tasks/data"
 import { addDays as taskAddDays } from "@domain/tasks/logic"
 import type { Span } from "./share-viz"
@@ -54,7 +54,7 @@ export function todayCompletion(s: TasksState, today: string): TodayCompletion {
     if (
       (e.type === "rescheduled" || e.type === "snoozed") &&
       e.fromDue === today &&
-      !!e.toDue &&
+      e.toDue &&
       e.toDue > today &&
       localDay(e.at) === today
     )
@@ -168,7 +168,11 @@ export function focusDay(
   }
   const counted = FL.counted(tls, now)
     .filter((f) => f.end > lo && f.start < hi)
-    .map((f) => ({ ...f, start: Math.max(f.start, lo), end: Math.min(f.end, hi) }))
+    .map((f) => ({
+      ...f,
+      start: Math.max(f.start, lo),
+      end: Math.min(f.end, hi),
+    }))
   const items = FC.itemTotals(counted).map((x) => ({
     name: x.item?.title ?? "",
     sec: x.sec,
@@ -295,7 +299,11 @@ export type FinanceShares = {
   /** Spending by top category as a share of all spending this month. */
   shares: { name: string; share: number }[]
   /** Days this month with no discretionary spending. */
-  noSpend: { days: { key: string; free: boolean }[]; count: number; streak: number }
+  noSpend: {
+    days: { key: string; free: boolean }[]
+    count: number
+    streak: number
+  }
   month: string
   from: string
   to: string
@@ -313,7 +321,9 @@ export function financeShares(s: FinState, today = N.today()): FinanceShares {
     return { month: mk, rate: flow.income > 0 ? N.savingsRate(flow) : null }
   })
   const flow = N.flowIn(s, from, today),
-    spend = [...flow.byCat.values()].filter((v) => v > 0).reduce((a, b) => a + b, 0)
+    spend = [...flow.byCat.values()]
+      .filter((v) => v > 0)
+      .reduce((a, b) => a + b, 0)
   const shares = [...flow.byCat.entries()]
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1])

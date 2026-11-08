@@ -12,8 +12,8 @@ import {
   Change,
   ChartNote,
   cardInk,
-  type Dot,
   Delta,
+  type Dot,
   Hero,
   LeafCal,
   Meters,
@@ -56,7 +56,9 @@ export function FinanceCard({
   if (kind === "savings") {
     const now = d.savings[d.savings.length - 1]?.rate ?? null,
       before = d.savings[d.savings.length - 2]?.rate ?? null,
-      known = d.savings.map((x) => x.rate).filter((r): r is number => r !== null),
+      known = d.savings
+        .map((x) => x.rate)
+        .filter((r): r is number => r !== null),
       best = now !== null && known.length > 1 && now >= Math.max(...known)
     body = (
       <>
@@ -142,9 +144,7 @@ export function FinanceCard({
             }))}
           />
           {d.budgets.length > 0 && (
-            <ChartNote
-              left="The tick is how much of the month has gone"
-            />
+            <ChartNote left="The tick is how much of the month has gone" />
           )}
         </Body>
       </>
@@ -195,7 +195,9 @@ export function FinanceCard({
         {d.noSpend.streak >= 2 ? (
           <Win>{`${fmt(d.noSpend.streak)} in a row and counting`}</Win>
         ) : days.length && d.noSpend.count / days.length < 0.25 ? (
-          <Sub bad>{`Spent on ${plural(spent, "day")} of ${fmt(days.length)}`}</Sub>
+          <Sub
+            bad
+          >{`Spent on ${plural(spent, "day")} of ${fmt(days.length)}`}</Sub>
         ) : (
           <Sub>Days with nothing spent on wants</Sub>
         )}
@@ -209,9 +211,7 @@ export function FinanceCard({
               color={fin}
             />
           )}
-          <ChartNote
-            left="A leaf for each day with no discretionary spending"
-          />
+          <ChartNote left="A leaf for each day with no discretionary spending" />
         </Body>
       </>
     )
@@ -260,7 +260,12 @@ export function FinanceShare() {
         ).map((item) => ({
           ...item,
           render: (width: number, look: CardLook) => (
-            <FinanceCard kind={item.key} width={width} look={look} data={data} />
+            <FinanceCard
+              kind={item.key}
+              width={width}
+              look={look}
+              data={data}
+            />
           ),
         }))}
       >

@@ -138,9 +138,7 @@ export function JournalCard({
           />
           <ChartNote
             left="Minutes typed, last 7 days"
-            right={
-              tm.since ? `Counted since ${dayName(tm.since)}` : undefined
-            }
+            right={tm.since ? `Counted since ${dayName(tm.since)}` : undefined}
           />
         </Body>
         <Figures

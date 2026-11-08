@@ -56,6 +56,7 @@ import Svg, {
 import { toast } from "sonner-native"
 import { CornerMotif } from "../brand/corner"
 import { FernCelebrates } from "../companion/fern-celebrates"
+import { useTypingClock } from "../journal-time"
 import { feel, StreakChip } from "../motion"
 import {
   border,
@@ -68,7 +69,6 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { Switch } from "../switch"
-import { useTypingClock } from "../journal-time"
 import { fonts, useTheme } from "../theme"
 import {
   Button,

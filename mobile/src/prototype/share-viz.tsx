@@ -93,13 +93,7 @@ export type Part = {
  * ending in a leaf when it is the whole, each part's figure under the line
  * in that part's colour, so no legend is needed. A part of 0 keeps its
  * figure (an honest 0) but takes no length. */
-export function PartLine({
-  parts,
-  label,
-}: {
-  parts: Part[]
-  label: string
-}) {
+export function PartLine({ parts, label }: { parts: Part[]; label: string }) {
   const { q, c } = useCard(),
     p = P * q,
     total = parts.reduce((n, x) => n + Math.max(0, x.value), 0),
@@ -233,14 +227,23 @@ export function DayLine({
                 d={stroke(x0, x1, mid, i * 7 + 3)}
                 fill="none"
                 stroke={s.kind === "focus" ? color : c.mark}
-                strokeWidth={s.kind === "focus" ? 9 : s.kind === "break" ? 3 : 2}
+                strokeWidth={
+                  s.kind === "focus" ? 9 : s.kind === "break" ? 3 : 2
+                }
                 strokeLinecap="round"
                 strokeDasharray={s.kind === "pause" ? "1 4" : undefined}
                 opacity={s.kind === "focus" ? 1 : 0.85}
               />
               {leaves && s.kind === "focus" && x1 - x0 > 8 ? (
                 <Path
-                  d={ribLeaf(x1, mid - 5, 10, i % 2 ? -1.0 : -2.15, 0.42, false)}
+                  d={ribLeaf(
+                    x1,
+                    mid - 5,
+                    10,
+                    i % 2 ? -1.0 : -2.15,
+                    0.42,
+                    false,
+                  )}
                   fill={c.mark}
                   stroke={c.mark}
                   strokeWidth={0.8}
