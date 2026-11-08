@@ -8,7 +8,12 @@ import {
   targetFor,
 } from "../fitness/calc"
 import type { FitnessState } from "../fitness/data"
-import { dayDetail, fiberGoalFor, LIMIT_LABEL, limitsFor } from "../fitness/limits"
+import {
+  dayDetail,
+  fiberGoalFor,
+  LIMIT_LABEL,
+  limitsFor,
+} from "../fitness/limits"
 import { useFit } from "../fitness/store"
 import { dayKey } from "../lib/day"
 import { useSharedMemo } from "../lib/memo"
@@ -94,7 +99,13 @@ export function dayMisses(s: FitnessState, d: DayNutrition): Miss[] {
   const href = `/nutrition?day=${d.day}`
   const out: Miss[] = []
   const add = (id: string, title: string) =>
-    out.push({ id: `${id}-${d.day}`, day: d.day, title, module: "nutrition", href })
+    out.push({
+      id: `${id}-${d.day}`,
+      day: d.day,
+      title,
+      module: "nutrition",
+      href,
+    })
   if (d.over)
     add(
       "nut-over",
