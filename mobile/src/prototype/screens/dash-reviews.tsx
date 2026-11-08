@@ -29,6 +29,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
+import { FernReviewCard } from "../companion/review-card"
 import {
   border,
   Copy,
@@ -252,6 +253,7 @@ function Review({ id }: { id: string }) {
     [reflection, setReflection] = useState(r?.reflection ?? ""),
     [focus, setFocus] = useState<MetricRef | undefined>(r?.focus),
     [aiOn, setAiOn] = useState(true),
+    [askedFern, setAskedFern] = useState(false),
     [goalFor, setGoalFor] = useState<MetricRef | null>(null)
   // Opening the page is what Today's weekly review card waits for.
   useEffect(() => {
@@ -475,6 +477,26 @@ function Review({ id }: { id: string }) {
               {digest.tip}
             </Copy>
           </View>
+        )}
+        {p.kind === "week" && (
+          <>
+            <SectionHeading>Fern’s review</SectionHeading>
+            {askedFern ? (
+              <FernReviewCard
+                kind="weekly"
+                fromDay={p.from}
+                toDay={p.to < dayKey() ? p.to : dayKey()}
+              />
+            ) : (
+              <Button
+                tone="quiet"
+                icon={Sparkles}
+                onPress={() => setAskedFern(true)}
+              >
+                Ask Fern for a review
+              </Button>
+            )}
+          </>
         )}
         <SectionHeading>Reflection</SectionHeading>
         <TextInput
