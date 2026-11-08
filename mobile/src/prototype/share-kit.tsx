@@ -1753,11 +1753,14 @@ export function CardFrame({
     }),
     [fit],
   )
-  // A new shape or size starts the rule again from the full card.
+  // A new shape, size or background starts the rule again from the full
+  // card. A step is never taken back, so without this a photo's compact
+  // fit would stay on the card after switching to a plain ground, and the
+  // shared image would miss rows there is room for.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on a new shape only
   useEffect(() => {
     setFit({ stage: 0, rows: 0 })
-  }, [width, f])
+  }, [width, f, look.backdrop])
   // One step per settled layout: a first pass (fonts still loading, a
   // number not yet shrunk to its line) can read taller than the card ends
   // up, and a step is never taken back.
@@ -2205,7 +2208,11 @@ export function ShareComposer<K extends string>({
               overflow: "hidden",
             }}
           >
+            {/* Keyed by card: each card's copy mounts fresh, so it fits
+                from the full card instead of inheriting what the previous
+                card had to drop. */}
             <View
+              key={`export-${value}`}
               testID="card-export"
               collapsable={false}
               style={{ width: exportWidth }}
@@ -2220,6 +2227,7 @@ export function ShareComposer<K extends string>({
             </View>
             {social && postFormat !== format && (
               <View
+                key={`post-${value}`}
                 testID="card-post"
                 collapsable={false}
                 style={{ width: exportWidth }}
