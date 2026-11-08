@@ -1,7 +1,8 @@
 // Offline, said by Fern: a small speech bubble that rises from the Fern
 // button in the tab bar, reassuring that nothing is lost while the phone has
-// no internet. It takes its own room above the bar, so it never covers the
-// page or the tabs. On a page without the bar (a timer, a routine, the chat)
+// no internet. It floats over the bottom of the page, just above the bar and
+// clear of the raised Fern button: nothing backs it, the page shows around
+// it, and a touch beside it reaches the page. On a page without the bar (a timer, a routine, the chat)
 // there is no Fern button to speak from, so a small Fern sits in the bubble.
 // In and out: a short fade with a lift of a few points (opacity and
 // transform only); under Reduce Motion it simply appears and goes.
@@ -86,23 +87,32 @@ export function OfflineNote({
   }))
   if (!shown) return null
   return (
+    // A layer over the page's bottom edge (the parent is the page's own
+    // view, which ends at the bar): it takes no room and has no backing.
     <Animated.View
+      pointerEvents="box-none"
       style={[
         {
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
           alignItems: "center",
           paddingHorizontal: 16,
-          paddingTop: 6,
-          paddingBottom: withBar ? FERN_RISE + 2 : Math.max(bottomInset, 8),
+          paddingBottom: withBar ? FERN_RISE + 6 : Math.max(bottomInset, 8),
         },
         motion,
       ]}
-      accessible
-      accessibilityRole="alert"
-      accessibilityLiveRegion="polite"
-      accessibilityLabel={OFFLINE_LABEL}
-      testID="offline-note"
+      testID="offline-note-layer"
     >
-      <View style={{ alignItems: "center", maxWidth: "100%" }}>
+      <View
+        style={{ alignItems: "center", maxWidth: "100%" }}
+        accessible
+        accessibilityRole="alert"
+        accessibilityLiveRegion="polite"
+        accessibilityLabel={OFFLINE_LABEL}
+        testID="offline-note"
+      >
         <View
           style={{
             flexDirection: "row",

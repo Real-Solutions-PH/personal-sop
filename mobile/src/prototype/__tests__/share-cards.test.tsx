@@ -748,10 +748,44 @@ describe("the fit rule", () => {
     // block being full, stays 0 once it is: no second layout arrives.
     layout(r, "card-body", 0)
     layout(r, "card-body-fit", 150)
+    // The box waits for a layout that never comes, reports its 0, and the
+    // rule steps on its next beat.
+    for (let i = 0; i < 2; i++)
+      act(() => {
+        jest.advanceTimersByTime(FIT_SETTLE_MS * 4)
+      })
+    expect(r.getAllByTestId("card-row").length).toBeLessThan(5)
+  })
+  // Seen on the web build, 2026-11-08: picking a photo dropped a card's
+  // figures (a task streak, Focus's breaks) though the block had room. The
+  // box's real layout came after the settle beat, and its first 0 was read
+  // as no room. A step is never taken back, so the row stayed gone.
+  test("on a photo, a box that lays out late is not taken for no room", () => {
+    const r = render(
+      <CardFrame
+        width={300}
+        look={{ format: "1:1", backdrop: "photo", photo: "file:///p.jpg" }}
+      >
+        <Title>Title</Title>
+        <Hero value="12" unit="days" />
+        <Sub>The sub line</Sub>
+        <Body>
+          <XBars rows={rows} color="#3e63dd" />
+        </Body>
+      </CardFrame>,
+    )
+    layout(r, "card-body", 0)
+    layout(r, "card-body-fit", 60)
     act(() => {
       jest.advanceTimersByTime(FIT_SETTLE_MS + 1)
     })
-    expect(r.getAllByTestId("card-row").length).toBeLessThan(5)
+    // The box lays out at the chart's height, just after the beat.
+    layout(r, "card-body", 60)
+    act(() => {
+      jest.advanceTimersByTime(FIT_SETTLE_MS * 10)
+    })
+    expect(r.getByText("The sub line")).toBeTruthy()
+    expect(r.getAllByTestId("card-row")).toHaveLength(5)
   })
   test("a new background lays the card out again from the full card", () => {
     const card = (bg: CardLook) => (
@@ -1137,9 +1171,14 @@ test("the background row scrolls, with the screen inset at both ends", () => {
   expect(r.getByLabelText("Sticker background")).toBeTruthy()
 })
 
-test("the composer opens on the Fern ground", () => {
+// Kai, 2026-11-08: Photo is where every card starts. Until a photo is
+// picked the cards are drawn whole on Fern; the picked photo then fills the
+// card with the data compact at the bottom.
+test("the composer opens on Photo, drawn on Fern until a photo is picked", async () => {
+  const { pickPhoto } = require("../media") as { pickPhoto: jest.Mock }
+  pickPhoto.mockResolvedValueOnce("file:///picked.jpg")
   const looks: CardLook[] = []
-  render(
+  const r = render(
     <ShareComposer
       value="card"
       onChange={() => {}}
@@ -1150,7 +1189,28 @@ test("the composer opens on the Fern ground", () => {
       {null}
     </ShareComposer>,
   )
-  expect(looks[0]?.backdrop).toBe("fern")
+  // Photo is the selected ground, and its prompt is open.
+  expect(
+    StyleSheet.flatten(
+      r
+        .getByLabelText("Photo background")
+        .findAll((n) => StyleSheet.flatten(n.props.style)?.borderWidth === 2)[0]
+        ?.props.style,
+    ),
+  ).toBeTruthy()
+  expect(r.getAllByText("Choose a photo").length).toBeGreaterThan(0)
+  expect(looks.at(-1)).toMatchObject({ backdrop: "fern", photo: null })
+  expect(r.queryAllByTestId("card-photo-room")).toHaveLength(0)
+  // The prompt opens the library; the card then sits on the photo.
+  await act(async () => {
+    fireEvent.press(r.getByLabelText("Choose a photo"))
+  })
+  expect(pickPhoto).toHaveBeenCalled()
+  expect(looks.at(-1)).toMatchObject({
+    backdrop: "photo",
+    photo: "file:///picked.jpg",
+  })
+  expect(r.queryAllByTestId("card-photo-room").length).toBeGreaterThan(0)
 })
 
 describe.each([3, 2])("at %i× (iOS)", (ratio) => {

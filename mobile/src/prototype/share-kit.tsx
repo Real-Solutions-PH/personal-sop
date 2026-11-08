@@ -269,6 +269,9 @@ export function nextFit(f: Fit, parts: FitParts): Fit {
 }
 /** How long a layout must hold still before the fit rule reads it. */
 export const FIT_SETTLE_MS = 120
+/** How long a hugging chart box waits for its layout at its chart's height
+ * before its 0 counts as "no room". */
+const HUG_WAIT_MS = FIT_SETTLE_MS * 3
 const FitContext = createContext<{
   fit: Fit
   part: (kind: Drop | "rows", n: number) => () => void
@@ -648,13 +651,18 @@ export function Body({
     hug = floor !== undefined && !fill,
     [own, setOwn] = useState(0),
     // The box's last laid-out height, held while it is not yet reported.
-    box = useRef(0)
-  // Once a hugging box knows its chart's height, report the box as it last
-  // laid out: if the block left it no room it stays 0, and no new layout
-  // would ever report that.
+    box = useRef(0),
+    waiting = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // Once a hugging box knows its chart's height it lays out again at that
+  // height, and that layout reports it. Only if none comes (the block left
+  // it no room, so it stays 0 and nothing changes) is the 0 reported, after
+  // a wait: a layout that is merely late must not read as no room, since a
+  // step is never taken back.
   // biome-ignore lint/correctness/useExhaustiveDependencies: report once own is known
   useEffect(() => {
-    if (hug && own > 0) measure("box", box.current)
+    if (!(hug && own > 0)) return
+    waiting.current = setTimeout(() => measure("box", box.current), HUG_WAIT_MS)
+    return () => clearTimeout(waiting.current)
   }, [hug, own > 0])
   if (hidden) return null
   return (
@@ -670,6 +678,7 @@ export function Body({
         // A hugging box is 0 until it knows its chart's height: that first
         // pass is not an overflow, so it waits for the effect above.
         if (hug && own === 0) return
+        clearTimeout(waiting.current)
         measure("box", box.current)
       }}
     >
@@ -1965,7 +1974,8 @@ export function ShareComposer<K extends string>({
   const t = useTheme(),
     social = useShown("social")
   const [format, setFormat] = useState<CardFormat>("9:16"),
-    [backdrop, setBackdrop] = useState<CardBackdrop>("fern"),
+    // Every card starts on Photo; with no photo yet it is drawn on Fern.
+    [backdrop, setBackdrop] = useState<CardBackdrop>("photo"),
     [photo, setPhoto] = useState<string | null>(null),
     [color, setColor] = useState<string>(palette.light.primary),
     // The caption that goes with a post and is copied for other apps:
@@ -1987,8 +1997,14 @@ export function ShareComposer<K extends string>({
     // Side padding that centres every card, the last one included: with
     // less, the scroll stops short and the last card could not be chosen.
     padding = (screen - width) / 2
-  const look = { format, backdrop, photo, color },
-    refs = useRef<Record<string, HostInstance | null>>({}),
+  // What the cards are drawn on: Photo before a photo is picked is a plain
+  // Fern card, laid out whole; the compact layout waits for the picture.
+  const shown: CardBackdrop = backdrop === "photo" && !photo ? "fern" : backdrop
+  const look = useMemo<CardLook>(
+    () => ({ format, backdrop: shown, photo, color }),
+    [format, shown, photo, color],
+  )
+  const refs = useRef<Record<string, HostInstance | null>>({}),
     shots = useRef<Record<string, HostInstance | null>>({}),
     target = (key: string) => shots.current[key] ?? refs.current[key],
     // The selected card laid out at exactly 1080 px wide, off screen: the
@@ -2125,8 +2141,8 @@ export function ShareComposer<K extends string>({
   }
   if (shareRef) shareRef.current = doShare
   useEffect(() => {
-    onLookChange?.({ format, backdrop, photo, color })
-  }, [format, backdrop, photo, color, onLookChange])
+    onLookChange?.(look)
+  }, [look, onLookChange])
   const share = () => (beforeShare ? beforeShare(doShare) : doShare())
   const swatch = (key: CardBackdrop): string | string[] =>
     GRADIENTS[key] ??

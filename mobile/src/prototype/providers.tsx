@@ -1,5 +1,9 @@
 import { configureNotifications, setConnectivity } from "@domain/lib/platform"
-import { configureStorage, flushStores } from "@domain/lib/store"
+import {
+  configureStorage,
+  flushStores,
+  retryStoreReads,
+} from "@domain/lib/store"
 import { connectWorkoutHabits } from "@domain/wiring"
 import { Geist_400Regular } from "@expo-google-fonts/geist/400Regular"
 import { Geist_500Medium } from "@expo-google-fonts/geist/500Medium"
@@ -12,7 +16,10 @@ import { useFonts } from "expo-font"
 import { type ReactNode, useCallback, useEffect, useState } from "react"
 import { AppState, Pressable, Text, View } from "react-native"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
-import { SafeAreaProvider } from "react-native-safe-area-context"
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
 import { BootGate } from "./boot/boot-screen"
@@ -77,6 +84,9 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
             : undefined,
         })
       })
+      // Retry: a store whose read was refused reads again before anything
+      // is written, so the saved data wins over the stand-in.
+      retryStoreReads()
       flushStores()
       // An update moves the app's files: the avatar follows its file.
       healProfilePhoto()
@@ -161,22 +171,13 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           {error && (
-            <View
-              accessibilityRole="alert"
-              style={{ padding: 16, backgroundColor: "#FDE8DE" }}
-            >
-              <Text style={{ color: "#7E2D16" }}>{error}</Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  setError(null)
-                  initialize()
-                }}
-                style={{ padding: 12 }}
-              >
-                <Text>Retry storage</Text>
-              </Pressable>
-            </View>
+            <StorageAlert
+              message={error}
+              onRetry={() => {
+                setError(null)
+                initialize()
+              }}
+            />
           )}
           <BootGate
             ready={ready && !!(fontsLoaded || fontError)}
@@ -190,5 +191,35 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  )
+}
+
+/** Clear of the status bar and the notch. */
+function StorageAlert({
+  message,
+  onRetry,
+}: {
+  message: string
+  onRetry: () => void
+}) {
+  const insets = useSafeAreaInsets()
+  return (
+    <View
+      accessibilityRole="alert"
+      style={{
+        padding: 16,
+        paddingTop: 16 + insets.top,
+        backgroundColor: "#FDE8DE",
+      }}
+    >
+      <Text style={{ color: "#7E2D16" }}>{message}</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={onRetry}
+        style={{ padding: 12 }}
+      >
+        <Text>Retry storage</Text>
+      </Pressable>
+    </View>
   )
 }

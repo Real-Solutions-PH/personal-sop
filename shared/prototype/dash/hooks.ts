@@ -566,8 +566,9 @@ export function useGoals() {
     [goals, screenOn, b, all],
   )
 }
-export const fmtGoal = (g: Goal) =>
-  `${g.comparator === "gte" ? "≥" : "≤"} ${g.target}${g.unit} / ${g.period}`
+export const fmtGoal = (
+  g: Pick<Goal, "comparator" | "target" | "unit" | "period">,
+) => `${g.comparator === "gte" ? "≥" : "≤"} ${g.target}${g.unit} / ${g.period}`
 export const areaLabel = (k: ModuleKey | "life") =>
   k === "life" ? "Life" : AREA[k].label
 export type TrophyType = "pr" | "streak" | "best" | "goal" | "first"
