@@ -102,7 +102,10 @@ class Facts:
 
     @property
     def fingerprint(self) -> str:
-        blob = json.dumps(self.rows, sort_keys=True, ensure_ascii=False)
+        """The range's facts only: a habit's live streak moves with every
+        later tick, so it is shown to the model but never keys the cache."""
+        stable = [{k: v for k, v in r.items() if k != "streak"} for r in self.rows]
+        blob = json.dumps(stable, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(blob.encode()).hexdigest()
 
 

@@ -226,3 +226,23 @@ def test_review_range_over_31_days_is_422(client: TestClient, db: Session) -> No
         _body(a, from_day=(t - timedelta(days=40)).isoformat()),
         status=422,
     )
+
+
+def test_review_cache_ignores_a_tick_outside_the_range(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A habit ticked today (after the range) moves its live streak, but the
+    range's facts are the same: the kept review stands, no second call."""
+    a = api(client, db)
+    a.assign("chat")
+    _seed(a)
+    model = install(
+        monkeypatch, say(_answer([WIN], [])), say(_answer([WIN], [_gap("Stretch")]))
+    )
+    first = a.post(REVIEW, _body(a))
+    with ctx_for(a.user) as ctx:  # type: ignore[attr-defined]
+        read = habits_public.find_habits(ctx, "Read")[0]
+        habits_public.log_habit(ctx, habit_id=read.id, day=ctx.today)
+        ctx.commit()
+    assert a.post(REVIEW, _body(a)) == first
+    assert len(model.seen) == 1

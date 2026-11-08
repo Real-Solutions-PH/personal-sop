@@ -234,3 +234,22 @@ describe("weekly review screen", () => {
     expect(screen.getByTestId("fern-review")).toBeTruthy()
   })
 })
+
+describe("weeklyRange", () => {
+  const { weeklyRange } = require("@domain/companion/review-rules")
+  it("a past week is reviewed whole", () => {
+    expect(weeklyRange("2026-10-26", "2026-11-01", "2026-11-08")).toEqual({
+      fromDay: "2026-10-26",
+      toDay: "2026-11-01",
+    })
+  })
+  it("the current week runs through yesterday, so today's ticks keep the kept review", () => {
+    expect(weeklyRange("2026-11-02", "2026-11-08", "2026-11-05")).toEqual({
+      fromDay: "2026-11-02",
+      toDay: "2026-11-04",
+    })
+  })
+  it("has nothing to review on the week's first day", () => {
+    expect(weeklyRange("2026-11-02", "2026-11-08", "2026-11-02")).toBeNull()
+  })
+})

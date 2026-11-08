@@ -1,4 +1,5 @@
 import { addJournalEntry } from "@domain/capture/actions"
+import { weeklyRange } from "@domain/companion/review-rules"
 import {
   AREA,
   addDaysKey,
@@ -266,6 +267,7 @@ function Review({ id }: { id: string }) {
         <Button href="/stats/reviews">All reviews</Button>
       </Screen>
     )
+  const fernRange = weeklyRange(p.from, p.to, dayKey())
   const { ls, misses, cur, best, wins, targetDelta } = digest,
     share = `/stats/share?t=${p.kind === "week" ? "weekly" : "monthly"}`,
     focusOptions = [
@@ -478,14 +480,14 @@ function Review({ id }: { id: string }) {
             </Copy>
           </View>
         )}
-        {p.kind === "week" && (
+        {p.kind === "week" && fernRange && (
           <>
             <SectionHeading>Fern’s review</SectionHeading>
             {askedFern ? (
               <FernReviewCard
                 kind="weekly"
-                fromDay={p.from}
-                toDay={p.to < dayKey() ? p.to : dayKey()}
+                fromDay={fernRange.fromDay}
+                toDay={fernRange.toDay}
               />
             ) : (
               <Button

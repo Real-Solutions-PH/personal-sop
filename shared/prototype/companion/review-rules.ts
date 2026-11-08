@@ -111,3 +111,21 @@ export function dismissedTitles(now = new Date()): string[] {
     .dismissed.filter((d) => Date.parse(d.at) >= since)
     .map((d) => d.title)
 }
+
+const prevDay = (day: string) => {
+  const d = new Date(`${day}T12:00:00`)
+  d.setDate(d.getDate() - 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+}
+
+/** The days a weekly review covers: the whole week once it is over, else
+ * through yesterday (today is still moving, and a moving range would ask
+ * Fern again on every tick); nothing on the week's first day. */
+export function weeklyRange(
+  from: string,
+  to: string,
+  today: string,
+): { fromDay: string; toDay: string } | null {
+  const last = to < today ? to : prevDay(today)
+  return last < from ? null : { fromDay: from, toDay: last }
+}
