@@ -104,8 +104,11 @@ const meal = (id: string, at: Date, ...names: string[]): Meal => ({
     fat: 5,
   })),
 })
+// Counted from the app's day, not the calendar date: before the day's start
+// hour the app is still on yesterday, and a plain `new Date()` put
+// "yesterday" on the app's today, failing every early-morning run.
 const daysAgo = (n: number, hour = 12) => {
-  const d = new Date()
+  const d = new Date(`${dayKey()}T12:00:00`)
   d.setDate(d.getDate() - n)
   d.setHours(hour, 0, 0, 0)
   return d

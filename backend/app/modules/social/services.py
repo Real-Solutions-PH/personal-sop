@@ -11,7 +11,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import redis
 from redis.exceptions import RedisError
@@ -77,6 +77,7 @@ from app.modules.social.schema import (
     PostsPublic,
     ProgressStat,
     ScorecardPublic,
+    ScoreFacetPublic,
     SocialProfileUpdate,
     StoryCreate,
     StoryGroup,
@@ -354,13 +355,36 @@ def scorecard(ctx: Ctx, *, user_id: uuid.UUID) -> ScorecardPublic:
         delta=ov.delta,
         streak=ov.streak,
         best=ov.best_streak,
-        rates=[AreaRatePublic(module=a.module, rate=a.rate) for a in ov.areas],
+        # An area the person switched off is not shared, as a rate or a petal.
+        rates=[
+            AreaRatePublic(module=a.module, rate=a.rate) for a in ov.areas if a.enabled
+        ],
+        facets=_shared_facets(ov),
         stats=stats_rows,
         trophies=[
             TrophyPublic(type=a.type, title=a.title, value=a.value)
             for a in earned[:TROPHIES_ON_CARD]
         ],
     )
+
+
+def _shared_facets(ov: stats.Overview) -> list[ScoreFacetPublic]:
+    """The petals of the person's own Stats flower (the facets, in screen
+    order) minus what it would not draw: an area switched off, and screen
+    time with nothing recorded."""
+    rates = {a.module: a.rate for a in ov.areas}
+    return [
+        ScoreFacetPublic(
+            key=str(f["key"]),
+            label=str(f["label"]),
+            module=str(f["module"]),
+            value=float(cast(float, f["value"])),
+            prev=float(cast(float, f["prev"])),
+        )
+        for f in ov.facets
+        if not f.get("off")
+        and not (f.get("module") == "screen" and rates.get("screen") is None)
+    ]
 
 
 def leaderboard(ctx: Ctx) -> LeaderboardPublic:
@@ -372,8 +396,11 @@ def leaderboard(ctx: Ctx) -> LeaderboardPublic:
     for uid in shown:
         if uid not in briefs:
             continue
-        ov = stats.overview(_ctx_of(ctx, uid), days=SCORE_DAYS)
-        rows.append((uid, ov.life_score, ov.streak))
+        # Only the two numbers a row shows: the full overview per person
+        # took the whole request past the app's 15 s timeout with a handful
+        # of friends, and the app then showed you alone.
+        st = stats.standing(_ctx_of(ctx, uid), days=SCORE_DAYS)
+        rows.append((uid, st.life_score, st.streak))
     rows.sort(key=lambda r: (r[1] is None, -(r[1] or 0), -r[2], str(r[0])))
     data = [
         LeaderRow(rank=i + 1, person=briefs[uid], life=life, streak=streak)

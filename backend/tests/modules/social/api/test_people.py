@@ -2,13 +2,16 @@
 
 import uuid
 from collections.abc import Callable
+from datetime import date
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
 from app.modules.iam.users.models import User
 from app.modules.media.models import MediaObject
+from app.modules.social import services
 from tests.modules.social.api.conftest import Person, Trio
 from tests.modules.social.api.helpers import API, code, ok
 
@@ -214,6 +217,62 @@ def test_leaderboard_respects_show_scores(client: TestClient, trio: Trio) -> Non
     assert str(trio.ben.id) in ids and str(trio.ana.id) in ids
     assert str(trio.cy.id) not in ids
     assert [r["rank"] for r in board["data"]] == list(range(1, len(ids) + 1))
+
+
+def test_leaderboard_lists_followed_friends_without_the_full_overview(
+    client: TestClient, trio: Trio, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The full Stats overview per friend took the request past the app's
+    15 s timeout, and the app then showed you alone. A row needs only the
+    Life Score and the streak, so the leaderboard never runs the overview."""
+
+    def boom(*_: object, **__: object) -> None:
+        raise AssertionError("the leaderboard ran the full overview")
+
+    ok(client.put(f"{API}/people/{trio.cy.id}/follow", headers=trio.ben.headers))
+    monkeypatch.setattr(services.stats, "overview", boom)
+    board = ok(client.get(f"{API}/leaderboard", headers=trio.ben.headers))
+    ids = {r["person"]["id"] for r in board["data"]}
+    assert ids == {str(trio.ben.id), str(trio.ana.id), str(trio.cy.id)}
+
+
+def test_leaderboard_rows_match_each_scorecard(client: TestClient, trio: Trio) -> None:
+    ana = trio.ana
+    # Something on the books so the numbers are not all empty.
+    r = client.post(
+        f"{settings.API_V1_STR}/tasks",
+        headers=ana.headers,
+        json={"title": "Ship it", "due_date": date.today().isoformat()},
+    )
+    assert r.status_code < 300, r.text
+    board = ok(client.get(f"{API}/leaderboard", headers=trio.ben.headers))
+    row = next(r for r in board["data"] if r["person"]["id"] == str(ana.id))
+    card = ok(client.get(f"{API}/people/{ana.id}/scorecard", headers=trio.ben.headers))
+    assert (row["life"], row["streak"]) == (card["life"], card["streak"])
+
+
+def test_scorecard_flower_shares_only_areas_switched_on(
+    client: TestClient, trio: Trio
+) -> None:
+    url = f"{API}/people/{trio.ana.id}/scorecard"
+    card = ok(client.get(url, headers=trio.ben.headers))
+    keys = [f["key"] for f in card["facets"]]
+    # The flower's petals in the Stats order, each a rate from 0 to 1.
+    assert keys[:3] == ["habits", "routines", "tasks"] and "finance" in keys
+    assert all(0 <= f["value"] <= 1 and 0 <= f["prev"] <= 1 for f in card["facets"])
+    # Screen time with nothing recorded has no petal, as on the person's Stats.
+    assert "screen" not in keys
+    ok(
+        client.patch(
+            f"{settings.API_V1_STR}/profile/modules/finance",
+            headers=trio.ana.headers,
+            json={"enabled": False},
+        )
+    )
+    card = ok(client.get(url, headers=trio.ben.headers))
+    assert "finance" not in [f["module"] for f in card["facets"]]
+    assert "finance" not in [r["module"] for r in card["rates"]]
+    assert "habits" in [r["module"] for r in card["rates"]]
 
 
 def test_drafts_get_put_clear(client: TestClient, trio: Trio) -> None:

@@ -409,6 +409,9 @@ export function workoutMapper(
           ? { cardio: row.cardio as Record<string, unknown> }
           : {}),
         ...(cur?.posHigh !== undefined ? { posHigh: cur.posHigh } : {}),
+        // Where it was trained stays on this phone: the server has no
+        // column for it yet, so a pull must not wipe it.
+        ...(cur?.place ? { place: cur.place } : {}),
       }
     },
     merge: (s, ups, dels) => {

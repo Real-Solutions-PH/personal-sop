@@ -26,9 +26,11 @@ import {
   type Progress,
   pendingIntent,
   type Scorecard,
+  type SharedFacet,
   type SocialRemote,
   type SocialState,
   type StoryItem,
+  sharedFacets,
   socialStore,
   tombstone,
   typingStore,
@@ -176,6 +178,8 @@ interface WScorecard {
   streak: number
   best: number
   rates: { module: string; rate: number | null }[]
+  /** Absent from servers older than the area flower. */
+  facets?: SharedFacet[]
   stats: { label: string; value: string; unit: string | null }[]
   trophies: Scorecard["trophies"]
 }
@@ -221,6 +225,9 @@ export const isTransient = (e: unknown) =>
     (e.status >= 500 || e.status === 408 || e.status === 429))
 const TYPING_SHOWN_MS = 5000
 const PAGE = 20
+/** One Life Score per friend is slower than a list read; past this the
+ * board says it could not load (with Retry) rather than show you alone. */
+export const LEADERBOARD_TIMEOUT_MS = 30_000
 /** A presigned media URL is reused this long (they live 15 minutes), so a
  * re-read of the same media does not download the image again. */
 export const MEDIA_URL_REUSE_MS = 10 * 60_000
@@ -567,9 +574,14 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     delta: w.delta ?? 0,
     streak: w.streak,
     best: w.best,
+    // An area the person switched off is not sent, and stays absent.
     rates: Object.fromEntries(
-      AREAS.map((a) => [a, w.rates.find((r) => r.module === a)?.rate ?? 0]),
+      AREAS.flatMap((a) => {
+        const r = w.rates.find((x) => x.module === a)
+        return r ? [[a, r.rate ?? 0]] : []
+      }),
     ) as Scorecard["rates"],
+    facets: w.facets ? sharedFacets(w.facets) : undefined,
     stats: w.stats.map((x) => ({ ...x, unit: x.unit ?? undefined })),
     trophies: w.trophies,
   })
@@ -1022,19 +1034,26 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
     set((s) => ({ ...s, people: upsertPeople(s, [], list.data) }))
   }
 
-  async function loadExplore() {
-    const [explore, board] = await Promise.all([
+  async function loadExplore(): Promise<boolean> {
+    // Each read lands on its own: a slow leaderboard (one score per friend)
+    // used to time out and take the explore results down with it, leaving
+    // the board showing you alone.
+    const [ex, lb] = await Promise.allSettled([
       http.request<{ suggested: WBrief[]; popular: WPost[] }>(
         "GET",
         "/social/explore",
       ),
-      http.request<List<WLeader>>("GET", "/social/leaderboard"),
+      http.request<List<WLeader>>("GET", "/social/leaderboard", undefined, {
+        timeoutMs: LEADERBOARD_TIMEOUT_MS,
+      }),
     ])
-    mergePosts(explore.popular)
+    const explore = ex.status === "fulfilled" ? ex.value : null
+    const board = lb.status === "fulfilled" ? lb.value : { data: [] }
+    if (explore) mergePosts(explore.popular)
     set((s) => ({
       ...s,
       people: upsertPeople(s, [
-        ...explore.suggested,
+        ...(explore?.suggested ?? []),
         ...board.data.map((r) => r.person),
       ]).map((p) => {
         const row = board.data.find((r) => r.person.id === p.id)
@@ -1055,6 +1074,8 @@ export function createSocialLive(deps: SocialDeps): SocialLive {
         }
       }),
     }))
+    // A failed explore read keeps what was shown, as before.
+    return lb.status === "fulfilled"
   }
 
   // ------------------------------------------------------------ writes

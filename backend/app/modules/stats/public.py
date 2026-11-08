@@ -101,6 +101,32 @@ def overview(ctx: Ctx, *, days: int) -> Overview:
     )
 
 
+@dataclass(frozen=True)
+class Standing:
+    """A person's Life Score and current on-target streak: the two numbers a
+    leaderboard row shows."""
+
+    life_score: int | None
+    streak: int
+
+
+def standing(ctx: Ctx, *, days: int) -> Standing:
+    """``overview(ctx, days=days)``'s ``life_score`` and ``streak`` without
+    the rest of it (facets, every module's metrics, today's ring), so a list
+    of people can be scored within one request."""
+    from app.modules.stats import logic as L
+    from app.modules.stats import services
+
+    s = services.settings(ctx)
+    # The current window only: the previous one is for the delta.
+    rates = services.area_rates(ctx, services.window(ctx, days))
+    series_ = services.day_series(ctx, s, L.series_length(days))
+    return Standing(
+        life_score=L.life_score_of(rates, s.weights, s.enabled),
+        streak=L.on_target(series_, days).current,
+    )
+
+
 def series(ctx: Ctx, *, metric: str, days: int) -> list[tuple[date, float | None]]:
     """Daily values of a companion/tracker metric (life, habits, tasks,
     spend, netWorth, workouts, weight, nutrition). ``workouts`` is weekly

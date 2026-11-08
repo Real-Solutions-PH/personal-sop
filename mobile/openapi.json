@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
+  "info": { "title": "test", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -30892,6 +30892,19 @@
         "title": "ScheduleSlot",
         "description": "One slot of a schedule: weekdays (0 = Sunday), optional ``HH:MM`` time\n(empty = anytime) and the on-time window in minutes (default 60)."
       },
+      "ScoreFacetPublic": {
+        "properties": {
+          "key": { "type": "string", "title": "Key" },
+          "label": { "type": "string", "title": "Label" },
+          "module": { "type": "string", "title": "Module" },
+          "value": { "type": "number", "title": "Value" },
+          "prev": { "type": "number", "title": "Prev" }
+        },
+        "type": "object",
+        "required": ["key", "label", "module", "value", "prev"],
+        "title": "ScoreFacetPublic",
+        "description": "One petal of the area flower: a rate from 0 to 1 this period and the\nperiod before."
+      },
       "ScorecardPublic": {
         "properties": {
           "person_id": {
@@ -30917,6 +30930,12 @@
             "items": { "$ref": "#/components/schemas/AreaRatePublic" },
             "type": "array",
             "title": "Rates"
+          },
+          "facets": {
+            "items": { "$ref": "#/components/schemas/ScoreFacetPublic" },
+            "type": "array",
+            "title": "Facets",
+            "default": []
           },
           "stats": {
             "items": { "$ref": "#/components/schemas/ProgressStat" },

@@ -17405,6 +17405,36 @@ export const ScheduleSlotSchema = {
 (empty = anytime) and the on-time window in minutes (default 60).`
 } as const;
 
+export const ScoreFacetPublicSchema = {
+    properties: {
+        key: {
+            type: 'string',
+            title: 'Key'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        module: {
+            type: 'string',
+            title: 'Module'
+        },
+        value: {
+            type: 'number',
+            title: 'Value'
+        },
+        prev: {
+            type: 'number',
+            title: 'Prev'
+        }
+    },
+    type: 'object',
+    required: ['key', 'label', 'module', 'value', 'prev'],
+    title: 'ScoreFacetPublic',
+    description: `One petal of the area flower: a rate from 0 to 1 this period and the
+period before.`
+} as const;
+
 export const ScorecardPublicSchema = {
     properties: {
         person_id: {
@@ -17459,6 +17489,14 @@ export const ScorecardPublicSchema = {
             },
             type: 'array',
             title: 'Rates'
+        },
+        facets: {
+            items: {
+                '$ref': '#/components/schemas/ScoreFacetPublic'
+            },
+            type: 'array',
+            title: 'Facets',
+            default: []
         },
         stats: {
             items: {

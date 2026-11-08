@@ -42,6 +42,7 @@ import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { Empty } from "../ui"
 import { Ring } from "../visual"
+import { AreaFlower, MyAreaFlower } from "./area-flower"
 import { CreateSheet } from "./feed"
 import {
   Avatar,
@@ -305,15 +306,22 @@ export function ScoreCard({
           gap: 10,
         }}
       >
-        {AREAS.map((a, i) => (
-          <AreaBar
-            key={a.key}
-            label={a.label}
-            value={card.rates[a.key]}
-            color={t[a.accent]}
-            delay={i * 80}
-          />
-        ))}
+        {mine ? (
+          <MyAreaFlower />
+        ) : card.facets?.length ? (
+          <AreaFlower facets={card.facets} />
+        ) : (
+          // A server older than the flower sends only the four rates.
+          AREAS.filter((a) => card.rates[a.key] !== undefined).map((a, i) => (
+            <AreaBar
+              key={a.key}
+              label={a.label}
+              value={card.rates[a.key] ?? 0}
+              color={t[a.accent]}
+              delay={i * 80}
+            />
+          ))
+        )}
       </View>
       <View style={{ flexDirection: "row", gap: 8 }}>
         {card.stats.map((s) => (

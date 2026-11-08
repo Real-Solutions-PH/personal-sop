@@ -330,18 +330,20 @@ const CARDS: [string, Make][] = [
       ),
     ],
   ),
-  ...(["summary", "pr", "photo"] as const).map((k): [string, Make] => [
-    `workout ${k}`,
-    (look, long) => (
-      <WorkoutCard
-        kind={k}
-        width={300}
-        look={look}
-        data={F.workoutData(long)}
-        flags={flags}
-      />
-    ),
-  ]),
+  ...(["summary", "sets", "pr", "records", "photo"] as const).map(
+    (k): [string, Make] => [
+      `workout ${k}`,
+      (look, long) => (
+        <WorkoutCard
+          kind={k}
+          width={300}
+          look={look}
+          data={F.workoutData(long)}
+          flags={flags}
+        />
+      ),
+    ],
+  ),
   ...(["route", "splits", "overlay"] as const).flatMap((k) =>
     [false, true].map((indoor): [string, Make] => [
       `run ${k}${indoor ? " treadmill" : ""}`,
@@ -750,6 +752,35 @@ describe("the fit rule", () => {
       jest.advanceTimersByTime(FIT_SETTLE_MS + 1)
     })
     expect(r.getAllByTestId("card-row").length).toBeLessThan(5)
+  })
+  test("a new background lays the card out again from the full card", () => {
+    const card = (bg: CardLook) => (
+      <CardFrame width={300} look={bg}>
+        <Title>Title</Title>
+        <Hero value="12" unit="days" />
+        <Sub>The sub line</Sub>
+        <Body>
+          <XBars rows={rows} color="#3e63dd" />
+        </Body>
+      </CardFrame>
+    )
+    const photo: CardLook = {
+      ...look,
+      backdrop: "photo",
+      photo: "file:///p.jpg",
+    }
+    const r = render(card(photo))
+    // On the photo the block runs out of room until the sub line goes.
+    for (let i = 0; i < 4; i++) {
+      layout(r, "card-body", 100)
+      layout(r, "card-body-fit", 400 + i)
+    }
+    expect(r.queryByText("The sub line")).toBeNull()
+    // Back on a plain ground there is room again: what the photo dropped
+    // returns rather than staying gone in the shared image.
+    r.rerender(card({ ...look, backdrop: "fern" }))
+    expect(r.getByText("The sub line")).toBeTruthy()
+    expect(r.getAllByTestId("card-row")).toHaveLength(5)
   })
   test("skips a kind the card does not have", () => {
     const parts = new Map([
@@ -1414,4 +1445,63 @@ describe("the run card", () => {
     expect(d.paceDelta).toBe(-100)
     expect(d.indoor).toBe(true)
   })
+})
+
+test("the exported copy of each card starts from the full card", () => {
+  jest.useFakeTimers()
+  const rows = Array.from({ length: 5 }, (_, i) => ({
+    key: `r${i}`,
+    name: `Row ${i + 1}`,
+    value: 10 - i,
+    label: `${10 - i} days`,
+  }))
+  const item = (key: string) => ({
+    key,
+    label: key,
+    render: (width: number, look: CardLook) => (
+      <CardFrame width={width} look={look}>
+        <Title>{`Card ${key}`}</Title>
+        <Sub>{`Sub ${key}`}</Sub>
+        <Body>
+          <XBars rows={rows} color="#3e63dd" />
+        </Body>
+      </CardFrame>
+    ),
+  })
+  const composer = (value: string) => (
+    <SafeAreaProvider initialMetrics={SAFE}>
+      <ShareComposer
+        value={value}
+        onChange={() => {}}
+        caption=""
+        formats={["9:16"]}
+        items={[item("a"), item("b")]}
+      >
+        {null}
+      </ShareComposer>
+    </SafeAreaProvider>
+  )
+  const hidden = { includeHiddenElements: true }
+  const exported = (r: ReturnType<typeof render>) =>
+    within(r.getByTestId("card-export", hidden))
+  const r = render(composer("a"))
+  // Card a runs out of room in its export copy until its sub line goes.
+  for (let i = 0; i < 4; i++) {
+    act(() => {
+      fireEvent(exported(r).getByTestId("card-body", hidden), "layout", {
+        nativeEvent: { layout: { height: 100 } },
+      })
+      fireEvent(exported(r).getByTestId("card-body-fit", hidden), "layout", {
+        nativeEvent: { layout: { height: 400 + i } },
+      })
+    })
+    act(() => {
+      jest.advanceTimersByTime(FIT_SETTLE_MS + 1)
+    })
+  }
+  expect(exported(r).queryByText("Sub a", hidden)).toBeNull()
+  // Card b has measured nothing yet: what a dropped is not dropped from b.
+  r.rerender(composer("b"))
+  expect(exported(r).getByText("Sub b", hidden)).toBeTruthy()
+  jest.useRealTimers()
 })
