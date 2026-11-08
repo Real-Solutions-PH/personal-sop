@@ -1964,7 +1964,8 @@ export function ShareComposer<K extends string>({
   const t = useTheme(),
     social = useShown("social")
   const [format, setFormat] = useState<CardFormat>("9:16"),
-    [backdrop, setBackdrop] = useState<CardBackdrop>("fern"),
+    // Every card starts on Photo; with no photo yet it is drawn on Fern.
+    [backdrop, setBackdrop] = useState<CardBackdrop>("photo"),
     [photo, setPhoto] = useState<string | null>(null),
     [color, setColor] = useState<string>(palette.light.primary),
     // The caption that goes with a post and is copied for other apps:
@@ -1986,7 +1987,14 @@ export function ShareComposer<K extends string>({
     // Side padding that centres every card, the last one included: with
     // less, the scroll stops short and the last card could not be chosen.
     padding = (screen - width) / 2
-  const look = { format, backdrop, photo, color },
+  // What the cards are drawn on: Photo before a photo is picked is a plain
+  // Fern card, laid out whole; the compact layout waits for the picture.
+  const shown: CardBackdrop = backdrop === "photo" && !photo ? "fern" : backdrop
+  const look = useMemo<CardLook>(
+    () => ({ format, backdrop: shown, photo, color }),
+    [format, shown, photo, color],
+  )
+  const
     refs = useRef<Record<string, HostInstance | null>>({}),
     shots = useRef<Record<string, HostInstance | null>>({}),
     target = (key: string) => shots.current[key] ?? refs.current[key],
@@ -2122,8 +2130,8 @@ export function ShareComposer<K extends string>({
   }
   if (shareRef) shareRef.current = doShare
   useEffect(() => {
-    onLookChange?.({ format, backdrop, photo, color })
-  }, [format, backdrop, photo, color, onLookChange])
+    onLookChange?.(look)
+  }, [look, onLookChange])
   const share = () => (beforeShare ? beforeShare(doShare) : doShare())
   const swatch = (key: CardBackdrop): string | string[] =>
     GRADIENTS[key] ??

@@ -1137,9 +1137,14 @@ test("the background row scrolls, with the screen inset at both ends", () => {
   expect(r.getByLabelText("Sticker background")).toBeTruthy()
 })
 
-test("the composer opens on the Fern ground", () => {
+// Kai, 2026-11-08: Photo is where every card starts. Until a photo is
+// picked the cards are drawn whole on Fern; the picked photo then fills the
+// card with the data compact at the bottom.
+test("the composer opens on Photo, drawn on Fern until a photo is picked", async () => {
+  const { pickPhoto } = require("../media") as { pickPhoto: jest.Mock }
+  pickPhoto.mockResolvedValueOnce("file:///picked.jpg")
   const looks: CardLook[] = []
-  render(
+  const r = render(
     <ShareComposer
       value="card"
       onChange={() => {}}
@@ -1150,7 +1155,27 @@ test("the composer opens on the Fern ground", () => {
       {null}
     </ShareComposer>,
   )
-  expect(looks[0]?.backdrop).toBe("fern")
+  // Photo is the selected ground, and its prompt is open.
+  expect(
+    StyleSheet.flatten(
+      r.getByLabelText("Photo background").findAll(
+        (n) => StyleSheet.flatten(n.props.style)?.borderWidth === 2,
+      )[0]?.props.style,
+    ),
+  ).toBeTruthy()
+  expect(r.getAllByText("Choose a photo").length).toBeGreaterThan(0)
+  expect(looks.at(-1)).toMatchObject({ backdrop: "fern", photo: null })
+  expect(r.queryAllByTestId("card-photo-room")).toHaveLength(0)
+  // The prompt opens the library; the card then sits on the photo.
+  await act(async () => {
+    fireEvent.press(r.getByLabelText("Choose a photo"))
+  })
+  expect(pickPhoto).toHaveBeenCalled()
+  expect(looks.at(-1)).toMatchObject({
+    backdrop: "photo",
+    photo: "file:///picked.jpg",
+  })
+  expect(r.queryAllByTestId("card-photo-room").length).toBeGreaterThan(0)
 })
 
 describe.each([3, 2])("at %i× (iOS)", (ratio) => {
