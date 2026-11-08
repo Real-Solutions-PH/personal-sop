@@ -6,6 +6,7 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 
 - `backend/` — FastAPI + SQLModel, managed with `uv`.
 - `frontend/` — Next.js 16 (App Router), a bun workspace member of the root `package.json`, linted with Biome.
+- `marketing/` — the public marketing site: Next.js 16 static export (`output: "export"`, ADR-0036), a bun workspace member, linted with Biome. Copy, prices and placeholders live in `marketing/src/config/`.
 - `mobile/` — Expo SDK 58, a **standalone** bun project **not** part of the root workspace — run bun commands from inside `mobile/`.
 - `infra/` — AWS CDK v2 (TypeScript) production infrastructure (ADR-0022), a **standalone** bun project **not** part of the root workspace — run bun commands from inside `infra/`. Linted with Biome.
 - `e2e/` — Cypress E2E suite (ADR-0004), a bun workspace member of the root `package.json`, linted with Biome.
@@ -26,6 +27,8 @@ This repo follows the **Engineering Constitution** in [docs/constitution.md](doc
 | frontend | install deps | `bun install` (root) |
 | frontend | dev server | `bun run dev` |
 | frontend | lint | `bun run lint` (Biome — **mutates**, runs `--write`) |
+| marketing | dev / build | `bun run dev` / `bun run build` (from `marketing/`; build writes static files to `marketing/out/`) |
+| marketing | lint | `bun run lint` (from `marketing/`, Biome — **mutates**) |
 | e2e | test | `make e2e-test` / `bun run test` (Cypress headless — needs the stack running) |
 | e2e | interactive runner | `make e2e-test-ui` / `bun run test:ui` (Cypress open) |
 | infra | install deps | `cd infra && bun install` |

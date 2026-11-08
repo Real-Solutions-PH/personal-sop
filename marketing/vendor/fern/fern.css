@@ -1,0 +1,47 @@
+/* Fern's keyframes and mood colours, from the Unfurl card library. */
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes breatheFast{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes sway{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}
+@keyframes halo{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
+@keyframes draw{0%{stroke-dashoffset:60}45%,70%{stroke-dashoffset:0}100%{stroke-dashoffset:-60}}
+@keyframes unfurl{0%,15%{opacity:1}30%,80%{opacity:0}95%,100%{opacity:1}}
+@keyframes unfurlIn{0%,15%{opacity:0;transform:scaleY(.4)}35%,78%{opacity:1;transform:scaleY(1)}95%,100%{opacity:0;transform:scaleY(.4)}}
+@keyframes blink{0%,46%,54%,100%{transform:scaleY(1)}50%{transform:scaleY(.1)}}
+@keyframes talk{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes leaf{0%{opacity:0;transform:translate(0,0) rotate(0)}20%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}}
+@keyframes lean{0%,100%{transform:rotate(4deg)}50%{transform:rotate(6deg)}}
+@keyframes leanR{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(-6deg)}}
+@keyframes swayS{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes swaySR{0%,100%{transform:rotate(3deg)}50%{transform:rotate(-3deg)}}
+@keyframes droop{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-7deg)}}
+@keyframes droopR{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(7deg)}}
+@keyframes glance{0%,30%{transform:translateX(0)}40%,60%{transform:translateX(-1.4px)}70%,85%{transform:translateX(1.2px)}100%{transform:translateX(0)}}
+@keyframes wave{0%,100%{transform:rotate(0)}50%{transform:rotate(-22deg)}}
+@keyframes waveUp{0%,100%{transform:rotate(0)}50%{transform:rotate(14deg)}}
+@keyframes waveUpR{0%,100%{transform:rotate(0)}50%{transform:rotate(-14deg)}}
+@keyframes hop{0%,55%,100%{transform:translateY(0)}20%{transform:translateY(-4px)}32%{transform:translateY(0) scaleY(.96)}}
+@keyframes sink{0%,15%{transform:translateY(0)}45%,85%{transform:translateY(1.5px)}100%{transform:translateY(0)}}
+@keyframes fall{0%{opacity:0;transform:translate(0,0) rotate(0)}15%{opacity:1}100%{opacity:0;transform:translate(var(--fx,5px),26px) rotate(80deg)}}
+@keyframes waveR{0%,100%{transform:rotate(0)}50%{transform:rotate(22deg)}}
+@keyframes spore{0%{opacity:0;transform:translateY(3px) scale(.6)}35%,65%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-4px) scale(.8)}}
+@keyframes eWreath{0%{stroke-dashoffset:60}24%,100%{stroke-dashoffset:0}}
+@keyframes eCurl{0%,22%{stroke-dashoffset:60}34%,100%{stroke-dashoffset:0}}
+@keyframes eBody{0%,8%{transform:scale(0)}20%{transform:scale(1.08)}25%,100%{transform:scale(1)}}
+@keyframes eEyes{0%,30%{transform:scaleY(.05)}34%,100%{transform:scaleY(1)}}
+@keyframes eFade{0%,90%{opacity:1}97%,100%{opacity:0}}
+@keyframes drain1{0%,15%{stop-color:var(--moss)}45%,85%{stop-color:var(--f-sad1)}100%{stop-color:var(--moss)}}
+@keyframes drain2{0%,15%{stop-color:var(--frond)}45%,85%{stop-color:var(--f-sad2)}100%{stop-color:var(--frond)}}
+@keyframes drain3{0%,15%{stop-color:var(--sprout)}45%,85%{stop-color:var(--f-sad3)}100%{stop-color:var(--sprout)}}
+@keyframes ripple{0%{opacity:.9;transform:scale(.35)}100%{opacity:0;transform:scale(2.3)}}
+@keyframes perk{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes wiltLeaf{0%,15%{fill:var(--sprout);stroke:var(--fern-ink)}45%,85%{fill:var(--f-sad3);stroke:var(--f-wilt-ink)}100%{fill:var(--sprout);stroke:var(--fern-ink)}}
+@keyframes well{0%,15%{transform:scaleY(0)}45%,85%{transform:scaleY(1)}100%{transform:scaleY(0)}}
+@keyframes tear{0%,45%{opacity:0;transform:translateY(0)}52%{opacity:1;transform:translateY(0)}80%{opacity:1;transform:translateY(7px)}88%,100%{opacity:0;transform:translateY(9px)}}
+@keyframes twinkle{0%{opacity:0;transform:scale(0) rotate(0)}30%{opacity:1;transform:scale(1.15) rotate(20deg)}60%{opacity:1;transform:scale(1) rotate(35deg)}100%{opacity:0;transform:scale(0) rotate(60deg)}}
+@keyframes ping{0%,100%{opacity:.15}50%{opacity:1}}
+@keyframes dotUp{0%{opacity:0;transform:translateY(2px)}35%,70%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-1px)}}
+@keyframes shadowHop{0%,55%,100%{transform:scaleX(1);opacity:1}20%{transform:scaleX(.72);opacity:.6}}
+@keyframes shadowSink{0%,15%,100%{transform:scaleX(1)}45%,85%{transform:scaleX(1.12)}}
+.fern,.fern .av{--mist:#e9f0ea;--moss:#1f5a43;--frond:#3b8a5a;--sprout:#a6d277;--fern-ink:#1f5a43;--fern-leaf:#cfe6b0;--f-joy:#f2b632;--f-love:#ea7c98;--f-tear:#4a9be3;--f-listen:#1f6fc0;--f-water:#4f9fa8;--f-think:#a2a8a3;--f-blush:#f39ba3;--f-wilt:#c99a55;--f-wilt-ink:#8a5f22;--f-shadow:rgba(27,31,28,.12);--f-sad1:#5a5826;--f-sad2:#9a8838;--f-sad3:#d6bd68;--f-dew:#e4f3f1;--f-dew-ink:#9bbfb8}
+.dark .fern,.dark .fern .av{--mist:#18211b;--moss:#2c7a5a;--frond:#6bbf8a;--sprout:#b7e08a;--fern-ink:#b7e08a;--fern-leaf:#24503b}
