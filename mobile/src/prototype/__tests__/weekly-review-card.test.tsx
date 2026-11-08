@@ -212,21 +212,15 @@ describe("section order", () => {
     ])
   })
 
-  test("Settings lists sections in order, with move up and down", () => {
+  test("Settings lists sections in the saved order, with no sort grips", () => {
     moveModule("finance", 0)
     render(<Settings />, { wrapper })
-    const grips = screen.getAllByLabelText(/^Reorder /)
-    expect(grips[0].props.accessibilityLabel).toBe("Reorder Finance")
-    act(() =>
-      grips[0].props.onAccessibilityAction({
-        nativeEvent: { actionName: "increment" },
-      }),
-    )
-    expect(orderModules(dashStore.get().order).slice(0, 2)).toEqual([
-      "habits",
-      "finance",
-    ])
-    // The switches still work beside the grips.
+    // Order is set in Edit Home; Settings only shows it.
+    expect(screen.queryAllByLabelText(/^Reorder /)).toHaveLength(0)
+    const names = screen
+      .getAllByRole("switch", { name: /^(Habits|Finance)$/ })
+      .map((n) => n.props.accessibilityLabel)
+    expect(names).toEqual(["Finance", "Habits"])
     fireEvent.press(screen.getByRole("switch", { name: "Journal" }))
   })
 
