@@ -151,12 +151,13 @@ a {
   }
 }
 
+/* Apple-style pacing: one idea per section, with room around it. */
 section {
-  padding: 72px 0;
+  padding: 96px 0;
 }
 @media (min-width: 1024px) {
   section {
-    padding: 104px 0;
+    padding: 152px 0;
   }
 }
 
@@ -175,12 +176,11 @@ section {
 }
 
 .h2 {
-  font-size: clamp(28px, 4.6vw, 44px);
-  line-height: 1.12;
-  letter-spacing: -0.025em;
+  font-size: clamp(32px, 5.6vw, 56px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
   font-weight: 600;
-  margin-top: 12px;
-  max-width: 20ch;
+  max-width: 18ch;
   text-wrap: balance;
 }
 .lede {
@@ -190,8 +190,13 @@ section {
   max-width: 58ch;
   text-wrap: pretty;
 }
+/* A full-width section opens with one centred headline, at most one line
+   under it, then its one visual. */
 .section-head {
-  margin-bottom: 40px;
+  margin: 0 auto 56px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
 }
 
 .sr-only {
@@ -351,8 +356,7 @@ section {
     padding: 64px 0 88px;
   }
   .hero-grid {
-    grid-template-columns: 1.15fr 0.85fr;
-    gap: 56px;
+    gap: 64px;
   }
 }
 .hero h1 {
@@ -371,36 +375,21 @@ section {
   font-size: clamp(18px, 2.2vw, 20px);
   color: var(--foreground);
 }
-.hero .lede span {
-  color: var(--muted-foreground);
+.hero-copy {
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
 }
-.hero .cta-row {
-  margin-top: 28px;
+.hero-copy .lede {
+  margin-inline: auto;
+  max-width: 34ch;
 }
-.hero-stack {
-  margin-top: 28px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--muted-foreground);
+.hero-cta {
+  margin-top: 32px;
 }
-.app-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  color: var(--muted-foreground);
-  text-decoration: line-through;
-  text-decoration-color: color-mix(in srgb, var(--bad) 70%, transparent);
-}
-.app-chip svg {
-  width: 14px;
-  height: 14px;
+.hero-cta .cta-row,
+.hero-cta .reassure {
+  justify-content: center;
 }
 
 /* ---------- Video ---------- */
@@ -475,34 +464,6 @@ section {
   text-align: center;
   font-size: 13px;
   color: var(--muted-foreground);
-}
-
-/* ---------- Proof strip ---------- */
-.proof {
-  padding: 20px 0;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.proof ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 12px 32px;
-  font-size: 15px;
-  color: var(--muted-foreground);
-}
-.proof li {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.proof svg {
-  width: 18px;
-  height: 18px;
-  color: var(--primary);
 }
 
 /* ---------- Capture demo ---------- */
@@ -709,33 +670,11 @@ section {
   width: 16px;
   height: 16px;
 }
-.demo-cta {
-  margin-top: 32px;
-  padding: 20px;
-  border-radius: var(--radius-card);
-  background: var(--mist);
-  display: grid;
-  gap: 12px;
-}
-.demo-cta p {
-  font-size: 17px;
-  font-weight: 500;
-}
-.demo-cta .reassure {
-  margin-top: 0;
-}
 
-/* ---------- Comparison ---------- */
-.compare-grid {
-  display: grid;
-  gap: 24px;
-}
-@media (min-width: 900px) {
-  .compare-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 48px;
-    align-items: start;
-  }
+/* ---------- Why: the stack ---------- */
+.why-stack {
+  max-width: 560px;
+  margin: 0 auto;
 }
 .stack-list {
   list-style: none;
@@ -759,19 +698,22 @@ section {
 .stack-list .price {
   font-size: 16px;
 }
+/* The total is the one figure the section turns on: centred, number first,
+   its label underneath. */
 .stack-total {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding: 16px 0 0;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 4px;
+  padding: 32px 0 0;
+  text-align: center;
 }
 .stack-total b {
   font-size: 15px;
   font-weight: 500;
 }
 .stack-total .num {
-  font-size: 32px;
+  font-size: clamp(36px, 6vw, 48px);
   color: var(--bad);
   white-space: nowrap;
 }
@@ -797,67 +739,7 @@ section {
   font-size: 13px;
   color: var(--muted-foreground);
 }
-.vs-card {
-  padding: 24px;
-  border-radius: var(--radius-card);
-  background: var(--card);
-  border: 1px solid var(--border);
-}
-.vs-card h3 {
-  font-size: 22px;
-  letter-spacing: -0.02em;
-  font-weight: 600;
-}
-.quad {
-  margin-top: 20px;
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-.quad th,
-.quad td {
-  padding: 12px 8px;
-  border-top: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-  color: var(--muted-foreground);
-  font-weight: 400;
-}
-.quad thead th {
-  font-size: 13px;
-}
-.quad tbody th {
-  white-space: nowrap;
-  color: var(--foreground);
-  font-weight: 500;
-  padding-left: 0;
-}
-.quad td.us {
-  font-weight: 600;
-  color: var(--primary);
-}
-.quad td.us svg {
-  width: 16px;
-  height: 16px;
-  display: inline;
-  vertical-align: -3px;
-  margin-right: 4px;
-}
 
-/* ---------- Steps ---------- */
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 16px;
-  counter-reset: step;
-}
-@media (min-width: 740px) {
-  .steps {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
 .step {
   padding: 24px;
   border-radius: var(--radius-card);
@@ -921,12 +803,7 @@ section {
   padding: 0;
   display: grid;
   gap: 12px;
-  grid-template-columns: 1fr;
-}
-@media (min-width: 600px) {
-  .features {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  grid-template-columns: repeat(2, 1fr);
 }
 @media (min-width: 1024px) {
   .features {
@@ -941,6 +818,11 @@ section {
   display: grid;
   gap: 8px;
   align-content: start;
+}
+@media (max-width: 599px) {
+  .feature {
+    padding: 14px;
+  }
 }
 .feature-head {
   display: flex;
@@ -971,10 +853,6 @@ section {
   padding: 6px 10px;
   border-radius: 12px 12px 12px 4px;
   justify-self: start;
-}
-.feature p {
-  font-size: 14px;
-  color: var(--muted-foreground);
 }
 .feature.fern-card {
   background: var(--mist);
@@ -1149,40 +1027,6 @@ section {
   height: 16px;
   color: var(--warn);
 }
-.points {
-  list-style: none;
-  margin: 24px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 16px;
-}
-.points li {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 12px;
-  align-items: start;
-}
-.points .ic {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  background: var(--muted);
-  color: var(--primary);
-}
-.points .ic svg {
-  width: 18px;
-  height: 18px;
-}
-.points b {
-  display: block;
-  font-weight: 600;
-}
-.points .txt {
-  color: var(--muted-foreground);
-  font-size: 15px;
-}
 .sample {
   font-family: var(--font-mono), monospace;
   font-size: 13px;
@@ -1202,22 +1046,29 @@ section {
   display: grid;
   gap: 12px;
 }
-@media (min-width: 740px) {
+.privacy-list {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 40px 16px;
+}
+@media (min-width: 900px) {
   .privacy-list {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 .privacy-list li {
-  padding: 20px;
-  border-radius: var(--radius-card);
-  border: 1px solid var(--border);
-  background: var(--background);
   display: grid;
-  gap: 8px;
-  align-content: start;
+  justify-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.privacy-list li > svg {
+  width: 32px;
+  height: 32px;
+  color: var(--primary);
 }
 .privacy-list h3 {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
@@ -1317,18 +1168,6 @@ section {
 }
 
 /* ---------- Pricing ---------- */
-.anchor {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 16px;
-  margin-bottom: 24px;
-  font-size: 16px;
-  color: var(--muted-foreground);
-}
-.anchor s {
-  color: var(--bad);
-}
 .plans {
   display: grid;
   gap: 16px;
@@ -1404,9 +1243,6 @@ section {
   height: 18px;
   color: var(--good);
   margin-top: 2px;
-}
-.plan .btn {
-  width: 100%;
 }
 .pricing-foot {
   margin-top: 20px;
@@ -1548,18 +1384,9 @@ section {
 }
 @media (min-width: 740px) {
   .shape-inner {
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: 1fr auto;
     gap: 20px;
   }
-}
-.shape-inner .ic {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--info) 12%, transparent);
-  color: var(--info);
 }
 .shape-inner .ic svg {
   width: 20px;
@@ -1569,11 +1396,6 @@ section {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.01em;
-}
-.shape-inner p {
-  margin-top: 4px;
-  font-size: 15px;
-  color: var(--muted-foreground);
 }
 
 /* ---------- Research page / interview ---------- */
@@ -2026,44 +1848,6 @@ section {
 .hero-visual .phone {
   transform-origin: 50% 0;
 }
-.float-tile {
-  position: absolute;
-  z-index: 2;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-float);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-.float-tile svg {
-  width: 16px;
-  height: 16px;
-  color: var(--k);
-}
-.ft-0 {
-  top: 14%;
-  left: max(0px, calc(50% - 210px));
-}
-.ft-1 {
-  top: 50%;
-  right: max(0px, calc(50% - 215px));
-}
-.ft-2 {
-  top: 4%;
-  right: max(0px, calc(50% - 200px));
-}
-@media (max-width: 420px) {
-  .ft-2 {
-    display: none;
-  }
-}
 
 /* ---------- The scroll story ---------- */
 .story {
@@ -2123,9 +1907,6 @@ section {
 .st-step p {
   color: var(--muted-foreground);
   max-width: 44ch;
-}
-.st-cta {
-  margin-top: 28px;
 }
 
 .st-scene {
@@ -2436,8 +2217,5 @@ section {
   }
   .motion-ok .st-step p {
     font-size: 15px;
-  }
-  .motion-ok .st-cta {
-    display: none;
   }
 }

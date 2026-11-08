@@ -5,7 +5,6 @@ import {
   Check,
   Dumbbell,
   ListChecks,
-  Mic,
   Target,
   Timer,
   Undo2,
@@ -197,17 +196,10 @@ export function CaptureDemo() {
   return (
     <div className="demo-grid">
       <div>
-        <span className="eyebrow">
-          <Mic aria-hidden /> The ten-second test
-        </span>
         <h2 className="h2" id="demo-title">
           One sentence in. Three records out.
         </h2>
-        <p className="lede">
-          Type it, say it or snap a photo. Fern splits what you said into the
-          right places and shows which words became which record, with Undo on
-          each one.
-        </p>
+        <p className="lede">Type it, say it or snap a photo.</p>
         <fieldset
           className="examples"
           style={{ border: 0, padding: 0, margin: "24px 0 0" }}

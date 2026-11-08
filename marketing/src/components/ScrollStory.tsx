@@ -5,7 +5,6 @@ import {
   Check,
   Dumbbell,
   ListChecks,
-  Mic,
   Target,
   Timer,
   Utensils,
@@ -14,7 +13,6 @@ import {
 import { Fragment, type ReactNode, useEffect, useRef } from "react"
 import { finePointer, loadMotion } from "@/lib/motion"
 import { Fern } from "./Fern"
-import { PrimaryCta } from "./PrimaryCta"
 
 // The sentence, split into the parts Fern files. `k` is the record it becomes;
 // words with no `k` are connective and stay in the sentence.
@@ -89,19 +87,19 @@ const TILES: { color: string; icon: ReactNode; label: string }[] = [
 const STEPS: { title: string; body: string }[] = [
   {
     title: "Say it",
-    body: "Type a sentence, hold the mic or snap a photo. No forms and no picking a category.",
+    body: "Type it, say it or snap a photo.",
   },
   {
     title: "Fern files it",
-    body: "Each part lands in its place and shows the words it came from, with Undo on every record.",
+    body: "Each part lands in its place, with Undo.",
   },
   {
     title: "Your day fills in",
-    body: "Training, budgets and tasks update on their own. Ask Fern about any of it later.",
+    body: "Training, budget and tasks update on their own.",
   },
   {
     title: "Five apps, folded into one",
-    body: "That was one sentence. No app to switch to, nothing to fill in.",
+    body: "One sentence. Nothing to fill in.",
   },
 ]
 
@@ -158,7 +156,6 @@ export function ScrollStory() {
         gsap.set(q(".st-today"), { autoAlpha: 0, y: 40 })
         gsap.set(bars, { scaleX: 0 })
         gsap.set(q(".st-fern"), { autoAlpha: 0, scale: 0.6, y: 20 })
-        gsap.set(q(".st-cta"), { autoAlpha: 0, y: 24 })
         gsap.set(q(".st-phone"), { rotateY: -26, rotateX: 16, rotateZ: -4 })
         tiles.forEach((t, i) => {
           gsap.set(t, { autoAlpha: 0, scale: 0.7, z: -120 - (i % 3) * 80 })
@@ -260,7 +257,6 @@ export function ScrollStory() {
           { autoAlpha: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(2)" },
           6.8,
         )
-        tl.to(q(".st-cta"), { autoAlpha: 1, y: 0, duration: 0.5 }, 7)
         tl.to({}, { duration: 0.6 }, 7.5)
 
         // Pointer tilt on top of the scroll pose, on a separate wrapper so the
@@ -313,9 +309,6 @@ export function ScrollStory() {
       <div className="st-track">
         <div className="st-stage wrap">
           <div className="st-copy">
-            <span className="eyebrow">
-              <Mic aria-hidden /> How it works
-            </span>
             <h2 className="h2" id="story-title">
               One sentence. Watch where it goes.
             </h2>
@@ -332,9 +325,6 @@ export function ScrollStory() {
                   </li>
                 ))}
               </ol>
-            </div>
-            <div className="st-cta">
-              <PrimaryCta />
             </div>
           </div>
 

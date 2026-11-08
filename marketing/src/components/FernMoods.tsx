@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  Ear,
-  Leaf,
-  MessageCircle,
-  Sparkles,
-  Sprout,
-  Trophy,
-} from "lucide-react"
+import { Ear, Leaf, MessageCircle, Sprout, Trophy } from "lucide-react"
 import { type ReactNode, useState } from "react"
 import { Fern, type FernMood } from "./Fern"
 
@@ -76,14 +69,7 @@ export function FernMoods() {
         ))}
       </div>
       <div>
-        <span className="eyebrow">
-          <Sparkles aria-hidden /> Meet Fern
-        </span>
         <h2 className="h2">A companion that notices, and never nags.</h2>
-        <p className="lede">
-          Fern is the one moving, colourful thing in a calm app. Its face tells
-          you what just happened before you read a word.
-        </p>
         <div
           className="mood-tabs"
           role="tablist"

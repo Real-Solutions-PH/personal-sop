@@ -5,23 +5,13 @@ import {
   CloudOff,
   Download,
   Dumbbell,
-  FlaskConical,
-  HardDrive,
-  Heart,
-  Layers,
   ListChecks,
   MessageCircle,
-  MessagesSquare,
   Plus,
   RefreshCw,
-  Route,
-  Share2,
-  ShieldCheck,
   Smartphone,
-  Sprout,
   Target,
   Timer,
-  Users,
   Utensils,
   Wallet,
 } from "lucide-react"
@@ -47,7 +37,7 @@ import {
   STACK,
   STUDENT_NOTE,
 } from "@/config/pricing"
-import { CTA, FEATURE_STATUS, PROOF, SITE } from "@/config/site"
+import { CTA, FEATURE_STATUS, SITE } from "@/config/site"
 
 const usd = (n: number) =>
   n.toLocaleString("en-US", {
@@ -165,7 +155,6 @@ const FAQ: { q: string; a: ReactNode }[] = [
 ]
 
 export default function Home() {
-  const testers = PROOF.testers
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -202,68 +191,22 @@ export default function Home() {
         {/* Hero: the one filmable moment, and the one ask. */}
         <section className="hero" aria-labelledby="hero-title">
           <div className="wrap hero-grid">
-            <div>
-              <span className="eyebrow">
-                <Sprout aria-hidden /> For everyone who gave up on a tracking
-                app
-              </span>
+            <div className="hero-copy">
               <h1 id="hero-title">
                 Say it. <em>It's tracked.</em>
               </h1>
               <p className="lede">
-                Tell Fern what happened in one sentence, a voice note or a
-                photo. It lands as habits, tasks, workouts, meals, money,
-                journal and focus.{" "}
-                <span>One app instead of five, and nothing to fill in.</span>
+                Tell Fern what happened in one sentence. It lands in the right
+                place, in one app instead of five.
               </p>
-              <div style={{ marginTop: 28 }}>
+              <div className="hero-cta">
                 <PrimaryCta
                   id="hero-cta"
                   secondary={{ label: "See it work", href: "#demo" }}
                 />
               </div>
-              <p className="hero-stack">
-                Replaces:
-                {[
-                  "Habit app",
-                  "Budget app",
-                  "Gym log",
-                  "Calorie app",
-                  "To-do app",
-                ].map((a) => (
-                  <span key={a} className="app-chip">
-                    {a}
-                  </span>
-                ))}
-              </p>
             </div>
             <div className="hero-visual">
-              {/* Area tiles at different depths around the film: they drift
-                  at their own speed as the page scrolls. Decorative. */}
-              <span
-                className="float-tile ft-0"
-                data-speed="0.5"
-                aria-hidden="true"
-                style={{ ["--k" as string]: "var(--fin)" }}
-              >
-                <Wallet aria-hidden /> $12.00
-              </span>
-              <span
-                className="float-tile ft-1"
-                data-speed="0.9"
-                aria-hidden="true"
-                style={{ ["--k" as string]: "var(--fit)" }}
-              >
-                <Dumbbell aria-hidden /> 3 × 8
-              </span>
-              <span
-                className="float-tile ft-2"
-                data-speed="0.3"
-                aria-hidden="true"
-                style={{ ["--k" as string]: "var(--hab)" }}
-              >
-                <Target aria-hidden /> 12-day streak
-              </span>
               <div className="hero-tilt" data-tilt="5">
                 <HeroVideo />
               </div>
@@ -271,37 +214,10 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Proof strip: only true statements; counts appear when measured. */}
-        <div className="proof">
-          <div className="wrap">
-            <ul>
-              <li>
-                <FlaskConical aria-hidden />
-                {testers
-                  ? `${testers.toLocaleString("en-US")} people testing on TestFlight`
-                  : "In private beta on TestFlight"}
-              </li>
-              <li>
-                <Layers aria-hidden /> 7 areas of life, one app
-              </li>
-              <li>
-                <HardDrive aria-hidden /> Saved on your phone first
-              </li>
-              <li>
-                <Heart aria-hidden /> Kind about missed days
-              </li>
-            </ul>
-          </div>
-        </div>
-
         {/* The moment: a sentence becomes records. CTA at peak desire. */}
         <section id="demo" className="demo" aria-labelledby="demo-title">
           <div className="wrap">
             <CaptureDemo />
-            <div className="demo-cta reveal">
-              <p>That's the whole idea. Want it on your phone?</p>
-              <PrimaryCta />
-            </div>
           </div>
         </section>
 
@@ -309,19 +225,11 @@ export default function Home() {
         <section id="why" aria-labelledby="why-title">
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">
-                <Route aria-hidden /> Why trackers don't stick
-              </span>
               <h2 className="h2" id="why-title">
                 You didn't fail at tracking. Five apps did.
               </h2>
-              <p className="lede">
-                Most people don't pick the wrong tracker. They try two or three,
-                stop logging, and end up tracking nothing, because logging in
-                five places takes longer than the thing they did.
-              </p>
             </div>
-            <div className="compare-grid">
+            <div className="why-stack">
               <div className="reveal">
                 <ul className="stack-list" aria-label="A typical tracker stack">
                   {STACK.apps.map((s) => (
@@ -355,40 +263,6 @@ export default function Home() {
                   app's own page.
                 </p>
               </div>
-              <div className="vs-card reveal">
-                <h3>We couldn't find another app that does both.</h3>
-                <p className="lede" style={{ fontSize: 16 }}>
-                  Apps that cover your whole life make you fill in forms. Apps
-                  that take one sentence only cover one thing.
-                </p>
-                <table className="quad">
-                  <caption className="sr-only">Where Unfurl sits</caption>
-                  <thead>
-                    <tr>
-                      <td />
-                      <th scope="col">One sentence per entry</th>
-                      <th scope="col">Forms per entry</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <th scope="row">Whole life</th>
-                      <td className="us">
-                        <Check aria-hidden /> Unfurl
-                      </td>
-                      <td>Notion templates, life-OS apps</td>
-                    </tr>
-                    <tr>
-                      <th scope="row">One area</th>
-                      <td>Photo-calorie and voice-expense apps</td>
-                      <td>Budget, macro, gym, to-do and habit apps</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            <div className="reveal" style={{ marginTop: 40 }}>
-              <PrimaryCta />
             </div>
           </div>
         </section>
@@ -404,9 +278,6 @@ export default function Home() {
         >
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">
-                <Layers aria-hidden /> Everything in one place
-              </span>
               <h2 className="h2" id="features-title">
                 Seven areas of your day. One way in.
               </h2>
@@ -424,13 +295,9 @@ export default function Home() {
                     <h3>{f.name}</h3>
                   </span>
                   <span className="say">“{f.say}”</span>
-                  <p>{f.text}</p>
                 </li>
               ))}
             </ul>
-            <div className="reveal" style={{ marginTop: 40 }}>
-              <PrimaryCta />
-            </div>
           </div>
         </section>
 
@@ -450,58 +317,13 @@ export default function Home() {
               </div>
             </div>
             <div className="reveal">
-              <span className="eyebrow">
-                <ShieldCheck aria-hidden /> Grace day and a way back
-              </span>
               <h2 className="h2" id="wayback-title">
                 Miss a day. Keep the run going.
               </h2>
               <p className="lede">
-                Life gets in the way. Unfurl is honest about a missed day and
-                generous with your streak.
+                One missed day is covered by a grace day. Away longer? Tell Fern
+                what happened, and your streaks pause instead of ending.
               </p>
-              <ul className="points">
-                <li>
-                  <span className="ic">
-                    <ShieldCheck aria-hidden />
-                  </span>
-                  <span>
-                    <b>A grace day, built in</b>
-                    <span className="txt">
-                      One lone missed day doesn't end a streak. Two in a row, or
-                      two in a week, does, and Unfurl says so plainly.
-                    </span>
-                  </span>
-                </li>
-                <li>
-                  <span className="ic">
-                    <RefreshCw aria-hidden />
-                  </span>
-                  <span>
-                    <b>A way back after a few days off</b>
-                    <span className="txt">
-                      Tell Fern what happened while you were away, in one
-                      sentence. It fills in the gap and pauses your streaks
-                      instead of ending them, once every 30 days.
-                    </span>
-                  </span>
-                </li>
-                <li>
-                  <span className="ic">
-                    <Sprout aria-hidden />
-                  </span>
-                  <span>
-                    <b>Every miss shows what it cost</b>
-                    <span className="txt">
-                      “2 days missed · run of 12 ended.” Clear, muted, and never
-                      a lecture, so you know where you stand and start again.
-                    </span>
-                  </span>
-                </li>
-              </ul>
-              <div style={{ marginTop: 32 }}>
-                <PrimaryCta />
-              </div>
             </div>
           </div>
         </section>
@@ -514,56 +336,31 @@ export default function Home() {
         >
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">
-                <Smartphone aria-hidden /> Privacy
-              </span>
               <h2 className="h2" id="privacy-title">
                 Your life, on your phone first.
               </h2>
-              <p className="lede">
-                What you tell Fern is personal. Here is exactly where it goes.
-              </p>
             </div>
             <ul className="privacy-list">
               <li className="reveal">
-                <h3>
-                  <Smartphone aria-hidden /> Saved on your phone
-                </h3>
-                <p>
-                  Every record is written to your phone first, so logging by
-                  hand works with no signal.
-                </p>
+                <Smartphone aria-hidden />
+                <h3>Saved on your phone first</h3>
               </li>
               <li className="reveal">
-                <h3>
-                  <RefreshCw aria-hidden /> Synced so Fern can answer
-                </h3>
-                <p>
-                  Your account keeps a copy on our servers. That is how Fern
-                  reads your records to answer, and how a new phone gets your
-                  history back.
-                </p>
+                <RefreshCw aria-hidden />
+                <h3>A copy syncs, so Fern can answer</h3>
               </li>
               <li className="reveal">
+                <CloudOff aria-hidden />
                 <h3>
-                  <CloudOff aria-hidden /> Local-only mode
+                  No-account mode
                   {FEATURE_STATUS.localOnlyMode === "coming-soon" && (
                     <span className="soon">Coming soon</span>
                   )}
                 </h3>
-                <p>
-                  Use Unfurl with no account at all, so nothing leaves your
-                  phone.
-                </p>
               </li>
               <li className="reveal">
-                <h3>
-                  <Download aria-hidden /> Export any time
-                </h3>
-                <p>
-                  Download every record as a file whenever you want, on the free
-                  plan.
-                </p>
+                <Download aria-hidden />
+                <h3>Export everything, free</h3>
               </li>
             </ul>
           </div>
@@ -573,43 +370,12 @@ export default function Home() {
         <section id="community" aria-labelledby="community-title">
           <div className="wrap community-grid">
             <div className="reveal">
-              <span className="eyebrow">
-                <Users aria-hidden /> Community
-              </span>
               <h2 className="h2" id="community-title">
                 Share the win, not the spreadsheet.
               </h2>
               <p className="lede">
-                Turn a streak, a PR or a week of training into a clean card for
-                your story. Follow friends' progress in the feed when you want
-                company, and keep it private when you don't.
+                Turn a streak or a PR into a clean card for your story.
               </p>
-              <ul className="points">
-                <li>
-                  <span className="ic">
-                    <Share2 aria-hidden />
-                  </span>
-                  <span>
-                    <b>Share cards for every area</b>
-                    <span className="txt">
-                      Workouts with every set, a day of meals, a habit's run, a
-                      week of focus. Win and miss versions.
-                    </span>
-                  </span>
-                </li>
-                <li>
-                  <span className="ic">
-                    <Users aria-hidden />
-                  </span>
-                  <span>
-                    <b>Friends and stories</b>
-                    <span className="txt">
-                      Progress stories and a friends feed, with a frame editor
-                      for your photos.
-                    </span>
-                  </span>
-                </li>
-              </ul>
             </div>
             <figure className="share-card reveal" style={{ margin: "0 auto" }}>
               <div className="top">
@@ -642,16 +408,7 @@ export default function Home() {
             outline button, so it never competes with the waitlist. */}
         <div className="shape-band">
           <div className="wrap shape-inner reveal">
-            <span className="ic">
-              <MessagesSquare aria-hidden />
-            </span>
-            <div>
-              <h2>Quit a tracking app before? Help shape Unfurl.</h2>
-              <p>
-                Ten minutes about what you used, why you stopped and what you do
-                now. Your stories decide what we build next.
-              </p>
-            </div>
+            <h2>Quit a tracking app before? Help shape Unfurl.</h2>
             <a className="btn btn-outline" href="/research/">
               Answer the questions
               <ArrowRight aria-hidden />
@@ -667,9 +424,6 @@ export default function Home() {
         >
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">
-                <Wallet aria-hidden /> Pricing
-              </span>
               <h2 className="h2" id="pricing-title">
                 {SHOW_PRICES
                   ? "Free to start. About a sixth of the five-app stack."
@@ -678,19 +432,6 @@ export default function Home() {
             </div>
             {SHOW_PRICES ? (
               <>
-                <p className="anchor reveal">
-                  <span>
-                    Five separate apps:{" "}
-                    <s className="num">about {usd(STACK.total)} a year</s>
-                  </span>
-                  <span>
-                    Unfurl:{" "}
-                    <b className="num" style={{ color: "var(--foreground)" }}>
-                      {PLANS.find((p) => p.highlighted)?.price}{" "}
-                      {PLANS.find((p) => p.highlighted)?.cadence}
-                    </b>
-                  </span>
-                </p>
                 <div className="plans">
                   {PLANS.map((p) => (
                     <article
@@ -722,14 +463,6 @@ export default function Home() {
                           </li>
                         ))}
                       </ul>
-                      <a
-                        className={`btn ${p.highlighted ? "btn-primary" : "btn-outline"}`}
-                        href={CTA.appStoreUrl ?? CTA.primaryHref}
-                      >
-                        {CTA.appStoreUrl
-                          ? "Download on the App Store"
-                          : CTA.primaryLabel}
-                      </a>
                     </article>
                   ))}
                 </div>
@@ -741,12 +474,7 @@ export default function Home() {
               </>
             ) : (
               <div className="reveal">
-                <p className="lede">
-                  Free to start. Paid plans are announced before launch.
-                </p>
-                <div style={{ marginTop: 24 }}>
-                  <PrimaryCta />
-                </div>
+                <p className="lede">Paid plans are announced before launch.</p>
               </div>
             )}
           </div>
@@ -756,9 +484,6 @@ export default function Home() {
         <section id="faq" aria-labelledby="faq-title">
           <div className="wrap">
             <div className="section-head reveal">
-              <span className="eyebrow">
-                <MessageCircle aria-hidden /> Questions
-              </span>
               <h2 className="h2" id="faq-title">
                 Straight answers.
               </h2>
