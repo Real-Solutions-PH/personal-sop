@@ -189,7 +189,10 @@ test("a day short on fiber or over a stay-under limit is a miss", () => {
     .current
   expect(misses.map((m) => [m.id, m.title])).toEqual([
     [`nut-fiber-${d1}`, "Fiber short by 15 g (10 of 25 g)"],
-    [`nut-limit-sodium-${d1}`, "Over sodium limit by 450 mg (2,450 of 2,000 mg)"],
+    [
+      `nut-limit-sodium-${d1}`,
+      "Over sodium limit by 450 mg (2,450 of 2,000 mg)",
+    ],
   ])
 })
 
@@ -548,8 +551,11 @@ test("the food library lists the built-in foods offline", () => {
     { wrapper },
   )
   expect(screen.getByText("Food library")).toBeTruthy()
-  expect(screen.getByText("Built-in foods")).toBeTruthy()
-  expect(screen.getByText("Garlic rice (sinangag)")).toBeTruthy()
+  expect(screen.getByText("Built-in estimates")).toBeTruthy()
+  // Also a row of its own when the seed's meals hold it.
+  expect(screen.getAllByText("Garlic rice (sinangag)").length).toBeGreaterThan(
+    0,
+  )
 })
 
 test("steppers group thousands and still read what was typed", () => {
