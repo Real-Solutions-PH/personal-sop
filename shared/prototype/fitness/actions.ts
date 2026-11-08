@@ -33,6 +33,7 @@ import {
   type WeighIn,
   type Workout,
   type WorkoutExercise,
+  type WorkoutPlace,
   type WorkoutSet,
   type WorkoutTemplate,
 } from "./data"
@@ -482,6 +483,35 @@ export function updateWorkoutHealth(id: string, h: { steps: number }) {
   const w = fitStore.get().workouts.find((x) => x.id === id)
   if (!w || w.steps === h.steps) return
   patchWorkout(id, (x) => ({ ...x, steps: h.steps }))
+}
+/** The longest place name a workout keeps. */
+export const PLACE_MAX = 80
+/** Where a workout was trained; an empty name clears it. */
+export function setWorkoutPlace(id: string, place: WorkoutPlace | null) {
+  const name = (place?.name ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, PLACE_MAX)
+  const w = fitStore.get().workouts.find((x) => x.id === id)
+  if (!w) return
+  if (!name) {
+    if (!w.place) return
+    patchWorkout(id, ({ place: _gone, ...rest }) => rest)
+    return
+  }
+  const next: WorkoutPlace = {
+    name,
+    ...(place?.lat != null && place?.lon != null
+      ? { lat: place.lat, lon: place.lon }
+      : {}),
+  }
+  if (
+    w.place?.name === next.name &&
+    w.place?.lat === next.lat &&
+    w.place?.lon === next.lon
+  )
+    return
+  patchWorkout(id, (x) => ({ ...x, place: next }))
 }
 export function discardWorkout(id: string) {
   fitStore.set((s) => ({

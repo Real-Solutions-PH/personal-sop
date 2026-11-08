@@ -2797,3 +2797,96 @@ export function Rings({
     </View>
   )
 }
+
+/** A long list on a card (every set of a workout): it takes the room left
+ * and draws its content at the largest scale that fits, down to ``min``,
+ * instead of dropping rows. ``children`` gets the scale it is drawn at and
+ * whether one column overflowed at ``min``: then it goes to two columns,
+ * fitted again from full size. */
+export function Dense(props: {
+  children: (state: { scale: number; over: boolean }) => ReactNode
+  min?: number
+}) {
+  const { f, q } = useCard()
+  // A new shape or size fits again from scratch: on the web a resized box
+  // does not always report its new layout, a freshly mounted one does.
+  return <DenseFit key={`${f}:${Math.round(q * 100)}`} {...props} />
+}
+function DenseFit({
+  children,
+  min = 0.6,
+}: {
+  children: (state: { scale: number; over: boolean }) => ReactNode
+  min?: number
+}) {
+  const card = useCard(),
+    [room, setRoom] = useState(0),
+    // The content's height, and the layout it was measured at.
+    [inner, setInner] = useState({ h: 0, scale: 1, over: false }),
+    [scale, setScale] = useState(1),
+    [over, setOver] = useState(false),
+    steps = useRef(0),
+    lastRoom = useRef(0),
+    // What is drawn now, for the layout callback: a callback the platform
+    // kept from an earlier render would otherwise tag the measurement with
+    // an old scale, and it would never count.
+    drawn = useRef({ scale, over })
+  drawn.current = { scale, over }
+  useEffect(() => {
+    if (room <= 0) return
+    // A new room starts again from full size, in one column.
+    if (room !== lastRoom.current) {
+      lastRoom.current = room
+      steps.current = 0
+      if (scale !== 1 || over) {
+        setScale(1)
+        setOver(false)
+        return
+      }
+    }
+    // Only a measurement of the layout now drawn counts.
+    if (inner.scale !== scale || inner.over !== over) return
+    if (inner.h <= room + 0.5 || steps.current > 8) return
+    steps.current++
+    // At the floor in one column: two columns, from full size.
+    if (scale > min + 0.001)
+      setScale(Math.max(min, scale * (room / inner.h) * 0.97))
+    else if (!over) {
+      setOver(true)
+      setScale(1)
+    }
+  }, [room, inner, scale, over, min])
+  return (
+    <View
+      testID="card-dense"
+      style={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+      onLayout={(e) => {
+        const h = Math.round(e.nativeEvent.layout.height)
+        setRoom((v) => (Math.abs(v - h) < 1 ? v : h))
+      }}
+    >
+      <CardContext.Provider value={{ ...card, q: card.q * scale }}>
+        <View
+          style={{ position: "absolute", top: 0, left: 0, right: 0 }}
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height,
+              now = drawn.current
+            setInner((v) =>
+              Math.abs(v.h - h) < 0.5 &&
+              v.scale === now.scale &&
+              v.over === now.over
+                ? v
+                : { h, ...now },
+            )
+          }}
+        >
+          {children({ scale, over })}
+        </View>
+      </CardContext.Provider>
+    </View>
+  )
+}
+/** The record sprig, for a list row that set one. */
+export const CardSprig = Sprig
+/** The text shadow a word needs on a photo (none elsewhere). */
+export const cardShadow = shadowOf
