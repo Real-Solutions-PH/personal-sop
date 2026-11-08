@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   BookOpen,
-  Camera,
   Check,
   CloudOff,
   Download,
@@ -13,7 +12,6 @@ import {
   ListChecks,
   MessageCircle,
   MessagesSquare,
-  Mic,
   Plus,
   RefreshCw,
   Route,
@@ -23,7 +21,6 @@ import {
   Sprout,
   Target,
   Timer,
-  Type,
   Users,
   Utensils,
   Wallet,
@@ -36,6 +33,8 @@ import { HeroVideo } from "@/components/HeroVideo"
 import { Logo, Mark } from "@/components/Logo"
 import { PrimaryCta } from "@/components/PrimaryCta"
 import { Reveal } from "@/components/Reveal"
+import { ScrollFx } from "@/components/ScrollFx"
+import { ScrollStory } from "@/components/ScrollStory"
 import { SiteFooter } from "@/components/SiteFooter"
 import { StickyCta } from "@/components/StickyCta"
 import { StreakRing } from "@/components/StreakRing"
@@ -187,7 +186,7 @@ export default function Home() {
         <div className="wrap">
           <Logo />
           <nav className="nav" aria-label="Sections">
-            <a href="#demo">How it works</a>
+            <a href="#how">How it works</a>
             <a href="#way-back">Streaks</a>
             <a href="#privacy">Privacy</a>
             <a href="#pricing">Pricing</a>
@@ -238,7 +237,37 @@ export default function Home() {
                 ))}
               </p>
             </div>
-            <HeroVideo />
+            <div className="hero-visual">
+              {/* Area tiles at different depths around the film: they drift
+                  at their own speed as the page scrolls. Decorative. */}
+              <span
+                className="float-tile ft-0"
+                data-speed="0.5"
+                aria-hidden="true"
+                style={{ ["--k" as string]: "var(--fin)" }}
+              >
+                <Wallet aria-hidden /> $12.00
+              </span>
+              <span
+                className="float-tile ft-1"
+                data-speed="0.9"
+                aria-hidden="true"
+                style={{ ["--k" as string]: "var(--fit)" }}
+              >
+                <Dumbbell aria-hidden /> 3 × 8
+              </span>
+              <span
+                className="float-tile ft-2"
+                data-speed="0.3"
+                aria-hidden="true"
+                style={{ ["--k" as string]: "var(--hab)" }}
+              >
+                <Target aria-hidden /> 12-day streak
+              </span>
+              <div className="hero-tilt" data-tilt="5">
+                <HeroVideo />
+              </div>
+            </div>
           </div>
         </section>
 
@@ -302,6 +331,7 @@ export default function Home() {
                         {s.app}
                       </span>
                       <span className="price num">
+                        <span className="strike" aria-hidden="true" />
                         {usd(s.perYear)}
                         <span style={{ color: "var(--muted-foreground)" }}>
                           {" "}
@@ -314,7 +344,8 @@ export default function Home() {
                 <div className="stack-total">
                   <b>Five apps, five places to log one day</b>
                   <span className="num">
-                    about {usd(STACK.total)}
+                    about{" "}
+                    <span data-count={STACK.total}>{usd(STACK.total)}</span>
                     <span style={{ fontSize: 16 }}> / yr</span>
                   </span>
                 </div>
@@ -362,61 +393,8 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How it works in three steps. */}
-        <section id="how" aria-labelledby="how-title" style={{ paddingTop: 0 }}>
-          <div className="wrap">
-            <div className="section-head reveal">
-              <span className="eyebrow">
-                <Sprout aria-hidden /> How it works
-              </span>
-              <h2 className="h2" id="how-title">
-                Three steps, and you already know the first one.
-              </h2>
-            </div>
-            <ol className="steps">
-              <li className="step reveal">
-                <span className="step-n">
-                  <i>1</i> Say it
-                </span>
-                <h3>Tell Fern what happened</h3>
-                <p>
-                  Type a sentence, hold the mic, or snap a receipt or a meal.
-                </p>
-                <span className="inputs">
-                  <span className="pill">
-                    <Type aria-hidden /> Text
-                  </span>
-                  <span className="pill">
-                    <Mic aria-hidden /> Voice
-                  </span>
-                  <span className="pill">
-                    <Camera aria-hidden /> Photo
-                  </span>
-                </span>
-              </li>
-              <li className="step reveal">
-                <span className="step-n">
-                  <i>2</i> Fern files it
-                </span>
-                <h3>Each part lands in its place</h3>
-                <p>
-                  Every record shows the words it came from, with Undo. Not sure
-                  if that was lunch or dinner? Fern asks instead of guessing.
-                </p>
-              </li>
-              <li className="step reveal">
-                <span className="step-n">
-                  <i>3</i> Watch it unfurl
-                </span>
-                <h3>See yourself improve</h3>
-                <p>
-                  Streaks, charts and a Life Score fill in as you go. Ask Fern
-                  anything about your records.
-                </p>
-              </li>
-            </ol>
-          </div>
-        </section>
+        {/* How it works: the pinned, scroll-scrubbed story. */}
+        <ScrollStory />
 
         {/* Features grid. */}
         <section
@@ -438,6 +416,7 @@ export default function Home() {
                 <li
                   key={f.name}
                   className={`feature reveal ${f.fern ? "fern-card" : ""}`}
+                  data-tilt="5"
                   style={{ ["--k" as string]: f.k }}
                 >
                   <span className="feature-head">
@@ -466,7 +445,9 @@ export default function Home() {
         <section id="way-back" aria-labelledby="wayback-title">
           <div className="wrap wayback-grid">
             <div className="reveal">
-              <StreakRing />
+              <div data-speed="0.25">
+                <StreakRing />
+              </div>
             </div>
             <div className="reveal">
               <span className="eyebrow">
@@ -809,7 +790,9 @@ export default function Home() {
               </p>
               <WaitlistForm />
             </div>
-            <Fern mood="celebrating" still />
+            <div data-speed="0.3">
+              <Fern mood="celebrating" still />
+            </div>
           </div>
         </section>
       </main>
@@ -817,6 +800,7 @@ export default function Home() {
       <SiteFooter />
       <StickyCta />
       <Reveal />
+      <ScrollFx />
     </>
   )
 }

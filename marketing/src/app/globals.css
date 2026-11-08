@@ -1971,3 +1971,473 @@ section {
     transform: none;
   }
 }
+
+/* ---------- Scroll motion (GSAP ScrollTrigger, src/lib/motion.ts) ----------
+   `motion-ok` is set before first paint when reduced motion is off, so the
+   pinned layout never shifts; `motion-live` once the library has loaded.
+   Every animated property is a transform or opacity. */
+
+.fx-word {
+  display: inline-block;
+}
+.fx-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  z-index: 60;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: left;
+  pointer-events: none;
+  display: none;
+}
+.motion-live .fx-progress {
+  display: block;
+}
+
+/* Tracker stack: a strike draws through each price as you scroll past. */
+.stack-list .price {
+  position: relative;
+}
+.stack-list .strike {
+  display: none;
+}
+.motion-live .stack-list .strike {
+  display: block;
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 52%;
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--bad) 75%, transparent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* Hero: the film tilts toward the pointer; area tiles float at depth. */
+.hero-visual {
+  position: relative;
+  perspective: 1200px;
+}
+.hero-tilt {
+  transform-style: preserve-3d;
+}
+.hero-visual .phone {
+  transform-origin: 50% 0;
+}
+.float-tile {
+  position: absolute;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.float-tile svg {
+  width: 16px;
+  height: 16px;
+  color: var(--k);
+}
+.ft-0 {
+  top: 14%;
+  left: max(0px, calc(50% - 210px));
+}
+.ft-1 {
+  top: 50%;
+  right: max(0px, calc(50% - 215px));
+}
+.ft-2 {
+  top: 4%;
+  right: max(0px, calc(50% - 200px));
+}
+@media (max-width: 420px) {
+  .ft-2 {
+    display: none;
+  }
+}
+
+/* ---------- The scroll story ---------- */
+.story {
+  padding: 0;
+}
+.st-stage {
+  display: grid;
+  gap: 32px;
+  align-items: center;
+  padding-block: 72px;
+}
+@media (min-width: 900px) {
+  .st-stage {
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 56px;
+    padding-block: 104px;
+  }
+}
+.st-steps-wrap {
+  position: relative;
+  margin-top: 28px;
+  padding-left: 20px;
+}
+.st-rail {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+.st-rail i {
+  position: absolute;
+  inset: 0;
+  background: var(--primary);
+  transform-origin: top;
+}
+.st-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 20px;
+}
+.st-n {
+  font-size: 13px;
+  color: var(--primary);
+}
+.st-step h3 {
+  margin: 2px 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.st-step p {
+  color: var(--muted-foreground);
+  max-width: 44ch;
+}
+.st-cta {
+  margin-top: 28px;
+}
+
+.st-scene {
+  position: relative;
+  /* The tiles' 460 px box is scaled down on small screens; clip its unscaled
+     layout box so it never adds sideways scroll. */
+  overflow: clip;
+  height: 600px;
+  perspective: 1400px;
+}
+@media (max-width: 899px) {
+  .st-scene {
+    height: 480px;
+  }
+}
+.st-tilt {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+.st-fit {
+  position: relative;
+  flex: none;
+  width: 460px;
+  height: 600px;
+  transform: scale(var(--st-scale, 1));
+  /* Flat, with its own perspective: the tiles and the turning phone are each
+     drawn in depth but never intersect, so the phone's edge can't slice a
+     tile. */
+  perspective: 1400px;
+}
+.st-phone {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 270px;
+  height: 560px;
+  margin: -280px 0 0 -135px;
+  border-radius: 40px;
+  border: 9px solid #1b1f1c;
+  outline: 1px solid var(--border);
+  background: var(--background);
+  box-shadow:
+    0 40px 80px rgba(27, 31, 28, 0.22),
+    var(--shadow-float);
+  overflow: hidden;
+  transform-style: preserve-3d;
+}
+.st-screen {
+  position: absolute;
+  inset: 0;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+.st-bar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 17px;
+}
+.st-bar-top .fern-img {
+  width: 28px;
+  height: 28px;
+}
+.st-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.st-bubble {
+  align-self: flex-end;
+  max-width: 94%;
+  padding: 10px 12px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.st-word {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+.st-part {
+  position: relative;
+}
+.st-hl {
+  position: absolute;
+  z-index: -1;
+  inset: -1px -3px;
+  border-radius: 5px;
+  background: var(--k);
+}
+.st-filed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.st-filed svg {
+  width: 14px;
+  height: 14px;
+  color: var(--good);
+}
+.st-records {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.st-record {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.st-kind {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: var(--muted);
+  color: var(--k);
+}
+.st-kind svg {
+  width: 16px;
+  height: 16px;
+}
+.st-what {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.st-what small {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.st-val {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.st-today {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.st-bar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.st-bar-label small {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+.st-bar-track {
+  display: block;
+  height: 8px;
+  margin-top: 6px;
+  border-radius: 99px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.st-bar-track i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--k);
+  transform-origin: left;
+}
+.st-fern {
+  display: none;
+}
+.st-tile {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.st-tile svg {
+  width: 16px;
+  height: 16px;
+  color: var(--k);
+}
+.st-tile-0 {
+  top: 8%;
+  left: 0;
+}
+.st-tile-1 {
+  top: 20%;
+  right: 0;
+}
+.st-tile-2 {
+  top: 44%;
+  left: 0;
+}
+.st-tile-3 {
+  top: 58%;
+  right: 0;
+}
+.st-tile-4 {
+  bottom: 14%;
+  left: 3%;
+}
+.st-tile-5 {
+  bottom: 4%;
+  right: 6%;
+}
+.st-tile-6 {
+  top: 38%;
+  right: 0;
+}
+
+/* Pinned mode: the stage sticks for the length of the track and the steps
+   stack in one grid cell to cross-fade. */
+.motion-ok .st-track {
+  height: 460vh;
+}
+.motion-ok .st-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding-block: 72px 24px;
+}
+.motion-ok .st-step {
+  grid-area: 1 / 1;
+}
+.motion-ok .st-rail i {
+  transform: scaleY(0.25);
+}
+.motion-ok .st-chat {
+  will-change: transform, opacity;
+}
+.motion-ok .st-today {
+  position: absolute;
+  top: 60px;
+  left: 12px;
+  right: 12px;
+}
+.motion-ok .st-fern {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 20px;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+.motion-ok .st-fern .fern-img {
+  width: 96px;
+  height: 96px;
+}
+@media (max-width: 899px) {
+  .motion-ok .st-stage {
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px;
+    /* Room at the bottom for the sticky waitlist bar, which is the ask on
+       small screens. */
+    padding-block: 64px 84px;
+    align-items: stretch;
+  }
+  .motion-ok .st-scene {
+    height: auto;
+    min-height: 0;
+  }
+  .motion-ok .st-copy .h2 {
+    font-size: 24px;
+    margin-top: 6px;
+  }
+  .motion-ok .st-steps-wrap {
+    margin-top: 12px;
+  }
+  .motion-ok .st-step h3 {
+    font-size: 18px;
+  }
+  .motion-ok .st-step p {
+    font-size: 15px;
+  }
+  .motion-ok .st-cta {
+    display: none;
+  }
+}

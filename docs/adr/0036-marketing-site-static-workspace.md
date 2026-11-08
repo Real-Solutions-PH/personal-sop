@@ -45,6 +45,25 @@ None. This adds a second web package next to `frontend/`; both follow the fronte
 - A second Next.js package, with its own lint and typecheck in CI.
 - The brand tokens are copied into `marketing/src/app/globals.css`, not imported from one shared package, so a token change has to be made in both places.
 
+## Addendum 2026-11-09: scroll-driven motion
+
+Kai asked for a page that makes visitors stop and keep scrolling. The site therefore goes beyond the studio's default motion rule, which allows motion only to show what changed and rules out parallax and decorative effects. The exception covers only this marketing site; the app keeps the default.
+
+- **Library:** GSAP 3.13 with ScrollTrigger, under GSAP's free standard licence. That licence allows commercial use and excludes only tools that compete with Webflow. It is imported dynamically after the `load` event (`marketing/src/lib/motion.ts`), so it never competes with first paint. About 44 KB gzipped, in two chunks the HTML does not reference.
+- **No WebGL:** the depth is CSS 3D transforms, not three.js, which would add roughly 150 KB for one phone model.
+- **What moves:**
+  - a pinned, scroll-scrubbed "How it works" story (`ScrollStory.tsx`): the sentence types in, splits into three records, the day fills in, and the seven area tiles fold into the phone, with the waitlist ask at the end;
+  - section headings that brighten word by word;
+  - the tracker-stack prices striking out while the yearly total counts up;
+  - parallax depth (`data-speed`) and pointer tilt (`data-tilt`, mouse and trackpad only);
+  - a reading-progress bar.
+- **Guards:**
+  - Every animated property is a transform or opacity.
+  - Under reduced motion GSAP is never fetched, and the story renders as a plain list beside the phone in its filed state.
+  - The pinned layout is decided before first paint, by the same inline script that sets `js`, so nothing shifts when GSAP arrives. If GSAP fails to load, the pinned layout is removed.
+  - Headings start at half opacity, never lower, so a heading read mid-reveal still meets 3:1 contrast.
+- **Measured:** Lighthouse mobile against a compressing local server scored performance 93–98 over four runs, accessibility 100, best practices 100, and CLS 0.012.
+
 **Follow-ups:**
 - Pick the production domain and add the Cloudflare Pages project (Kai).
 - Connect the waitlist form to a real endpoint, or remove it.
