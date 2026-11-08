@@ -1,10 +1,19 @@
-import { weekday } from "@domain/lib/day"
+import { useFocusState } from "@domain/focus/store"
+import { fmtHm } from "@domain/focus/logic"
+import { dayKey, weekday } from "@domain/lib/day"
 import { useStats } from "@domain/tasks/hooks"
 import * as L from "@domain/tasks/logic"
+import { tasksStore } from "@domain/tasks/store"
 import { useLocalSearchParams } from "expo-router"
 import { ShieldCheck } from "lucide-react-native"
 import { type ReactNode, useState } from "react"
-import { Copy, Line, SectionHeading, Segmented } from "../native-kit"
+import { Copy, Frame, Line, SectionHeading, Segmented } from "../native-kit"
+import {
+  type TaskTime,
+  type TodayCompletion,
+  taskFocusToday,
+  todayCompletion,
+} from "../productivity-share-calc"
 import { fmt, group, pct } from "../share-format"
 import {
   Body,
@@ -26,13 +35,20 @@ import {
   Sub,
   Title,
   Win,
+  XBars,
 } from "../share-kit"
+import { PartLine } from "../share-viz"
 import { useTheme } from "../theme"
-import { Screen } from "../ui"
+import { Screen, Toggle } from "../ui"
 import { TaskChip } from "./task-find"
 import { RANGE_LABEL } from "./task-stats"
 
-export type TaskLayout = "summary" | "streak" | "followThrough"
+export type TaskLayout =
+  | "summary"
+  | "streak"
+  | "followThrough"
+  | "today"
+  | "timeOnTask"
 type Stats7 = ReturnType<typeof useStats>
 /** What a task card shows: counts only, never a task title. */
 export type TaskCardData = Pick<
@@ -51,6 +67,11 @@ export type TaskCardData = Pick<
   prevDone: number
   range: "7" | "30" | "90"
   shown: Record<string, boolean>
+  /** Today's tasks as a whole (the Today card). */
+  today?: TodayCompletion & { day: string }
+  /** Focus time per task today (the Time per task card). Titles are the
+   * person's choice: hidden, they read "Task 1", "Task 2". */
+  focus?: { rows: TaskTime[]; avgSec: number; totalSec: number; day: string }
 }
 const verdict = (v: number | null) =>
   v === null
@@ -222,6 +243,109 @@ export function TaskCard({
         </Body>
       </>
     )
+  } else if (kind === "today") {
+    const d = s.today ?? {
+        planned: 0,
+        done: 0,
+        moved: 0,
+        open: 0,
+        catchUp: 0,
+        day: s.to,
+      },
+      all = d.planned > 0 && d.done === d.planned
+    body = (
+      <>
+        <Title>Today's tasks</Title>
+        <Hero
+          value={fmt(d.done)}
+          unit={`of ${plural(d.planned, "task")} done`}
+          small
+          delta={
+            d.moved > 0 ? (
+              <Change good={false}>{`${fmt(d.moved)} moved to later`}</Change>
+            ) : undefined
+          }
+        />
+        {d.planned === 0 ? (
+          <Sub>Nothing was planned for today.</Sub>
+        ) : all ? (
+          <Win>Every task planned for today is done</Win>
+        ) : d.open > 0 ? (
+          <Sub bad>{`${plural(d.open, "task")} still open today`}</Sub>
+        ) : (
+          <Sub bad>{`${plural(d.moved, "task")} pushed to another day`}</Sub>
+        )}
+        <Body end>
+          <PartLine
+            label={`${d.done} done, ${d.moved} moved, ${d.open} open of ${d.planned} planned`}
+            parts={[
+              { key: "done", label: "Done", value: d.done, color: tsk },
+              {
+                key: "moved",
+                label: "Moved to later",
+                value: d.moved,
+                color: c.bad,
+                open: true,
+              },
+              {
+                key: "open",
+                label: "Still open",
+                value: d.open,
+                color: c.ink,
+                open: true,
+              },
+            ]}
+          />
+          <ChartNote
+            left={
+              d.planned
+                ? `${pct(d.done / d.planned)} of today's plan done`
+                : undefined
+            }
+            right={
+              d.catchUp
+                ? `+${fmt(d.catchUp)} overdue cleared`
+                : undefined
+            }
+          />
+        </Body>
+      </>
+    )
+  } else if (kind === "timeOnTask") {
+    const f = s.focus ?? { rows: [], avgSec: 0, totalSec: 0, day: s.to },
+      done = f.rows.filter((r) => r.done).length
+    body = (
+      <>
+        <Title>Time per task</Title>
+        <Hero value={fmtHm(f.avgSec)} unit="focused per task" small />
+        {f.rows.length ? (
+          <Sub>{`${plural(f.rows.length, "task")} · ${fmtHm(f.totalSec)} of Focus today`}</Sub>
+        ) : (
+          <Sub bad>No Focus session was linked to a task today.</Sub>
+        )}
+        {f.rows.length > 0 && done === f.rows.length && (
+          <Win>Every task worked on is done</Win>
+        )}
+        <Body>
+          <XBars
+            color={tsk}
+            rows={f.rows.map((r) => ({
+              key: r.id,
+              name: r.title,
+              value: r.sec,
+              label: fmtHm(r.sec),
+              pr: r.done,
+            }))}
+          />
+          {f.rows.length > 0 && (
+            <ChartNote
+              left="Focus sessions linked to each task"
+              right={`${fmt(done)} of ${fmt(f.rows.length)} done`}
+            />
+          )}
+        </Body>
+      </>
+    )
   } else {
     const low = s.followThrough < 1
     body = (
@@ -245,8 +369,14 @@ export function TaskCard({
       width={width}
       look={look}
       accent="tsk"
-      date={dayRange(s.from, s.to)}
-      foot="Counts and rates only"
+      date={
+        kind === "today" && s.today
+          ? dayName(s.today.day)
+          : kind === "timeOnTask" && s.focus
+            ? dayName(s.focus.day)
+            : dayRange(s.from, s.to)
+      }
+      foot={kind === "timeOnTask" ? "Focus time only" : "Counts and rates only"}
     >
       {body}
     </CardFrame>
@@ -261,6 +391,9 @@ export function TaskShare() {
     s = useStats(Number(range)),
     prev = useStats(Number(range), Number(range)),
     t = useTheme(),
+    focusState = useFocusState(),
+    tasksState = tasksStore.use((x) => x),
+    [titles, setTitles] = useState(true),
     [on, setOn] = useState<Record<string, boolean>>({
       done: true,
       onTime: true,
@@ -268,27 +401,54 @@ export function TaskShare() {
       clear: false,
       followThrough: false,
     })
+  const today = dayKey(),
+    done = todayCompletion(tasksState, today),
+    time = taskFocusToday(focusState, tasksState, today)
   const data: TaskCardData = {
     ...s,
     prevDone: prev.done,
     range,
     shown: on,
+    today: { ...done, day: today },
+    focus: {
+      ...time,
+      day: today,
+      rows: titles
+        ? time.rows
+        : time.rows.map((r, i) => ({ ...r, title: `Task ${i + 1}` })),
+    },
   }
   const metrics = taskMetrics(data),
-    caption = `Tasks ${RANGE_LABEL[range]}: ${metrics
-      .filter((m) => on[m.key])
-      .map((m) => `${m.value} ${m.label.toLowerCase()}`)
-      .join(" · ")} · Unfurl`
+    caption =
+      layout === "today"
+        ? `${fmt(done.done)} of ${fmt(done.planned)} tasks done today${done.moved ? `, ${fmt(done.moved)} moved to later` : ""} · Unfurl`
+        : layout === "timeOnTask"
+          ? `${fmtHm(time.avgSec)} of focus per task today · Unfurl`
+          : `Tasks ${RANGE_LABEL[range]}: ${metrics
+              .filter((m) => on[m.key])
+              .map((m) => `${m.value} ${m.label.toLowerCase()}`)
+              .join(" · ")} · Unfurl`,
+    ranged = layout !== "today" && layout !== "timeOnTask"
   return (
     <Screen title="Share card">
       <ShareComposer
         value={layout}
         onChange={setLayout}
         caption={caption}
-        items={(["summary", "streak", "followThrough"] as const).map((key) => ({
+        items={(
+          [
+            "summary",
+            "today",
+            "timeOnTask",
+            "streak",
+            "followThrough",
+          ] as const
+        ).map((key) => ({
           key,
           label: {
             summary: "Summary",
+            today: "Today",
+            timeOnTask: "Time per task",
             streak: "Streak",
             followThrough: "Follow-through",
           }[key],
@@ -297,16 +457,29 @@ export function TaskShare() {
           ),
         }))}
       >
-        <SectionHeading>Range</SectionHeading>
-        <Segmented
-          value={range}
-          onChange={setRange}
-          options={[
-            { value: "7", label: "Week" },
-            { value: "30", label: "Month" },
-            { value: "90", label: "90 days" },
-          ]}
-        />
+        {ranged && (
+          <>
+            <SectionHeading>Range</SectionHeading>
+            <Segmented
+              value={range}
+              onChange={setRange}
+              options={[
+                { value: "7", label: "Week" },
+                { value: "30", label: "Month" },
+                { value: "90", label: "90 days" },
+              ]}
+            />
+          </>
+        )}
+        {layout === "timeOnTask" && (
+          <Frame style={{ padding: 16 }}>
+            <Toggle
+              label="Show task titles"
+              value={titles}
+              onChange={setTitles}
+            />
+          </Frame>
+        )}
         {layout === "summary" && (
           <>
             <SectionHeading>Show</SectionHeading>
@@ -326,8 +499,12 @@ export function TaskShare() {
         )}
         <Line style={{ marginTop: 16, gap: 6 }}>
           <ShieldCheck size={14} color={t.muted} />
-          <Copy size={12} muted>
-            Task titles never appear on a card.
+          <Copy size={12} muted style={{ flex: 1 }}>
+            {layout === "timeOnTask"
+              ? titles
+                ? "Task titles show on this card only. Turn them off above."
+                : "Tasks read Task 1, Task 2: titles stay off this card."
+              : "Task titles never appear on this card."}
           </Copy>
         </Line>
       </ShareComposer>

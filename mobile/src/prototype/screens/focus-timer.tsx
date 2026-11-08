@@ -31,6 +31,7 @@ import {
   Play,
   Plus,
   Settings,
+  Share2,
   SkipForward,
   Target,
   Timer,
@@ -214,6 +215,13 @@ export function FocusTimer({ day }: { day?: string } = {}) {
         >
           Focus
         </Text>
+        <IconTap
+          size={40}
+          icon={Share2}
+          label="Share your focus"
+          color={t.text}
+          onPress={() => go(day ? `/focus/share?day=${day}` : "/focus/share")}
+        />
         <IconTap
           size={40}
           icon={Settings}

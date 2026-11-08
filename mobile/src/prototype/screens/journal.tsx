@@ -68,6 +68,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { Switch } from "../switch"
+import { useTypingClock } from "../journal-time"
 import { fonts, useTheme } from "../theme"
 import {
   Button,
@@ -885,6 +886,8 @@ function JournalEditor({ id }: { id?: string }) {
     },
     [],
   )
+  // Time spent typing the entry, for the journal share card.
+  const typing = useTypingClock()
   const edit =
     <V,>(set: (v: V) => void) =>
     (v: V) => {
@@ -992,7 +995,10 @@ function JournalEditor({ id }: { id?: string }) {
         {existing && <TranscriptionNote e={existing} />}
         <EntryText
           value={body}
-          onChangeText={edit(setBody)}
+          onChangeText={(v: string) => {
+            typing()
+            edit(setBody)(v)
+          }}
           autoFocus={!existing}
           minHeight={surface}
           keyboard={keyboard}
