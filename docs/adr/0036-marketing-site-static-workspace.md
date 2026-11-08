@@ -6,7 +6,7 @@
 
 ## Context
 
-Unfurl has no public website. The site has to be static so it can be served by Cloudflare Pages on the realsolutionsph.com zone, without a server.
+Unfurl has no public website. The site has to be static so it can be served by Cloudflare Pages without a server (the domain is not chosen yet; realsolutionsph.com is on Cloudflare).
 
 The existing web app in `frontend/` cannot be exported as static pages. It uses:
 
@@ -39,7 +39,7 @@ None. This adds a second web package next to `frontend/`; both follow the fronte
 **Positive:**
 - The app stays as it is: no static-export constraints on `frontend/`.
 - The home page loads about 141 KB of JavaScript (gzipped), and the hero film only after the page has loaded. Lighthouse mobile performance was 95 on three runs against a compressing local server.
-- Copy and prices change in one config file, with no code edits.
+- Copy, placeholders and prices change in two config files (`site.ts`, `pricing.ts`), with no code edits.
 
 **Negative:**
 - A second Next.js package, with its own lint and typecheck in CI.

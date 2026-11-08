@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/apple-icon.png" }],
   },
-  robots: { index: true, follow: true },
+  robots: { index: SITE.indexable, follow: SITE.indexable },
 }
 
 export const viewport: Viewport = {
@@ -81,7 +81,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+    <html
+      lang="en"
+      className={`${geist.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: jsFlag }} />
       </head>

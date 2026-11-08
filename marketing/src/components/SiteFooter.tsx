@@ -43,9 +43,13 @@ export function SiteFooter() {
               <li>
                 <a href="/terms/">Terms of use</a>
               </li>
-              <li>
-                <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>
-              </li>
+              {SITE.contactEmailLive && (
+                <li>
+                  <a href={`mailto:${SITE.contactEmail}`}>
+                    {SITE.contactEmail}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

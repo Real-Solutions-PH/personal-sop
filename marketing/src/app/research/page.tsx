@@ -16,7 +16,7 @@ export default function Research() {
       <header className="site-header">
         <div className="wrap">
           <Logo />
-          <a className="btn btn-outline btn-sm" href="/">
+          <a className="btn btn-outline btn-sm keep" href="/">
             Back to home
           </a>
         </div>

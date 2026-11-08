@@ -20,7 +20,13 @@ export type InterviewPayload = {
   relation: "website"
   screener: Record<string, string | string[] | undefined>
   answers: Record<string, string>
-  close: { Z1?: string; email?: string; followUpCall: boolean }
+  close: {
+    Z1?: string
+    email?: string
+    // Kit Z2 (commitment level 1): asked for a TestFlight invite.
+    testFlight: boolean
+    followUpCall: boolean
+  }
 }
 
 export async function submitInterview(

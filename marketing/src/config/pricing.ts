@@ -25,15 +25,18 @@ export type Plan = {
 // The competitor stack the roast and the brand doc compare against. US list
 // prices checked 2026-10-22 (docs/brand/positioning-and-name.md, Sources);
 // treat as approximate and re-check before going live.
+const STACK_APPS = [
+  { area: "Money", app: "YNAB", perYear: 109 },
+  { area: "Food", app: "MacroFactor", perYear: 71.99 },
+  { area: "Tasks", app: "Todoist Pro", perYear: 60 },
+  { area: "Habits", app: "Habitify Premium", perYear: 39.99 },
+  { area: "Training", app: "Strong PRO", perYear: 29.99 },
+] as const
+
 export const STACK = {
-  total: 311,
-  apps: [
-    { area: "Money", app: "YNAB", perYear: 109 },
-    { area: "Food", app: "MacroFactor", perYear: 71.99 },
-    { area: "Tasks", app: "Todoist Pro", perYear: 60 },
-    { area: "Habits", app: "Habitify Premium", perYear: 39.99 },
-    { area: "Training", app: "Strong PRO", perYear: 29.99 },
-  ],
+  apps: STACK_APPS,
+  // Sum of the rows ($310.97), rounded to whole dollars and shown as "about".
+  total: Math.round(STACK_APPS.reduce((n, a) => n + a.perYear, 0)),
   checked: "2026-10-22",
 } as const
 

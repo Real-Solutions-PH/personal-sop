@@ -107,7 +107,7 @@ export const SCREENER: ScreenerQ[] = [
 export const S5C = {
   id: "S5c",
   text: "What do you pay for, and about how much a year?",
-  placeholder: "e.g. Strong, about $30 a year; a gym class pack",
+  placeholder: "e.g. a workout app, a gym class pack",
 }
 
 export type ScreenerAnswers = Record<string, string | string[] | undefined>
@@ -143,7 +143,14 @@ export function route(a: ScreenerAnswers): {
   return {
     persona: "C",
     extras: [],
-    tag: quitOnce ? "C-quit-once" : s3.includes("none") ? "never" : undefined,
+    // Someone who stopped none, isn't tracking now, has no coach and isn't a
+    // student is not covered by the kit's rule 5; they get module C, tagged
+    // "C-unrouted" so the gap shows when answers are coded.
+    tag: quitOnce
+      ? "C-quit-once"
+      : s3.includes("none")
+        ? "never"
+        : "C-unrouted",
   }
 }
 
@@ -406,6 +413,13 @@ export const MODULES: Record<
       },
     ],
   },
+}
+
+// Kit §2: for C-quit-once, C3 becomes "tell me about the one you stopped".
+export const C3_QUIT_ONCE: ModuleQ = {
+  id: "C3",
+  text: "Tell us about the tracker you stopped using. What happened?",
+  probe: "How far did you get? What was going on when it ended?",
 }
 
 export const CLOSE = {

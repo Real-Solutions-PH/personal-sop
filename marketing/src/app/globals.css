@@ -332,7 +332,7 @@ section {
 }
 /* On a phone the hero's own button is on screen; the header keeps the logo. */
 @media (max-width: 599px) {
-  .site-header .btn-sm {
+  .site-header .btn-sm:not(.keep) {
     display: none;
   }
 }
@@ -634,13 +634,15 @@ section {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
+}
+.js .record {
   opacity: 0;
   transform: translateY(8px);
   transition:
     opacity 240ms var(--ease-out),
     transform 240ms var(--ease-out);
 }
-.record.in {
+.js .record.in {
   opacity: 1;
   transform: none;
 }
@@ -690,10 +692,12 @@ section {
   align-items: center;
   font-size: 14px;
   color: var(--muted-foreground);
+}
+.js .undo-row {
   opacity: 0;
   transition: opacity 240ms var(--ease-out);
 }
-.undo-row.in {
+.js .undo-row.in {
   opacity: 1;
 }
 .undo-row .lbl {
@@ -1714,6 +1718,11 @@ section {
 }
 .iv-field.miss input {
   border-color: var(--bad);
+}
+.iv-hint {
+  margin-top: -4px;
+  font-size: 14px;
+  color: var(--muted-foreground);
 }
 .iv-open b {
   color: var(--muted-foreground);

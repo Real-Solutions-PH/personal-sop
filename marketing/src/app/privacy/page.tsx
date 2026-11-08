@@ -14,7 +14,7 @@ export default function Privacy() {
       outline={[
         {
           heading: "What we collect",
-          body: "The records you create (habits, tasks, workouts, meals, money, journal and focus), the messages, voice notes and photos you send to Fern, and your account email.",
+          body: "The records you create (habits, tasks, workouts, meals, money, journal and focus), the messages, voice notes and photos you send to Fern, your account email, and when you open and close the app or share a card, so we can see how often Unfurl is used.",
         },
         {
           heading: "Where it is stored",
@@ -22,7 +22,11 @@ export default function Privacy() {
         },
         {
           heading: "How Fern uses it",
-          body: "To file what you say into records and to answer your questions about them. To do this, your message is sent to a language model service.",
+          body: "To file what you say into records and to answer your questions about them. To do this, your messages, voice notes and photos are sent to a language model service.",
+        },
+        {
+          heading: "Research answers",
+          body: "If you answer the questions on the Help shape Unfurl page, we keep your answers, and your email if you give it, to decide what to build and to reply to you.",
         },
         {
           heading: "Your choices",

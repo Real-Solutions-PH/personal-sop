@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import {
+  C3_QUIT_ONCE,
   CLOSE,
   MODULES,
   type ModuleQ,
@@ -23,7 +24,11 @@ import {
   type ScreenerAnswers,
 } from "@/config/interview"
 import { SITE } from "@/config/site"
-import { type InterviewPayload, submitInterview } from "@/lib/submitInterview"
+import {
+  INTERVIEW_ENDPOINT,
+  type InterviewPayload,
+  submitInterview,
+} from "@/lib/submitInterview"
 
 type Step = "screener" | "module" | "close" | "done" | "underage"
 
@@ -44,6 +49,7 @@ export function Interview() {
   const [z1, setZ1] = useState("")
   const [email, setEmail] = useState("")
   const [call, setCall] = useState(false)
+  const [wantsTestFlight, setWantsTestFlight] = useState(false)
   const [missing, setMissing] = useState<string[]>([])
   const [sending, setSending] = useState(false)
   const [result, setResult] = useState<"sent" | "stub" | "error" | null>(null)
@@ -53,7 +59,10 @@ export function Interview() {
 
   const routed = route(screener)
   const module = MODULES[routed.persona]
-  const questions: ModuleQ[] = [...module.questions, ...routed.extras]
+  // The kit asks C-quit-once people about the one tracker they stopped.
+  const questions: ModuleQ[] = [...module.questions, ...routed.extras].map(
+    (q) => (q.id === "C3" && routed.tag === "C-quit-once" ? C3_QUIT_ONCE : q),
+  )
 
   // Runs on every step change to move focus to the new step's heading.
   // biome-ignore lint/correctness/useExhaustiveDependencies: step is the trigger
@@ -84,6 +93,11 @@ export function Interview() {
   }
 
   function nextFromScreener() {
+    // The kit ends at S1 for under-18s: stop before asking anything else.
+    if (screener.S1 === "under18") {
+      setStep("underage")
+      return
+    }
     const gaps = SCREENER.filter((q) => {
       const v = screener[q.id]
       return q.kind === "multi" ? !(v as string[] | undefined)?.length : !v
@@ -113,6 +127,7 @@ export function Interview() {
         Z1: z1.trim() || undefined,
         email: email.trim() || undefined,
         followUpCall: call && !!email.trim(),
+        testFlight: wantsTestFlight && !!email.trim(),
       },
     }
   }
@@ -128,6 +143,7 @@ export function Interview() {
         .map((q) => `${q.id}. ${q.text}\n${p.answers[q.id]}`),
       p.close.Z1 ? `Z1: ${p.close.Z1}` : "",
       p.close.email ? `Email: ${p.close.email}` : "",
+      `TestFlight link: ${p.close.testFlight ? "yes" : "no"}`,
       `Follow-up call: ${p.close.followUpCall ? "yes" : "no"}`,
     ]
     return lines.filter(Boolean).join("\n\n")
@@ -164,6 +180,15 @@ export function Interview() {
 
   return (
     <div className="interview">
+      {!INTERVIEW_ENDPOINT && step !== "done" && (
+        <p className="iv-msg" data-tone="info" data-stub="interview-notice">
+          <Info aria-hidden />
+          <span>
+            Sending isn't connected yet. You can still answer; at the end you'll
+            get your answers to copy, and nothing is sent.
+          </span>
+        </p>
+      )}
       {stepNo && (
         <p className="iv-progress">
           Step {stepNo} of 3
@@ -190,6 +215,7 @@ export function Interview() {
               <fieldset
                 key={q.id}
                 className={`iv-q ${isMissing ? "miss" : ""}`}
+                aria-describedby={isMissing ? `err-${q.id}` : undefined}
               >
                 <legend>{q.text}</legend>
                 <div className="iv-choices">
@@ -217,7 +243,7 @@ export function Interview() {
                   })}
                 </div>
                 {isMissing && (
-                  <p className="iv-err">
+                  <p className="iv-err" id={`err-${q.id}`}>
                     <CircleAlert aria-hidden /> Pick one to continue.
                   </p>
                 )}
@@ -267,13 +293,16 @@ export function Interview() {
               <span className="iv-label">
                 <b className="num">{i + 1}.</b> {q.text}
               </span>
+              <span className="iv-hint" id={`hint-${q.id}`}>
+                {q.probe}
+              </span>
               <textarea
                 rows={3}
                 value={answers[q.id] ?? ""}
                 onChange={(e) =>
                   setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
                 }
-                placeholder={q.probe}
+                aria-describedby={`hint-${q.id}`}
               />
             </label>
           ))}
@@ -316,9 +345,7 @@ export function Interview() {
           <label
             className={`iv-field ${missing.includes("email") ? "miss" : ""}`}
           >
-            <span className="iv-label">
-              Email (optional): to try it on TestFlight or talk to us
-            </span>
+            <span className="iv-label">Email (optional), so we can reply</span>
             <input
               type="email"
               inputMode="email"
@@ -338,6 +365,18 @@ export function Interview() {
             <input
               className="sr-only"
               type="checkbox"
+              checked={wantsTestFlight}
+              onChange={(e) => setWantsTestFlight(e.target.checked)}
+            />
+            <span className="box" aria-hidden="true">
+              {wantsTestFlight && <Check />}
+            </span>
+            Send me a TestFlight invite to try Unfurl.
+          </label>
+          <label className="iv-check">
+            <input
+              className="sr-only"
+              type="checkbox"
               checked={call}
               onChange={(e) => setCall(e.target.checked)}
             />
@@ -346,10 +385,9 @@ export function Interview() {
             </span>
             I'm happy to join a 30-minute follow-up call.
           </label>
-          {call && !email.trim() && (
+          {(call || wantsTestFlight) && !email.trim() && (
             <p className="iv-note">
-              <Info aria-hidden /> Add your email above so we can arrange the
-              call.
+              <Info aria-hidden /> Add your email above so we can reach you.
             </p>
           )}
           <p className="iv-note">
@@ -400,7 +438,8 @@ export function Interview() {
               <div>
                 <p>
                   Sending isn't connected yet, so your answers are still only on
-                  this page. Copy them or email them to us so they aren't lost.
+                  this page and nothing was sent. Copy them if you'd like to
+                  keep them.
                 </p>
                 <div className="cta-row" style={{ marginTop: 12 }}>
                   <button
@@ -411,20 +450,26 @@ export function Interview() {
                     <Copy aria-hidden />
                     {copied === "ok" ? "Copied" : "Copy my answers"}
                   </button>
-                  <a
-                    className="btn btn-outline btn-sm"
-                    href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent("Unfurl interview answers")}&body=${encodeURIComponent(asText(payload()).slice(0, 1800))}`}
-                  >
-                    <Mail aria-hidden />
-                    Email them
-                  </a>
+                  {SITE.contactEmailLive && (
+                    <a
+                      className="btn btn-outline btn-sm"
+                      href={`mailto:${SITE.contactEmail}?subject=${encodeURIComponent("Unfurl interview answers")}&body=${encodeURIComponent("Paste your copied answers here.")}`}
+                    >
+                      <Mail aria-hidden />
+                      Email them
+                    </a>
+                  )}
                 </div>
                 {copied === "fail" && (
                   <p className="iv-err">
-                    <CircleAlert aria-hidden /> Couldn't copy. Use "Email them"
-                    instead.
+                    <CircleAlert aria-hidden /> Couldn't copy. Select the text
+                    below and copy it by hand.
                   </p>
                 )}
+                <label className="iv-field" style={{ marginTop: 12 }}>
+                  <span className="iv-label">Your answers</span>
+                  <textarea readOnly rows={8} value={asText(payload())} />
+                </label>
               </div>
             </div>
           )}

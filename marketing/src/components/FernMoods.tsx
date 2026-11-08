@@ -84,7 +84,28 @@ export function FernMoods() {
           Fern is the one moving, colourful thing in a calm app. Its face tells
           you what just happened before you read a word.
         </p>
-        <div className="mood-tabs" role="tablist" aria-label="Fern's moods">
+        <div
+          className="mood-tabs"
+          role="tablist"
+          aria-label="Fern's moods"
+          onKeyDown={(e) => {
+            const i = MOODS.findIndex((m) => m.id === active)
+            const next =
+              e.key === "ArrowRight"
+                ? (i + 1) % MOODS.length
+                : e.key === "ArrowLeft"
+                  ? (i - 1 + MOODS.length) % MOODS.length
+                  : e.key === "Home"
+                    ? 0
+                    : e.key === "End"
+                      ? MOODS.length - 1
+                      : -1
+            if (next < 0) return
+            e.preventDefault()
+            setActive(MOODS[next].id)
+            document.getElementById(`mood-${MOODS[next].id}`)?.focus()
+          }}
+        >
           {MOODS.map((m) => (
             <button
               key={m.id}
@@ -93,6 +114,7 @@ export function FernMoods() {
               id={`mood-${m.id}`}
               aria-selected={m.id === active}
               aria-controls="mood-panel"
+              tabIndex={m.id === active ? 0 : -1}
               onClick={() => setActive(m.id)}
             >
               {m.icon}
@@ -105,7 +127,6 @@ export function FernMoods() {
           id="mood-panel"
           role="tabpanel"
           aria-labelledby={`mood-${mood.id}`}
-          aria-live="polite"
         >
           <small>{mood.when}</small>
           {mood.line}

@@ -17,7 +17,7 @@ export function LegalPage({
       <header className="site-header">
         <div className="wrap">
           <Logo />
-          <a className="btn btn-outline btn-sm" href="/">
+          <a className="btn btn-outline btn-sm keep" href="/">
             Back to home
           </a>
         </div>
@@ -27,8 +27,14 @@ export function LegalPage({
           <h1>{title}</h1>
           <p className="placeholder-note">
             This page is a draft outline. The full text is being written and
-            will be published before Unfurl opens to the public. Questions:{" "}
-            <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+            will be published before Unfurl opens to the public.
+            {SITE.contactEmailLive && (
+              <>
+                {" "}
+                Questions:{" "}
+                <a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a>.
+              </>
+            )}
           </p>
           {outline.map((s) => (
             <section key={s.heading} style={{ padding: 0 }}>

@@ -69,7 +69,7 @@ export function HeroVideo() {
       setSrc(true)
       return
     }
-    if (el.paused) el.play()
+    if (el.paused) el.play().catch(() => setPlaying(false))
     else el.pause()
   }
 

@@ -41,7 +41,7 @@ const clean = (svg) =>
 const baseCss = css.replace(/\.dark \.fern,\.dark \.fern \.av\{[^}]*\}/, "")
 const style = `<style>${baseCss}
 @media (prefers-color-scheme: dark){.fern{--mist:#18211b;--moss:#2c7a5a;--frond:#6bbf8a;--sprout:#b7e08a;--fern-ink:#b7e08a;--fern-leaf:#24503b}}
-@media (prefers-reduced-motion: reduce){*{animation:none!important}}</style>`
+@media (prefers-reduced-motion: reduce){*{animation-play-state:paused!important;animation-delay:0s!important;animation-fill-mode:both!important}}</style>`
 
 mkdirSync(join(root, "public/fern"), { recursive: true })
 for (const [name, [state, opts]] of Object.entries(moods)) {

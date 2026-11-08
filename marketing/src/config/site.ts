@@ -11,8 +11,13 @@ export const SITE = {
   description:
     "Tell Fern what happened in a sentence, a voice note or a photo. Unfurl files it as habits, tasks, workouts, meals, money, journal and focus. One app instead of five.",
   company: "Real Solutions PH",
-  // PLACEHOLDER: no public support inbox exists yet.
+  // PLACEHOLDER: no public support inbox exists yet. While contactEmailLive
+  // is false the address is never shown or offered anywhere on the site.
   contactEmail: "hello@realsolutionsph.com",
+  contactEmailLive: false as boolean,
+  // Pre-launch: noindex everywhere and no sitemap entries until Kai opens
+  // the site. Flip to true on launch.
+  indexable: false as boolean,
 } as const
 
 // Where the primary call to action sends people. While the App Store listing

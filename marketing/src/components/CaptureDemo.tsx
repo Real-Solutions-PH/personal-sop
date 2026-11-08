@@ -94,16 +94,15 @@ const EXAMPLES: Example[] = [
   },
   {
     label: "End of day",
-    sentence:
-      "focused 45 min on the report, paid rent 950, felt calm after the walk",
+    sentence: "focus 25 on the report, paid rent 950, felt calm after the walk",
     records: [
       {
         kind: "foc",
         icon: <Timer aria-hidden />,
         what: "The report",
-        detail: "Focus · today",
-        value: "45 min",
-        from: "focused 45 min on the report",
+        detail: "Focus timer · started now",
+        value: "25 min",
+        from: "focus 25 on the report",
       },
       {
         kind: "fin",
@@ -117,7 +116,7 @@ const EXAMPLES: Example[] = [
         kind: "jnl",
         icon: <BookOpen aria-hidden />,
         what: "Journal",
-        detail: "Mood · calm",
+        detail: "Entry · today",
         value: "1 entry",
         from: "felt calm after the walk",
       },
@@ -231,7 +230,7 @@ export function CaptureDemo() {
         </fieldset>
       </div>
 
-      <div ref={box} className="chat" aria-live="polite">
+      <div ref={box} className="chat">
         <div className="chat-head">
           <Fern mood={phase === "filed" ? "speaking" : "listening"} size={40} />
           <div>
@@ -252,7 +251,12 @@ export function CaptureDemo() {
             {phase === "typing" && started && <span className="caret" />}
           </span>
         </p>
-        <p className={`undo-row ${filed ? "in" : ""}`}>
+        <p className="sr-only" aria-live="polite">
+          {filed
+            ? `Logged ${ex.records.length} things: ${ex.records.map((r) => `${r.what}, ${r.value}`).join("; ")}.`
+            : ""}
+        </p>
+        <p className={`undo-row ${filed ? "in" : ""}`} aria-hidden="true">
           <span className="lbl">
             <Check aria-hidden /> Logged {ex.records.length} things
           </span>

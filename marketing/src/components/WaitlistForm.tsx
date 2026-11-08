@@ -64,6 +64,7 @@ export function WaitlistForm() {
           placeholder="e.g. alex@example.com"
           required
           aria-describedby="waitlist-msg"
+          aria-invalid={state.kind === "error" ? true : undefined}
         />
         <button
           type="submit"
@@ -91,12 +92,21 @@ export function WaitlistForm() {
           <p className="form-msg" data-tone="info" data-stub="waitlist">
             <Info aria-hidden />
             <span>
-              Sign-ups aren't connected yet. Email{" "}
-              <a href={`mailto:${SITE.contactEmail}?subject=Unfurl%20waitlist`}>
-                {SITE.contactEmail}
-              </a>{" "}
-              and you're first in line. Meanwhile,{" "}
-              <a href="/research/">help shape Unfurl</a> in 10 minutes.
+              {SITE.contactEmailLive ? (
+                <>
+                  Sign-ups aren't connected yet. Email{" "}
+                  <a
+                    href={`mailto:${SITE.contactEmail}?subject=Unfurl%20waitlist`}
+                  >
+                    {SITE.contactEmail}
+                  </a>{" "}
+                  to ask for an invite.
+                </>
+              ) : (
+                <>Sign-ups open soon; nothing was saved. Please check back.</>
+              )}{" "}
+              Meanwhile, <a href="/research/">help shape Unfurl</a> in 10
+              minutes.
             </span>
           </p>
         )}

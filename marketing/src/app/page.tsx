@@ -127,11 +127,11 @@ const FEATURES: {
 const FAQ: { q: string; a: ReactNode }[] = [
   {
     q: "Where does my data live?",
-    a: "Every record is saved on your phone first. Your account keeps a copy on our servers, which is how Fern reads your records to answer questions and how a new phone gets your history back. A local-only mode, with no account and nothing leaving your phone, is being built now.",
+    a: "Every record is saved on your phone first. Your account keeps a copy on our servers, which is how Fern reads your records to answer questions and how a new phone gets your history back. A local-only mode, with no account and nothing leaving your phone, is coming.",
   },
   {
     q: "Why does Fern have a daily limit?",
-    a: `Every message to Fern has a real running cost, so the free plan comes with a daily allowance and Plus with a monthly fair-use budget we state up front; past it, Fern switches to a lighter model. Logging by hand, charts and streaks are never limited.`,
+    a: `Every message to Fern has a real running cost, so the free plan comes with a daily allowance and Plus with a monthly fair-use budget, shown in the app; past it, Fern switches to a lighter model. Logging by hand, charts and streaks are never limited.`,
   },
   {
     q: "Does it work offline?",
@@ -150,7 +150,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "What happens when I miss a day?",
-    a: "One lone missed day is covered by a grace day, so your streak keeps going. If you are away longer, tell Fern what happened in one sentence; it fills in the gap and pauses your streaks instead of ending them.",
+    a: "One lone missed day is covered by a grace day, so your streak keeps going. If you are away longer, tell Fern what happened in one sentence; it fills in the gap and pauses your streaks instead of ending them (once every 30 days).",
   },
   {
     q: "Is it on Android?",
@@ -314,17 +314,18 @@ export default function Home() {
                 <div className="stack-total">
                   <b>Five apps, five places to log one day</b>
                   <span className="num">
-                    {usd(STACK.total)}
+                    about {usd(STACK.total)}
                     <span style={{ fontSize: 16 }}> / yr</span>
                   </span>
                 </div>
                 <p className="fine">
-                  US list prices, checked {STACK.checked}. Prices vary by region
-                  and change; check each app's own page.
+                  Approximate US prices, checked {STACK.checked}; some come from
+                  review sites. Prices vary by region and change, so check each
+                  app's own page.
                 </p>
               </div>
               <div className="vs-card reveal">
-                <h3>Nobody else does both.</h3>
+                <h3>We couldn't find another app that does both.</h3>
                 <p className="lede" style={{ fontSize: 16 }}>
                   Apps that cover your whole life make you fill in forms. Apps
                   that take one sentence only cover one thing.
@@ -461,7 +462,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Never lose your progress: grace day and the way back (PR 331). */}
+        {/* Grace day and the way back (PR 331). */}
         <section id="way-back" aria-labelledby="wayback-title">
           <div className="wrap wayback-grid">
             <div className="reveal">
@@ -469,7 +470,7 @@ export default function Home() {
             </div>
             <div className="reveal">
               <span className="eyebrow">
-                <ShieldCheck aria-hidden /> Never lose your progress
+                <ShieldCheck aria-hidden /> Grace day and a way back
               </span>
               <h2 className="h2" id="wayback-title">
                 Miss a day. Keep the run going.
@@ -500,7 +501,7 @@ export default function Home() {
                     <span className="txt">
                       Tell Fern what happened while you were away, in one
                       sentence. It fills in the gap and pauses your streaks
-                      instead of ending them.
+                      instead of ending them, once every 30 days.
                     </span>
                   </span>
                 </li>
@@ -570,8 +571,8 @@ export default function Home() {
                   )}
                 </h3>
                 <p>
-                  Use Unfurl with no account at all. Nothing leaves your phone,
-                  and you back up to a file or your iCloud Drive.
+                  Use Unfurl with no account at all, so nothing leaves your
+                  phone.
                 </p>
               </li>
               <li className="reveal">
@@ -689,7 +690,9 @@ export default function Home() {
                 <Wallet aria-hidden /> Pricing
               </span>
               <h2 className="h2" id="pricing-title">
-                Free to start. Less than one of the apps it replaces.
+                {SHOW_PRICES
+                  ? "Free to start. About a sixth of the five-app stack."
+                  : "Free to start."}
               </h2>
             </div>
             {SHOW_PRICES ? (
@@ -697,7 +700,7 @@ export default function Home() {
                 <p className="anchor reveal">
                   <span>
                     Five separate apps:{" "}
-                    <s className="num">{usd(STACK.total)} a year</s>
+                    <s className="num">about {usd(STACK.total)} a year</s>
                   </span>
                   <span>
                     Unfurl:{" "}
