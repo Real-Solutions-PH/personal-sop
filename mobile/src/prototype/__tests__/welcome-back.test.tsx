@@ -220,3 +220,33 @@ describe("maybeOpenWayBack", () => {
     expect(open).toHaveBeenCalledWith("/today/welcome-back")
   })
 })
+
+describe("catch-up with no model (prototype)", () => {
+  it("keeps the whole note as one journal entry on the gap's last day", () => {
+    jest.useFakeTimers()
+    const { sendCapture } = require("@domain/capture/actions")
+    const id = sendCapture({
+      text: "Last week was chaos. Skipped gym, ate takeaway most nights",
+      source: "text",
+      hint: "catch_up",
+      rangeFrom: addDays(today, -3),
+    })
+    act(() => {
+      jest.runOnlyPendingTimers()
+    })
+    const cap = captureStore.get().captures.find((c) => c.id === id)
+    const records = (cap?.reply?.items ?? []).filter((i) => i.t === "record")
+    expect(records.map((r) => (r as { kind: string }).kind)).toEqual([
+      "journal",
+    ])
+    expect((records[0] as { dayOffset?: number }).dayOffset).toBe(-1)
+    expect(
+      (cap?.reply?.items ?? []).some(
+        (i) =>
+          i.t === "info" &&
+          /Not sure/.test(String((i as { title?: string }).title)),
+      ),
+    ).toBe(false)
+    jest.useRealTimers()
+  })
+})

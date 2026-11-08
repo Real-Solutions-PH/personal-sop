@@ -1032,6 +1032,15 @@ function interpret(cap: Capture): ReplyItem[] {
         ],
       },
     ]
+  // A way-back catch-up with no model to date its facts: the whole note,
+  // unsplit, as one journal entry on the gap's last day (yesterday), the
+  // same as the server's rules path.
+  if (hint === "catch_up")
+    return parseCapture(cap.text, {
+      hint: "journal",
+      source: cap.source,
+      at: cap.at,
+    }).map((d) => fromDraft({ ...d, dayOffset: -1 }, cap))
   const drafts = parseCapture(cap.text, {
     hint: hint === "journal" ? "journal" : hint,
     source: cap.source,

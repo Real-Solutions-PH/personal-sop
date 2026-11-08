@@ -57,7 +57,7 @@ export function WelcomeBack({
   return (
     <Screen title="Welcome back">
       <Line style={{ gap: 12, alignItems: "flex-start" }}>
-        <FernSprite size={56} state="consoling" decorative />
+        <FernSprite size={56} state="idle" decorative />
         <View style={{ flex: 1, gap: 6 }}>
           <Copy size={22} weight="semibold">
             Welcome back.
@@ -73,7 +73,7 @@ export function WelcomeBack({
         <View style={{ gap: 12 }}>
           <ThreadComposer
             hints={false}
-            placeholder="e.g. last week was chaos — skipped gym, ate takeaway most nights"
+            placeholder="e.g. skipped gym, takeaway most nights"
             onText={(text) => text && catchUp(text)}
           />
           <Button
