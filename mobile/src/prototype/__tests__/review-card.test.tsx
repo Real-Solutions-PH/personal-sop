@@ -119,7 +119,7 @@ describe("FernReviewView", () => {
     const h = habitsStore.get().habits.at(-1)
     expect(h?.name).toBe("10-minute walk after lunch")
     expect(h?.schedule).toEqual([{ days: [1, 3, 5] }])
-    expect(screen.getByText("Added to habits ✓")).toBeTruthy()
+    expect(screen.getByText("Added to habits")).toBeTruthy()
     expect(toast).not.toHaveBeenCalled()
     expect(toast.success).not.toHaveBeenCalled()
   })
@@ -128,7 +128,7 @@ describe("FernReviewView", () => {
     view({ state: "ready", review })
     fireEvent.press(screen.getByText("Make it a task"))
     expect(tasksStore.get().tasks.at(-1)?.title).toBe("Gather tax receipts")
-    expect(screen.getByText("Added to tasks ✓")).toBeTruthy()
+    expect(screen.getByText("Added to tasks")).toBeTruthy()
   })
 
   it("dismiss hides the gap and remembers the title", () => {

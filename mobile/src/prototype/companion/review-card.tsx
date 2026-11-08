@@ -257,7 +257,7 @@ function GapRow({ gap, onDismiss }: { gap: ReviewGap; onDismiss: () => void }) {
           <Line style={{ gap: 6 }}>
             <Check size={16} color={t.good} />
             <Copy size={14} weight="medium" style={{ color: t.good }}>
-              {habit ? "Added to habits ✓" : "Added to tasks ✓"}
+              {habit ? "Added to habits" : "Added to tasks"}
             </Copy>
           </Line>
         </Tap>

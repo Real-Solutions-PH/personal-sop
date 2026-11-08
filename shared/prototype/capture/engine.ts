@@ -1040,7 +1040,9 @@ function interpret(cap: Capture): ReplyItem[] {
       hint: "journal",
       source: cap.source,
       at: cap.at,
-    }).map((d) => fromDraft({ ...d, dayOffset: -1 }, cap))
+    }).map((d) =>
+      fromDraft(d.t === "record" ? { ...d, dayOffset: -1 } : d, cap),
+    )
   const drafts = parseCapture(cap.text, {
     hint: hint === "journal" ? "journal" : hint,
     source: cap.source,
