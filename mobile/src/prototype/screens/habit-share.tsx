@@ -5,6 +5,7 @@ import { useLocalSearchParams } from "expo-router"
 import { type ReactNode, useState } from "react"
 import { ScrollView, View } from "react-native"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
+import { habitWeeks } from "../productivity-share-calc"
 import { clock, fmt, pct, signed } from "../share-format"
 import {
   Body,
@@ -23,6 +24,7 @@ import {
   Hero,
   LeafCal,
   ShareComposer,
+  Stems,
   Sub,
   shiftDay,
   Title,
@@ -40,6 +42,7 @@ export type HabitLayout =
   | "month"
   | "routine"
   | "scoreboard"
+  | "habit"
 /** Everything a habit card shows, already counted: cards only lay it out. */
 export type HabitCardData = {
   showRate: boolean
@@ -52,6 +55,11 @@ export type HabitCardData = {
     days: Dot[]
     /** The day of the first cell (YYYY-MM-DD). */
     start: string
+    /** The 30 days before the last 30 (the This habit card's change). */
+    prevRate30?: number
+    /** Its completion rate each week, oldest first (null: not due that
+     * week), and every day it was done since it began. */
+    history?: { rates: (number | null)[]; total: number }
   } | null
   routine: {
     name: string
@@ -133,7 +141,13 @@ export function HabitCard({
     })
   let body: ReactNode = null,
     date = today
-  if ((kind === "streak" || kind === "milestone" || kind === "month") && !h)
+  if (
+    (kind === "streak" ||
+      kind === "milestone" ||
+      kind === "month" ||
+      kind === "habit") &&
+    !h
+  )
     body = (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <Words size={4} muted align="center">
@@ -326,6 +340,71 @@ export function HabitCard({
       </View>
     )
     if (r) date = dayName(r.day)
+  } else if (kind === "habit" && h) {
+    const rates = h.history?.rates ?? [],
+      last7 = h.days.slice(-7),
+      done7 = last7.filter((d) => d === "on" || d === "part").length,
+      due7 = done7 + last7.filter((d) => d === "miss").length,
+      change =
+        h.prevRate30 === undefined
+          ? 0
+          : Math.round((h.rate30 - h.prevRate30) * 100),
+      record = h.current > 0 && h.current >= h.best,
+      tall = look.format === "9:16",
+      sq = look.format === "1:1"
+    date = "Last 30 days"
+    body = (
+      <>
+        <Title>{h.name}</Title>
+        <Hero
+          value={pct(h.rate30)}
+          unit="done over 30 days"
+          small
+          delta={<Delta n={change} unit=" pts" suffix="vs prior 30" />}
+        />
+        {record ? (
+          <Win>{`Best run yet: ${plural(h.best, "day")}`}</Win>
+        ) : change < 0 ? (
+          <Sub
+            bad
+          >{`${verdict(h.rate30)}. Best run ${plural(h.best, "day")}.`}</Sub>
+        ) : (
+          <Sub>{`Best run ${plural(h.best, "day")}`}</Sub>
+        )}
+        <Body end>
+          {rates.length > 1 && (
+            <Stems
+              values={rates.map((r) => (r === null ? undefined : r * 100))}
+              labels={rates.map((_, i) =>
+                i === rates.length - 1 ? "Now" : "",
+              )}
+              on={rates.length - 1}
+              leaf={(v) => v >= 100}
+              missed={(v) => v < 50}
+              format={(v) => `${fmt(Math.round(v))}%`}
+              height={tall ? 120 : sq ? 70 : 92}
+              color={hab}
+              label="Done each week"
+            />
+          )}
+          <ChartNote
+            left={`Done each week, last ${fmt(rates.filter((r) => r !== null).length)}`}
+            right={
+              h.history ? `${fmt(h.history.total)} times in all` : undefined
+            }
+          />
+        </Body>
+        <Figures
+          items={[
+            { label: "Streak", value: fmt(h.current), unit: "days" },
+            { label: "Best run", value: fmt(h.best), unit: "days" },
+            ...(due7
+              ? [{ label: "Last 7 days", value: `${fmt(done7)}/${fmt(due7)}` }]
+              : []),
+          ]}
+        />
+      </>
+    )
   } else {
     const b = data.board,
       delta = Math.round((b.rate - b.prevRate) * 100),
@@ -384,7 +463,9 @@ export function HabitShare() {
   const habits = L.sortedHabits(
       state.habits.filter((h) => h.status !== "archived"),
     ),
-    [layout, setLayout] = useState<HabitLayout>(p.t ?? "streak"),
+    [layout, setLayout] = useState<HabitLayout>(
+      p.t ?? (p.habit ? "habit" : "streak"),
+    ),
     [habitId, setHabitId] = useState(p.habit ?? habits[0]?.id),
     [routineId, setRoutineId] = useState(p.routine ?? state.routines[0]?.id),
     [hide, setHide] = useState(false),
@@ -418,6 +499,9 @@ export function HabitShare() {
             current: st.current,
             best: st.best,
             rate30: L.habitStats(habit, idx, dayOffset(-29), today).rate,
+            prevRate30: L.habitStats(habit, idx, dayOffset(-59), dayOffset(-30))
+              .rate,
+            history: habitWeeks(habit, idx, today, 8),
             days: cells,
             start,
           }
@@ -459,9 +543,11 @@ export function HabitShare() {
         : h
           ? layout === "streak"
             ? `${fmt(h.current)}-day streak on ${hide ? "a habit" : h.name}`
-            : layout === "milestone"
-              ? `${fmt(milestoneOf(h.current).reached ?? h.current)} days of ${hide ? "a habit" : h.name}`
-              : `${hide ? "A habit" : h.name}: ${pct(h.rate30)} over the last 5 weeks`
+            : layout === "habit"
+              ? `${hide ? "A habit" : h.name}: ${pct(h.rate30)} done over 30 days, best run ${fmt(h.best)} days`
+              : layout === "milestone"
+                ? `${fmt(milestoneOf(h.current).reached ?? h.current)} days of ${hide ? "a habit" : h.name}`
+                : `${hide ? "A habit" : h.name}: ${pct(h.rate30)} over the last 5 weeks`
           : "My habits"
   return (
     <Screen title="Share card">
@@ -471,6 +557,7 @@ export function HabitShare() {
         caption={`${caption} · Unfurl`}
         items={(
           [
+            { key: "habit", label: "This habit" },
             { key: "streak", label: "Streak" },
             { key: "milestone", label: "Milestone" },
             { key: "month", label: "Month heatmap" },
@@ -486,7 +573,8 @@ export function HabitShare() {
       >
         {(layout === "streak" ||
           layout === "milestone" ||
-          layout === "month") && (
+          layout === "month" ||
+          layout === "habit") && (
           <>
             <SectionHeading>Habit</SectionHeading>
             <ScrollView
