@@ -148,7 +148,7 @@ def facts(ctx: Ctx, first: date, last: date) -> Facts:
             }
         )
     logs = habits_public.log_facts(ctx, first, last)
-    misses = stats_public.misses(ctx, first=first, last=last)
+    missed_by = habits_public.missed_days(ctx, first=first, last=last)
     habits = [h for h in habits_public.list_habits(ctx) if h.status != "archived"]
     ranked: list[tuple[str, int, int]] = []
     for h in habits:
@@ -159,13 +159,7 @@ def facts(ctx: Ctx, first: date, last: date) -> Facts:
                 if g["habit"] == h.name and g["status"] in ("done", "partial")
             }
         )
-        missed = sum(
-            1
-            for m in misses
-            if m.module == "habits"
-            and m.id.startswith(f"miss-{h.id}-")
-            and m.day <= last
-        )
+        missed = missed_by.get(h.id, 0)
         if not done and not missed:
             continue
         add(

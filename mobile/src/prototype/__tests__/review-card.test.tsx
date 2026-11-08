@@ -253,3 +253,30 @@ describe("weeklyRange", () => {
     expect(weeklyRange("2026-11-02", "2026-11-08", "2026-11-02")).toBeNull()
   })
 })
+
+describe("reviewHabits", () => {
+  const { reviewHabits } = require("@domain/companion/review-rules")
+  const h = (id: string, reason: string) => ({
+    id,
+    name: id,
+    icon: "✅",
+    type: "check" as const,
+    schedule: [{ days: [0, 1, 2, 3, 4, 5, 6] }],
+    reminder: false,
+    status: "active" as const,
+    pauses: [{ from: "2026-11-05", to: "2026-11-07", reason }],
+    linkWorkout: false,
+    createdAt: "2026-10-01",
+    sortOrder: 0,
+  })
+  it("counts days a way-back pause covers as missed, other pauses not", () => {
+    const rows = reviewHabits(
+      [h("Walk", "way_back"), h("Swim", "holiday")],
+      [],
+      "2026-11-05",
+      "2026-11-07",
+      "2026-11-08",
+    )
+    expect(rows).toEqual([{ name: "Walk", done: 0, missed: 3, streak: 0 }])
+  })
+})

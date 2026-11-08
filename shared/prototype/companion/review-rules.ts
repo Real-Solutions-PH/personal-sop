@@ -2,6 +2,8 @@
 // (POST /companion/review), the rules review for prototype mode (a port
 // of the server's rules fallback), the days a "N days a week" habit lands
 // on, and the suggestions the person dismissed (kept 30 days, this device).
+import type { Habit, HabitLog } from "../habits/data"
+import { cellFor, daysBetween, logIndex, streaks } from "../habits/logic"
 import { createStore } from "../lib/store"
 
 export interface ReviewSuggestion {
@@ -128,4 +130,34 @@ export function weeklyRange(
 ): { fromDay: string; toDay: string } | null {
   const last = to < today ? to : prevDay(today)
   return last < from ? null : { fromDay: from, toDay: last }
+}
+
+/** Each habit's done and missed days over ``[from, to]`` for the review.
+ * A way-back pause keeps the streak but the days were still missed, so
+ * they count here (any other pause keeps its days out). */
+export function reviewHabits(
+  habits: readonly Habit[],
+  logs: readonly HabitLog[],
+  from: string,
+  to: string,
+  today: string,
+): ReviewRulesInput["habits"] {
+  const idx = logIndex(logs as HabitLog[])
+  const range = daysBetween(from, to)
+  return habits
+    .filter((h) => h.status !== "archived")
+    .map((h) => {
+      const open = {
+        ...h,
+        pauses: h.pauses.filter((p) => p.reason !== "way_back"),
+      }
+      const cells = range.map((d) => cellFor(open, d, idx, today))
+      return {
+        name: h.name,
+        done: cells.filter((c) => c === "done" || c === "partial").length,
+        missed: cells.filter((c) => c === "missed").length,
+        streak: streaks(h, idx, today).current,
+      }
+    })
+    .filter((h) => h.done || h.missed)
 }

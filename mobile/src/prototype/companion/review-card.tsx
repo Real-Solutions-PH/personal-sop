@@ -9,11 +9,11 @@ import {
   type ReviewGap,
   type ReviewKind,
   type ReviewOut,
+  reviewHabits,
   reviewRules,
 } from "@domain/companion/review-rules"
 import * as D from "@domain/dash/hooks"
 import { createHabit } from "@domain/habits/actions"
-import { cellFor, daysBetween, logIndex, streaks } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { createTask } from "@domain/tasks/actions"
@@ -85,20 +85,7 @@ function useLocalReview(
   const events = tasksStore.use((x) => x.events)
   const series = D.useOnTarget(31).series
   const today = dayKey()
-  const idx = logIndex(s.logs)
-  const range = daysBetween(fromDay, toDay)
-  const habits = s.habits
-    .filter((h) => h.status !== "archived")
-    .map((h) => {
-      const cells = range.map((d) => cellFor(h, d, idx, today))
-      return {
-        name: h.name,
-        done: cells.filter((c) => c === "done" || c === "partial").length,
-        missed: cells.filter((c) => c === "missed").length,
-        streak: streaks(h, idx, today).current,
-      }
-    })
-    .filter((h) => h.done || h.missed)
+  const habits = reviewHabits(s.habits, s.logs, fromDay, toDay, today)
   const tasksDone = events.filter((e) => {
     const d = dayKey(new Date(e.at))
     return e.type === "completed" && d >= fromDay && d <= toDay

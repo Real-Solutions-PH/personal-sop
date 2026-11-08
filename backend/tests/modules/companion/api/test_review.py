@@ -16,7 +16,9 @@ from sqlmodel import Session
 
 from app.modules.fitness import public as fitness_public
 from app.modules.habits import public as habits_public
+from app.modules.habits.models import HabitPause
 from app.modules.tasks import public as tasks_public
+from app.shared import owned_repo
 from tests.modules.capture.api.helpers import Api, install, say
 from tests.utils.mobile import ctx_for, signed_in
 
@@ -269,3 +271,30 @@ def test_review_with_every_win_dropped_falls_back_to_rules_wins(
     again = a.post(REVIEW, _body(a))
     assert len(model.seen) == 2
     assert [w["text"] for w in again["wins"]] == ["You read on two days."]
+
+
+def test_way_back_review_still_sees_the_days_a_way_back_pause_covers(
+    client: TestClient, db: Session
+) -> None:
+    """The way back pauses streaks across the gap, but the days were still
+    missed: the review keeps them as gaps so Fern can suggest a way back in.
+    Any other pause (a holiday) stays out."""
+    a = api(client, db)
+    _seed(a)
+    t = _today(a)
+    with ctx_for(a.user) as ctx:  # type: ignore[attr-defined]
+        for h in habits_public.list_habits(ctx):
+            owned_repo.insert(
+                ctx,
+                HabitPause,
+                {
+                    "habit_id": h.id,
+                    "from_day": t - timedelta(days=5),
+                    "to_day": t - timedelta(days=1),
+                    "reason": "way_back" if h.name == "Walk" else "holiday",
+                },
+            )
+        ctx.commit()
+    out = a.post(REVIEW, _body(a))
+    titles = [g["suggestion"]["title"] for g in out["gaps"]]
+    assert titles == ["Plan when to do Walk this week"]
