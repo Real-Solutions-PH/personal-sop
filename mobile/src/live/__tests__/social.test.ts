@@ -3,11 +3,13 @@
 // src/prototype/__tests__/social.test.ts, which runs without these mocks.
 
 import {
+  boardStore,
   cheer,
   connectSocial,
   createPost,
   deleteComment,
   deletePost,
+  loadExploreLive,
   ME,
   openChatLive,
   openPersonLive,
@@ -21,8 +23,12 @@ import {
   typingStore,
   unsend,
 } from "@/prototype/social/store"
-import { ApiError, type Http } from "../http"
-import { createSocialLive, TYPING_EVERY_MS } from "../social"
+import { ApiError, type Http, NetworkError, type RequestOptions } from "../http"
+import {
+  createSocialLive,
+  LEADERBOARD_TIMEOUT_MS,
+  TYPING_EVERY_MS,
+} from "../social"
 
 jest.mock("../config", () => ({
   ...jest.requireActual("../config"),
@@ -46,13 +52,23 @@ const ANA = "22222222-2222-4222-8222-222222222222"
 const POST = "33333333-3333-4333-8333-333333333333"
 const CHAT = "44444444-4444-4444-8444-444444444444"
 
-type Call = { method: string; path: string; body?: unknown }
+type Call = {
+  method: string
+  path: string
+  body?: unknown
+  opts?: RequestOptions
+}
 type Route = (call: Call) => unknown
 function fakeHttp(routes: Record<string, Route>) {
   const calls: Call[] = []
   const http: Http = {
-    async request<T>(method: string, path: string, body?: unknown) {
-      const call = { method, path, body }
+    async request<T>(
+      method: string,
+      path: string,
+      body?: unknown,
+      opts?: RequestOptions,
+    ) {
+      const call = { method, path, body, opts }
       calls.push(call)
       const key = `${method} ${path.split("?")[0]}`
       const route = routes[key]
@@ -1014,3 +1030,130 @@ test("Undo on a comment delete waits for the delete, then restores the thread", 
     "mine",
   ])
 })
+
+const BEN = "55555555-5555-4555-8555-555555555555"
+const wirePerson = (id: string, name: string, handle: string) => ({
+  ...brief(id, name, handle),
+  bio: "",
+  followers: 1,
+  following: 1,
+  is_me: false,
+  is_following: true,
+  close_friend: false,
+  scores_visible: true,
+})
+
+test("the friends leaderboard lists followed friends, with a longer timeout than a list read", async () => {
+  boardStore.setState({ state: "loading" })
+  const { http, calls } = fakeHttp({
+    "GET /social/explore": () => ({ suggested: [], popular: [] }),
+    "GET /social/leaderboard": () => ({
+      data: [
+        {
+          rank: 1,
+          person: brief(ANA, "Ana Reyes", "ana.lifts"),
+          life: 61,
+          streak: 4,
+        },
+        { rank: 2, person: brief(MEID, "Me", "me"), life: 48, streak: 1 },
+      ],
+      count: 2,
+    }),
+  })
+  socialStore.set((s) => ({
+    ...s,
+    people: [wirePersonToStore(ANA)],
+  }))
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  await loadExploreLive()
+  const board = calls.find((c) => c.path === "/social/leaderboard")
+  expect(board?.opts?.timeoutMs).toBe(LEADERBOARD_TIMEOUT_MS)
+  expect(LEADERBOARD_TIMEOUT_MS).toBeGreaterThan(15_000)
+  const ana = socialStore.get().people.find((p) => p.id === ANA)
+  expect(ana?.isFollowing).toBe(true)
+  expect(ana?.card?.life).toBe(61)
+  expect(boardStore.getState().state).toBe("ready")
+})
+
+test("a leaderboard that fails is reported as failed, and explore still lands", async () => {
+  boardStore.setState({ state: "loading" })
+  const { http } = fakeHttp({
+    "GET /social/explore": () => ({
+      suggested: [brief(BEN, "Ben Cruz", "ben")],
+      popular: [],
+    }),
+    "GET /social/leaderboard": () => {
+      throw new NetworkError("timeout")
+    },
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  await loadExploreLive()
+  expect(socialStore.get().people.map((p) => p.id)).toContain(BEN)
+  expect(boardStore.getState().state).toBe("failed")
+})
+
+test("a friend's scorecard keeps only the areas they share, and their flower", async () => {
+  const { http } = fakeHttp({
+    [`GET /social/people/${ANA}`]: () =>
+      wirePerson(ANA, "Ana Reyes", "ana.lifts"),
+    [`GET /social/people/${ANA}/posts`]: () => empty,
+    [`GET /social/people/${ANA}/followers`]: () => empty,
+    [`GET /social/people/${ANA}/following`]: () => empty,
+    [`GET /social/people/${ANA}/scorecard`]: () => ({
+      person_id: ANA,
+      life: 38,
+      level: "Getting started",
+      delta: 2,
+      streak: 0,
+      best: 0,
+      // Finance is switched off, so the server sends neither its rate nor
+      // its petal; a module this app cannot draw is left out.
+      rates: [
+        { module: "habits", rate: 0.06 },
+        { module: "tasks", rate: 0.5 },
+        { module: "fitness", rate: 0.41 },
+      ],
+      facets: [
+        {
+          key: "habits",
+          label: "Habits",
+          module: "habits",
+          value: 0.06,
+          prev: 0.1,
+        },
+        {
+          key: "training",
+          label: "Training",
+          module: "fitness",
+          value: 0.41,
+          prev: 0.3,
+        },
+        { key: "aura", label: "Aura", module: "aura", value: 1, prev: 1 },
+      ],
+      stats: [],
+      trophies: [],
+    }),
+  })
+  connectSocial(createSocialLive({ http, userId: MEID }))
+  await openPersonLive(ANA)
+  await settle()
+  const card = socialStore.get().people.find((p) => p.id === ANA)?.card
+  expect(card?.rates).toEqual({ habits: 0.06, tasks: 0.5, fitness: 0.41 })
+  expect(card?.facets?.map((f) => [f.key, f.module, f.off])).toEqual([
+    ["habits", "habits", false],
+    ["training", "fitness", false],
+  ])
+})
+
+function wirePersonToStore(id: string) {
+  return {
+    id,
+    name: "Ana Reyes",
+    username: "ana.lifts",
+    bio: "",
+    accent: "fit" as const,
+    followers: 1,
+    following: 1,
+    isFollowing: true,
+  }
+}

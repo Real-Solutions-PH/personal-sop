@@ -75,6 +75,17 @@ class AreaRatePublic(BaseModel):
     rate: float | None
 
 
+class ScoreFacetPublic(BaseModel):
+    """One petal of the area flower: a rate from 0 to 1 this period and the
+    period before."""
+
+    key: str
+    label: str
+    module: str
+    value: float
+    prev: float
+
+
 class ScorecardPublic(BaseModel):
     person_id: uuid.UUID
     life: int | None
@@ -83,6 +94,7 @@ class ScorecardPublic(BaseModel):
     streak: int
     best: int
     rates: list[AreaRatePublic]
+    facets: list[ScoreFacetPublic] = []
     stats: list[ProgressStat]
     trophies: list[TrophyPublic]
 
