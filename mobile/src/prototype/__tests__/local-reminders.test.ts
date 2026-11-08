@@ -923,9 +923,12 @@ describe("the daily Fern check-in", () => {
     expect(plan.map((p) => p.id)).toEqual(
       [1, 2, 3, 4, 5, 6].map((n) => `checkin-${n}`),
     )
+    // The first ask is the business day after ``today``, which before the
+    // day's rollover is not NOW's calendar date plus one.
     const first = plan[0]
-    expect("at" in first && first.at.getDate()).toBe(
-      new Date(NOW.getTime() + 86_400_000).getDate(),
+    const { addDays } = require("@domain/habits/logic")
+    expect("at" in first && require("@domain/lib/day").dayKey(first.at)).toBe(
+      addDays(today, 1),
     )
     expect("at" in first && first.at.getHours()).toBe(20)
   })
