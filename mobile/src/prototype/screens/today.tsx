@@ -118,6 +118,7 @@ import { CommunityButton, CommunityCard } from "../social/today-card"
 import { type Accent, fonts, radius, useTheme } from "../theme"
 import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
+import { maybeOpenWayBack } from "../way-back-open"
 import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { WeeklyReviewCard } from "../weekly-review-card"
@@ -1920,6 +1921,8 @@ export function Today() {
         : date.getHours() >= 12 && date.getHours() < 18
           ? "Good afternoon"
           : "Good evening"
+  // Back after two or more empty days: Fern's catch-up opens first, once.
+  useEffect(() => maybeOpenWayBack(go), [])
   // Each Home section by id (module cards are drawn from MODULE_CARDS).
   // Their place and Home-only hiding come from the layout (home-layout.ts).
   const SECTIONS: Record<string, () => ReactNode> = {
