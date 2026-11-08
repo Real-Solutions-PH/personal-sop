@@ -375,3 +375,28 @@ def log_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
             order_by=[col(HabitLog.day)],
         )
     ]
+
+
+# The pause reason the mobile way back writes across a gap of missed days.
+WAY_BACK = "way_back"
+
+
+def missed_days(ctx: Ctx, *, first: date, last: date) -> dict[uuid.UUID, int]:
+    """Missed scheduled days per habit over ``[first, last]``, counting the
+    days a way-back pause covers: that pause keeps the streak, but the days
+    were still missed (Fern's review turns them into a way back in). Any
+    other pause keeps its days out, as everywhere else."""
+    w = views.load_world(ctx, since=first)
+    pauses = views.pauses_by_habit(ctx)
+    out: dict[uuid.UUID, int] = {}
+    for h in owned_repo.list_rows(ctx, Habit):
+        kept = [p for p in pauses.get(h.id, []) if p.reason != WAY_BACK]
+        v = views.habit_view(ctx, h, kept)
+        n = sum(
+            1
+            for d in logic.days_between(first, last)
+            if logic.cell_for(v, d, w.idx, ctx.today) == "missed"
+        )
+        if n:
+            out[h.id] = n
+    return out

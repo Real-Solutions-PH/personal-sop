@@ -89,6 +89,9 @@ export interface MoreReminders {
   /** The Journal is shown (Settings, the profile's ``enabled_extras``).
    * Hidden = no reminders for journaling. Omitted = shown. */
   journal?: boolean
+  /** The daily Fern check-in: HH:MM (empty = off) and the day one was last
+   * sent, which moves today's ask to tomorrow. */
+  checkin?: { at: string; lastCheckin: string | null }
 }
 
 /** A habit that stands for journaling: the same rule the server uses to
@@ -159,7 +162,7 @@ const fmtHm = (d: Date) =>
 
 /** iOS allows 64 pending notifications; leave room for the system's own. */
 export const MAX_PENDING = 60
-const OURS = /^(task|habit|routine|weigh-in|bill)/
+const OURS = /^(task|habit|routine|weigh-in|bill|checkin)/
 const HORIZON_DAYS = 30
 /** Days of reminders before a bill, the due day included. */
 export const BILL_DAYS = 7
@@ -231,6 +234,25 @@ export function planReminders(
       })
   else if (weighIn)
     habitPlans.push({ id: "weigh-in", ...weighInText, daily: weighIn })
+  const checkin = more.checkin?.at ? hm(more.checkin.at) : null
+  const checkinText = {
+    title: "How did today go?",
+    body: "Tell Fern in a sentence — it logs it for you.",
+    href: "/today/checkin",
+  }
+  const ask = checkin && onDay(0, checkin)
+  if (ask && !inQuiet(ask, more.quiet)) {
+    // A repeating trigger can't skip today: dated asks for the days ahead
+    // instead (like the weigh-in), so one ignored ask never ends them.
+    if (more.checkin?.lastCheckin === today)
+      for (let n = 1; n <= 6; n++)
+        habitPlans.push({
+          id: `checkin-${n}`,
+          ...checkinText,
+          at: onDay(n, checkin),
+        })
+    else habitPlans.push({ id: "checkin", ...checkinText, daily: checkin })
+  }
   for (const r of more.routines ?? []) {
     if (!r.reminder || r.status !== "active" || !r.steps.length) continue
     for (const slot of r.schedule) {
@@ -401,6 +423,10 @@ export async function syncReminders(
       defaultRemindTime: tasksStore.get().settings.defaultRemindTime,
       enabled: dashStore.get().enabled,
       journal: extrasStore.get().journal,
+      checkin: {
+        at: dashStore.get().push.checkin ?? "",
+        lastCheckin: dashStore.get().push.lastCheckin || null,
+      },
     },
   )
   for (const p of plan)
@@ -607,9 +633,13 @@ export function startReminders() {
   privacyStore.subscribe(soon)
   // A module switched off or on: rebuild only when a switch moved, not on
   // every other dash change.
-  let switches = JSON.stringify(dashStore.get().enabled)
+  const watched = () => {
+    const d = dashStore.get()
+    return JSON.stringify([d.enabled, d.push.checkin, d.push.lastCheckin])
+  }
+  let switches = watched()
   dashStore.subscribe(() => {
-    const now = JSON.stringify(dashStore.get().enabled)
+    const now = watched()
     if (now === switches) return
     switches = now
     if (dashStore.get().enabled.nutrition === false)

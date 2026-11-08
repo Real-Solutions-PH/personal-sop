@@ -9,6 +9,7 @@ import {
   setEnabled,
   setEveningStart,
   setProfilePhoto,
+  setPush,
   setTargetThreshold,
   setWeight,
 } from "@domain/dash/store"
@@ -787,6 +788,27 @@ export function Settings() {
           {row("Morning digest", "", <Copy size={14}>{s.push.morning}</Copy>)}
           {row("Evening wrap-up", "", <Copy size={14}>{s.push.evening}</Copy>)}
           {row("Weekly review", "", <Copy size={14}>{s.push.review}</Copy>)}
+          {row(
+            "Daily check-in",
+            "Fern asks how today went, so you don't have to remember to log",
+            <Switch
+              label="Daily check-in"
+              value={!!s.push.checkin}
+              onChange={(on) =>
+                setPush({ checkin: on ? s.push.evening || "21:00" : "" })
+              }
+            />,
+          )}
+          {!!s.push.checkin &&
+            row(
+              "Check-in time",
+              "",
+              <TimeInput
+                label="Check-in time"
+                value={s.push.checkin}
+                onChange={(v) => setPush({ checkin: v })}
+              />,
+            )}
         </Frame>
         <SectionHeading>Appearance</SectionHeading>
         <Frame style={{ padding: 8, gap: 8 }}>

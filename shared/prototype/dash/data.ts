@@ -143,10 +143,16 @@ export interface DashState {
     morning: string
     evening: string
     review: string
+    /** Daily Fern check-in time (HH:MM); empty = off. Syncs. */
+    checkin: string
+    /** The business day a check-in was last sent; this device only. */
+    lastCheckin: string
   }
   targetThreshold: number
   eveningStart: string
   seenTrophies: string[]
+  /** The last active day the way back was shown for (this device only). */
+  wayBackSeenFor?: string
   /** The one-time reintroduction of a hidden part (a module, the Journal
    * or Community): offered once by Fern, and turned down for good with
    * "Not for me". On the account, so they outlive a reinstall. */
@@ -330,6 +336,8 @@ export const seed = (): DashState => ({
     morning: "07:00",
     evening: "21:00",
     review: "Sun 19:00",
+    checkin: "",
+    lastCheckin: "",
   },
   targetThreshold: 0.8,
   eveningStart: "18:00",

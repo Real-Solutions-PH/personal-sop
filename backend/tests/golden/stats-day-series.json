@@ -8481,8 +8481,11 @@
           "rate": 0.7634408602150538,
           "onTarget": 71,
           "scored": 93,
-          "current": 9,
-          "best": 10
+          "current": 19,
+          "best": 19,
+          "graceDays": [
+            "2026-10-08"
+          ]
         },
         "ranges": {
           "7": {
@@ -8490,8 +8493,8 @@
             "prevRate": 0.8571428571428571,
             "onTarget": 6,
             "scored": 6,
-            "current": 9,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           },
           "30": {
@@ -8499,8 +8502,8 @@
             "prevRate": 0.7333333333333333,
             "onTarget": 24,
             "scored": 29,
-            "current": 9,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           },
           "90": {
@@ -8508,8 +8511,8 @@
             "prevRate": 0.5,
             "onTarget": 69,
             "scored": 89,
-            "current": 9,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           },
           "365": {
@@ -8517,8 +8520,8 @@
             "prevRate": null,
             "onTarget": 71,
             "scored": 93,
-            "current": 9,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           }
         }
@@ -12194,8 +12197,12 @@
           "rate": 0.7553191489361702,
           "onTarget": 71,
           "scored": 94,
-          "current": 0,
-          "best": 10
+          "current": 19,
+          "best": 19,
+          "graceDays": [
+            "2026-10-08",
+            "2026-10-18"
+          ]
         },
         "ranges": {
           "7": {
@@ -12203,8 +12210,8 @@
             "prevRate": 0.8571428571428571,
             "onTarget": 6,
             "scored": 7,
-            "current": 0,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           },
           "30": {
@@ -12212,8 +12219,8 @@
             "prevRate": 0.7333333333333333,
             "onTarget": 24,
             "scored": 30,
-            "current": 0,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           },
           "90": {
@@ -12221,8 +12228,8 @@
             "prevRate": 0.5,
             "onTarget": 69,
             "scored": 90,
-            "current": 0,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           },
           "365": {
@@ -12230,8 +12237,8 @@
             "prevRate": null,
             "onTarget": 71,
             "scored": 94,
-            "current": 0,
-            "best": 10,
+            "current": 19,
+            "best": 19,
             "logged": 92
           }
         }
@@ -15905,8 +15912,11 @@
           "rate": 0.9876543209876543,
           "onTarget": 80,
           "scored": 81,
-          "current": 0,
-          "best": 80
+          "current": 80,
+          "best": 80,
+          "graceDays": [
+            "2026-10-17"
+          ]
         },
         "ranges": {
           "7": {
@@ -15914,7 +15924,7 @@
             "prevRate": 1,
             "onTarget": 5,
             "scored": 6,
-            "current": 0,
+            "current": 80,
             "best": 80,
             "logged": 82
           },
@@ -15923,7 +15933,7 @@
             "prevRate": 1,
             "onTarget": 25,
             "scored": 26,
-            "current": 0,
+            "current": 80,
             "best": 80,
             "logged": 82
           },
@@ -15932,7 +15942,7 @@
             "prevRate": 1,
             "onTarget": 79,
             "scored": 80,
-            "current": 0,
+            "current": 80,
             "best": 80,
             "logged": 82
           },
@@ -15941,7 +15951,7 @@
             "prevRate": null,
             "onTarget": 80,
             "scored": 81,
-            "current": 0,
+            "current": 80,
             "best": 80,
             "logged": 82
           }
@@ -19619,7 +19629,8 @@
           "onTarget": 80,
           "scored": 82,
           "current": 0,
-          "best": 80
+          "best": 80,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -23330,7 +23341,8 @@
           "onTarget": 53,
           "scored": 92,
           "current": 9,
-          "best": 9
+          "best": 9,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -27042,8 +27054,11 @@
           "rate": 0.5698924731182796,
           "onTarget": 53,
           "scored": 93,
-          "current": 0,
-          "best": 9
+          "current": 9,
+          "best": 9,
+          "graceDays": [
+            "2026-10-18"
+          ]
         },
         "ranges": {
           "7": {
@@ -27051,7 +27066,7 @@
             "prevRate": 0.7142857142857143,
             "onTarget": 6,
             "scored": 7,
-            "current": 0,
+            "current": 9,
             "best": 9,
             "logged": 91
           },
@@ -27060,7 +27075,7 @@
             "prevRate": 0.5333333333333333,
             "onTarget": 22,
             "scored": 30,
-            "current": 0,
+            "current": 9,
             "best": 9,
             "logged": 91
           },
@@ -27069,7 +27084,7 @@
             "prevRate": 0.3333333333333333,
             "onTarget": 52,
             "scored": 90,
-            "current": 0,
+            "current": 9,
             "best": 9,
             "logged": 91
           },
@@ -27078,7 +27093,7 @@
             "prevRate": null,
             "onTarget": 53,
             "scored": 93,
-            "current": 0,
+            "current": 9,
             "best": 9,
             "logged": 91
           }
@@ -30753,8 +30768,11 @@
           "rate": 0.16129032258064516,
           "onTarget": 15,
           "scored": 93,
-          "current": 5,
-          "best": 5
+          "current": 8,
+          "best": 8,
+          "graceDays": [
+            "2026-10-12"
+          ]
         },
         "ranges": {
           "7": {
@@ -30762,8 +30780,8 @@
             "prevRate": 0.42857142857142855,
             "onTarget": 5,
             "scored": 6,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 92
           },
           "30": {
@@ -30771,8 +30789,8 @@
             "prevRate": 0.1,
             "onTarget": 10,
             "scored": 29,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 92
           },
           "90": {
@@ -30780,8 +30798,8 @@
             "prevRate": 0.25,
             "onTarget": 14,
             "scored": 89,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 92
           },
           "365": {
@@ -30789,8 +30807,8 @@
             "prevRate": null,
             "onTarget": 15,
             "scored": 93,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 92
           }
         }
@@ -34467,7 +34485,8 @@
           "onTarget": 15,
           "scored": 94,
           "current": 0,
-          "best": 5
+          "best": 8,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -34476,7 +34495,7 @@
             "onTarget": 5,
             "scored": 7,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 92
           },
           "30": {
@@ -34485,7 +34504,7 @@
             "onTarget": 10,
             "scored": 30,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 92
           },
           "90": {
@@ -34494,7 +34513,7 @@
             "onTarget": 14,
             "scored": 90,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 92
           },
           "365": {
@@ -34503,7 +34522,7 @@
             "onTarget": 15,
             "scored": 94,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 92
           }
         }
@@ -38178,7 +38197,8 @@
           "onTarget": 76,
           "scored": 81,
           "current": 0,
-          "best": 73
+          "best": 75,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -38187,7 +38207,7 @@
             "onTarget": 2,
             "scored": 6,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "30": {
@@ -38196,7 +38216,7 @@
             "onTarget": 21,
             "scored": 26,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "90": {
@@ -38205,7 +38225,7 @@
             "onTarget": 75,
             "scored": 80,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "365": {
@@ -38214,7 +38234,7 @@
             "onTarget": 76,
             "scored": 81,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           }
         }
@@ -41891,7 +41911,8 @@
           "onTarget": 76,
           "scored": 82,
           "current": 0,
-          "best": 73
+          "best": 75,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -41900,7 +41921,7 @@
             "onTarget": 2,
             "scored": 7,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "30": {
@@ -41909,7 +41930,7 @@
             "onTarget": 21,
             "scored": 27,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "90": {
@@ -41918,7 +41939,7 @@
             "onTarget": 75,
             "scored": 81,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "365": {
@@ -41927,7 +41948,7 @@
             "onTarget": 76,
             "scored": 82,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           }
         }
@@ -45601,8 +45622,11 @@
           "rate": 0.13043478260869565,
           "onTarget": 12,
           "scored": 92,
-          "current": 5,
-          "best": 5
+          "current": 8,
+          "best": 8,
+          "graceDays": [
+            "2026-10-12"
+          ]
         },
         "ranges": {
           "7": {
@@ -45610,8 +45634,8 @@
             "prevRate": 0.42857142857142855,
             "onTarget": 5,
             "scored": 6,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 91
           },
           "30": {
@@ -45619,8 +45643,8 @@
             "prevRate": 0.06666666666666667,
             "onTarget": 10,
             "scored": 29,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 91
           },
           "90": {
@@ -45628,8 +45652,8 @@
             "prevRate": 0,
             "onTarget": 12,
             "scored": 89,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 91
           },
           "365": {
@@ -45637,8 +45661,8 @@
             "prevRate": null,
             "onTarget": 12,
             "scored": 92,
-            "current": 5,
-            "best": 5,
+            "current": 8,
+            "best": 8,
             "logged": 91
           }
         }
@@ -49315,7 +49339,8 @@
           "onTarget": 12,
           "scored": 93,
           "current": 0,
-          "best": 5
+          "best": 8,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -49324,7 +49349,7 @@
             "onTarget": 5,
             "scored": 7,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 91
           },
           "30": {
@@ -49333,7 +49358,7 @@
             "onTarget": 10,
             "scored": 30,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 91
           },
           "90": {
@@ -49342,7 +49367,7 @@
             "onTarget": 12,
             "scored": 90,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 91
           },
           "365": {
@@ -49351,7 +49376,7 @@
             "onTarget": 12,
             "scored": 93,
             "current": 0,
-            "best": 5,
+            "best": 8,
             "logged": 91
           }
         }
@@ -53026,7 +53051,8 @@
           "onTarget": 2,
           "scored": 93,
           "current": 0,
-          "best": 1
+          "best": 1,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -56739,7 +56765,8 @@
           "onTarget": 2,
           "scored": 94,
           "current": 0,
-          "best": 1
+          "best": 1,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -60450,7 +60477,8 @@
           "onTarget": 76,
           "scored": 81,
           "current": 0,
-          "best": 73
+          "best": 75,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -60459,7 +60487,7 @@
             "onTarget": 2,
             "scored": 6,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "30": {
@@ -60468,7 +60496,7 @@
             "onTarget": 21,
             "scored": 26,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "90": {
@@ -60477,7 +60505,7 @@
             "onTarget": 75,
             "scored": 80,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "365": {
@@ -60486,7 +60514,7 @@
             "onTarget": 76,
             "scored": 81,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           }
         }
@@ -64163,7 +64191,8 @@
           "onTarget": 76,
           "scored": 82,
           "current": 0,
-          "best": 73
+          "best": 75,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -64172,7 +64201,7 @@
             "onTarget": 2,
             "scored": 7,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "30": {
@@ -64181,7 +64210,7 @@
             "onTarget": 21,
             "scored": 27,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "90": {
@@ -64190,7 +64219,7 @@
             "onTarget": 75,
             "scored": 81,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           },
           "365": {
@@ -64199,7 +64228,7 @@
             "onTarget": 76,
             "scored": 82,
             "current": 0,
-            "best": 73,
+            "best": 75,
             "logged": 82
           }
         }
@@ -67874,7 +67903,8 @@
           "onTarget": 5,
           "scored": 92,
           "current": 3,
-          "best": 3
+          "best": 3,
+          "graceDays": []
         },
         "ranges": {
           "7": {
@@ -71586,8 +71616,11 @@
           "rate": 0.053763440860215055,
           "onTarget": 5,
           "scored": 93,
-          "current": 0,
-          "best": 3
+          "current": 3,
+          "best": 3,
+          "graceDays": [
+            "2026-10-18"
+          ]
         },
         "ranges": {
           "7": {
@@ -71595,7 +71628,7 @@
             "prevRate": 0.14285714285714285,
             "onTarget": 3,
             "scored": 7,
-            "current": 0,
+            "current": 3,
             "best": 3,
             "logged": 91
           },
@@ -71604,7 +71637,7 @@
             "prevRate": 0,
             "onTarget": 5,
             "scored": 30,
-            "current": 0,
+            "current": 3,
             "best": 3,
             "logged": 91
           },
@@ -71613,7 +71646,7 @@
             "prevRate": 0,
             "onTarget": 5,
             "scored": 90,
-            "current": 0,
+            "current": 3,
             "best": 3,
             "logged": 91
           },
@@ -71622,7 +71655,7 @@
             "prevRate": null,
             "onTarget": 5,
             "scored": 93,
-            "current": 0,
+            "current": 3,
             "best": 3,
             "logged": 91
           }
@@ -71637,7 +71670,8 @@
           "onTarget": 0,
           "scored": 0,
           "current": 0,
-          "best": 0
+          "best": 0,
+          "graceDays": []
         }
       },
       {
@@ -71660,7 +71694,8 @@
           "onTarget": 0,
           "scored": 0,
           "current": 0,
-          "best": 0
+          "best": 0,
+          "graceDays": []
         }
       },
       {
@@ -71695,7 +71730,8 @@
           "onTarget": 3,
           "scored": 3,
           "current": 3,
-          "best": 3
+          "best": 3,
+          "graceDays": []
         }
       },
       {
@@ -71735,8 +71771,11 @@
           "rate": 0.75,
           "onTarget": 3,
           "scored": 4,
-          "current": 2,
-          "best": 2
+          "current": 3,
+          "best": 3,
+          "graceDays": [
+            "2026-01-02"
+          ]
         }
       },
       {
@@ -71759,7 +71798,8 @@
           "onTarget": 0,
           "scored": 2,
           "current": 0,
-          "best": 0
+          "best": 0,
+          "graceDays": []
         }
       },
       {
@@ -71817,8 +71857,11 @@
           "rate": 0.8,
           "onTarget": 4,
           "scored": 5,
-          "current": 3,
-          "best": 3
+          "current": 4,
+          "best": 4,
+          "graceDays": [
+            "2026-01-04"
+          ]
         }
       },
       {
@@ -71876,8 +71919,179 @@
           "rate": 0.8333333333333334,
           "onTarget": 5,
           "scored": 6,
+          "current": 5,
+          "best": 5,
+          "graceDays": [
+            "2026-01-05"
+          ]
+        }
+      },
+      {
+        "series": [
+          {
+            "day": "2026-01-01",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-02",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-03",
+            "due": 2,
+            "done": 0,
+            "onTarget": false
+          },
+          {
+            "day": "2026-01-04",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-05",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          }
+        ],
+        "stats": {
+          "rate": 0.8,
+          "onTarget": 4,
+          "scored": 5,
+          "current": 4,
+          "best": 4,
+          "graceDays": [
+            "2026-01-03"
+          ]
+        }
+      },
+      {
+        "series": [
+          {
+            "day": "2026-01-01",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-02",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-03",
+            "due": 2,
+            "done": 0,
+            "onTarget": false
+          },
+          {
+            "day": "2026-01-04",
+            "due": 2,
+            "done": 0,
+            "onTarget": false
+          },
+          {
+            "day": "2026-01-05",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          }
+        ],
+        "stats": {
+          "rate": 0.6,
+          "onTarget": 3,
+          "scored": 5,
+          "current": 1,
+          "best": 2,
+          "graceDays": []
+        }
+      },
+      {
+        "series": [
+          {
+            "day": "2026-01-01",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-02",
+            "due": 0,
+            "done": 0,
+            "onTarget": null
+          },
+          {
+            "day": "2026-01-03",
+            "due": 0,
+            "done": 0,
+            "onTarget": null
+          },
+          {
+            "day": "2026-01-04",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-05",
+            "due": 2,
+            "done": 0,
+            "onTarget": false
+          },
+          {
+            "day": "2026-01-06",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          }
+        ],
+        "stats": {
+          "rate": 0.75,
+          "onTarget": 3,
+          "scored": 4,
+          "current": 3,
+          "best": 3,
+          "graceDays": [
+            "2026-01-05"
+          ]
+        }
+      },
+      {
+        "series": [
+          {
+            "day": "2026-01-01",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-02",
+            "due": 2,
+            "done": 2,
+            "onTarget": true
+          },
+          {
+            "day": "2026-01-03",
+            "due": 2,
+            "done": 0,
+            "onTarget": false
+          }
+        ],
+        "stats": {
+          "rate": 0.6666666666666666,
+          "onTarget": 2,
+          "scored": 3,
           "current": 2,
-          "best": 3
+          "best": 2,
+          "graceDays": [
+            "2026-01-03"
+          ]
         }
       }
     ]

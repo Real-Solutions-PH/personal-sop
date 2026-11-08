@@ -571,6 +571,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       clientUuid: newId(),
     }
     if (input.hint) cap.hint = input.hint
+    if (input.rangeFrom) cap.rangeFrom = input.rangeFrom
     if (input.photo) cap.photo = input.photo
     if (input.photos?.length) cap.photos = input.photos
     if (input.durationSec !== undefined) cap.durationSec = input.durationSec

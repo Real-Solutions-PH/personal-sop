@@ -20,6 +20,7 @@ from app.modules.stats.contract import (
     Window,
 )
 from app.shared.context import Ctx
+from app.shared.grace import walk_run
 
 
 def _overall(ctx: Ctx, w: World, window: Window) -> L.OverallStats:
@@ -236,18 +237,31 @@ class HabitsContributor:
             v = w.views[h.id]
             if v.status == "archived":
                 continue
-            run = 0
-            for day in L.days_between(v.created, today):
+
+            # The same walk as the streak (a lone miss is a grace day).
+            def hit(
+                day: date, run: int, name: str = h.name, hid: str = str(h.id)
+            ) -> None:
+                nonlocal best, best_name
+                if run > best:
+                    best, best_name = run, name
+                for m in L.STREAK_MILESTONES:
+                    if run == m and (m not in reached or day < reached[m][0]):
+                        reached[m] = (day, name, hid)
+
+            def cell(day: date, v: L.HabitView = v) -> bool | None:
                 c = L.cell_for(v, day, w.idx, today)
-                if c in ("done", "partial"):
-                    run += 1
-                    if run > best:
-                        best, best_name = run, h.name
-                    for m in L.STREAK_MILESTONES:
-                        if run == m and (m not in reached or day < reached[m][0]):
-                            reached[m] = (day, h.name, str(h.id))
-                elif c == "missed":
-                    run = 0
+                return (
+                    True
+                    if c in ("done", "partial")
+                    else False
+                    if c == "missed"
+                    else None
+                )
+
+            walk_run(
+                ((d, cell(d)) for d in L.days_between(v.created, today)), on_hit=hit
+            )
         out: list[Achievement] = []
         for m in L.STREAK_MILESTONES:
             got = reached.get(m)

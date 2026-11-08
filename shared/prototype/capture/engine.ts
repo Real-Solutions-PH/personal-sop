@@ -67,6 +67,8 @@ export interface SendInput {
   text: string
   source?: CaptureSource
   hint?: string
+  /** A catch-up's first unlogged day (YYYY-MM-DD); the gap ends yesterday. */
+  rangeFrom?: string
   photo?: string
   /** More photos read together with ``photo`` (one capture). */
   photos?: string[]
@@ -1030,6 +1032,17 @@ function interpret(cap: Capture): ReplyItem[] {
         ],
       },
     ]
+  // A way-back catch-up with no model to date its facts: the whole note,
+  // unsplit, as one journal entry on the gap's last day (yesterday), the
+  // same as the server's rules path.
+  if (hint === "catch_up")
+    return parseCapture(cap.text, {
+      hint: "journal",
+      source: cap.source,
+      at: cap.at,
+    }).map((d) =>
+      fromDraft(d.t === "record" ? { ...d, dayOffset: -1 } : d, cap),
+    )
   const drafts = parseCapture(cap.text, {
     hint: hint === "journal" ? "journal" : hint,
     source: cap.source,
@@ -1142,6 +1155,7 @@ export function sendCapture(input: SendInput): string {
     source: input.source ?? "text",
     text: input.text.trim(),
     hint: input.hint,
+    ...(input.rangeFrom ? { rangeFrom: input.rangeFrom } : {}),
     photo: input.photo,
     ...(input.photos?.length ? { photos: input.photos } : {}),
     durationSec: input.durationSec,

@@ -27,7 +27,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { streakLost } from "../rewards"
+import { streakMiss, streakNote } from "../rewards"
 import { useTheme } from "../theme"
 import { Button, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitLog } from "./habits"
@@ -242,7 +242,8 @@ export function HabitDetail({ id }: { id: string }) {
     prev = L.habitStats(h, idx, dayOffset(-59), dayOffset(-30), today),
     long = L.habitStats(h, idx, dayOffset(-89), today, today),
     st = L.streaks(h, idx, today),
-    lost = streakLost(st.broken, st.current, today),
+    miss = streakMiss(h, idx, st, today),
+    note = streakNote(h, idx, st, today),
     log = idx.get(L.lk(id, today)),
     pause = L.currentPause(h, today),
     routines = s.routines.filter(
@@ -435,9 +436,9 @@ export function HabitDetail({ id }: { id: string }) {
             🏆 New best — this is your longest streak yet.
           </Copy>
         )}
-        {(lost > 0 || log?.status === "skipped") && (
+        {(miss || note || log?.status === "skipped") && (
           <Line style={{ gap: 8, flexWrap: "wrap" }}>
-            <StreakChip streak={st.current} lost={lost} />
+            <StreakChip streak={st.current} miss={miss} note={note} />
             {log?.status === "skipped" && (
               <Copy size={13} muted>
                 Skipped today — streak kept
@@ -487,14 +488,14 @@ export function HabitDetail({ id }: { id: string }) {
       </View>
       {!!st.broken.length && (
         <View style={{ marginTop: -12 }}>
-          <SectionHeading>Broken streaks</SectionHeading>
+          <SectionHeading>Runs that ended</SectionHeading>
           <Frame style={{ padding: 16, gap: 4 }}>
             {st.broken
               .slice(-3)
               .reverse()
               .map((b) => (
                 <Line key={b.day} style={{ justifyContent: "space-between" }}>
-                  <Copy size={14}>Lost a {b.length}-day streak</Copy>
+                  <Copy size={14}>{b.length}-day run ended</Copy>
                   <Copy size={14} muted>
                     {fmt(b.day)}
                   </Copy>

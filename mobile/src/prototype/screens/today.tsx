@@ -112,12 +112,13 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { PrivacyEye } from "../privacy-eye"
-import { streakLost } from "../rewards"
+import { streakMiss, streakNote } from "../rewards"
 import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { type Accent, fonts, radius, useTheme } from "../theme"
 import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
+import { maybeOpenWayBack } from "../way-back-open"
 import { refreshWeather } from "../weather"
 import { WeatherCard } from "../weather-card"
 import { WeeklyReviewCard } from "../weekly-review-card"
@@ -484,7 +485,8 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
     log = idx.get(H.lk(habit.id, today)),
     st = H.streaks(habit, idx, today),
     streak = st.current,
-    lost = streakLost(st.broken, st.current, today),
+    miss = streakMiss(habit, idx, st, today),
+    note = streakNote(habit, idx, st, today),
     done = log?.status === "done",
     state = useRuleState(habit, today),
     [actions, setActions] = useState(false)
@@ -535,7 +537,7 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
                 done={done}
               />
               <AutoMark />
-              <StreakChip streak={streak} lost={lost} />
+              <StreakChip streak={streak} miss={miss} note={note} />
             </Line>
           </Tap>
         </Line>
@@ -557,7 +559,8 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
     log = idx.get(H.lk(habit.id, today)),
     st = H.streaks(habit, idx, today),
     streak = st.current,
-    lost = streakLost(st.broken, st.current, today),
+    miss = streakMiss(habit, idx, st, today),
+    note = streakNote(habit, idx, st, today),
     done = log?.status === "done"
   const toggle = () => {
     if (done) {
@@ -639,7 +642,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                     {log?.status === "skipped" ? " · skipped, streak kept" : ""}
                   </Copy>
                   {habit.rule && <ScreenOffMark />}
-                  <StreakChip streak={streak} lost={lost} />
+                  <StreakChip streak={streak} miss={miss} note={note} />
                 </Line>
               </Tap>
               {habit.type === "count" && !done && (
@@ -1918,6 +1921,8 @@ export function Today() {
         : date.getHours() >= 12 && date.getHours() < 18
           ? "Good afternoon"
           : "Good evening"
+  // Back after two or more empty days: Fern's catch-up opens first, once.
+  useEffect(() => maybeOpenWayBack(go), [])
   // Each Home section by id (module cards are drawn from MODULE_CARDS).
   // Their place and Home-only hiding come from the layout (home-layout.ts).
   const SECTIONS: Record<string, () => ReactNode> = {
