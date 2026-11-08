@@ -59,78 +59,41 @@ const usd = (n: number) =>
     minimumFractionDigits: Number.isInteger(n) ? 0 : 2,
   })
 
-// Act one, the problem: five apps, five prices. Scrolling strikes each one
-// out in turn while the yearly total counts up.
-export function ProblemScene() {
-  const root = useRef<HTMLElement>(null)
-  useScene(root, (gsap, q, tl) => {
-    const rows = q(".stack-list li")
-    const strikes = q(".strike")
-    const total = q("[data-count]")[0]
-    gsap.set(rows, { opacity: 0.4 })
-    gsap.set(strikes, { scaleX: 0 })
-    gsap.set(q(".stack-total"), { autoAlpha: 0, y: 24 })
-    const n = { v: 0 }
-    rows.forEach((r, i) => {
-      tl.to(r, { opacity: 1, duration: 0.3 }, i * 0.6)
-      tl.to(strikes[i], { scaleX: 1, duration: 0.4 }, i * 0.6 + 0.2)
-    })
-    tl.to(q(".stack-total"), { autoAlpha: 1, y: 0, duration: 0.4 }, 0.2)
-    tl.to(
-      n,
-      {
-        v: STACK.total,
-        duration: rows.length * 0.6,
-        ease: "none",
-        onUpdate: () => {
-          if (total) total.textContent = usd(Math.round(n.v))
-        },
-      },
-      0.2,
-    )
-    tl.to({}, { duration: 0.6 })
-  })
-
+// Act one, the problem: five apps, five prices, each struck out, and what
+// they cost together. A still section; nothing animates.
+export function ProblemSection() {
   return (
-    <section
-      ref={root}
-      id="why"
-      className="scene"
-      aria-labelledby="why-title"
-      style={{ ["--beats" as string]: 3 }}
-    >
-      <div className="sc-track">
-        <div className="sc-stage sc-center wrap">
-          <h2 className="h2" id="why-title" data-no-split>
-            You didn't fail at tracking. Five apps did.
-          </h2>
-          <div className="why-stack">
-            <ul className="stack-list" aria-label="A typical tracker stack">
-              {STACK.apps.map((s) => (
-                <li key={s.app}>
-                  <span>
-                    {s.app} <span className="area">{s.area}</span>
-                  </span>
-                  <span className="price num">
-                    <span className="strike" aria-hidden="true" />
-                    {usd(s.perYear)}
-                    <span className="per"> / yr</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <div className="stack-total">
-              <b>Five apps, five places to log one day</b>
-              <span className="num">
-                about <span data-count={STACK.total}>{usd(STACK.total)}</span>
-                <span className="per"> / yr</span>
-              </span>
-            </div>
-            <p className="fine">
-              Approximate US prices, checked {STACK.checked}. Prices vary by
-              region and change.
-            </p>
+    <section id="why" aria-labelledby="why-title">
+      <div className="wrap sc-center why">
+        <h2 className="h2" id="why-title" data-no-split>
+          You didn't fail at tracking. Five apps did.
+        </h2>
+        <div className="why-stack">
+          <ul className="stack-list" aria-label="A typical tracker stack">
+            {STACK.apps.map((s) => (
+              <li key={s.app}>
+                <span>
+                  {s.app} <span className="area">{s.area}</span>
+                </span>
+                <span className="price num">
+                  <span className="strike" aria-hidden="true" />
+                  {usd(s.perYear)}
+                  <span className="per"> / yr</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="stack-total">
+            <b>Five apps, five places to log one day</b>
+            <span className="num">
+              about {usd(STACK.total)}
+              <span className="per"> / yr</span>
+            </span>
           </div>
+          <p className="fine">
+            Approximate US prices, checked {STACK.checked}. Prices vary by
+            region and change.
+          </p>
         </div>
       </div>
     </section>

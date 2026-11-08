@@ -20,11 +20,10 @@ import { HeroVideo } from "@/components/HeroVideo"
 import { Logo } from "@/components/Logo"
 import { PrimaryCta } from "@/components/PrimaryCta"
 import { Reveal } from "@/components/Reveal"
-import { FernScene, ProblemScene, ShareScene } from "@/components/Scenes"
+import { FernScene, ProblemSection, ShareScene } from "@/components/Scenes"
 import { ScrollFx } from "@/components/ScrollFx"
 import { ScrollStory } from "@/components/ScrollStory"
 import { SiteFooter } from "@/components/SiteFooter"
-import { StickyCta } from "@/components/StickyCta"
 import { StreakRing } from "@/components/StreakRing"
 import { WaitlistForm } from "@/components/WaitlistForm"
 import {
@@ -189,7 +188,7 @@ export default function Home() {
         </section>
 
         {/* Act one, the problem. */}
-        <ProblemScene />
+        <ProblemSection />
 
         {/* Act two, the solution: the pinned, scroll-scrubbed story. */}
         <ScrollStory />
@@ -410,7 +409,6 @@ export default function Home() {
       </main>
 
       <SiteFooter />
-      <StickyCta />
       <Reveal />
       <ScrollFx />
     </>

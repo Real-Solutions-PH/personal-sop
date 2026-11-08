@@ -1320,61 +1320,6 @@ section {
   color: var(--good);
 }
 
-/* ---------- Sticky CTA ---------- */
-.sticky-cta {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 50;
-  padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--card) 94%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border);
-  transform: translateY(110%);
-  opacity: 0;
-  transition:
-    transform 240ms var(--ease-out),
-    opacity 240ms var(--ease-out);
-  pointer-events: none;
-}
-.sticky-cta.show {
-  transform: none;
-  opacity: 1;
-  pointer-events: auto;
-}
-.sticky-cta .inner {
-  max-width: var(--max);
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.sticky-cta p {
-  font-size: 14px;
-  color: var(--muted-foreground);
-  display: none;
-}
-.sticky-cta p b {
-  color: var(--foreground);
-  font-weight: 600;
-}
-@media (min-width: 600px) {
-  .sticky-cta p {
-    display: block;
-  }
-}
-.sticky-cta .btn {
-  flex: 1;
-}
-@media (min-width: 600px) {
-  .sticky-cta .btn {
-    flex: none;
-  }
-}
-
 /* ---------- Footer ---------- */
 .site-footer {
   padding: 48px 0 120px;
@@ -1485,29 +1430,12 @@ section {
 .fx-word {
   display: inline-block;
 }
-.fx-progress {
-  position: fixed;
-  inset: 0 0 auto;
-  height: 3px;
-  z-index: 60;
-  background: var(--primary);
-  transform: scaleX(0);
-  transform-origin: left;
-  pointer-events: none;
-  display: none;
-}
-.motion-live .fx-progress {
-  display: block;
-}
 
-/* Tracker stack: a strike draws through each price as you scroll past. */
+/* Tracker stack: a strike through each price. */
 .stack-list .price {
   position: relative;
 }
 .stack-list .strike {
-  display: none;
-}
-.motion-live .stack-list .strike {
   display: block;
   position: absolute;
   left: -4px;
@@ -1516,8 +1444,6 @@ section {
   height: 2px;
   border-radius: 2px;
   background: color-mix(in srgb, var(--bad) 75%, transparent);
-  transform: scaleX(0);
-  transform-origin: left;
 }
 
 /* Hero: the film tilts toward the pointer; area tiles float at depth. */
@@ -1887,9 +1813,7 @@ section {
   .motion-ok .st-stage {
     grid-template-rows: auto minmax(0, 1fr);
     gap: 8px;
-    /* Room at the bottom for the sticky waitlist bar, which is the ask on
-       small screens. */
-    padding-block: 64px 84px;
+    padding-block: 64px 24px;
     align-items: stretch;
   }
   .motion-ok .st-scene {
@@ -1950,8 +1874,8 @@ section {
 @media (max-width: 899px) {
   .motion-ok .sc-stage {
     gap: 20px;
-    /* Room for the header above and the sticky waitlist bar below. */
-    padding-block: 64px 84px;
+    /* Room for the header above. */
+    padding-block: 64px 24px;
   }
   .motion-ok .sc-split {
     grid-template-rows: auto minmax(0, 1fr);
@@ -2063,4 +1987,9 @@ section {
   .sh-card {
     height: min(420px, 42svh);
   }
+}
+
+.why {
+  display: grid;
+  gap: 32px;
 }

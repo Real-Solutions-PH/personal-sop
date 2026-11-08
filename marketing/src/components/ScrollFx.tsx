@@ -32,7 +32,7 @@ function splitWords(el: HTMLElement): HTMLElement[] {
 }
 
 // Page-wide scroll effects, all driven by GSAP ScrollTrigger once it loads:
-// a reading-progress bar, section headings that light up word by word,
+// section headings that light up word by word,
 // parallax depth on elements marked `data-speed`, and a pointer tilt on
 // elements marked `data-tilt`. Nothing here hides content before it runs, so the
 // page reads the same without it.
@@ -46,12 +46,6 @@ export function ScrollFx() {
       if (!m || dead) return
       const { gsap } = m
       ctx = gsap.context(() => {
-        gsap.to(".fx-progress", {
-          scaleX: 1,
-          ease: "none",
-          scrollTrigger: { start: 0, end: "max", scrub: 0.3 },
-        })
-
         for (const h of gsap.utils.toArray<HTMLElement>(
           "main .h2:not([data-no-split])",
         )) {
@@ -155,5 +149,5 @@ export function ScrollFx() {
     }
   }, [])
 
-  return <div className="fx-progress" aria-hidden="true" />
+  return null
 }
