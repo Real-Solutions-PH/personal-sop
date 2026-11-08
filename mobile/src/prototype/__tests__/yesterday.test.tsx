@@ -274,6 +274,35 @@ describe("the list", () => {
     expect(screen.getByText("3 of 6 done · off target · 2 misses")).toBeTruthy()
   })
 
+  it("lists nutrition misses in the same row, each opening its day", () => {
+    mockRequest.mockReturnValue(new Promise(() => {}))
+    const nut = (id: string, title: string): Miss => ({
+      id: `${id}-${yesterday}`,
+      day: yesterday,
+      title,
+      module: "nutrition",
+      href: `/nutrition?day=${yesterday}`,
+    })
+    mockFeed.misses = [
+      nut("nut-protein", "Protein short by 35 g (105 of 140 g)"),
+      nut("nut-fiber", "Fiber short by 15 g (10 of 25 g)"),
+      nut(
+        "nut-limit-sodium",
+        "Over sodium limit by 450 mg (2,450 of 2,000 mg)",
+      ),
+    ]
+    show()
+    expect(screen.getAllByTestId("yesterday-miss")).toHaveLength(3)
+    expect(screen.getByText("Protein short")).toBeTruthy()
+    expect(screen.getByText("105 of 140 g · 35 g short")).toBeTruthy()
+    expect(screen.getByText("Fiber short")).toBeTruthy()
+    expect(screen.getByText("Over limit")).toBeTruthy()
+    expect(screen.getByText("Sodium")).toBeTruthy()
+    expect(screen.getByText("2,450 of 2,000 mg · 450 mg over")).toBeTruthy()
+    fireEvent.press(screen.getByLabelText(/^Over limit: Sodium/))
+    expect(router.push).toHaveBeenCalledWith(`/nutrition?day=${yesterday}`)
+  })
+
   it("a row opens its record", () => {
     mockRequest.mockReturnValue(new Promise(() => {}))
     show()
