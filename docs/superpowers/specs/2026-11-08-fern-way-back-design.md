@@ -1,6 +1,6 @@
 # Fern way back, grace day, daily check-in and review — design
 
-Date: 2026-11-08 · Status: approved by Kai 2026-11-08 (Q1 → A, run ends)
+Date: 2026-11-08 · Status: approved by Kai 2026-11-08 — Q1 changed to **B, paused and resumes** ("make the app forgiving")
 
 ## Why
 
@@ -100,11 +100,14 @@ place of `lost`:
 | State | Chip text | a11y label | Colour |
 |---|---|---|---|
 | Run alive, grace used | `🔥 12 · grace day used` | "12-day streak, grace day used" | flame (warn) as today |
-| Run ended yesterday | `2 days missed · run of 12 ended` | "2 days missed, 12-day run ended" | neutral muted, no red |
+| Run paused by a way back (until next done) | `🔥 12 · paused 3 days` | "12-day streak, paused 3 days while away" | flame (warn) |
+| Run ended yesterday (no way-back pause available) | `2 days missed · run of 12 ended` | "2 days missed, 12-day run ended" | neutral muted, no red |
 
 The cost (the run that ended) stays visible, satisfying the pillar; the
 punishment framing (red, "lost") goes. `streakLost()` in `rewards.ts:31`
-becomes `streakMiss()` returning `{missed, run, grace}`.
+becomes `streakMiss()` returning `{missed, run, grace}`, and a new
+`streakNote(h, idx, today)` returns `"grace day used"`, `"paused N days"` or
+null for the live chip.
 
 Copy sweep, same tone:
 - `daily-strips.tsx:35` "Yesterday: off target · N-day streak ended" →
@@ -141,9 +144,9 @@ it never re-appears for the same gap.
 4. After sending: the normal capture cards for what Fern parsed (person
    confirms/undoes as usual), then **"Here's where you are"** — three
    deterministic lines, no AI:
-   - streaks: "Gym: 3 days missed · run of 12 ended — best run 12 is
-     kept" / "Reading: 🔥 9 · grace day used" (the top two habits by run
-     length);
+   - streaks: "Gym: 3 days missed · streak paused at 12" / "Reading: 🔥 9 ·
+     grace day used" (the top two habits by run length; "run of 12 ended"
+     only when the 30-day limit below blocked the pause);
    - today: "Today: 3 habits and 2 tasks" (titles wrap);
    - a win: the most recent on-target day or milestone before the gap.
 5. Then the Fern review (§5) for the gap range, then "Back to today"
@@ -170,6 +173,25 @@ confirmed/undone the cards, so a catch-up like "did gym Tuesday" repairs the
 streak naturally through the normal grace rule.
 One capture turn total. The rules fallback (no model) logs the text as one
 journal entry on the last day of the range.
+
+**Streak pause on the way back (Kai, Q1 → B).** When the person taps either
+"Catch me up" or "Start from today", every active habit (not archived, not
+already paused) gets a retroactive pause
+`{from: lastActiveDay + 1, to: yesterday, reason: "way_back"}` through the
+existing `HabitPause` model, which already syncs and accepts a past
+`from_day` (`habits/sync.py:98`). Paused days are already neutral in both
+streak implementations, so the run resumes at its old length with no change
+to streak logic or the golden fixture for this part. A paused habit is not
+due, so the on-target day streak is preserved the same way. Records the
+catch-up writes on gap days still count (a log wins over a pause in
+`cellFor`).
+- **Limit:** once per 30 days. If any habit has a `way_back` pause starting
+  in the last 30 days, no pause is written and runs broken in the gap end
+  ("run of 12 ended", best kept).
+- If the person leaves the screen without tapping either button, nothing is
+  written and the screen shows again on next open.
+- Habit detail's pause history shows these as "Away · 3 days" (not editable
+  differently from other pauses).
 
 ### 4. Daily check-in
 
@@ -262,17 +284,7 @@ term list contents, fact-id format.
 
 ## Decided
 
-**Q1. What happens to a streak when the gap is longer than the grace day.**
-Kai's example reads "3 days missed · grace day used · streak paused at 12".
-
-- **A — run ends. ✅ Kai chose this 2026-11-08.** Honest and stateless: the chip reads
-  "3 days missed · run of 12 ended", best run kept, and the way back says
-  "your best run of 12 is still yours". Catching up with real activity
-  ("did gym Tuesday") still repairs it through the grace rule. Only a copy
-  change plus the grace rule.
-- ~~B — paused, resumes at 12.~~ Not built. On a way back the run is frozen and picks up
-  at 12 when the person logs again, once per 30 days. Streaks are computed
-  from logs today, so this needs a stored pause marker per habit (new table,
-  Alembic, both TS and Python streak logic, the golden fixture, and sync).
-  Roughly a third more build, and a streak that survives a week away means
-  less.
+**Q1. A streak when the gap is longer than the grace day.** Kai first chose
+A (run ends), then changed it on 2026-11-08 to **B: paused, resumes —
+"make the app forgiving"**. Built with retroactive `HabitPause` rows
+(reason `way_back`), once per 30 days; see §3. No new table.
