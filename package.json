@@ -3,12 +3,15 @@
   "private": true,
   "workspaces": [
     "frontend",
+    "marketing",
     "e2e"
   ],
   "scripts": {
     "dev": "bun run --filter frontend dev",
-    "lint": "bun run --filter frontend lint && bun run --filter e2e lint",
+    "lint": "bun run --filter frontend lint && bun run --filter marketing lint && bun run --filter e2e lint",
     "test": "bun run --filter e2e test",
-    "test:ui": "bun run --filter e2e test:ui"
+    "test:ui": "bun run --filter e2e test:ui",
+    "marketing:dev": "bun run --filter marketing dev",
+    "marketing:build": "bun run --filter marketing build"
   }
 }
