@@ -18895,6 +18895,40 @@
         }
       }
     },
+    "/api/v1/usage/events": {
+      "post": {
+        "tags": ["usage"],
+        "summary": "Post Events",
+        "operationId": "usage-post_events",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UsageBatch" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UsageAccepted" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/api/v1/media/uploads": {
       "post": {
         "tags": ["media"],
@@ -33883,6 +33917,50 @@
         "required": ["id", "upload_url", "expires_in", "headers"],
         "title": "UploadTicket",
         "description": "Upload the bytes with ``PUT upload_url`` and header\n``Content-Type: <mime>``, then call ``POST /media/{id}/complete``."
+      },
+      "UsageAccepted": {
+        "properties": {
+          "accepted": { "type": "integer", "title": "Accepted" }
+        },
+        "type": "object",
+        "required": ["accepted"],
+        "title": "UsageAccepted"
+      },
+      "UsageBatch": {
+        "properties": {
+          "events": {
+            "items": { "$ref": "#/components/schemas/UsageEventIn" },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Events"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["events"],
+        "title": "UsageBatch"
+      },
+      "UsageEventIn": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["app_open", "app_close", "share_card"],
+            "title": "Kind"
+          },
+          "at": { "type": "string", "format": "date-time", "title": "At" },
+          "detail": {
+            "anyOf": [
+              { "type": "string", "pattern": "^[a-z0-9_-]{1,40}$" },
+              { "type": "null" }
+            ],
+            "title": "Detail"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": ["kind", "at"],
+        "title": "UsageEventIn"
       },
       "UsageOut": {
         "properties": {

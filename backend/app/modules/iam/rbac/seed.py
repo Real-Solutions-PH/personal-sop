@@ -46,6 +46,7 @@ MOBILE_API_PERMISSIONS: list[str] = [
     "sync:write",
     "stats:read",
     "events:read",
+    "usage:write",
 ]
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {

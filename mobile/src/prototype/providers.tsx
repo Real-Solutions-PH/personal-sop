@@ -23,6 +23,7 @@ import { healProfilePhoto } from "./profile-photo-heal"
 import { sessionStore, startLiveSession } from "./session"
 import { deferWrite, prototypeStorage } from "./storage"
 import { AppToaster } from "./toaster"
+import { logUsage } from "./usage"
 
 // Live mode: server statistics refresh when a screen regains focus. Installed
 // before any screen renders (the focus hook cannot be swapped in later).
@@ -88,8 +89,17 @@ export function PrototypeProviders({ children }: { children: ReactNode }) {
   // Store writes wait a beat (deferWrite): leaving the foreground writes
   // whatever is still waiting, since the app may not be woken again.
   useEffect(() => {
+    // Opens and closes for the retention numbers (usage.ts): the launch
+    // counts as an open; a close is sent at once, before the app sleeps.
+    logUsage({ kind: "app_open" })
+    let last = AppState.currentState
     const sub = AppState.addEventListener("change", (state) => {
       if (state !== "active") flushStores()
+      if (state === "active" && last !== "active")
+        logUsage({ kind: "app_open" })
+      else if (state === "background" && last !== "background")
+        logUsage({ kind: "app_close" }, { now: true })
+      last = state
     })
     return () => sub.remove()
   }, [])

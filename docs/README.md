@@ -17,6 +17,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [13-deployment.md](13-deployment.md) | Single-environment policy, manual promotion, production on AWS (ap-southeast-1) incl. self-hosted GoTrue (2026-10-23) | DevOps |
 | [23-aws-infrastructure.md](23-aws-infrastructure.md) | AWS production stacks (`infra/`, CDK): what they define, backend env map, cost estimate, first-deploy commands (2026-10-23; Cloudflare Tunnel design 2026-10-24) | DevOps |
 | [24-focus-data-model.md](24-focus-data-model.md) | Focus timer data model: sessions, segments, settings, invariants, derived numbers, sync (2026-10-24) | Backend |
+| [25-retention-kpis.md](25-retention-kpis.md) | Retention KPIs: north star (weekly active loggers), cohort retention, return after lapse, definitions, source tables, targets; analytics SDK evaluation; day-14 survey spec (2026-11-08) | PM/Backend |
 | [14-observability.md](14-observability.md) | Logs, metrics, traces, alerts | DevOps |
 | [15-pricing-monetization.md](15-pricing-monetization.md) | Plans, billing, gates | PM/Finance |
 | [16-go-to-market.md](16-go-to-market.md) | Launch, channels, growth loops | Marketing |
@@ -43,6 +44,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/0032-hand-drawn-line-in-the-app.md](adr/0032-hand-drawn-line-in-the-app.md) | The brand's hand-drawn line in the app's shared chart parts (progress, rings, small bars, sparklines), amending ADR-0019's flat rule for data marks (2026-11-03) | Design |
 | [adr/0033-recurring-transactions-generated-by-the-job.md](adr/0033-recurring-transactions-generated-by-the-job.md) | Recurring transactions are created by the scheduled auto-log job: interval rules (every N days/weeks/months/years), month-end clamping, one record per occurrence, 60-day catch-up (2026-11-04) | Architecture |
 | [adr/0034-fern-eval-private-store-with-consent.md](adr/0034-fern-eval-private-store-with-consent.md) | Fern eval: other people's chats only with their opt-in ("Help improve Fern"), in a private repository; the public dataset stays Kai-only (2026-11-04) | Testing |
+| [adr/0035-product-analytics-sdk-deferred.md](adr/0035-product-analytics-sdk-deferred.md) | Proposed: no product analytics SDK yet; retention read from our own tables plus `usage_event`; PostHog with full masking when it is time (2026-11-08) | Architecture |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans
