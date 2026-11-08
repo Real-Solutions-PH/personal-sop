@@ -242,12 +242,15 @@ export function planReminders(
   }
   const ask = checkin && onDay(0, checkin)
   if (ask && !inQuiet(ask, more.quiet)) {
+    // A repeating trigger can't skip today: dated asks for the days ahead
+    // instead (like the weigh-in), so one ignored ask never ends them.
     if (more.checkin?.lastCheckin === today)
-      habitPlans.push({
-        id: "checkin-next",
-        ...checkinText,
-        at: onDay(1, checkin),
-      })
+      for (let n = 1; n <= 6; n++)
+        habitPlans.push({
+          id: `checkin-${n}`,
+          ...checkinText,
+          at: onDay(n, checkin),
+        })
     else habitPlans.push({ id: "checkin", ...checkinText, daily: checkin })
   }
   for (const r of more.routines ?? []) {

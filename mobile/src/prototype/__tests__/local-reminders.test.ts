@@ -914,15 +914,20 @@ describe("the daily Fern check-in", () => {
       planReminders([], [], NOW, { checkin: { at: "", lastCheckin: null } }),
     ).toEqual([])
   })
-  it("skips today once checked in, and asks tomorrow", () => {
-    const [p] = planReminders([], [], NOW, {
+  it("skips today once checked in, and still asks every day after", () => {
+    const plan = planReminders([], [], NOW, {
       checkin: { at: "20:30", lastCheckin: today },
     })
-    expect(p.id).toBe("checkin-next")
-    expect("at" in p && p.at.getDate()).toBe(
+    // One dated ask per day ahead: ignoring tomorrow's (without opening
+    // the app) must not end the check-ins.
+    expect(plan.map((p) => p.id)).toEqual(
+      [1, 2, 3, 4, 5, 6].map((n) => `checkin-${n}`),
+    )
+    const first = plan[0]
+    expect("at" in first && first.at.getDate()).toBe(
       new Date(NOW.getTime() + 86_400_000).getDate(),
     )
-    expect("at" in p && p.at.getHours()).toBe(20)
+    expect("at" in first && first.at.getHours()).toBe(20)
   })
   it("never lands in quiet hours", () => {
     expect(
