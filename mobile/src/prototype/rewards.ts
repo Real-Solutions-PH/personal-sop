@@ -5,6 +5,7 @@
 import type { Habit, HabitLog } from "@domain/habits/data"
 import { addDays, cellFor, daysBetween } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
+import { walkRun } from "@domain/lib/grace"
 import { createStore } from "@domain/lib/store"
 import { WAY_BACK } from "@domain/way-back"
 
@@ -106,25 +107,22 @@ export function standingMoment(
   return after === "perfect" ? "perfect" : "target"
 }
 
-/** How yesterday went, for the morning strip: off target or not, and the
- * on-target streak it ended (days in a row before it), from the day series
- * (days with nothing due score null and neither extend nor break). */
+/** How yesterday went, for the morning strip: off target or not, whether
+ * the grace day covered it, and the on-target run it ended (the same walk
+ * as the streak: days with nothing due neither extend nor break). */
 export function yesterdayRecap(
   series: { day: string; onTarget: boolean | null }[],
   today = dayKey(),
-): { offTarget: boolean; ended: number } {
+): { offTarget: boolean; ended: number; grace: boolean } {
   const yesterday = addDays(today, -1)
   const past = series.filter((d) => d.day < today)
   const y = past.find((d) => d.day === yesterday)
-  if (y?.onTarget !== false) return { offTarget: false, ended: 0 }
-  let ended = 0
-  for (let i = past.length - 1; i >= 0; i--) {
-    const d = past[i]
-    if (d.day >= yesterday || d.onTarget === null) continue
-    if (!d.onTarget) break
-    ended++
-  }
-  return { offTarget: true, ended }
+  if (y?.onTarget !== false) return { offTarget: false, ended: 0, grace: false }
+  const w = walkRun(past.map((d): [string, boolean | null] => [d.day, d.onTarget]))
+  if (w.graceDays.includes(yesterday))
+    return { offTarget: true, ended: 0, grace: true }
+  const ended = w.broken.find((b) => b.day === yesterday)?.length ?? 0
+  return { offTarget: true, ended, grace: false }
 }
 
 /** Days 1–7 of the first week, from the first day anything was logged

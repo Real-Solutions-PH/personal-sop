@@ -31,14 +31,18 @@ export function YesterdayStrip() {
   const dismissed = rewardStore.use((s) => s.days["yesterday-strip"] === today)
   const recap = yesterdayRecap(series, today)
   if (dismissed || (!recap.offTarget && !missed)) return null
-  const headline = recap.offTarget
-    ? `Yesterday: off target${recap.ended > 1 ? ` · run of ${recap.ended} ended` : ""}`
-    : `Yesterday: ${missed} missed`
+  const headline = !recap.offTarget
+    ? `Yesterday: ${missed} missed`
+    : recap.grace
+      ? "Yesterday: off target · grace day used"
+      : `Yesterday: off target${recap.ended > 1 ? ` · run of ${recap.ended} ended` : ""}`
   // Fern's line: the cost first, then the way back.
   const lost = missed ? `${missed} missed. ` : ""
   const detail = !recap.offTarget
     ? "On target, but these slipped. Today is a new count."
-    : recap.ended > 1
+    : recap.grace
+      ? `${lost}The grace day kept your run going; hit today to keep it.`
+      : recap.ended > 1
       ? `${lost}The ${recap.ended} days still count; the next one starts today.`
       : `${lost || "Missed yesterday. "}Today is a new count.`
   return (

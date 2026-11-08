@@ -146,7 +146,7 @@ describe("day standing", () => {
 
 describe("yesterdayRecap", () => {
   const day = (d: string, onTarget: boolean | null) => ({ day: d, onTarget })
-  it("names an off-target yesterday and the streak it ended", () => {
+  it("says a lone off-target yesterday was covered by the grace day", () => {
     const series = [
       day("2026-10-27", false),
       day("2026-10-28", true),
@@ -158,7 +158,22 @@ describe("yesterdayRecap", () => {
     ]
     expect(yesterdayRecap(series, "2026-11-02")).toEqual({
       offTarget: true,
+      ended: 0,
+      grace: true,
+    })
+  })
+  it("names the run a second miss in a row ended", () => {
+    const series = [
+      day("2026-10-28", true),
+      day("2026-10-29", true),
+      day("2026-10-30", true),
+      day("2026-10-31", false),
+      day("2026-11-01", false),
+    ]
+    expect(yesterdayRecap(series, "2026-11-02")).toEqual({
+      offTarget: true,
       ended: 3,
+      grace: false,
     })
   })
   it("has nothing to say after an on-target or free yesterday", () => {

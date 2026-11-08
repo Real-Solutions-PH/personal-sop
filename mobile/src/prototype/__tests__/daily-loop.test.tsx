@@ -380,8 +380,23 @@ describe("Today strips", () => {
     onTarget,
     done,
   })
-  it("yesterday off target names the streak it ended and the misses", () => {
+  it("yesterday off target after a grace day says the run was kept", () => {
     mockDay.series = [d(-4, true), d(-3, true), d(-2, true), d(-1, false)]
+    mockDay.misses = 1
+    render(<YesterdayStrip />, { wrapper })
+    expect(
+      screen.getByText("Yesterday: off target · grace day used"),
+    ).toBeTruthy()
+    expect(screen.queryByText(/ended/)).toBeNull()
+  })
+  it("yesterday off target names the streak it ended and the misses", () => {
+    mockDay.series = [
+      d(-5, true),
+      d(-4, true),
+      d(-3, true),
+      d(-2, false),
+      d(-1, false),
+    ]
     mockDay.misses = 4
     render(<YesterdayStrip />, { wrapper })
     expect(
