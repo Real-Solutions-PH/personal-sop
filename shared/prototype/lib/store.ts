@@ -20,14 +20,19 @@ export interface Store<T> {
   /** Plain (non-React) change subscription; returns the unsubscribe. */
   subscribe(listener: () => void): () => void
 }
+// No localStorage (a native runtime before configureStorage, a test
+// environment) means nothing saved, not a refused read.
+const local = () =>
+  typeof window === "undefined" || typeof window.localStorage === "undefined"
+    ? null
+    : window.localStorage
 const browserStorage: StorageAdapter = {
-  getItem: (key) =>
-    typeof window === "undefined" ? null : window.localStorage.getItem(key),
+  getItem: (key) => local()?.getItem(key) ?? null,
   setItem: (key, value) => {
-    if (typeof window !== "undefined") window.localStorage.setItem(key, value)
+    local()?.setItem(key, value)
   },
   removeItem: (key) => {
-    if (typeof window !== "undefined") window.localStorage.removeItem(key)
+    local()?.removeItem(key)
   },
 }
 let storage = browserStorage
@@ -47,6 +52,9 @@ export function configureStorage(
   storage = adapter
   report = onError
   defer = opts.defer ?? null
+  // A store read before this (an import that peeked early) holds defaults,
+  // not the saved state: it reads again from the adapter now.
+  for (const store of registry) store.forgetEarlyRead()
 }
 const registry: Array<{
   key: string
@@ -54,6 +62,7 @@ const registry: Array<{
   reset(): void
   flush(): boolean
   retryRead(): boolean
+  forgetEarlyRead(): void
 }> = []
 /** Inside a provider set to true, `store.use` re-renders for a change in a
  * transition instead of with it: for read-only summaries (a year of
@@ -106,6 +115,8 @@ export function createStore<T>(
    * read). Memory then holds a stand-in, not the person's data, so nothing
    * is written for this key until a read succeeds (`retryStoreReads`). */
   let unread = false
+  /** Read through the default adapter, before `configureStorage`. */
+  let early = false
   const server = seed()
   const listeners = new Set<() => void>()
   const backupKey = `${storageKey}:unreadable`
@@ -139,6 +150,7 @@ export function createStore<T>(
     reads?.add(key)
     if (state !== undefined) return state
     const defaults = seed()
+    early = storage === browserStorage
     let raw: string | null = null
     try {
       raw = persist ? storage.getItem(storageKey) : null
@@ -246,8 +258,17 @@ export function createStore<T>(
     if (!unread) emit()
     return !unread
   }
+  // An edit made before storage was configured is kept (and saved).
+  const forgetEarlyRead = () => {
+    if (!early) return
+    early = false
+    if (pending) return
+    state = undefined
+    unread = false
+    emit()
+  }
   const store = { get, set, use, reset, flush, subscribe }
-  registry.push({ key, get, reset, flush, retryRead })
+  registry.push({ key, get, reset, flush, retryRead, forgetEarlyRead })
   return store
 }
 /** "Retry storage": reads again every store whose read was refused; true

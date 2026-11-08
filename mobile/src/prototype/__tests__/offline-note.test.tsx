@@ -59,7 +59,10 @@ test("without the bar: a small Fern speaks, above the home indicator", () => {
 })
 
 const flatten = (style: unknown): Record<string, unknown> =>
-  StyleSheet.flatten(style as StyleProp<ViewStyle>) ?? {}
+  (StyleSheet.flatten(style as StyleProp<ViewStyle>) ?? {}) as Record<
+    string,
+    unknown
+  >
 
 // Kai, 2026-11-08: the pill sat in a full-width black strip that hid the
 // page behind it. It floats over the page now: no backing, no room taken,

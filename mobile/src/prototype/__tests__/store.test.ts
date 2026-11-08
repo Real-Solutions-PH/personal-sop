@@ -181,3 +181,21 @@ describe("a saved value the loader cannot read", () => {
     expect(saved.get("sop-proto:busy")).toBe(JSON.stringify({ count: 10 }))
   })
 })
+
+test("a store read before storage is configured reads the saved state once it is", () => {
+  jest.isolateModules(() => {
+    const store =
+      require("@domain/lib/store") as typeof import("@domain/lib/store")
+    const early = store.createStore("early", () => ({ count: 0 }))
+    expect(early.get()).toEqual({ count: 0 })
+    const disk = new Map([["sop-proto:early", JSON.stringify({ count: 5 })]])
+    store.configureStorage({
+      getItem: (k) => disk.get(k) ?? null,
+      setItem: (k, v) => void disk.set(k, v),
+      removeItem: (k) => void disk.delete(k),
+    })
+    expect(early.get()).toEqual({ count: 5 })
+    early.set((s) => ({ count: s.count + 1 }))
+    expect(disk.get("sop-proto:early")).toBe(JSON.stringify({ count: 6 }))
+  })
+})
