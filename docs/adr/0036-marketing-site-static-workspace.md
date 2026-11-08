@@ -54,9 +54,8 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
 - **What moves:**
   - a pinned, scroll-scrubbed "How it works" story (`ScrollStory.tsx`): the sentence types in, splits into three records, the day fills in, and the seven area tiles fold into the phone, with the waitlist ask at the end;
   - section headings that brighten word by word;
-  - the tracker-stack prices striking out while the yearly total counts up;
-  - parallax depth (`data-speed`) and pointer tilt (`data-tilt`, mouse and trackpad only);
-  - a reading-progress bar.
+  - the tracker-stack prices striking out while the yearly total counts up (removed in the second pass);
+  - parallax depth (`data-speed`) and pointer tilt (`data-tilt`, mouse and trackpad only).
 - **Guards:**
   - Every animated property is a transform or opacity.
   - Under reduced motion GSAP is never fetched, and the story renders as a plain list beside the phone in its filed state.
@@ -65,10 +64,11 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
 - **Measured:** Lighthouse mobile against a compressing local server scored performance 93–98 over four runs, accessibility 100, best practices 100, and CLS 0.012.
 
 **Addendum 2026-11-09 (second pass): one screen, scroll only.** The owner set two rules for the site: everything a section says fits in one screen, and nothing waits behind a click (assume the visitor never clicks). So:
-- The page is three acts of pinned scenes (`marketing/src/components/Scenes.tsx`, `ScrollStory.tsx`): the problem (five apps strike out while the yearly total counts up), the solution (the existing story), and a showcase (Fern's five moods, then the app's real share cards fanning out).
+- The page is three acts of pinned scenes (`marketing/src/components/Scenes.tsx`, `ScrollStory.tsx`): the problem (a still section: five apps struck out and their yearly total), the solution (the existing story), and a showcase (Fern's five moods, then the app's real share cards fanning out).
 - The click-driven sentence demo and Fern's mood tabs are removed; the FAQ shows four answers open instead of eight behind toggles.
 - The share cards are images captured from the app itself (`mobile/src/prototype`, Fern ground) and saved to `marketing/public/share/`; recapture them when the card design changes.
 - A headless check measures every section against one screen at 375, 768 and 1280 px wide.
+- No sticky waitlist bar and no reading-progress bar (owner, 2026-11-09): the ask lives in the header, the hero and the closing form.
 
 **Follow-ups:**
 - Pick the production domain and add the Cloudflare Pages project (Kai).
