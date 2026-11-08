@@ -146,6 +146,16 @@ export interface Workout {
   kcal?: number
   /** Steps Apple Health counted between its start and end. */
   steps?: number
+  /** Where it was trained: typed, or picked from the places near the
+   * phone. Shown on its share cards. */
+  place?: WorkoutPlace
+}
+/** A named place ("Anytime Fitness BGC"); the point it was picked at, when
+ * it came from the phone's location. */
+export interface WorkoutPlace {
+  name: string
+  lat?: number
+  lon?: number
 }
 export type RunKind = "run" | "walk"
 /** One GPS fix: latitude, longitude, altitude in metres (null when the

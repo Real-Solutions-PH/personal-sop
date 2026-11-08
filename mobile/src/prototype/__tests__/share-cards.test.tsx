@@ -330,18 +330,20 @@ const CARDS: [string, Make][] = [
       ),
     ],
   ),
-  ...(["summary", "pr", "photo"] as const).map((k): [string, Make] => [
-    `workout ${k}`,
-    (look, long) => (
-      <WorkoutCard
-        kind={k}
-        width={300}
-        look={look}
-        data={F.workoutData(long)}
-        flags={flags}
-      />
-    ),
-  ]),
+  ...(["summary", "sets", "pr", "records", "photo"] as const).map(
+    (k): [string, Make] => [
+      `workout ${k}`,
+      (look, long) => (
+        <WorkoutCard
+          kind={k}
+          width={300}
+          look={look}
+          data={F.workoutData(long)}
+          flags={flags}
+        />
+      ),
+    ],
+  ),
   ...(["route", "splits", "overlay"] as const).flatMap((k) =>
     [false, true].map((indoor): [string, Make] => [
       `run ${k}${indoor ? " treadmill" : ""}`,
