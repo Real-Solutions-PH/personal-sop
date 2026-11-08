@@ -293,6 +293,22 @@ function useRows(n: number) {
   )
 }
 
+// A count of one takes the singular unit, so a card never reads "1 days".
+const SINGULAR: Record<string, string> = {
+  days: "day",
+  weeks: "week",
+  sessions: "session",
+  words: "word",
+  tasks: "task",
+  PRs: "PR",
+  workouts: "workout",
+}
+
+/** The unit as it reads after ``value``: singular when the value is 1. */
+export function unitFor(value: string, unit: string): string {
+  return value.trim() === "1" ? (SINGULAR[unit] ?? unit) : unit
+}
+
 /** A number in Geist 600 with tabular figures that shrinks to fit its line
  * rather than clip or wrap; its unit rides on the same line. */
 export function Num({
@@ -344,7 +360,7 @@ export function Num({
             color: c.muted,
           }}
         >
-          {glued ? unit : ` ${unit}`}
+          {glued ? unit : ` ${unitFor(children, unit)}`}
         </Text>
       ) : null}
     </Text>
@@ -535,7 +551,7 @@ export function Hero({
           lines={2}
           muted
         >
-          {unit}
+          {unitFor(value, unit ?? "")}
         </Words>
       )}
     </View>
@@ -2592,7 +2608,9 @@ export function StackBars({
   height: number
   label: string
 }) {
-  const { c } = useCard(),
+  const { c, floor } = useCard(),
+    // A name's height (VizText's size) plus room, so stacked names never touch.
+    gap = (floor === undefined ? 12 : Math.min(14, floor / P)) + 4,
     gutter = lines.length ? 52 : 0,
     width = 312 - gutter,
     n = Math.max(1, days.length),
@@ -2607,12 +2625,19 @@ export function StackBars({
     ),
     y = (v: number) => bot - (v / max) * (bot - top),
     every = n <= 7 ? 1 : n <= 14 ? 2 : 5
-  // Line names from the bottom up, each at least 12 units above the last.
+  // Line names from the bottom up, each at least ``gap`` above the last;
+  // if that runs the top name off the chart, settle them from the top down.
   const names = [...lines]
     .map((l) => ({ ...l, y: y(l.at) }))
     .sort((a, b) => b.y - a.y)
   for (let i = 1; i < names.length; i++)
-    names[i].y = Math.min(names[i].y, names[i - 1].y - 12)
+    names[i].y = Math.min(names[i].y, names[i - 1].y - gap)
+  const first = names.length ? names[names.length - 1] : undefined
+  if (first && first.y < gap) {
+    first.y = gap
+    for (let i = names.length - 2; i >= 0; i--)
+      names[i].y = Math.max(names[i].y, names[i + 1].y + gap)
+  }
   return (
     <Viz h={height} label={label}>
       {days.map((d, i) => {
