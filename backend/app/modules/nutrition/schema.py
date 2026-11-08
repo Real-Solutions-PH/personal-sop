@@ -43,6 +43,10 @@ class FoodOut(BaseModel):
     photo_media_id: uuid.UUID | None = None
     photo_url: str | None = None
     can_edit: bool = False
+    # Who it came from, the label every row shows: the person ("you"), Fern
+    # (read from a label or told, "fern"), or a public database the server
+    # imported ("database": USDA, Open Food Facts, FNRI).
+    origin: Literal["you", "fern", "database"] = "you"
 
 
 class FoodsOut(BaseModel):
