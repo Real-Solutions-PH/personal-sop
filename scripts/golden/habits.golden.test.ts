@@ -276,6 +276,58 @@ test("habits logic over the seed", async () => {
 		),
 	}));
 
+	// Grace day: synthetic daily / Mon-Wed-Fri habits over fixed days.
+	const graceToday = "2026-11-08";
+	const nov = (...d: number[]) =>
+		d.map((n) => `2026-11-${String(n).padStart(2, "0")}`);
+	const graceHabit = (id: string, days: number[]) => ({
+		...s.habits[0],
+		id,
+		schedule: [{ days }],
+		pauses: [],
+		status: "active" as const,
+		createdAt: "2026-10-20",
+		archivedAt: undefined,
+	});
+	const every = [0, 1, 2, 3, 4, 5, 6];
+	const graceInputs: [string, number[], string[]][] = [
+		["lone-miss", every, nov(1, 2, 3, 4, 6, 7, 8)],
+		["two-misses", every, nov(1, 2, 3, 4, 7, 8)],
+		["second-within-7", every, nov(1, 2, 4, 5, 7, 8)],
+		[
+			"second-after-7",
+			every,
+			[
+				"2026-10-25",
+				"2026-10-26",
+				"2026-10-28",
+				"2026-10-29",
+				"2026-10-30",
+				"2026-10-31",
+				...nov(1, 2, 4, 5, 6, 7, 8),
+			],
+		],
+		["held-today-pending", every, nov(1, 2, 3, 4, 5, 6)],
+		["mwf", [1, 3, 5], ["2026-10-30", ...nov(2, 6)]],
+	];
+	const graceCases = graceInputs.map(([id, days, done]) => {
+		const h = graceHabit(id, days);
+		const gl = done.map((day, i) => ({
+			id: `${id}-${i}`,
+			habitId: id,
+			day,
+			status: "done" as const,
+			loggedAt: `${day}T08:00:00`,
+			source: "manual" as const,
+		}));
+		return {
+			habit: h,
+			logs: gl,
+			today: graceToday,
+			...L.streaks(h, L.logIndex(gl), graceToday),
+		};
+	});
+
 	const shuffled = [...s.habits].reverse();
 	const sorted = L.sortedHabits(shuffled).map((h) => h.id);
 
@@ -287,6 +339,7 @@ test("habits logic over the seed", async () => {
 		cells,
 		habitStats,
 		streaks,
+		graceCases,
 		overallStats,
 		perfectToday,
 		overallDays,

@@ -8,6 +8,7 @@ import type {
   ModuleKey,
 } from "../contract"
 import { dayKey, dayOffset } from "../lib/day"
+import { walkRun } from "../lib/grace"
 import { useSharedMemo } from "../lib/memo"
 import { modules } from "../modules"
 import {
@@ -245,26 +246,16 @@ export function useDaySeries(days: number): DayResult[] {
 export function onTargetStats(series: DayResult[]) {
   const scored = series.filter((d) => d.onTarget !== null)
   const onTarget = scored.filter((d) => d.onTarget).length
-  let current = 0
-  for (let i = series.length - 1; i >= 0; i--) {
-    const w = series[i].onTarget
-    if (w === null) continue
-    if (!w) break
-    current++
-  }
-  let best = 0
-  let run = 0
-  for (const d of series) {
-    if (d.onTarget === null) continue
-    run = d.onTarget ? run + 1 : 0
-    best = Math.max(best, run)
-  }
+  const { current, best, graceDays } = walkRun(
+    series.map((d): [string, boolean | null] => [d.day, d.onTarget]),
+  )
   return {
     rate: scored.length ? onTarget / scored.length : null,
     onTarget,
     scored: scored.length,
     current,
     best,
+    graceDays,
   }
 }
 export function useOnTarget(days: number) {

@@ -1,4 +1,5 @@
 import { DAY_START_HOUR, dayKey, dayOffset, weekday } from "../lib/day"
+import { walkRun } from "../lib/grace"
 import type { RuleState } from "../screen/logic"
 import {
   type Habit,
@@ -238,32 +239,19 @@ export function streaks(
     computeStreaks(h, idx, today),
   )
 }
+/** Done and partial days extend a run; skipped, paused, pending and
+ * unscheduled days are neutral; a missed day is bridged by ``walkRun``'s
+ * grace rule. */
 function computeStreaks(h: Habit, idx: Map<string, HabitLog>, today: string) {
-  let current = 0
-  let d = today
-  while (d >= h.createdAt) {
-    const c = cellFor(h, d, idx, today)
-    if (c === "done" || c === "partial") current++
-    else if (c === "missed") break
-    d = addDays(d, -1)
-  }
-  let best = 0
-  let run = 0
-  const broken: {
-    day: string
-    length: number
-  }[] = []
-  for (const day of daysBetween(h.createdAt, today)) {
-    const c = cellFor(h, day, idx, today)
-    if (c === "done" || c === "partial") {
-      run++
-      best = Math.max(best, run)
-    } else if (c === "missed") {
-      if (run >= 3) broken.push({ day, length: run })
-      run = 0
-    }
-  }
-  return { current, best, broken }
+  return walkRun(
+    daysBetween(h.createdAt, today).map((day): [string, boolean | null] => {
+      const c = cellFor(h, day, idx, today)
+      return [
+        day,
+        c === "done" || c === "partial" ? true : c === "missed" ? false : null,
+      ]
+    }),
+  )
 }
 export interface OverallDay {
   day: string

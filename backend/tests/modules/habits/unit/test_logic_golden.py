@@ -60,16 +60,19 @@ def _steps(raw: list[dict[str, Any]]) -> tuple[L.StepView, ...]:
 
 HABITS = [_habit(h) for h in FIX["state"]["habits"]]
 BY_ID = {h.id: h for h in HABITS}
-LOGS = [
-    L.LogView(
+
+
+def _log(lg: dict[str, Any]) -> L.LogView:
+    return L.LogView(
         habit_id=lg["habitId"],
         day=date.fromisoformat(lg["day"]),
         status=lg["status"],
         logged_at=_t(lg["loggedAt"]),  # type: ignore[arg-type]
         value=lg.get("value"),
     )
-    for lg in FIX["state"]["logs"]
-]
+
+
+LOGS = [_log(lg) for lg in FIX["state"]["logs"]]
 IDX = L.log_index(LOGS)
 ROUTINES = [
     L.RoutineView(
@@ -163,12 +166,27 @@ def test_streaks() -> None:
         assert [(b.day.isoformat(), b.length) for b in s.broken] == [
             (b["day"], b["length"]) for b in case["broken"]
         ]
+        assert [d.isoformat() for d in s.grace_days] == case["graceDays"]
+
+
+def test_grace_cases() -> None:
+    assert len(FIX["graceCases"]) >= 6
+    for case in FIX["graceCases"]:
+        h = _habit(case["habit"])
+        idx = L.log_index([_log(r) for r in case["logs"]])
+        s = L.streaks(h, idx, date.fromisoformat(case["today"]))
+        assert (s.current, s.best) == (case["current"], case["best"]), h.id
+        assert [d.isoformat() for d in s.grace_days] == case["graceDays"], h.id
+        assert [(b.day.isoformat(), b.length) for b in s.broken] == [
+            (b["day"], b["length"]) for b in case["broken"]
+        ], h.id
 
 
 def test_overall_stats() -> None:
     for case in FIX["overallStats"]:
         s = L.overall_stats(HABITS, IDX, case["days"], TODAY, offset=case["offset"])
-        exp = case["stats"]
+        exp = dict(case["stats"])
+        assert s.rated is exp.pop("rated"), case
         assert {
             "rate": s.rate,
             "skipRate": s.skip_rate,

@@ -11,6 +11,11 @@ mock.module("react", () => ({
 	// useServerStat watches the server cache; the fixtures are local-only.
 	useEffect: () => {},
 	useSyncExternalStore: <T>(_sub: unknown, get: () => T) => get(),
+	// lib/store imports these; the fixtures never render.
+	createContext: () => ({}),
+	useContext: () => undefined,
+	useReducer: () => [0, () => {}],
+	startTransition: (fn: () => void) => fn(),
 }));
 
 beforeAll(freeze);
@@ -114,6 +119,11 @@ test("day series, on-target stats and streaks", async () => {
 		[false, false],
 		[true, null, null, false, true, true, true, null],
 		[null, true, true, true, false, true, true, null],
+		// Grace day: one miss bridged, two break, null neutral, held at the end.
+		[true, true, false, true, true],
+		[true, true, false, false, true],
+		[true, null, null, true, false, true],
+		[true, true, false],
 	];
 	const grid = shapes.map((xs) => ({
 		series: mk(xs),
@@ -126,7 +136,19 @@ test("day series, on-target stats and streaks", async () => {
 test("metric book, goals and goalProgress", async () => {
 	const H = await import("../../shared/prototype/dash/hooks");
 	const { dashStore } = await import("../../shared/prototype/dash/store");
-	const pick = (all: Record<string, { key: string; label: string; value: string; delta?: number; goodWhen?: string; shareable: boolean }[]>) =>
+	const pick = (
+		all: Record<
+			string,
+			{
+				key: string;
+				label: string;
+				value: string;
+				delta?: number;
+				goodWhen?: string;
+				shareable: boolean;
+			}[]
+		>,
+	) =>
 		Object.fromEntries(
 			MODULES.map((k) => [
 				k,
@@ -157,9 +179,27 @@ test("metric book, goals and goalProgress", async () => {
 	}));
 	const values = Array.from(
 		new Set([
-			...MODULES.flatMap((k) => [...m7[k], ...m30[k], ...m90[k]].map((m) => m.value)),
-			"85%", "1,234", "-3.5 kg", "₱12,400", "3 / 4", "3/4", "1h 20m", "45m",
-			"12-day", "—", "", "x", "0.5", "10.25%", "7d", "2h", "-0", "1.2.3",
+			...MODULES.flatMap((k) =>
+				[...m7[k], ...m30[k], ...m90[k]].map((m) => m.value),
+			),
+			"85%",
+			"1,234",
+			"-3.5 kg",
+			"₱12,400",
+			"3 / 4",
+			"3/4",
+			"1h 20m",
+			"45m",
+			"12-day",
+			"—",
+			"",
+			"x",
+			"0.5",
+			"10.25%",
+			"7d",
+			"2h",
+			"-0",
+			"1.2.3",
 		]),
 	);
 	const parse = values.map((v) => ({
@@ -236,7 +276,10 @@ test("achievements", async () => {
 			"goals-hit",
 			(s) => ({
 				...s,
-				goals: s.goals.map((g) => ({ ...g, target: g.comparator === "gte" ? 1 : 99 })),
+				goals: s.goals.map((g) => ({
+					...g,
+					target: g.comparator === "gte" ? 1 : 99,
+				})),
 			}),
 		],
 	];

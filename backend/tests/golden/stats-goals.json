@@ -15,8 +15,8 @@
           },
           {
             "key": "habits.streak",
-            "label": "Top streak · Morning workout",
-            "value": "17-day",
+            "label": "Top streak · Read 20 pages",
+            "value": "28-day",
             "delta": null,
             "goodWhen": null,
             "shareable": true
@@ -279,8 +279,8 @@
           },
           {
             "key": "habits.streak",
-            "label": "Top streak · Morning workout",
-            "value": "17-day",
+            "label": "Top streak · Read 20 pages",
+            "value": "28-day",
             "delta": null,
             "goodWhen": null,
             "shareable": true
@@ -543,8 +543,8 @@
           },
           {
             "key": "habits.streak",
-            "label": "Top streak · Morning workout",
-            "value": "17-day",
+            "label": "Top streak · Read 20 pages",
+            "value": "28-day",
             "delta": null,
             "goodWhen": null,
             "shareable": true
@@ -879,10 +879,10 @@
         },
         "habits:habits.streak": {
           "ref": "habits:habits.streak",
-          "label": "Top streak · Morning workout",
+          "label": "Top streak · Read 20 pages",
           "module": "habits",
-          "value": "17-day",
-          "n": 17,
+          "value": "28-day",
+          "n": 28,
           "unit": "",
           "goodWhen": "up",
           "shareable": true
@@ -1233,10 +1233,10 @@
         },
         "habits:habits.streak": {
           "ref": "habits:habits.streak",
-          "label": "Top streak · Morning workout",
+          "label": "Top streak · Read 20 pages",
           "module": "habits",
-          "value": "17-day",
-          "n": 17,
+          "value": "28-day",
+          "n": 28,
           "unit": "",
           "goodWhen": "up",
           "shareable": true
@@ -1761,8 +1761,8 @@
         "unit": "%"
       },
       {
-        "value": "17-day",
-        "n": 17,
+        "value": "28-day",
+        "n": 28,
         "unit": ""
       },
       {
