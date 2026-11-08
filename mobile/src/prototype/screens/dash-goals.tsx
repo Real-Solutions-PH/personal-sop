@@ -1,13 +1,16 @@
 import type { Goal, MetricRef } from "@domain/dash/data"
+import { type GoalIdea, goalIdeas, ideaGoal } from "@domain/dash/goal-ideas"
 import {
   areaLabel,
   type BookEntry,
   fmtGoal,
+  useEnabled,
   useGoals,
   useMetricBook,
 } from "@domain/dash/hooks"
 import {
   archiveGoal,
+  dashStore,
   deleteGoal,
   restoreGoal,
   saveGoal,
@@ -33,6 +36,7 @@ import {
   Frame,
   IconTap,
   Line,
+  SectionHeading,
   Segmented,
   Tap,
 } from "../native-kit"
@@ -268,6 +272,90 @@ export function GoalEditor({
     </>
   )
 }
+/** Goals to take in one tap, by area: each on a number the app already
+ * keeps, with today's value beside it so the target means something. A
+ * row is its own control; once taken it moves up into the goals. */
+export function GoalIdeas({
+  onAdd,
+  title = "More goals",
+}: {
+  onAdd?: (goal: Goal) => void
+  title?: string
+}) {
+  const t = useTheme(),
+    goals = dashStore.use((s) => s.goals),
+    enabled = useEnabled(),
+    b = useMetricBook(),
+    ideas = goalIdeas(goals, enabled)
+  if (!ideas.length) return null
+  const areas = [...new Set(ideas.map((i) => i.area))]
+  const take = (i: GoalIdea) => {
+    const goal = saveGoal(ideaGoal(i))
+    onAdd?.(goal)
+  }
+  return (
+    <View testID="goal-ideas">
+      <SectionHeading icon={Target}>{title}</SectionHeading>
+      <View style={{ gap: 12 }}>
+        {areas.map((area) => {
+          const rows = ideas.filter((i) => i.area === area)
+          return (
+            <View key={area} style={{ gap: 6 }}>
+              <Copy size={12} muted style={{ paddingHorizontal: 4 }}>
+                {areaLabel(area)}
+              </Copy>
+              <Frame style={{ paddingHorizontal: 12, paddingVertical: 2 }}>
+                {rows.map((i, n) => {
+                  const now = b[i.period].get(i.metric)
+                  return (
+                    <Tap
+                      key={`${i.metric}|${i.period}`}
+                      label={`Add goal: ${i.label} ${fmtGoal(i)}`}
+                      onPress={() => take(i)}
+                      style={{
+                        paddingVertical: 10,
+                        borderBottomWidth: n < rows.length - 1 ? 1 : 0,
+                        borderBottomColor: border(t.line, 0.5),
+                      }}
+                    >
+                      <Line style={{ gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                          <Copy size={14} weight="medium">
+                            {i.label}{" "}
+                            <Copy size={12} muted>
+                              {fmtGoal(i)}
+                            </Copy>
+                          </Copy>
+                          <Copy size={12} muted>
+                            {now && now.n !== null
+                              ? `${i.hint} · now ${now.value}`
+                              : i.hint}
+                          </Copy>
+                        </View>
+                        <View
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 16,
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: t.soft,
+                          }}
+                        >
+                          <Plus size={16} color={t.text} />
+                        </View>
+                      </Line>
+                    </Tap>
+                  )
+                })}
+              </Frame>
+            </View>
+          )
+        })}
+      </View>
+    </View>
+  )
+}
 export function Goals() {
   const t = useTheme(),
     goals = useGoals(),
@@ -396,6 +484,7 @@ export function Goals() {
           Goals roll over each period. Tap a goal to edit ›
         </Copy>
       )}
+      {tab === "active" && <GoalIdeas />}
       {(creating || editing) && (
         <GoalEditor
           goal={editing}

@@ -371,14 +371,15 @@ export default function PrototypeLayout() {
                 options={{ animation: reduced ? "none" : "slide_from_bottom" }}
               />
             </Stack>
+            {/* Floats over the page's bottom edge, above the bar. */}
+            <OfflineNote
+              offline={!online}
+              withBar={!focus}
+              bottomInset={inset.bottom}
+            />
           </View>
         </GestureDetector>
         {!focus && <LiveBar path={path} />}
-        <OfflineNote
-          offline={!online}
-          withBar={!focus}
-          bottomInset={inset.bottom}
-        />
         {/* Before the bar: the + button rises above the bar into the room the
             drawer leaves for it, so it must draw over the drawer. */}
         {!firstRun && (

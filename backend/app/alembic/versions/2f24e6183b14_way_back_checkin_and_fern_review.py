@@ -1,7 +1,7 @@
 """way back: daily check-in time and Fern review cache
 
 Revision ID: 2f24e6183b14
-Revises: b8e3f1a6c2d4
+Revises: 6d208ffac40f
 Create Date: 2026-11-08 18:00:00.000000
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "2f24e6183b14"
-down_revision = "b8e3f1a6c2d4"
+down_revision = "6d208ffac40f"
 branch_labels = None
 depends_on = None
 

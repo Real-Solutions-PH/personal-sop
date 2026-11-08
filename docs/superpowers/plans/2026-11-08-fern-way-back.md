@@ -390,7 +390,7 @@ describe. "Skipped X" or "didn't X" writes nothing.
   - the env-prefixed full backend suite: `make backend-test`, with POSTGRES_PORT=55440 exported and the Supabase test stack up;
   - `cd mobile && bun run typecheck && bun run lint && bun run test`;
   - `bun run lint` at the root.
-  
+
   All green. Audit the lint diff for hook-dep rewrites.
 - [ ] **Step 2:** Take simulator screenshots of the way-back screen (before and after catch-up), the check-in drawer and the review card. Read each one at phone width and check: titles wrap, no red, spacing.
 - [ ] **Step 3:** Merge `origin/master`, then open the PR with `gh pr create --repo Real-Solutions-PH/personal-sop --head <branch>`. Use labels `feature`, `mobile`, `backend`. Enable auto-merge.

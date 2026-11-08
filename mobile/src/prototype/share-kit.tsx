@@ -79,6 +79,7 @@ import { framePhoto, keep, prepareImage } from "./social/media"
 import { addStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 import { Button, Field, Sheet } from "./ui"
+import { logUsage } from "./usage"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
 // Photo leads: a card on the person's own picture is the one most shared.
@@ -268,6 +269,9 @@ export function nextFit(f: Fit, parts: FitParts): Fit {
 }
 /** How long a layout must hold still before the fit rule reads it. */
 export const FIT_SETTLE_MS = 120
+/** How long a hugging chart box waits for its layout at its chart's height
+ * before its 0 counts as "no room". */
+const HUG_WAIT_MS = FIT_SETTLE_MS * 3
 const FitContext = createContext<{
   fit: Fit
   part: (kind: Drop | "rows", n: number) => () => void
@@ -647,13 +651,18 @@ export function Body({
     hug = floor !== undefined && !fill,
     [own, setOwn] = useState(0),
     // The box's last laid-out height, held while it is not yet reported.
-    box = useRef(0)
-  // Once a hugging box knows its chart's height, report the box as it last
-  // laid out: if the block left it no room it stays 0, and no new layout
-  // would ever report that.
+    box = useRef(0),
+    waiting = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // Once a hugging box knows its chart's height it lays out again at that
+  // height, and that layout reports it. Only if none comes (the block left
+  // it no room, so it stays 0 and nothing changes) is the 0 reported, after
+  // a wait: a layout that is merely late must not read as no room, since a
+  // step is never taken back.
   // biome-ignore lint/correctness/useExhaustiveDependencies: report once own is known
   useEffect(() => {
-    if (hug && own > 0) measure("box", box.current)
+    if (!(hug && own > 0)) return
+    waiting.current = setTimeout(() => measure("box", box.current), HUG_WAIT_MS)
+    return () => clearTimeout(waiting.current)
   }, [hug, own > 0])
   if (hidden) return null
   return (
@@ -669,6 +678,7 @@ export function Body({
         // A hugging box is 0 until it knows its chart's height: that first
         // pass is not an overflow, so it waits for the effect above.
         if (hug && own === 0) return
+        clearTimeout(waiting.current)
         measure("box", box.current)
       }}
     >
@@ -1964,7 +1974,8 @@ export function ShareComposer<K extends string>({
   const t = useTheme(),
     social = useShown("social")
   const [format, setFormat] = useState<CardFormat>("9:16"),
-    [backdrop, setBackdrop] = useState<CardBackdrop>("fern"),
+    // Every card starts on Photo; with no photo yet it is drawn on Fern.
+    [backdrop, setBackdrop] = useState<CardBackdrop>("photo"),
     [photo, setPhoto] = useState<string | null>(null),
     [color, setColor] = useState<string>(palette.light.primary),
     // The caption that goes with a post and is copied for other apps:
@@ -1986,8 +1997,14 @@ export function ShareComposer<K extends string>({
     // Side padding that centres every card, the last one included: with
     // less, the scroll stops short and the last card could not be chosen.
     padding = (screen - width) / 2
-  const look = { format, backdrop, photo, color },
-    refs = useRef<Record<string, HostInstance | null>>({}),
+  // What the cards are drawn on: Photo before a photo is picked is a plain
+  // Fern card, laid out whole; the compact layout waits for the picture.
+  const shown: CardBackdrop = backdrop === "photo" && !photo ? "fern" : backdrop
+  const look = useMemo<CardLook>(
+    () => ({ format, backdrop: shown, photo, color }),
+    [format, shown, photo, color],
+  )
+  const refs = useRef<Record<string, HostInstance | null>>({}),
     shots = useRef<Record<string, HostInstance | null>>({}),
     target = (key: string) => shots.current[key] ?? refs.current[key],
     // The selected card laid out at exactly 1080 px wide, off screen: the
@@ -2025,10 +2042,12 @@ export function ShareComposer<K extends string>({
         })
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: "image/png" })
+          logUsage({ kind: "share_card", detail: value })
           return
         }
       }
       await Share.share({ message: text })
+      logUsage({ kind: "share_card", detail: value })
     } catch {
       toast.error("Could not share this image. You can still copy its caption.")
     }
@@ -2122,8 +2141,8 @@ export function ShareComposer<K extends string>({
   }
   if (shareRef) shareRef.current = doShare
   useEffect(() => {
-    onLookChange?.({ format, backdrop, photo, color })
-  }, [format, backdrop, photo, color, onLookChange])
+    onLookChange?.(look)
+  }, [look, onLookChange])
   const share = () => (beforeShare ? beforeShare(doShare) : doShare())
   const swatch = (key: CardBackdrop): string | string[] =>
     GRADIENTS[key] ??
@@ -2552,6 +2571,249 @@ function Swatch({ stops }: { stops: string[] }) {
       </Defs>
       <Circle cx={22} cy={22} r={22} fill={`url(#${id})`} />
     </Svg>
+  )
+}
+
+/** Stacked columns, one a day, each split into its parts (bottom first),
+ * against dashed target lines stacked the same way. Each line is named at
+ * its right end, so the chart needs no legend; names that would touch are
+ * pushed apart. ``on`` is the column to bring forward. */
+export function StackBars({
+  days,
+  colors,
+  lines,
+  height,
+  label,
+}: {
+  days: { label: string; parts: number[]; on?: boolean }[]
+  /** One per part, bottom first. */
+  colors: string[]
+  lines: { at: number; color: string; name: string }[]
+  height: number
+  label: string
+}) {
+  const { c } = useCard(),
+    gutter = lines.length ? 52 : 0,
+    width = 312 - gutter,
+    n = Math.max(1, days.length),
+    slot = width / n,
+    bar = Math.min(26, slot * (n > 14 ? 0.62 : 0.56)),
+    top = 8,
+    bot = height - 18,
+    max = Math.max(
+      1,
+      ...lines.map((l) => l.at),
+      ...days.map((d) => d.parts.reduce((a, v) => a + Math.max(0, v), 0)),
+    ),
+    y = (v: number) => bot - (v / max) * (bot - top),
+    every = n <= 7 ? 1 : n <= 14 ? 2 : 5
+  // Line names from the bottom up, each at least 12 units above the last.
+  const names = [...lines]
+    .map((l) => ({ ...l, y: y(l.at) }))
+    .sort((a, b) => b.y - a.y)
+  for (let i = 1; i < names.length; i++)
+    names[i].y = Math.min(names[i].y, names[i - 1].y - 12)
+  return (
+    <Viz h={height} label={label}>
+      {days.map((d, i) => {
+        const x = slot * i + (slot - bar) / 2
+        const total = d.parts.reduce((a, v) => a + Math.max(0, v), 0)
+        let from = bot
+        return (
+          <G key={`${d.label}-${i}`} opacity={d.on === false ? 0.6 : 1}>
+            {total ? (
+              d.parts.map((v, k) => {
+                if (v <= 0) return null
+                const h = (v / max) * (bot - top),
+                  y0 = from - h
+                from = y0
+                const last = d.parts.slice(k + 1).every((w) => w <= 0)
+                const r = last ? Math.min(3, bar / 2, h) : 0
+                return (
+                  <Path
+                    key={k}
+                    d={`M${f1(x)} ${f1(y0 + h)} V${f1(y0 + r)} Q${f1(x)} ${f1(y0)} ${f1(x + r)} ${f1(y0)} H${f1(x + bar - r)} Q${f1(x + bar)} ${f1(y0)} ${f1(x + bar)} ${f1(y0 + r)} V${f1(y0 + h)} Z`}
+                    fill={colors[k] ?? c.muted}
+                    // On a photo each segment keeps an edge of the shadow
+                    // colour, so a bar holds on any picture.
+                    stroke={c.shadow}
+                    strokeWidth={c.shadow ? 0.8 : 0}
+                  />
+                )
+              })
+            ) : (
+              <Path
+                d={`M${f1(x)} ${f1(bot - 1.5)} H${f1(x + bar)}`}
+                stroke={c.track}
+                strokeWidth={3}
+                strokeLinecap="round"
+              />
+            )}
+            {(n - 1 - i) % every ? null : (
+              <VizText
+                x={f1(slot * i + slot / 2)}
+                y={height - 3}
+                color={d.on ? c.ink : c.muted}
+              >
+                {d.label}
+              </VizText>
+            )}
+          </G>
+        )
+      })}
+      {c.shadow
+        ? lines.map((l) => (
+            <Path
+              key={`under-${l.name}`}
+              d={`M0 ${f1(y(l.at))} H${f1(width + 4)}`}
+              stroke={c.shadow}
+              strokeWidth={3.2}
+            />
+          ))
+        : null}
+      {lines.map((l) => (
+        <Path
+          key={l.name}
+          d={`M0 ${f1(y(l.at))} H${f1(width + 4)}`}
+          stroke={l.color}
+          strokeWidth={1.6}
+          strokeDasharray="5 4"
+        />
+      ))}
+      {names.map((l) => (
+        <VizText
+          key={l.name}
+          x={f1(width + 6)}
+          y={f1(l.y + 4)}
+          color={l.color}
+          anchor="start"
+        >
+          {l.name}
+        </VizText>
+      ))}
+    </Viz>
+  )
+}
+
+/** Goals as rings that fill toward them, side by side: the value in the
+ * middle, the name under it. Past the goal a ring is full and a tick on it
+ * marks where the goal sat; ``bad`` draws the value in the miss colour. */
+export function Rings({
+  rings,
+  size = 64,
+}: {
+  rings: {
+    name: string
+    value: string
+    share: number | null
+    color: string
+    bad?: boolean
+  }[]
+  size?: number
+}) {
+  const { q, c } = useCard(),
+    p = P * q,
+    s = size * p,
+    stroke = 5 * p,
+    r = (s - stroke) / 2,
+    around = 2 * Math.PI * r
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 6 * p,
+      }}
+    >
+      {rings.map((g) => {
+        const share = Math.max(0, Math.min(1, g.share ?? 0)),
+          past = (g.share ?? 0) > 1 ? 1 / (g.share ?? 1) : null
+        return (
+          <View
+            key={g.name}
+            style={{ alignItems: "center", gap: 4 * p, flex: 1 }}
+          >
+            <View style={{ width: s, height: s }}>
+              <Svg width={s} height={s}>
+                <Circle
+                  cx={s / 2}
+                  cy={s / 2}
+                  r={r}
+                  stroke={c.track}
+                  strokeWidth={stroke * 0.5}
+                  strokeDasharray={`${p * 1.2} ${p * 3.4}`}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                {share > 0 && c.shadow ? (
+                  <Circle
+                    cx={s / 2}
+                    cy={s / 2}
+                    r={r}
+                    stroke={c.shadow}
+                    strokeWidth={stroke + 2 * p}
+                    strokeDasharray={`${around * share} ${around}`}
+                    strokeLinecap="round"
+                    fill="none"
+                    transform={`rotate(-90 ${s / 2} ${s / 2})`}
+                  />
+                ) : null}
+                {share > 0 ? (
+                  <Circle
+                    cx={s / 2}
+                    cy={s / 2}
+                    r={r}
+                    stroke={g.color}
+                    strokeWidth={stroke}
+                    strokeDasharray={`${around * share} ${around}`}
+                    strokeLinecap="round"
+                    fill="none"
+                    transform={`rotate(-90 ${s / 2} ${s / 2})`}
+                  />
+                ) : null}
+                {past ? (
+                  <Path
+                    d={(() => {
+                      const a = 2 * Math.PI * past - Math.PI / 2,
+                        x1 = s / 2 + (r - stroke) * Math.cos(a),
+                        y1 = s / 2 + (r - stroke) * Math.sin(a),
+                        x2 = s / 2 + (r + stroke) * Math.cos(a),
+                        y2 = s / 2 + (r + stroke) * Math.sin(a)
+                      return `M${f1(x1)} ${f1(y1)} L${f1(x2)} ${f1(y2)}`
+                    })()}
+                    stroke={c.ink}
+                    strokeWidth={2 * p}
+                    strokeLinecap="round"
+                  />
+                ) : null}
+              </Svg>
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Num
+                  size={13 * P}
+                  align="center"
+                  color={g.bad ? c.bad : undefined}
+                >
+                  {g.value}
+                </Num>
+              </View>
+            </View>
+            <Words size={12 * P} lines={1} align="center">
+              {g.name}
+            </Words>
+          </View>
+        )
+      })}
+    </View>
   )
 }
 

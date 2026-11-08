@@ -40,6 +40,14 @@ The replay eval's cases are rebuilt from a read-only export of production (ADR-0
 2. Read the `EXP` lines from the task's log stream (`api/api/<task id>` in the API log group), join them in order, base64-decode and gunzip. Owners marked `public` (Kai) go to `backend/tests/eval/fern/cases/`; owners marked `private` go to the private repository only.
 3. Keep the export and the case builder in a scratch directory outside every repository, and delete them once the cases are committed. The log stream expires with the group's 30-day retention.
 
+## Retention report
+
+The KPIs in [25-retention-kpis.md](25-retention-kpis.md) come from `scripts/retention_report.py`. It reads inside a READ ONLY transaction and prints one line `KPI <json>` of aggregates only (counts, shares, medians; no ids, emails or record content).
+
+1. Run it as a one-off task on the API's task definition, exactly like the Fern eval export above, with `--overrides '{"containerOverrides":[{"name":"api","command":["python","scripts/retention_report.py"]}]}'`. Add `"--today","YYYY-MM-DD"` to fix the report day, `"--include-superusers"` to count Kai's account.
+2. Read the `KPI` line from the task's log stream (`api/api/<task id>` in the API log group).
+3. Before the image that contains the script is deployed, the same file can be passed inline: `["python","-c","<the file, gzipped and base64, decoded and exec'd>"]` (about 7 KB, under the 8 KB override limit).
+
 ## Error monitoring & uptime
 
 ### GlitchTip (error monitoring, Sentry-SDK compatible)

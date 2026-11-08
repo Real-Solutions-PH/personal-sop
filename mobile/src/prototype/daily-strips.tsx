@@ -43,8 +43,8 @@ export function YesterdayStrip() {
     : recap.grace
       ? `${lost}The grace day kept your run going; hit today to keep it.`
       : recap.ended > 1
-      ? `${lost}The ${recap.ended} days still count; the next one starts today.`
-      : `${lost || "Missed yesterday. "}Today is a new count.`
+        ? `${lost}The ${recap.ended} days still count; the next one starts today.`
+        : `${lost || "Missed yesterday. "}Today is a new count.`
   return (
     <YesterdayStripView
       headline={headline}

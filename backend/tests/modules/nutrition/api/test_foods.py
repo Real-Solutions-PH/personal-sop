@@ -3,6 +3,7 @@ reads every food, most used first; only a food's author (or an admin) edits
 it, its photo included; picking a food into a meal counts a use."""
 
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -24,7 +25,7 @@ def _tag() -> str:
     return uuid.uuid4().hex[:8]
 
 
-def _food(ctx: Any, name: str, uses: int) -> str:
+def _food(ctx: Any, name: str, uses: int, **extra: Any) -> str:
     row = owned_repo.insert(
         ctx,
         FoodItem,
@@ -40,7 +41,8 @@ def _food(ctx: Any, name: str, uses: int) -> str:
             "sodium": 74,
             "source": "label",
             "use_count": uses,
-        },
+        }
+        | extra,
     )
     ctx.session.commit()
     return str(row.id)
@@ -244,3 +246,79 @@ def test_another_tenants_foods_never_show(client: TestClient, db: Session) -> No
         f"{API}?q={t}", headers=auth_headers(stranger.email, password)
     ).json()
     assert [f["name"] for f in other["data"]] == [f"theirs {t}"]
+
+
+def test_every_food_says_who_it_came_from_and_filters_by_it(
+    client: TestClient, db: Session
+) -> None:
+    """Fern: read from a label, told, or a brand. You: the person's own
+    import or recipe, even one whose values were copied from USDA. Database:
+    what a bulk import made."""
+    me, headers = signed_in(db)
+    t = _tag()
+    with ctx_for(me) as ctx:
+        _food(ctx, f"label {t}", 1)
+        _food(ctx, f"said {t}", 1, source="said")
+        _food(ctx, f"mine {t}", 1, source="import")
+        _food(ctx, f"copied {t}", 1, source="usda")
+        _food(ctx, f"usda {t}", 0, source="usda", external_ref=f"usda:{t}")
+        _food(ctx, f"off {t}", 0, source="off", external_ref=f"off:{t}")
+    body = client.get(f"{API}?q={t}&limit=100", headers=headers).json()
+    got = {f["name"].split()[0]: f["origin"] for f in body["data"]}
+    assert got == {
+        "label": "fern",
+        "said": "fern",
+        "mine": "you",
+        "copied": "you",
+        "usda": "database",
+        "off": "database",
+    }
+    for origin, names in (
+        ("you", {"mine", "copied"}),
+        ("fern", {"label", "said"}),
+        ("database", {"usda", "off"}),
+    ):
+        r = client.get(f"{API}?q={t}&origin={origin}", headers=headers).json()
+        assert {f["name"].split()[0] for f in r["data"]} == names
+        assert r["count"] == len(names)
+    # The databases browse without a search; a bad origin is refused.
+    r = client.get(f"{API}?origin=database&limit=100", headers=headers).json()
+    assert {f"usda {t}", f"off {t}"} <= {f["name"] for f in r["data"]}
+    assert client.get(f"{API}?origin=other", headers=headers).status_code == 422
+
+
+def test_search_needs_every_word_in_any_order_and_reads_aliases(
+    client: TestClient, db: Session
+) -> None:
+    me, headers = signed_in(db)
+    t = _tag()
+    with ctx_for(me) as ctx:
+        _food(ctx, f"Chicken Adobo {t}", 1)
+        _food(ctx, f"Pork Adobo {t}", 1)
+        _food(ctx, f"Garlic rice {t}", 1, aliases=["sinangag"])
+    body = client.get(f"{API}?q=adobo chicken {t}", headers=headers).json()
+    assert [f["name"] for f in body["data"]] == [f"Chicken Adobo {t}"]
+    body = client.get(f"{API}?q=sinangag {t}", headers=headers).json()
+    assert [f["name"] for f in body["data"]] == [f"Garlic rice {t}"]
+
+
+def test_search_puts_own_and_recently_eaten_foods_first(
+    client: TestClient, db: Session
+) -> None:
+    """Own foods before database ones whatever their use; among own foods
+    the most recently eaten first, then the most used."""
+    me, headers = signed_in(db)
+    t = _tag()
+    now = datetime.now(UTC)
+    with ctx_for(me) as ctx:
+        _food(ctx, f"egg db {t}", 99, source="usda", external_ref=f"usda:{t}")
+        _food(ctx, f"egg often {t}", 50)
+        _food(ctx, f"egg lately {t}", 1, last_used_at=now - timedelta(hours=2))
+        _food(ctx, f"egg before {t}", 1, last_used_at=now - timedelta(days=3))
+    body = client.get(f"{API}?q=egg {t}", headers=headers).json()
+    assert [f["name"].split()[1] for f in body["data"]] == [
+        "lately",
+        "before",
+        "often",
+        "db",
+    ]

@@ -118,7 +118,9 @@ export function yesterdayRecap(
   const past = series.filter((d) => d.day < today)
   const y = past.find((d) => d.day === yesterday)
   if (y?.onTarget !== false) return { offTarget: false, ended: 0, grace: false }
-  const w = walkRun(past.map((d): [string, boolean | null] => [d.day, d.onTarget]))
+  const w = walkRun(
+    past.map((d): [string, boolean | null] => [d.day, d.onTarget]),
+  )
   if (w.graceDays.includes(yesterday))
     return { offTarget: true, ended: 0, grace: true }
   const ended = w.broken.find((b) => b.day === yesterday)?.length ?? 0

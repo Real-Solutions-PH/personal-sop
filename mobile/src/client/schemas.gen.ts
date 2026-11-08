@@ -5921,6 +5921,12 @@ export const FoodOutSchema = {
             type: 'boolean',
             title: 'Can Edit',
             default: false
+        },
+        origin: {
+            type: 'string',
+            enum: ['you', 'fern', 'database'],
+            title: 'Origin',
+            default: 'you'
         }
     },
     type: 'object',
@@ -22105,6 +22111,67 @@ export const UploadTicketSchema = {
     title: 'UploadTicket',
     description: `Upload the bytes with \`\`PUT upload_url\`\` and header
 \`\`Content-Type: <mime>\`\`, then call \`\`POST /media/{id}/complete\`\`.`
+} as const;
+
+export const UsageAcceptedSchema = {
+    properties: {
+        accepted: {
+            type: 'integer',
+            title: 'Accepted'
+        }
+    },
+    type: 'object',
+    required: ['accepted'],
+    title: 'UsageAccepted'
+} as const;
+
+export const UsageBatchSchema = {
+    properties: {
+        events: {
+            items: {
+                '$ref': '#/components/schemas/UsageEventIn'
+            },
+            type: 'array',
+            maxItems: 50,
+            minItems: 1,
+            title: 'Events'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['events'],
+    title: 'UsageBatch'
+} as const;
+
+export const UsageEventInSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: ['app_open', 'app_close', 'share_card'],
+            title: 'Kind'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        detail: {
+            anyOf: [
+                {
+                    type: 'string',
+                    pattern: '^[a-z0-9_-]{1,40}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Detail'
+        }
+    },
+    additionalProperties: false,
+    type: 'object',
+    required: ['kind', 'at'],
+    title: 'UsageEventIn'
 } as const;
 
 export const UsageOutSchema = {

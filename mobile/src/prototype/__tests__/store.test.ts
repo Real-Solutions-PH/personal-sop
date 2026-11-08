@@ -1,6 +1,7 @@
 import {
   configureStorage,
   createStore,
+  retryStoreReads,
 } from "../../../../shared/prototype/lib/store"
 
 describe("prototype persistence", () => {
@@ -113,4 +114,88 @@ test("a memory-only store never writes to storage and starts fresh", () => {
   expect(saved.get("sop-proto:ui-test")).toBe(JSON.stringify({ open: true }))
   ui.set({ open: false })
   expect(saved.get("sop-proto:ui-test")).toBe(JSON.stringify({ open: true }))
+})
+
+describe("a saved value the loader cannot read", () => {
+  const saved = new Map<string, string>()
+  const memory = {
+    getItem: (k: string) => saved.get(k) ?? null,
+    setItem: (k: string, v: string) => void saved.set(k, v),
+    removeItem: (k: string) => void saved.delete(k),
+  }
+  beforeEach(() => saved.clear())
+
+  // Build 40: Home's layout store defaults to null ("never edited"). The
+  // loader refused every saved value whose default was not an object, so
+  // each launch after editing Home raised the storage banner and showed the
+  // default card order.
+  it("loads a store whose default is null", () => {
+    const onError = jest.fn()
+    configureStorage(memory, onError)
+    const layout = { order: ["goals", "plan"], hidden: ["weather"] }
+    saved.set("sop-proto:null-default", JSON.stringify(layout))
+    const store = createStore<typeof layout | null>("null-default", () => null)
+    expect(store.get()).toEqual(layout)
+    expect(onError).not.toHaveBeenCalled()
+  })
+
+  it("keeps the unreadable value aside before any edit is saved over it", () => {
+    const onError = jest.fn()
+    configureStorage(memory, onError)
+    saved.set("sop-proto:bad", JSON.stringify({ count: "seven" }))
+    const store = createStore("bad", () => ({ count: 0 }))
+    expect(store.get()).toEqual({ count: 0 })
+    store.set({ count: 1 })
+    expect(onError).toHaveBeenCalled()
+    expect(saved.get("sop-proto:bad:unreadable")).toBe(
+      JSON.stringify({ count: "seven" }),
+    )
+  })
+
+  it("never writes over saved data it could not read at all", () => {
+    const onError = jest.fn()
+    let failing = true
+    saved.set("sop-proto:busy", JSON.stringify({ count: 9 }))
+    configureStorage(
+      {
+        ...memory,
+        getItem: (k) => {
+          if (failing) throw new Error("database is locked")
+          return memory.getItem(k)
+        },
+      },
+      onError,
+    )
+    const store = createStore("busy", () => ({ count: 0 }))
+    expect(store.get()).toEqual({ count: 0 })
+    store.set((s) => ({ ...s, count: s.count + 1 }))
+    expect(store.flush()).toBe(false)
+    expect(saved.get("sop-proto:busy")).toBe(JSON.stringify({ count: 9 }))
+    expect(onError).toHaveBeenCalled()
+    // Retry storage: the next read comes from disk, not from the stand-in.
+    failing = false
+    expect(retryStoreReads()).toBe(true)
+    expect(store.get()).toEqual({ count: 9 })
+    store.set({ count: 10 })
+    expect(store.flush()).toBe(true)
+    expect(saved.get("sop-proto:busy")).toBe(JSON.stringify({ count: 10 }))
+  })
+})
+
+test("a store read before storage is configured reads the saved state once it is", () => {
+  jest.isolateModules(() => {
+    const store =
+      require("@domain/lib/store") as typeof import("@domain/lib/store")
+    const early = store.createStore("early", () => ({ count: 0 }))
+    expect(early.get()).toEqual({ count: 0 })
+    const disk = new Map([["sop-proto:early", JSON.stringify({ count: 5 })]])
+    store.configureStorage({
+      getItem: (k) => disk.get(k) ?? null,
+      setItem: (k, v) => void disk.set(k, v),
+      removeItem: (k) => void disk.delete(k),
+    })
+    expect(early.get()).toEqual({ count: 5 })
+    early.set((s) => ({ count: s.count + 1 }))
+    expect(disk.get("sop-proto:early")).toBe(JSON.stringify({ count: 6 }))
+  })
 })
