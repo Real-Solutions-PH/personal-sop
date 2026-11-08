@@ -1,0 +1,26 @@
+{
+  "name": "marketing",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "gen:fern": "node scripts/gen-fern.mjs",
+    "dev": "bun run gen:fern && next dev --port 3100",
+    "build": "bun run gen:fern && next build",
+    "preview": "bunx serve out -l 3100",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true ./"
+  },
+  "dependencies": {
+    "next": "^16.3.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "lucide-react": "^1.24.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.3",
+    "@types/node": "^26.1.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.3"
+  }
+}
