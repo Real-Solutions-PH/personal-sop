@@ -300,6 +300,9 @@ describe("helpers", () => {
     expect(missKind("fin-budget-x-2026-11").word).toBe("Over budget")
     expect(missKind("nut-over-2026-11-05").word).toBe("Over calories")
     expect(missKind("focus-under-2026-11-05").word).toBe("Focus short")
+    expect(missKind("nut-protein-2026-11-05").word).toBe("Protein short")
+    expect(missKind("nut-fiber-2026-11-05").word).toBe("Fiber short")
+    expect(missKind("nut-limit-sodium-2026-11-05").word).toBe("Over limit")
     expect(missKind("something-new").word).toBe("Missed")
   })
 
@@ -313,6 +316,21 @@ describe("helpers", () => {
     expect(p("Over calories by 9%", "nutrition")).toEqual({
       name: "Calories",
       cost: "over the target by 9%",
+    })
+    expect(p("Protein short by 35 g (105 of 140 g)", "nutrition")).toEqual({
+      name: "Protein",
+      cost: "105 of 140 g · 35 g short",
+    })
+    expect(p("Fiber short by 26 g (1 of 27 g)", "nutrition")).toEqual({
+      name: "Fiber",
+      cost: "1 of 27 g · 26 g short",
+    })
+    expect(
+      p("Over sodium limit by 450 mg (2,450 of 2,000 mg)", "nutrition"),
+    ).toEqual({ name: "Sodium", cost: "2,450 of 2,000 mg · 450 mg over" })
+    expect(p("Over sat fat limit by 4 g (17 of 13 g)", "nutrition")).toEqual({
+      name: "Sat fat",
+      cost: "17 of 13 g · 4 g over",
     })
     expect(p("Focused 1h 10m of 2h", "focus")).toEqual({
       name: "Focus goal",

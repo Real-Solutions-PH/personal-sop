@@ -143,15 +143,73 @@ test("the Nutrition rate averages calories on target and protein hit", () => {
   expect(m.find((x) => x.key === "logged")?.value).toBe("2")
   const misses = renderHook(() => NUT.useMisses(dayOffset(-7), dayKey())).result
     .current
+  // Day -2 is over calories AND short on protein (60 of 140 g); its two
+  // misses come in reading order. Day -1 missed nothing. No item carries
+  // fiber or limits, so neither is judged.
+  const d2 = dayOffset(-2)
+  const row = (id: string, title: string) => ({
+    id: `${id}-${d2}`,
+    day: d2,
+    title,
+    module: "nutrition",
+    href: `/nutrition?day=${d2}`,
+  })
   expect(misses).toEqual([
-    {
-      id: `nut-over-${dayOffset(-2)}`,
-      day: dayOffset(-2),
-      title: "Over calories by 30%",
-      module: "nutrition",
-      href: `/nutrition?day=${dayOffset(-2)}`,
-    },
+    row("nut-over", "Over calories by 30%"),
+    row("nut-protein", "Protein short by 80 g (60 of 140 g)"),
   ])
+})
+
+test("a day short on fiber or over a stay-under limit is a miss", () => {
+  // One closed day on calories and protein, whose items carry detail:
+  // fiber 10 g of the 25 g default goal (under 90%: a miss), sodium 2,450 mg
+  // of the 2,000 mg default (450 over: a miss), sugar 50 g exactly at the
+  // 50 g limit (not over: no miss), sat fat unknown (not judged).
+  // Today is never judged even with the same meal.
+  const base = meal("a", dayOffset(-1), 2000, 140)
+  const today = meal("t", dayKey(), 2000, 10)
+  fitStore.set((s) => ({
+    ...s,
+    targets: [target],
+    meals: [
+      {
+        ...base,
+        items: base.items.map((i) => ({
+          ...i,
+          fiber: 10,
+          sodium: 2450,
+          sugar: 50,
+        })),
+      },
+      today,
+    ],
+  }))
+  const d1 = dayOffset(-1)
+  const misses = renderHook(() => NUT.useMisses(dayOffset(-7), dayKey())).result
+    .current
+  expect(misses.map((m) => [m.id, m.title])).toEqual([
+    [`nut-fiber-${d1}`, "Fiber short by 15 g (10 of 25 g)"],
+    [`nut-limit-sodium-${d1}`, "Over sodium limit by 450 mg (2,450 of 2,000 mg)"],
+  ])
+})
+
+test("a day under its own limits and on its own fiber goal misses nothing", () => {
+  // The target sets its own: fiber goal 10 g (10 eaten meets it), sodium
+  // limit 3,000 mg (2,450 is under).
+  const base = meal("a", dayOffset(-1), 2000, 140)
+  fitStore.set((s) => ({
+    ...s,
+    targets: [{ ...target, fiberGoal: 10, sodiumMax: 3000 }],
+    meals: [
+      {
+        ...base,
+        items: base.items.map((i) => ({ ...i, fiber: 10, sodium: 2450 })),
+      },
+    ],
+  }))
+  expect(
+    renderHook(() => NUT.useMisses(dayOffset(-7), dayKey())).result.current,
+  ).toEqual([])
 })
 
 test("Fitness counts training only", () => {
