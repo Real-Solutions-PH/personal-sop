@@ -359,7 +359,8 @@ test("the saved Home order comes back on the next launch", () => {
   }
   const order = ["goals", ...DEFAULT_ORDER.filter((id) => id !== "goals")]
   jest.isolateModules(() => {
-    const store = require("@domain/lib/store") as typeof import("@domain/lib/store")
+    const store =
+      require("@domain/lib/store") as typeof import("@domain/lib/store")
     store.configureStorage(adapter, onError)
     const { homeLayoutStore: layout } =
       require("../home-layout") as typeof import("../home-layout")
@@ -367,7 +368,8 @@ test("the saved Home order comes back on the next launch", () => {
   })
   // Next launch: fresh modules over the same disk.
   jest.isolateModules(() => {
-    const store = require("@domain/lib/store") as typeof import("@domain/lib/store")
+    const store =
+      require("@domain/lib/store") as typeof import("@domain/lib/store")
     store.configureStorage(adapter, onError)
     const { homeLayoutStore: layout } =
       require("../home-layout") as typeof import("../home-layout")

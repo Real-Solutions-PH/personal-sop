@@ -1158,9 +1158,10 @@ test("the composer opens on Photo, drawn on Fern until a photo is picked", async
   // Photo is the selected ground, and its prompt is open.
   expect(
     StyleSheet.flatten(
-      r.getByLabelText("Photo background").findAll(
-        (n) => StyleSheet.flatten(n.props.style)?.borderWidth === 2,
-      )[0]?.props.style,
+      r
+        .getByLabelText("Photo background")
+        .findAll((n) => StyleSheet.flatten(n.props.style)?.borderWidth === 2)[0]
+        ?.props.style,
     ),
   ).toBeTruthy()
   expect(r.getAllByText("Choose a photo").length).toBeGreaterThan(0)

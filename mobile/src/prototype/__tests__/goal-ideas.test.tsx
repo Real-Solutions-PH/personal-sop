@@ -16,8 +16,8 @@ import {
   renderHook,
   screen,
 } from "@testing-library/react-native"
-import { SafeAreaProvider } from "react-native-safe-area-context"
 import type { ReactNode } from "react"
+import { SafeAreaProvider } from "react-native-safe-area-context"
 
 const mockParams: Record<string, string> = {}
 jest.mock("expo-router", () => ({
@@ -70,9 +70,12 @@ jest.mock("../media", () => ({
   copyText: jest.fn(),
 }))
 
-
 beforeEach(() => {
-  configureStorage({ getItem: () => null, setItem: () => {}, removeItem: () => {} })
+  configureStorage({
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => {},
+  })
   resetAll()
 })
 
@@ -82,8 +85,17 @@ const allOn = Object.fromEntries(MODULE_KEYS.map((k) => [k, true])) as Record<
 >
 
 test("ideas span every area the app tracks, several each", () => {
-  for (const area of ["habits", "tasks", "focus", "fitness", "nutrition", "finance"])
-    expect(GOAL_IDEAS.filter((i) => i.area === area).length).toBeGreaterThanOrEqual(3)
+  for (const area of [
+    "habits",
+    "tasks",
+    "focus",
+    "fitness",
+    "nutrition",
+    "finance",
+  ])
+    expect(
+      GOAL_IDEAS.filter((i) => i.area === area).length,
+    ).toBeGreaterThanOrEqual(3)
   expect(new Set(GOAL_IDEAS.map((i) => `${i.metric}|${i.period}`)).size).toBe(
     GOAL_IDEAS.length,
   )
@@ -93,13 +105,19 @@ test("every idea reads as a number in the metric book", () => {
   const { result } = renderHook(() => useMetricBook())
   for (const i of GOAL_IDEAS) {
     const entry = result.current[i.period].get(i.metric)
-    expect({ metric: i.metric, found: !!entry }).toEqual({ metric: i.metric, found: true })
+    expect({ metric: i.metric, found: !!entry }).toEqual({
+      metric: i.metric,
+      found: true,
+    })
     expect({ metric: i.metric, n: typeof entry?.n }).toEqual({
       metric: i.metric,
       n: "number",
     })
     // The unit the goal is written in is the unit its value is read in.
-    expect({ metric: i.metric, unit: entry?.unit }).toEqual({ metric: i.metric, unit: i.unit })
+    expect({ metric: i.metric, unit: entry?.unit }).toEqual({
+      metric: i.metric,
+      unit: i.unit,
+    })
   }
 })
 
@@ -110,7 +128,9 @@ test("every module idea is a metric the server computes too", () => {
     const key = i.metric.split(":")[1]
     const src =
       readFileSync(join(backend, i.area, "stats.py"), "utf8") +
-      (i.area === "tasks" ? readFileSync(join(backend, "tasks", "logic.py"), "utf8") : "")
+      (i.area === "tasks"
+        ? readFileSync(join(backend, "tasks", "logic.py"), "utf8")
+        : "")
     expect({ metric: i.metric, onServer: src.includes(`"${key}"`) }).toEqual({
       metric: i.metric,
       onServer: true,
@@ -119,8 +139,13 @@ test("every module idea is a metric the server computes too", () => {
 })
 
 test("an idea already in play, or for a part switched off, is not offered", () => {
-  const goal = saveGoal(ideaGoal(GOAL_IDEAS.find((i) => i.metric === "tasks:tasks.done")!))
-  const offered = goalIdeas(dashStore.get().goals, { ...allOn, nutrition: false })
+  const goal = saveGoal(
+    ideaGoal(GOAL_IDEAS.find((i) => i.metric === "tasks:tasks.done")!),
+  )
+  const offered = goalIdeas(dashStore.get().goals, {
+    ...allOn,
+    nutrition: false,
+  })
   expect(offered.some((i) => i.metric === goal.metric)).toBe(false)
   expect(offered.some((i) => i.area === "nutrition")).toBe(false)
   expect(offered.some((i) => i.area === "focus")).toBe(true)
@@ -136,7 +161,8 @@ describe("on screen", () => {
   )
 
   test("Goals lists more goals by area; a tap makes one a goal", () => {
-    const { Goals } = require("../screens/dash-goals") as typeof import("../screens/dash-goals")
+    const { Goals } =
+      require("../screens/dash-goals") as typeof import("../screens/dash-goals")
     delete mockParams.t
     render(wrap(<Goals />))
     expect(screen.getByTestId("goal-ideas")).toBeTruthy()
@@ -152,11 +178,14 @@ describe("on screen", () => {
       status: "active",
     })
     // Taken: no longer offered.
-    expect(screen.queryByLabelText("Add goal: Tasks done ≥ 20 / week")).toBeNull()
+    expect(
+      screen.queryByLabelText("Add goal: Tasks done ≥ 20 / week"),
+    ).toBeNull()
   })
 
   test("the Goal hit card: pick a goal in play, or take a new one onto it", () => {
-    const { ShareCard } = require("../screens/dash-share") as typeof import("../screens/dash-share")
+    const { ShareCard } =
+      require("../screens/dash-share") as typeof import("../screens/dash-share")
     mockParams.t = "goal"
     render(wrap(<ShareCard />))
     expect(screen.getByTestId("goal-choice")).toBeTruthy()
@@ -172,13 +201,18 @@ describe("on screen", () => {
       fireEvent.press(screen.getByText("More goals to choose from"))
     })
     act(() => {
-      fireEvent.press(screen.getByLabelText("Add goal: Focus sessions ≥ 10 / week"))
+      fireEvent.press(
+        screen.getByLabelText("Add goal: Focus sessions ≥ 10 / week"),
+      )
     })
-    const made = dashStore.get().goals.find((g) => g.metric === "focus:sessions")
+    const made = dashStore
+      .get()
+      .goals.find((g) => g.metric === "focus:sessions")
     expect(made).toBeTruthy()
     // The new goal is the chosen one (its label is the metric's own).
     expect(
-      screen.getByLabelText("Put Sessions on the card").props.accessibilityState,
+      screen.getByLabelText("Put Sessions on the card").props
+        .accessibilityState,
     ).toEqual({ selected: true })
     const others = screen
       .getAllByRole("radio")

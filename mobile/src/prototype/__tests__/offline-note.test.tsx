@@ -64,20 +64,20 @@ const flatten = (style: unknown): Record<string, unknown> =>
 // Kai, 2026-11-08: the pill sat in a full-width black strip that hid the
 // page behind it. It floats over the page now: no backing, no room taken,
 // and a touch beside the pill reaches the page.
-test.each([true, false])(
-  "floats over the page with nothing behind it (bar: %s)",
-  (withBar) => {
-    render(<OfflineNote offline withBar={withBar} />)
-    const layer = screen.getByTestId("offline-note-layer")
-    const style = flatten(layer.props.style)
-    expect(style.position).toBe("absolute")
-    expect(style.bottom).toBe(0)
-    expect(style.left).toBe(0)
-    expect(style.right).toBe(0)
-    expect(style.backgroundColor).toBeUndefined()
-    expect(layer.props.pointerEvents).toBe("box-none")
-  },
-)
+test.each([
+  true,
+  false,
+])("floats over the page with nothing behind it (bar: %s)", (withBar) => {
+  render(<OfflineNote offline withBar={withBar} />)
+  const layer = screen.getByTestId("offline-note-layer")
+  const style = flatten(layer.props.style)
+  expect(style.position).toBe("absolute")
+  expect(style.bottom).toBe(0)
+  expect(style.left).toBe(0)
+  expect(style.right).toBe(0)
+  expect(style.backgroundColor).toBeUndefined()
+  expect(layer.props.pointerEvents).toBe("box-none")
+})
 
 test("online: nothing, and coming back online gives the room back", () => {
   const { rerender } = render(<OfflineNote offline={false} withBar />)

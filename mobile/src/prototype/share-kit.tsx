@@ -1994,8 +1994,7 @@ export function ShareComposer<K extends string>({
     () => ({ format, backdrop: shown, photo, color }),
     [format, shown, photo, color],
   )
-  const
-    refs = useRef<Record<string, HostInstance | null>>({}),
+  const refs = useRef<Record<string, HostInstance | null>>({}),
     shots = useRef<Record<string, HostInstance | null>>({}),
     target = (key: string) => shots.current[key] ?? refs.current[key],
     // The selected card laid out at exactly 1080 px wide, off screen: the

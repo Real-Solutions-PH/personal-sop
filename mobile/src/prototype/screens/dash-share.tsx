@@ -64,8 +64,8 @@ import {
   Words,
 } from "../share-kit"
 import { useTheme } from "../theme"
-import { GoalIdeas } from "./dash-goals"
 import { Button, Screen, Sheet, shareText, Toggle } from "../ui"
+import { GoalIdeas } from "./dash-goals"
 
 const areaColors = {
   habits: "hab",
