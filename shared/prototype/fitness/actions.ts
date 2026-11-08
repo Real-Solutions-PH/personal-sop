@@ -488,7 +488,10 @@ export function updateWorkoutHealth(id: string, h: { steps: number }) {
 export const PLACE_MAX = 80
 /** Where a workout was trained; an empty name clears it. */
 export function setWorkoutPlace(id: string, place: WorkoutPlace | null) {
-  const name = (place?.name ?? "").replace(/\s+/g, " ").trim().slice(0, PLACE_MAX)
+  const name = (place?.name ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, PLACE_MAX)
   const w = fitStore.get().workouts.find((x) => x.id === id)
   if (!w) return
   if (!name) {
