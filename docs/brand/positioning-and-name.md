@@ -17,7 +17,7 @@ reviewed and overridden on its own.
 | Primary tagline | **Say it. It's tracked.** |
 | Call to action | **Just tell Fern.** |
 | App Store title | `Unfurl: Life Tracker by Voice` |
-| Pricing | Free tier with a daily Fern allowance; Unfurl Plus at US$49.99 a year or US$6.99 a month, regional pricing elsewhere |
+| Pricing | Free tier with a daily Fern allowance; Unfurl Plus at US$49.99 a year or US$7.99 a month, regional pricing elsewhere (updated 2026-11-08) |
 | Brand colour | Moss (`#1f5a43`) as the single brand colour on a warm paper ground; muted module colours on small marks only (updated 2026-10-22, see [design-system](design-system/project/README.md)) |
 | Type | Geist for words, Geist Mono for numbers (replaces Barlow, updated 2026-10-22) |
 | Logo | The fiddlehead (Fern's mark) with the wordmark "unfurl"; Fern is the most prominent element of the interface |
@@ -355,8 +355,8 @@ not a problem.
 
 | Plan | Price (US) | What is included |
 |---|---|---|
-| Free | $0 | Every area, unlimited manual logging, charts and streaks; a daily Fern allowance covering text, voice and photo logging (start at 15 messages a day and tune it with cost data) |
-| Unfurl Plus | **$49.99 a year** or $6.99 a month; 7-day free trial | Fern without the daily allowance (fair-use limits apply), questions over the full history, Life Score breakdowns, export |
+| Free | $0 | Every area, unlimited manual logging, charts, streaks and export; a daily Fern allowance covering text, voice and photo logging: 15 messages a day in the first week, then 5 a day (Philippines, India, Indonesia and other low-price countries: 10, then 3) |
+| Unfurl Plus | **$49.99 a year** or $7.99 a month; 7-day free trial on the yearly plan | Fern without the daily allowance, under a stated fair-use limit; questions over the full history; Life Score breakdowns |
 | Student | 50% off Plus, yearly only | Same as Plus, with student verification |
 
 - **Why this price:** $49.99 a year is about a sixth of the $311 five-app
@@ -365,11 +365,22 @@ not a problem.
 - **Why voice and photo stay in the free tier:** they are the difference. A
   free user who never feels "say it, it's tracked" has no reason to upgrade.
   The allowance limits cost; it does not hide the product.
+- **Plus fair-use limit, stated on the paywall and in the terms:** Plus has
+  no daily allowance, but each subscriber has a monthly Fern budget (about
+  US$2.50 of AI cost in the US, UK, euro area and Australia; US$1.50 in
+  Brazil and Mexico; US$1.00 in the Philippines, India and Indonesia). Past
+  it, Fern keeps working on a lighter model. Hard stops sit at 60
+  messages a day and US$5 of AI cost a month. Never call Plus "unlimited".
+- **Why export is free:** people who quit trackers fear losing their data,
+  and a locked export undercuts the trust Unfurl sells. It costs almost
+  nothing to run.
 - **No lifetime plan.** Every Fern message has a running model cost, so a
   one-time price would lose money on the most active users.
 - **Regional pricing:** set prices per country in App Store Connect and Google
-  Play rather than relying on automatic conversion. Philippines target: about
-  ₱1,290 a year and ₱199 a month.
+  Play rather than relying on automatic conversion. Philippines: ₱1,490 a
+  year and ₱249 a month. The lower-price countries also get the smaller free
+  allowance above, because a regional price cuts revenue but not the model
+  cost of each Fern message.
 
 ### Channels
 
