@@ -56,6 +56,7 @@ import Svg, {
 import { toast } from "sonner-native"
 import { CornerMotif } from "../brand/corner"
 import { FernCelebrates } from "../companion/fern-celebrates"
+import { useTypingClock } from "../journal-time"
 import { feel, StreakChip } from "../motion"
 import {
   border,
@@ -885,6 +886,8 @@ function JournalEditor({ id }: { id?: string }) {
     },
     [],
   )
+  // Time spent typing the entry, for the journal share card.
+  const typing = useTypingClock()
   const edit =
     <V,>(set: (v: V) => void) =>
     (v: V) => {
@@ -992,7 +995,10 @@ function JournalEditor({ id }: { id?: string }) {
         {existing && <TranscriptionNote e={existing} />}
         <EntryText
           value={body}
-          onChangeText={edit(setBody)}
+          onChangeText={(v: string) => {
+            typing()
+            edit(setBody)(v)
+          }}
           autoFocus={!existing}
           minHeight={surface}
           keyboard={keyboard}

@@ -14,6 +14,7 @@ import {
   ListOrdered,
   Plus,
   Settings,
+  Share2,
   Sparkles,
   Target,
   Wallet,
@@ -297,6 +298,13 @@ export function FinanceHome({
       actions={
         <Line style={{ gap: 0 }}>
           <PrivacyEye />
+          <IconTap
+            size={40}
+            icon={Share2}
+            label="Share a finance card"
+            color={t.text}
+            onPress={() => go("/finance/share")}
+          />
           <IconTap
             size={40}
             icon={Settings}
