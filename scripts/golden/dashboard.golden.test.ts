@@ -7,6 +7,14 @@ mock.module("react", () => ({
 	// useServerStat watches the server cache; the fixtures are local-only.
 	useEffect: () => {},
 	useSyncExternalStore: <T>(_sub: unknown, get: () => T) => get(),
+	// lib/store imports these; the fixtures never render. bun's mock.module is
+	// process-wide, so every golden file's react stub must carry the full set.
+	createContext: () => ({}),
+	useContext: () => undefined,
+	useReducer: () => [0, () => {}],
+	startTransition: (fn: () => void) => fn(),
+	// mobile/src/prototype/weather (weather.golden) imports this.
+	useState: <T>(v: T) => [v, () => {}],
 }));
 
 beforeAll(freeze);
