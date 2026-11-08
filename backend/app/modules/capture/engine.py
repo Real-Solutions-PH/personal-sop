@@ -27,7 +27,7 @@ import threading
 import uuid
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
 
 from fastapi import HTTPException
@@ -209,6 +209,10 @@ def submit(ctx: Ctx, data: CaptureIn) -> Submitted:
     ctx.session.info.setdefault("capture_hints", {})[cap.id] = data.hint
     if data.account_id is not None:
         ctx.session.info.setdefault("capture_accounts", {})[cap.id] = data.account_id
+    if data.range_from is not None:
+        if data.range_from >= ctx.clock.day_of(cap.at):
+            raise invalid("range_invalid", "The catch-up range must start before today")
+        ctx.session.info.setdefault("capture_ranges", {})[cap.id] = data.range_from
     if data.media_id is not None:
         kind = {"photo": "image", "voice": "audio", "file": "file"}.get(data.source)
         if kind is None:
@@ -244,6 +248,8 @@ class Plan:
     resolved: ai.ResolvedModel | None
     hint: str | None
     account_id: uuid.UUID | None
+    # A catch-up's first unlogged day (the gap ends the day before ``at``).
+    range_from: date | None = None
 
 
 def _fail(ctx: Ctx, cap: Capture, code: str, title: str, body: str) -> None:
@@ -315,10 +321,12 @@ def preflight(ctx: Ctx, cap: Capture) -> Plan:
         _transcript(ctx, cap, st.transcription, st.language)
     hints = ctx.session.info.get("capture_hints", {})
     accounts = ctx.session.info.get("capture_accounts", {})
+    ranges = ctx.session.info.get("capture_ranges", {})
     return Plan(
         resolved=resolved,
         hint=hints.get(cap.id) or cap.hint,
         account_id=accounts.get(cap.id),
+        range_from=ranges.get(cap.id),
     )
 
 
@@ -514,6 +522,12 @@ def _interpret(
         return ("ai" if used_ai else "rules"), None
     world = ports.build_world(ctx, at=cap.at)
     hint = plan.hint.lower() if plan.hint else None
+    cap_day = ctx.clock.day_of(cap.at)
+    gap = (
+        (plan.range_from, cap_day - timedelta(days=1))
+        if plan.range_from is not None
+        else None
+    )
     if plan.resolved is not None:
         try:
             reply, run = agent.run_capture_agent(
@@ -525,6 +539,7 @@ def _interpret(
                 text=cap.text,
                 journal_in_qa=st.journal_in_qa,
                 start=pos.n,
+                gap=gap,
             )
             pos.n = run.position
             return "ai", reply or None
@@ -538,7 +553,17 @@ def _interpret(
             _persist(ctx, cap, drafts, emit, pos, actor="ai")
             emit_reply(ctx, emit, cap, dict(UNAVAILABLE_CARD), position=pos.take())
             return "rules", None
-    drafts = parse_capture(world, cap.text, ParseCtx(source=cap.source, hint=hint))
+    if gap is not None:
+        # No model to date the facts: keep the whole note, unsplit, as one
+        # journal entry on the gap's last day rather than guess at days.
+        drafts = parse_capture(
+            world, cap.text, ParseCtx(source=cap.source, hint="journal")
+        )
+        for d in drafts:
+            if isinstance(d, RecordDraft):
+                d.day_offset = -1
+    else:
+        drafts = parse_capture(world, cap.text, ParseCtx(source=cap.source, hint=hint))
     _persist(ctx, cap, drafts, emit, pos)
     emit_reply(ctx, emit, cap, dict(FALLBACK_CARD), position=pos.take())
     return "rules", None

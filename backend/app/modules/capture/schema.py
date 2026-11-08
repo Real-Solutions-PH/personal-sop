@@ -5,7 +5,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.modules.ai_providers import catalog
 from app.modules.capture.rules import RULE_KEYS
@@ -238,7 +238,14 @@ class CaptureIn(BaseModel):
     text: Text = ""
     transcript: Annotated[str, Field(max_length=20000)] | None = None
     duration_sec: Annotated[int, Field(ge=0, le=3600)] | None = None
-    hint: Hint | Literal["journal", "expense", "task", "weigh-in"] | None = None
+    hint: (
+        Hint
+        | Literal["journal", "expense", "task", "weigh-in", "catch_up", "checkin"]
+        | None
+    ) = None
+    # The way back's catch-up: the first unlogged day; the gap ends the day
+    # before ``at``. Only with ``hint="catch_up"``.
+    range_from: date | None = None
     file_name: Annotated[str, Field(max_length=255)] | None = None
     media_id: uuid.UUID | None = None
     # More photos read together with ``media_id`` (one capture, one answer).
@@ -254,6 +261,12 @@ class CaptureIn(BaseModel):
         if v is not None and v.tzinfo is None:
             raise ValueError("at must carry a time zone")
         return v
+
+    @model_validator(mode="after")
+    def _range_needs_catch_up(self) -> "CaptureIn":
+        if self.range_from is not None and self.hint != "catch_up":
+            raise ValueError("range_from is only for a catch_up capture")
+        return self
 
 
 class RerunIn(BaseModel):

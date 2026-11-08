@@ -489,7 +489,7 @@ export function HabitsHome() {
               </Line>
               <Line style={{ gap: 12 }}>
                 <Stat label="Missed" value={cur.missed} />
-                <Stat label="Broken streaks" value={broken.length} />
+                <Stat label="Runs that ended" value={broken.length} />
                 <Stat label="Worst day" value={worst?.day ?? "—"} />
               </Line>
               {broken

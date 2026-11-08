@@ -2,9 +2,12 @@
 // break, at the streak milestones. Pure rules plus one device-local record
 // of which once-a-day moments have played, so a relaunch never replays one
 // and a pull from another device never plays one here.
-import { addDays } from "@domain/habits/logic"
+import type { Habit, HabitLog } from "@domain/habits/data"
+import { addDays, cellFor, daysBetween } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
+import { walkRun } from "@domain/lib/grace"
 import { createStore } from "@domain/lib/store"
+import { WAY_BACK } from "@domain/way-back"
 
 /** Each once-a-day moment's key → the last day it played on this phone. */
 export const rewardStore = createStore("rewards", () => ({
@@ -26,16 +29,61 @@ export const MILESTONES = [7, 30, 100, 365] as const
 export const isMilestone = (n: number) =>
   (MILESTONES as readonly number[]).includes(n)
 
-/** A habit streak that broke on yesterday's miss, shown for that one day:
- * its length, or 0. A streak already restarted today shows as a streak. */
-export function streakLost(
-  broken: { day: string; length: number }[],
-  current: number,
+type Streaks = {
+  current: number
+  broken: { day: string; length: number }[]
+  graceDays: string[]
+}
+
+/** A run that ended on yesterday's miss, shown for that one day: the
+ * missed days in a row up to yesterday and the run they ended, or null. A
+ * streak already going again (or held by a grace day) shows as a streak. */
+export function streakMiss(
+  h: Habit,
+  idx: Map<string, HabitLog>,
+  st: Streaks,
   today = dayKey(),
-): number {
-  if (current > 0) return 0
+): { missed: number; run: number } | null {
+  if (st.current > 0) return null
   const yesterday = addDays(today, -1)
-  return broken.find((b) => b.day === yesterday)?.length ?? 0
+  const ended = st.broken.find((b) => b.day === yesterday)
+  if (!ended) return null
+  let missed = 0
+  for (let d = yesterday; d >= h.createdAt; d = addDays(d, -1)) {
+    const c = cellFor(h, d, idx, today)
+    if (c === "missed") missed++
+    else if (c === "done" || c === "partial") break
+  }
+  return { missed, run: ended.length }
+}
+
+/** What the live streak chip adds: the way-back pause it is resting on
+ * (until the habit is next done), else a grace day used this week. */
+export function streakNote(
+  h: Habit,
+  idx: Map<string, HabitLog>,
+  st: Streaks,
+  today = dayKey(),
+): string | null {
+  if (st.current <= 0) return null
+  const away = h.pauses
+    .filter((p) => p.reason === WAY_BACK && p.to && p.to < today)
+    .sort((a, b) => (a.from < b.from ? 1 : -1))[0]
+  if (away?.to) {
+    let doneSince = false
+    for (let d = addDays(away.to, 1); d < today; d = addDays(d, 1)) {
+      const c = cellFor(h, d, idx, today)
+      if (c === "done" || c === "partial") doneSince = true
+    }
+    const t = cellFor(h, today, idx, today)
+    if (t === "done" || t === "partial") doneSince = true
+    if (!doneSince) {
+      const n = daysBetween(away.from, away.to).length
+      return `paused ${n} day${n === 1 ? "" : "s"}`
+    }
+  }
+  const last = st.graceDays[st.graceDays.length - 1]
+  return last && last >= addDays(today, -7) ? "grace day used" : null
 }
 
 export type DayStanding = "perfect" | "target" | "below" | "free"
@@ -59,25 +107,24 @@ export function standingMoment(
   return after === "perfect" ? "perfect" : "target"
 }
 
-/** How yesterday went, for the morning strip: off target or not, and the
- * on-target streak it ended (days in a row before it), from the day series
- * (days with nothing due score null and neither extend nor break). */
+/** How yesterday went, for the morning strip: off target or not, whether
+ * the grace day covered it, and the on-target run it ended (the same walk
+ * as the streak: days with nothing due neither extend nor break). */
 export function yesterdayRecap(
   series: { day: string; onTarget: boolean | null }[],
   today = dayKey(),
-): { offTarget: boolean; ended: number } {
+): { offTarget: boolean; ended: number; grace: boolean } {
   const yesterday = addDays(today, -1)
   const past = series.filter((d) => d.day < today)
   const y = past.find((d) => d.day === yesterday)
-  if (y?.onTarget !== false) return { offTarget: false, ended: 0 }
-  let ended = 0
-  for (let i = past.length - 1; i >= 0; i--) {
-    const d = past[i]
-    if (d.day >= yesterday || d.onTarget === null) continue
-    if (!d.onTarget) break
-    ended++
-  }
-  return { offTarget: true, ended }
+  if (y?.onTarget !== false) return { offTarget: false, ended: 0, grace: false }
+  const w = walkRun(
+    past.map((d): [string, boolean | null] => [d.day, d.onTarget]),
+  )
+  if (w.graceDays.includes(yesterday))
+    return { offTarget: true, ended: 0, grace: true }
+  const ended = w.broken.find((b) => b.day === yesterday)?.length ?? 0
+  return { offTarget: true, ended, grace: false }
 }
 
 /** Days 1–7 of the first week, from the first day anything was logged

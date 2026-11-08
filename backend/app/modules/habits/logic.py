@@ -16,6 +16,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from app.shared.day import DEFAULT_DAY_START_HOUR, DEFAULT_TIMEZONE, js_weekday
+from app.shared.grace import walk_run
 
 Cell = Literal[
     "done",
@@ -261,33 +262,25 @@ class Streaks:
     current: int
     best: int
     broken: list[BrokenStreak] = field(default_factory=list)
+    grace_days: list[date] = field(default_factory=list)
 
 
 def streaks(h: HabitView, idx: LogIndex, today: date) -> Streaks:
-    """Done and partial days extend a streak, missed days break it; skipped,
-    paused, pending and unscheduled days are neutral."""
-    current = 0
-    d = today
-    while d >= h.created:
-        c = cell_for(h, d, idx, today)
-        if c in ("done", "partial"):
-            current += 1
-        elif c == "missed":
-            break
-        d -= timedelta(days=1)
-    best = 0
-    run = 0
-    broken: list[BrokenStreak] = []
-    for day in days_between(h.created, today):
+    """Done and partial days extend a run; skipped, paused, pending and
+    unscheduled days are neutral; a missed day is bridged by ``walk_run``'s
+    grace rule."""
+
+    def hit(day: date) -> bool | None:
         c = cell_for(h, day, idx, today)
-        if c in ("done", "partial"):
-            run += 1
-            best = max(best, run)
-        elif c == "missed":
-            if run >= 3:
-                broken.append(BrokenStreak(day=day, length=run))
-            run = 0
-    return Streaks(current=current, best=best, broken=broken)
+        return True if c in ("done", "partial") else False if c == "missed" else None
+
+    w = walk_run((day, hit(day)) for day in days_between(h.created, today))
+    return Streaks(
+        current=w.current,
+        best=w.best,
+        broken=[BrokenStreak(day=d, length=n) for d, n in w.broken],
+        grace_days=w.grace_days,
+    )
 
 
 @dataclass(frozen=True)
@@ -325,6 +318,8 @@ class OverallStats:
     perfect: int
     missed: int
     done: int
+    # Anything was due in the window; without it there is nothing to rate.
+    rated: bool = False
 
 
 def overall_stats(
@@ -363,6 +358,7 @@ def overall_stats(
         perfect=perfect,
         missed=missed,
         done=done,
+        rated=denom > 0,
     )
 
 

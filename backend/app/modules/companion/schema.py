@@ -261,3 +261,50 @@ class FernRulePublic(BaseModel):
 class FernRuleDecision(BaseModel):
     status: RuleStatus
     text: Annotated[str, Field(min_length=10, max_length=200)] | None = None
+
+
+# ---------------------------------------------------------------- review
+
+REVIEW_MAX_DAYS = 31
+
+
+class ReviewIn(BaseModel):
+    """``POST /companion/review``: Fern's wins-first review of a range."""
+
+    kind: Literal["way_back", "weekly"]
+    from_day: date
+    to_day: date
+    # Suggestion titles the person dismissed lately; never offered again.
+    dismissed: list[Annotated[str, Field(max_length=60)]] = Field(
+        default_factory=list, max_length=50
+    )
+
+    @model_validator(mode="after")
+    def _range(self) -> "ReviewIn":
+        if self.to_day < self.from_day:
+            raise ValueError("to_day is before from_day")
+        if (self.to_day - self.from_day).days >= REVIEW_MAX_DAYS:
+            raise ValueError(f"a review covers at most {REVIEW_MAX_DAYS} days")
+        return self
+
+
+class ReviewSuggestion(BaseModel):
+    kind: Literal["habit", "task"]
+    title: Annotated[str, Field(max_length=60)]
+    days_per_week: Annotated[int, Field(ge=1, le=7)] | None = None
+
+
+class ReviewPoint(BaseModel):
+    text: str
+
+
+class ReviewGap(BaseModel):
+    text: str
+    how: str
+    suggestion: ReviewSuggestion
+
+
+class ReviewOut(BaseModel):
+    wins: list[ReviewPoint]
+    gaps: list[ReviewGap]
+    source: Literal["ai", "rules"]

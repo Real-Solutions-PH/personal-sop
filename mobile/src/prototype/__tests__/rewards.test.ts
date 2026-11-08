@@ -1,6 +1,8 @@
 // The gating rules behind the daily-loop rewards and misses: once a day,
 // once per streak break, the milestone thresholds, only a step up in the
 // day's standing, and the morning recap of yesterday.
+import type { Habit, HabitLog, PauseRange } from "@domain/habits/data"
+import { logIndex, streaks } from "@domain/habits/logic"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import {
   causedHere,
@@ -12,7 +14,8 @@ import {
   playedToday,
   rewardStore,
   standingMoment,
-  streakLost,
+  streakMiss,
+  streakNote,
   yesterdayRecap,
 } from "../rewards"
 
@@ -37,20 +40,80 @@ describe("claimDay", () => {
   })
 })
 
-describe("streakLost", () => {
-  const broken = [
-    { day: "2026-10-20", length: 4 },
-    { day: "2026-11-01", length: 12 },
-  ]
-  it("shows the streak that broke on yesterday's miss, for that day only", () => {
-    expect(streakLost(broken, 0, "2026-11-02")).toBe(12)
-    expect(streakLost(broken, 0, "2026-11-03")).toBe(0)
+const habit = (pauses: PauseRange[] = []): Habit => ({
+  id: "h",
+  name: "Gym",
+  icon: "✅",
+  type: "check",
+  schedule: [{ days: [0, 1, 2, 3, 4, 5, 6] }],
+  reminder: false,
+  status: "active",
+  pauses,
+  linkWorkout: false,
+  createdAt: "2026-10-01",
+  sortOrder: 0,
+})
+const done = (...days: string[]): HabitLog[] =>
+  days.map((day, i) => ({
+    id: `l${i}`,
+    habitId: "h",
+    day,
+    status: "done",
+    loggedAt: `${day}T08:00:00`,
+    source: "tap",
+  }))
+const run = (from: number, to: number) =>
+  Array.from(
+    { length: to - from + 1 },
+    (_, i) => `2026-10-${String(from + i).padStart(2, "0")}`,
+  )
+const at = (h: Habit, logs: HabitLog[], today: string) => {
+  const idx = logIndex(logs)
+  return { h, idx, st: streaks(h, idx, today), today }
+}
+
+describe("streakMiss", () => {
+  it("shows the missed days and the run that ended yesterday", () => {
+    // 12 done (10-08..10-19), missed 10-20 and 10-21; today 10-22.
+    const c = at(habit(), done(...run(8, 19)), "2026-10-22")
+    expect(streakMiss(c.h, c.idx, c.st, c.today)).toEqual({
+      missed: 2,
+      run: 12,
+    })
+  })
+  it("is gone the day after", () => {
+    const c = at(habit(), done(...run(8, 19)), "2026-10-23")
+    expect(streakMiss(c.h, c.idx, c.st, c.today)).toBeNull()
   })
   it("says nothing once the habit is done again today", () => {
-    expect(streakLost(broken, 1, "2026-11-02")).toBe(0)
+    const c = at(habit(), done(...run(8, 19), "2026-10-22"), "2026-10-22")
+    expect(streakMiss(c.h, c.idx, c.st, c.today)).toBeNull()
   })
-  it("says nothing without a break yesterday", () => {
-    expect(streakLost(broken, 0, "2026-10-25")).toBe(0)
+  it("says nothing while a grace day holds the run", () => {
+    const c = at(habit(), done(...run(8, 20)), "2026-10-22")
+    expect(c.st.current).toBe(13)
+    expect(streakMiss(c.h, c.idx, c.st, c.today)).toBeNull()
+  })
+})
+
+describe("streakNote", () => {
+  it("says the grace day was used", () => {
+    const c = at(habit(), done(...run(8, 20)), "2026-10-22")
+    expect(streakNote(c.h, c.idx, c.st, c.today)).toBe("grace day used")
+  })
+  it("says the streak was paused while away, until the next done day", () => {
+    const away = habit([
+      { from: "2026-10-20", to: "2026-10-22", reason: "way_back" },
+    ])
+    const c = at(away, done(...run(8, 19)), "2026-10-23")
+    expect(c.st.current).toBe(12)
+    expect(streakNote(c.h, c.idx, c.st, c.today)).toBe("paused 3 days")
+    const after = at(away, done(...run(8, 19), "2026-10-23"), "2026-10-24")
+    expect(streakNote(after.h, after.idx, after.st, after.today)).toBeNull()
+  })
+  it("says nothing for a plain run", () => {
+    const c = at(habit(), done(...run(8, 21)), "2026-10-22")
+    expect(streakNote(c.h, c.idx, c.st, c.today)).toBeNull()
   })
 })
 
@@ -83,7 +146,7 @@ describe("day standing", () => {
 
 describe("yesterdayRecap", () => {
   const day = (d: string, onTarget: boolean | null) => ({ day: d, onTarget })
-  it("names an off-target yesterday and the streak it ended", () => {
+  it("says a lone off-target yesterday was covered by the grace day", () => {
     const series = [
       day("2026-10-27", false),
       day("2026-10-28", true),
@@ -95,7 +158,22 @@ describe("yesterdayRecap", () => {
     ]
     expect(yesterdayRecap(series, "2026-11-02")).toEqual({
       offTarget: true,
+      ended: 0,
+      grace: true,
+    })
+  })
+  it("names the run a second miss in a row ended", () => {
+    const series = [
+      day("2026-10-28", true),
+      day("2026-10-29", true),
+      day("2026-10-30", true),
+      day("2026-10-31", false),
+      day("2026-11-01", false),
+    ]
+    expect(yesterdayRecap(series, "2026-11-02")).toEqual({
+      offTarget: true,
       ended: 3,
+      grace: false,
     })
   })
   it("has nothing to say after an on-target or free yesterday", () => {

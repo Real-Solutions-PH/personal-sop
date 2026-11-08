@@ -25,7 +25,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { streakLost } from "../rewards"
+import { streakMiss, streakNote } from "../rewards"
 import { useTheme } from "../theme"
 import { Button, Choices, confirm, Empty, Field, Screen, Sheet } from "../ui"
 import { HabitActions } from "./habit-actions"
@@ -51,7 +51,8 @@ const AllRow = memo(function AllRow({
   h,
   st,
   streak,
-  lost,
+  miss,
+  note,
   rate,
   week,
   reorder,
@@ -62,7 +63,8 @@ const AllRow = memo(function AllRow({
   h: Habit
   st: string
   streak: number
-  lost: number
+  miss: { missed: number; run: number } | null
+  note: string | null
   rate: number
   week: string
   reorder: boolean
@@ -142,7 +144,7 @@ const AllRow = memo(function AllRow({
               <Copy size={12} muted>
                 {Math.round(rate * 100)}%
               </Copy>
-              <StreakChip streak={streak} lost={lost} />
+              <StreakChip streak={streak} miss={miss} note={note} />
             </Line>
           </View>
           {!reorder && <ChevronRight size={16} color={t.muted} />}
@@ -194,7 +196,8 @@ export function HabitsList() {
         const x = L.streaks(h, idx, today)
         return {
           streak: x.current,
-          lost: streakLost(x.broken, x.current, today),
+          miss: streakMiss(h, idx, x, today),
+          note: streakNote(h, idx, x, today),
         }
       })(),
       rate: L.habitStats(h, idx, dayOffset(-29), today, today).rate,
@@ -299,7 +302,7 @@ export function HabitsList() {
                 : "No habits match."}
             </Copy>
           )}
-          {rows.map(({ h, st, streak, lost, rate }, i) =>
+          {rows.map(({ h, st, streak, miss, note, rate }, i) =>
             mode === "today" ? (
               <HabitRow key={h.id} habit={h} />
             ) : (
@@ -308,7 +311,8 @@ export function HabitsList() {
                 h={h}
                 st={st}
                 streak={streak}
-                lost={lost}
+                miss={miss}
+                note={note}
                 rate={rate}
                 week={Array.from({ length: 7 }, (_, i) =>
                   L.cellFor(h, dayOffset(i - 6), idx, today),

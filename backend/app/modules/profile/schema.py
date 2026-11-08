@@ -106,6 +106,7 @@ class ProfilePublic(BaseModel):
     push_morning: str | None
     push_evening: str | None
     push_review: bool
+    push_checkin: str | None = None
     fern_eval_consent: bool
     fern_eval_consent_at: datetime | None
     seen_trophies: list[str]
@@ -146,6 +147,7 @@ class ProfileUpdate(BaseModel):
     push_morning: str | None = None
     push_evening: str | None = None
     push_review: bool | None = None
+    push_checkin: str | None = None
     # When it changes the server stamps fern_eval_consent_at.
     fern_eval_consent: bool | None = None
     seen_trophies: list[str] | None = Field(default=None, max_length=500)
@@ -167,7 +169,7 @@ class ProfileUpdate(BaseModel):
             return None
         return [k for k in ("journal", "social", "weather", "calendar") if k in v]
 
-    @field_validator("evening_start", "push_morning", "push_evening")
+    @field_validator("evening_start", "push_morning", "push_evening", "push_checkin")
     @classmethod
     def _hms(cls, v: str | None) -> str | None:
         return _hm(v)

@@ -18,6 +18,7 @@ from datetime import date, timedelta
 from typing import Literal
 
 from app.modules.stats.contract import Metric
+from app.shared.grace import walk_run
 
 MODULE_KEYS: tuple[str, ...] = (
     "habits",
@@ -176,30 +177,22 @@ class OnTargetStats:
     scored: int
     current: int
     best: int
+    grace_days: list[date] = field(default_factory=list)
 
 
 def on_target_stats(series: Sequence[DayResult]) -> OnTargetStats:
+    """Off-target days are bridged by ``walk_run``'s grace rule; days with
+    nothing due are neutral."""
     scored = [d for d in series if d.on_target is not None]
     hits = sum(1 for d in scored if d.on_target)
-    current = 0
-    for d in reversed(series):
-        if d.on_target is None:
-            continue
-        if not d.on_target:
-            break
-        current += 1
-    best = run = 0
-    for d in series:
-        if d.on_target is None:
-            continue
-        run = run + 1 if d.on_target else 0
-        best = max(best, run)
+    w = walk_run((d.day, d.on_target) for d in series)
     return OnTargetStats(
         rate=hits / len(scored) if scored else None,
         on_target=hits,
         scored=len(scored),
-        current=current,
-        best=best,
+        current=w.current,
+        best=w.best,
+        grace_days=w.grace_days,
     )
 
 
@@ -483,14 +476,14 @@ def achievements(
         pr("pr-90-10", "10 PRs in 90 days", "Set 10 new best lifts within 90 days",
            p90, 10, f"{js_num(p90)} new best lifts in 90 days")  # fmt: skip
 
+    # The same walk as the streak (a lone miss is a grace day).
     hit_day: dict[int, date] = {}
-    run = 0
-    for d in series:
-        if d.on_target is None:
-            continue
-        run = run + 1 if d.on_target else 0
+
+    def hit(day: date, run: int) -> None:
         if run in STREAK_MILESTONES:
-            hit_day[run] = d.day
+            hit_day[run] = day
+
+    walk_run(((d.day, d.on_target) for d in series), on_hit=hit)
     for n in STREAK_MILESTONES:
         day = hit_day.get(n)
         title = f"{n}-day on-target streak"

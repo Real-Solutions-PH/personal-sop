@@ -2,7 +2,8 @@
 memories."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
+from typing import Any
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
@@ -253,3 +254,24 @@ class FernRuleVote(SQLModel, table=True):
     voter: str = Field(sa_type=String(64))  # type: ignore
     count: int = 1
     created_at: datetime = Field(default_factory=utcnow, sa_type=tstz())  # type: ignore
+
+
+class FernReview(OwnedRow, table=True):
+    """Fern's wins-first review of a range (the way back or a week), kept so
+    reopening it does not run the model again. ``fingerprint`` hashes the
+    facts it was written from; it is redone only when those changed."""
+
+    __tablename__ = "fern_review"
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id", "kind", "from_day", "to_day", name="uq_fern_review_range"
+        ),
+        enum_check("kind", ("way_back", "weekly"), name="ck_fern_review_kind"),
+    )
+
+    kind: str = Field(max_length=16)
+    from_day: date
+    to_day: date
+    fingerprint: str = Field(max_length=64)
+    body: dict[str, Any] = Field(default_factory=dict, sa_type=JSONB)
+    model: str = Field(default="", max_length=200)

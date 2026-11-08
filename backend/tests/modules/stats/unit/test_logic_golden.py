@@ -124,6 +124,7 @@ def test_day_series_matches_prototype(idx: int) -> None:
         "scored": v["stats"]["scored"],
         "current": v["stats"]["current"],
         "best": v["stats"]["best"],
+        "grace_days": [d(g) for g in v["stats"]["graceDays"]],
     }
     for n, want in v["ranges"].items():
         # useOnTarget(n) runs over its own max(2n, 365)-day series.
@@ -156,6 +157,7 @@ def test_on_target_stats_boundaries() -> None:
             want["current"],
             want["best"],
         ), case
+        assert [g.isoformat() for g in s.grace_days] == want["graceDays"], case
 
 
 # ---------------------------------------------------------------- metrics, goals

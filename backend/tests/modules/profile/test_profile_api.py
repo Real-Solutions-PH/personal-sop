@@ -349,3 +349,18 @@ def test_module_order_syncs(client: TestClient, db: Session) -> None:
 
 def test_unauthenticated_is_401(client: TestClient) -> None:
     assert client.get(API).status_code == 401
+
+
+def test_daily_check_in_time_round_trips_and_validates(
+    client: TestClient, db: Session
+) -> None:
+    _, h = signed_in(db)
+    assert client.get(API, headers=h).json()["profile"]["push_checkin"] is None
+    ok = client.patch(API, headers=h, json={"push_checkin": "20:30"})
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["push_checkin"] == "20:30"
+    assert (
+        client.patch(API, headers=h, json={"push_checkin": "25:00"}).status_code == 422
+    )
+    off = client.patch(API, headers=h, json={"push_checkin": None})
+    assert off.json()["push_checkin"] is None
