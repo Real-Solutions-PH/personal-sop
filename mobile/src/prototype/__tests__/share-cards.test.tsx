@@ -47,6 +47,7 @@ import {
   ShareComposer,
   Sub,
   Title,
+  unitFor,
   Win,
   XBars,
 } from "../share-kit"
@@ -576,6 +577,31 @@ test("food amounts stay as percent of goal until turned on", () => {
   )
   expect(off.getByText(/94% of goal/)).toBeTruthy()
   expect(off.queryByText(/1,980/)).toBeNull()
+})
+
+describe("a count of one", () => {
+  test("takes the singular unit", () => {
+    expect(unitFor("1", "days")).toBe("day")
+    expect(unitFor("1", "PRs")).toBe("PR")
+    expect(unitFor("2", "days")).toBe("days")
+    expect(unitFor("11", "days")).toBe("days")
+    expect(unitFor("1", "kg")).toBe("kg")
+    expect(unitFor("1", "% of calorie goal")).toBe("% of calorie goal")
+  })
+  test("Food week reads 1 day, not 1 days", () => {
+    const look: CardLook = { format: "9:16", backdrop: "dark", photo: null }
+    const r = render(
+      <FoodCard
+        kind="week"
+        width={300}
+        look={look}
+        data={{ ...F.foodData(false), proteinStreak: 1 }}
+      />,
+    )
+    const text = JSON.stringify(r.toJSON())
+    expect(text).toContain('" day"')
+    expect(text).not.toContain('" days"')
+  })
 })
 
 describe("streak maths", () => {
