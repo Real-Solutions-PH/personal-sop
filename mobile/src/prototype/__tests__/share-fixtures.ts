@@ -251,6 +251,36 @@ export function workoutData(long = false): WorkoutCardData {
     streak: long ? 1234 : 6,
     bodyweight: 72.4,
     macros: { kcal: long ? 1234567 : 2150, protein: long ? 12345 : 140 },
+    place: long ? `${LONG_TITLE} Fitness Centre` : "Anytime Fitness BGC",
+    // A long session: nine exercises, warm-ups, drops and a timed finisher.
+    detail: Array.from({ length: long ? 14 : 9 }, (_, i) => ({
+      id: `d${i}`,
+      name: long ? `${LONG_TITLE} ${i}` : `Exercise ${i + 1}`,
+      volume: long ? 1234567 : 2400 - i * 220,
+      pr: i % 3 === 0,
+      tokens: [
+        ...(i === 0 ? [{ load: "40 kg", reps: ["10"], warmup: true }] : []),
+        {
+          load: long ? "1,234.5 kg" : `${60 + i * 5} kg`,
+          reps: long ? ["1,234", "1,234", "1,234", "1,234"] : ["8", "8", "7"],
+          warmup: false,
+        },
+        ...(i % 2
+          ? [{ load: `${50 + i * 5} kg`, reps: ["12"], warmup: false }]
+          : []),
+      ],
+    })),
+    records: Array.from({ length: long ? 9 : 4 }, (_, i) => ({
+      id: `r${i}`,
+      name: long
+        ? `${LONG_TITLE} ${i}`
+        : ["Bench press", "Incline dumbbell press", "Overhead press", "Dips"][
+            i
+          ],
+      kinds: i === 0 ? ["Est. 1-rep max", "Heaviest"] : ["Heaviest"],
+      value: long ? 1234567.8 : 100 + i * 7.5,
+      prev: i === 3 ? 0 : long ? 1234560 : 97.5 + i * 7.5,
+    })),
   }
 }
 export function foodData(long = false): FoodCardData {
