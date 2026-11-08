@@ -388,7 +388,7 @@ export function HabitCard({
             />
           )}
           <ChartNote
-            left={`Done each week, last ${fmt(rates.length)}`}
+            left={`Done each week, last ${fmt(rates.filter((r) => r !== null).length)}`}
             right={
               h.history ? `${fmt(h.history.total)} times in all` : undefined
             }

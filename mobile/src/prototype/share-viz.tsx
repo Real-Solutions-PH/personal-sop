@@ -234,7 +234,10 @@ export function DayLine({
                 strokeDasharray={s.kind === "pause" ? "1 4" : undefined}
                 opacity={s.kind === "focus" ? 1 : 0.85}
               />
-              {leaves && s.kind === "focus" && x1 - x0 > 8 ? (
+              {leaves &&
+              s.kind === "focus" &&
+              spans[i + 1]?.kind !== "pause" &&
+              x1 - x0 > 8 ? (
                 <Path
                   d={ribLeaf(
                     x1,

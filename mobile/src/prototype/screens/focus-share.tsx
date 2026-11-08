@@ -12,10 +12,12 @@ import {
   Body,
   CardFrame,
   type CardLook,
+  Change,
   ChartNote,
   cardInk,
   dayName,
   Hero,
+  Optional,
   ShareComposer,
   Sub,
   Title,
@@ -33,17 +35,24 @@ export type FocusCardData = { pomodoro: FocusDay; stopwatch: FocusDay }
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${fmt(n)} ${n === 1 ? one : many}`
 
-/** The goal line under a hero: met (a win) or short by how much (a miss).
+/** The daily goal is for the whole day (both timer modes): met is a win
+ * line; short is a cost beside the hero, which the fit rule never drops.
  * Nothing when the goal is off or the day had no focus at all. */
-function GoalLine({ d }: { d: FocusDay }) {
-  if (d.goalSec <= 0 || d.focusSec <= 0) return null
-  return d.focusSec >= d.goalSec ? (
-    <Win>{`Daily goal of ${fmtHm(d.goalSec)} met`}</Win>
-  ) : (
-    <Sub bad>
-      {`${fmtHm(d.goalSec - d.focusSec)} short of the ${fmtHm(d.goalSec)} goal`}
-    </Sub>
+const goalMet = (d: FocusDay) =>
+  d.goalSec > 0 && d.focusSec > 0 && d.dayFocusSec >= d.goalSec
+function goalShort(d: FocusDay) {
+  if (d.goalSec <= 0 || d.focusSec <= 0 || d.dayFocusSec >= d.goalSec)
+    return undefined
+  return (
+    <Change good={false}>
+      {`${fmtHm(d.goalSec - d.dayFocusSec)} short of the day's goal`}
+    </Change>
   )
+}
+function GoalWin({ d }: { d: FocusDay }) {
+  return goalMet(d) ? (
+    <Win>{`Daily goal of ${fmtHm(d.goalSec)} met`}</Win>
+  ) : null
 }
 
 export function FocusCard({
@@ -70,11 +79,12 @@ export function FocusCard({
         <Hero
           value={fmt(d.sets)}
           unit={d.sets === 1 ? "Pomodoro" : "Pomodoros"}
+          delta={goalShort(d)}
         />
         {d.sessions === 0 ? (
           <Sub bad>No Pomodoro session on this day.</Sub>
         ) : (
-          <GoalLine d={d} />
+          <GoalWin d={d} />
         )}
         <Body end>
           <DayLine
@@ -83,38 +93,40 @@ export function FocusCard({
             height={tall ? 64 : sq ? 46 : 56}
             label="Focus, breaks and pauses through the day"
           />
-          <PartLine
-            label={`${fmtHm(d.focusSec)} focus, ${fmtHm(d.breakSec)} break, ${fmtHm(d.pauseSec)} paused`}
-            parts={[
-              {
-                key: "focus",
-                label: "Focus",
-                value: d.focusSec,
-                shown: fmtHm(d.focusSec),
-                color: ink,
-              },
-              {
-                key: "break",
-                label: "Breaks",
-                value: d.breakSec,
-                shown: fmtHm(d.breakSec),
-                color: c.mark,
-                open: true,
-              },
-              ...(d.pauseSec >= 60
-                ? [
-                    {
-                      key: "pause",
-                      label: "Paused",
-                      value: d.pauseSec,
-                      shown: fmtHm(d.pauseSec),
-                      color: c.bad,
-                      open: true,
-                    },
-                  ]
-                : []),
-            ]}
-          />
+          <Optional>
+            <PartLine
+              label={`${fmtHm(d.focusSec)} focus, ${fmtHm(d.breakSec)} break, ${fmtHm(d.pauseSec)} paused`}
+              parts={[
+                {
+                  key: "focus",
+                  label: "Focus",
+                  value: d.focusSec,
+                  shown: fmtHm(d.focusSec),
+                  color: ink,
+                },
+                {
+                  key: "break",
+                  label: "Breaks",
+                  value: d.breakSec,
+                  shown: fmtHm(d.breakSec),
+                  color: c.mark,
+                  open: true,
+                },
+                ...(d.pauseSec >= 60
+                  ? [
+                      {
+                        key: "pause",
+                        label: "Paused",
+                        value: d.pauseSec,
+                        shown: fmtHm(d.pauseSec),
+                        color: c.bad,
+                        open: true,
+                      },
+                    ]
+                  : []),
+              ]}
+            />
+          </Optional>
           <ChartNote
             left={plural(d.sessions, "session")}
             right={
@@ -130,11 +142,11 @@ export function FocusCard({
     body = (
       <>
         <Title>Stopwatch focus</Title>
-        <Hero value={fmtHm(d.focusSec)} unit="focused" />
+        <Hero value={fmtHm(d.focusSec)} unit="focused" delta={goalShort(d)} />
         {d.sessions === 0 ? (
           <Sub bad>No stopwatch session on this day.</Sub>
         ) : (
-          <GoalLine d={d} />
+          <GoalWin d={d} />
         )}
         <Body>
           <DayLine

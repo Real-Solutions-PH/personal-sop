@@ -118,7 +118,7 @@ export function JournalCard({
         <Title>Time journalling</Title>
         <Hero value={fmtHm(tm.totalSec)} unit="so far" />
         {tm.since === null ? (
-          <Sub>Counted while you type, from your next entry on.</Sub>
+          <Sub>Nothing timed yet.</Sub>
         ) : tm.todaySec > 0 ? (
           <Win>{`${fmtHm(tm.todaySec)} of writing today`}</Win>
         ) : (
@@ -130,14 +130,20 @@ export function JournalCard({
             labels={letters(tm.last7)}
             on={6}
             leaf={(v) => v > 0 && v * 60 >= top}
-            missed={(v, i) => v === 0 && i < 6}
+            missed={(v, i) =>
+              v === 0 && i < 6 && !!tm.since && tm.last7[i].day >= tm.since
+            }
             format={(v) => `${fmt(v)}m`}
             height={tall ? 120 : sq ? 70 : 92}
             color={ink}
             label="Minutes typed each day, last 7 days"
           />
           <ChartNote
-            left="Minutes typed, last 7 days"
+            left={
+              tm.since
+                ? "Minutes typed, last 7 days"
+                : "Counted while you type, from your next entry"
+            }
             right={tm.since ? `Counted since ${dayName(tm.since)}` : undefined}
           />
         </Body>

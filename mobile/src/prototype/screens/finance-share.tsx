@@ -34,6 +34,9 @@ export type FinanceCardData = FinanceShares
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${fmt(n)} ${n === 1 ? one : many}`
+/** The newest month with a savings rate (one with income), or -1. */
+export const latestRate = (d: FinanceCardData) =>
+  d.savings.map((x) => x.rate !== null).lastIndexOf(true)
 /** A whole-percent value, signed as a change in points. */
 const pts = (a: number, b: number) => Math.round((a - b) * 100)
 
@@ -54,8 +57,16 @@ export function FinanceCard({
     fin = c.area("fin")
   let body: ReactNode
   if (kind === "savings") {
-    const now = d.savings[d.savings.length - 1]?.rate ?? null,
-      before = d.savings[d.savings.length - 2]?.rate ?? null,
+    // The latest month with income leads: early in a month there is often
+    // none yet, and a dash says nothing.
+    const at = latestRate(d),
+      now = at >= 0 ? d.savings[at].rate : null,
+      prior = d.savings
+        .slice(0, Math.max(0, at))
+        .reverse()
+        .find((x) => x.rate !== null),
+      before = prior?.rate ?? null,
+      current = at === d.savings.length - 1,
       known = d.savings
         .map((x) => x.rate)
         .filter((r): r is number => r !== null),
@@ -65,20 +76,30 @@ export function FinanceCard({
         <Title>Savings rate</Title>
         <Hero
           value={pct(now)}
-          unit="of income kept"
+          unit={
+            at >= 0
+              ? `of income kept in ${monthLabel(d.savings[at].month, true).split(" ")[0]}`
+              : "of income kept"
+          }
           small
           delta={
             now !== null && before !== null ? (
-              <Delta n={pts(now, before)} unit=" pts" suffix="vs last month" />
+              <Delta
+                n={pts(now, before)}
+                unit=" pts"
+                suffix={`vs ${monthLabel(prior?.month ?? "")}`}
+              />
             ) : undefined
           }
         />
         {now === null ? (
-          <Sub>No income recorded this month yet.</Sub>
+          <Sub>No income recorded in the last six months.</Sub>
         ) : now < 0 ? (
-          <Sub bad>More went out than came in this month.</Sub>
+          <Sub bad>More went out than came in that month.</Sub>
         ) : best ? (
           <Win>Best month in the last six</Win>
+        ) : !current ? (
+          <Sub>{`No income recorded in ${monthLabel(d.month, true).split(" ")[0]} yet`}</Sub>
         ) : (
           <Sub>{`Average ${pct(known.reduce((a, b) => a + b, 0) / Math.max(1, known.length))} over six months`}</Sub>
         )}
@@ -88,7 +109,7 @@ export function FinanceCard({
               x.rate === null ? undefined : x.rate < 0 ? null : x.rate * 100,
             )}
             labels={d.savings.map((x) => monthLabel(x.month))}
-            on={d.savings.length - 1}
+            on={at >= 0 ? at : d.savings.length - 1}
             leaf={(v) => known.length > 1 && v >= Math.max(...known) * 100}
             format={(v) => `${fmt(Math.round(v))}%`}
             height={tall ? 130 : sq ? 76 : 100}
@@ -234,11 +255,12 @@ export function FinanceShare() {
     t = useTheme(),
     [layout, setLayout] = useState<FinanceLayout>("savings")
   const data = financeShares(s),
-    now = data.savings[data.savings.length - 1]?.rate ?? null,
+    at = latestRate(data),
+    now = at >= 0 ? data.savings[at].rate : null,
     kept = data.budgets.filter((b) => b.used <= 1).length
   const caption =
     layout === "savings"
-      ? `Kept ${pct(now)} of my income this month · Unfurl`
+      ? `Kept ${pct(now)} of my income${at >= 0 ? ` in ${monthLabel(data.savings[at].month, true).split(" ")[0]}` : ""} · Unfurl`
       : layout === "budgets"
         ? `${fmt(kept)} of ${fmt(data.budgets.length)} budgets within limit · Unfurl`
         : layout === "categories"

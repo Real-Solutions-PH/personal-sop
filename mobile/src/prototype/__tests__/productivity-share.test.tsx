@@ -99,6 +99,7 @@ function focusDayData(
     spans: [],
     items: [],
     goalSec: 7200,
+    dayFocusSec: 0,
   }
   if (v === "empty") return base
   const long = v === "long"
@@ -110,6 +111,7 @@ function focusDayData(
     breakSec: long ? 123456 : 900,
     pauseSec: long ? 12345 : 420,
     longestSec: long ? 123456 : 3000,
+    dayFocusSec: long ? 1234567 : 6000,
     spans: [
       { start: min(0), end: min(25), kind: "focus" },
       { start: min(25), end: min(30), kind: "break" },
@@ -343,11 +345,12 @@ describe("honest wins and misses", () => {
   })
   test("focus: short of the goal is said in the miss colour", () => {
     const d = focusData("normal")
-    d.pomodoro = { ...d.pomodoro, focusSec: 3600 }
+    d.pomodoro = { ...d.pomodoro, focusSec: 3600, dayFocusSec: 3600 }
     const r = render(
       <FocusCard kind="pomodoro" width={300} look={look} data={d} />,
     )
-    expect(r.getByText("1h 00m short of the 2h 00m goal")).toBeTruthy()
+    expect(r.getByText("1h 00m short of the day's goal")).toBeTruthy()
+    expect(r.getByTestId("card-cost")).toBeTruthy()
   })
   test("finance: a month that spent more than it earned is a miss", () => {
     const d = financeData("normal")

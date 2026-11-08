@@ -134,6 +134,8 @@ export type FocusDay = {
   /** Focus by what it was on, most first ("" = nothing picked). */
   items: { name: string; sec: number }[]
   goalSec: number
+  /** The whole day's focus, both modes: what the daily goal is judged on. */
+  dayFocusSec: number
 }
 /** One day of one timer mode: its sessions, focus against break and pause,
  * and the timeline. Abandoned sessions do not count. */
@@ -189,6 +191,7 @@ export function focusDay(
     spans: spans.sort((a, b) => a.start - b.start),
     items,
     goalSec: FC.goalSec(s),
+    dayFocusSec: FC.rangeStats(s, day, day, now).byDay[day] ?? 0,
   }
 }
 
