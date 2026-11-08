@@ -893,3 +893,43 @@ describe("the running app rebuilds when Journal is switched", () => {
     }
   })
 })
+
+describe("the daily Fern check-in", () => {
+  // NOW's own business day, as the planner computes it.
+  const today = require("@domain/lib/day").dayKey(NOW)
+  it("asks every day at the chosen time, opening Fern's check-in", () => {
+    const [p] = planReminders([], [], NOW, {
+      checkin: { at: "20:30", lastCheckin: null },
+    })
+    expect(p).toMatchObject({
+      id: "checkin",
+      title: "How did today go?",
+      body: "Tell Fern in a sentence — it logs it for you.",
+      href: "/today/checkin",
+      daily: { hour: 20, minute: 30 },
+    })
+  })
+  it("is off when no time is set", () => {
+    expect(
+      planReminders([], [], NOW, { checkin: { at: "", lastCheckin: null } }),
+    ).toEqual([])
+  })
+  it("skips today once checked in, and asks tomorrow", () => {
+    const [p] = planReminders([], [], NOW, {
+      checkin: { at: "20:30", lastCheckin: today },
+    })
+    expect(p.id).toBe("checkin-next")
+    expect("at" in p && p.at.getDate()).toBe(
+      new Date(NOW.getTime() + 86_400_000).getDate(),
+    )
+    expect("at" in p && p.at.getHours()).toBe(20)
+  })
+  it("never lands in quiet hours", () => {
+    expect(
+      planReminders([], [], NOW, {
+        checkin: { at: "23:00", lastCheckin: null },
+        quiet: { start: "22:00", end: "07:00" },
+      }),
+    ).toEqual([])
+  })
+})
