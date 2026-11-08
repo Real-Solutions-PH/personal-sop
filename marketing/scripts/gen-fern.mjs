@@ -52,6 +52,7 @@ for (const [name, [state, opts]] of Object.entries(moods)) {
         `<svg xmlns="http://www.w3.org/2000/svg" class="fern ${c ?? ""}" `,
     )
     .replace(/^(<svg[^>]*>)/, `$1${style}`)
-  writeFileSync(join(root, `public/fern/${name}.svg`), svg)
+  // End with a newline: the repo's end-of-file-fixer hook requires one.
+  writeFileSync(join(root, `public/fern/${name}.svg`), `${svg}\n`)
 }
 console.log("fern: wrote", Object.keys(moods).length, "SVG files")
