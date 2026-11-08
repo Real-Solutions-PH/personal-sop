@@ -62,6 +62,7 @@ DEFAULT_PERMISSIONS: list[tuple[str, str, str]] = [
     ("sync", "write", "Change the offline sync stream"),
     ("stats", "read", "Read statistics"),
     ("events", "read", "Receive the realtime event stream"),
+    ("usage", "write", "Record app opens, closes and shared cards"),
 ]
 
 

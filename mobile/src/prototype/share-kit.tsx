@@ -79,6 +79,7 @@ import { framePhoto, keep, prepareImage } from "./social/media"
 import { addStory, type Media, setPostDraft } from "./social/store"
 import { type Accent, fonts, useTheme } from "./theme"
 import { Button, Field, Sheet } from "./ui"
+import { logUsage } from "./usage"
 
 export type CardFormat = "9:16" | "4:5" | "1:1"
 // Photo leads: a card on the person's own picture is the one most shared.
@@ -2041,10 +2042,12 @@ export function ShareComposer<K extends string>({
         })
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: "image/png" })
+          logUsage({ kind: "share_card", detail: value })
           return
         }
       }
       await Share.share({ message: text })
+      logUsage({ kind: "share_card", detail: value })
     } catch {
       toast.error("Could not share this image. You can still copy its caption.")
     }

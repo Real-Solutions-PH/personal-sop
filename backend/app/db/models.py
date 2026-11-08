@@ -147,6 +147,7 @@ from app.modules.tasks.models import (  # noqa: F401
     TaskNotifState,
     TaskSettings,
 )
+from app.modules.usage.models import UsageEvent  # noqa: F401
 from app.modules.weather.models import (  # noqa: F401
     WeatherCache,
     WeatherPref,
@@ -276,4 +277,5 @@ __all__ = [
     "WeatherPref",
     "WeatherCache",
     "SyncOpReceipt",
+    "UsageEvent",
 ]

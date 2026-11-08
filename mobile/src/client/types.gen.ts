@@ -4567,6 +4567,22 @@ export type UploadTicket = {
     };
 };
 
+export type UsageAccepted = {
+    accepted: number;
+};
+
+export type UsageBatch = {
+    events: Array<UsageEventIn>;
+};
+
+export type UsageEventIn = {
+    kind: 'app_open' | 'app_close' | 'share_card';
+    at: string;
+    detail?: (string | null);
+};
+
+export type kind17 = 'app_open' | 'app_close' | 'share_card';
+
 export type UsageOut = {
     month: string;
     data: Array<UsageRow>;
@@ -4869,7 +4885,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind17 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind18 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;
@@ -7647,6 +7663,12 @@ export type TenantsReadTenantData = {
 };
 
 export type TenantsReadTenantResponse = (TenantPublic);
+
+export type UsagePostEventsData = {
+    requestBody: UsageBatch;
+};
+
+export type UsagePostEventsResponse = (UsageAccepted);
 
 export type UsersReadUsersData = {
     limit?: number;

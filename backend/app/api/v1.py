@@ -24,6 +24,7 @@ from app.modules.stats.main import router as stats_router
 from app.modules.sync.main import router as sync_router
 from app.modules.system.main import router as system_router
 from app.modules.tasks.main import router as tasks_router
+from app.modules.usage.main import router as usage_router
 from app.modules.weather.main import router as weather_router
 from app.modules.webhooks.main import router as webhooks_router
 
@@ -47,6 +48,7 @@ v1_router.include_router(dashboard_router)
 v1_router.include_router(companion_router)
 v1_router.include_router(social_router)
 v1_router.include_router(weather_router)
+v1_router.include_router(usage_router)
 v1_router.include_router(media_router)
 v1_router.include_router(sync_router)
 v1_router.include_router(realtime_router)
