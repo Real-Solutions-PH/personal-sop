@@ -102,6 +102,7 @@ export const TEMPLATES: {
         sensitive: "Shows your face",
       },
       { key: "records", label: "Personal bests", on: true },
+      { key: "goals", label: "Goals hit", on: true },
       {
         key: "identity",
         label: "Identity statements",
@@ -164,6 +165,10 @@ export function useCardData(goalId: string | null) {
       trophy: trophies[0],
       trophies: trophies.slice(0, 3),
       goal,
+      /** Active goals, hit ones first: the goal card's choices. */
+      goals: goals
+        .filter((g) => g.goal.status === "active")
+        .sort((a, b) => Number(b.hit) - Number(a.hit)),
       facets7,
       facets30,
     }

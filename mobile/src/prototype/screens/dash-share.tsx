@@ -25,7 +25,7 @@ import {
   Utensils,
 } from "lucide-react-native"
 import { type ReactNode, useRef, useState } from "react"
-import { Image, View } from "react-native"
+import { Image, ScrollView, View } from "react-native"
 import { petalsOf, Rosette } from "../brand/rosette"
 import { useShown } from "../extras"
 import {
@@ -64,6 +64,7 @@ import {
   Words,
 } from "../share-kit"
 import { useTheme } from "../theme"
+import { GoalIdeas } from "./dash-goals"
 import { Button, Screen, Sheet, shareText, Toggle } from "../ui"
 
 const areaColors = {
@@ -569,6 +570,15 @@ export function Artwork({
             .map((x) => (
               <Win key={x.id}>{`${metric(x.value)} · ${safe(x.title)}`}</Win>
             ))}
+        {on.goals &&
+          d.goals
+            .filter((g) => g.hit)
+            .slice(0, on.records ? 1 : 2)
+            .map((g) => (
+              <Win key={g.goal.id}>
+                {`Goal hit · ${safe(g.goal.label)} ${goalTarget(g.goal)}`}
+              </Win>
+            ))}
       </>
     )
   }
@@ -668,7 +678,10 @@ export function ShareCard() {
       photo: null,
     }),
     proceed = useRef<(() => Promise<void>) | null>(null),
-    d = useCardData(params.goal ?? null),
+    // The goal on the Goal hit card: the one opened with, or the one picked.
+    [goalId, setGoalId] = useState<string | null>(params.goal ?? null),
+    [moreGoals, setMoreGoals] = useState(false),
+    d = useCardData(goalId),
     tpl = TEMPLATES.find((x) => x.key === kind)!,
     fields = [...tpl.fields, ...COMMON],
     caption = `${d.name.split(" ")[0]}'s ${tpl.label.toLowerCase()}: Life Score ${d.life.score === null ? "—" : fmt(d.life.score)} (${d.level}), on-target streak ${fmt(d.w7.current)} days · Unfurl`
@@ -711,6 +724,80 @@ export function ShareCard() {
           setCheck(true)
         }}
       >
+        {kind === "goal" && (
+          <View testID="goal-choice">
+            <SectionHeading>Goal on the card</SectionHeading>
+            {d.goals.length > 0 && (
+              <Frame style={{ paddingHorizontal: 12, paddingVertical: 2 }}>
+                {d.goals.map((g, n) => {
+                  const chosen = d.goal?.goal.id === g.goal.id
+                  return (
+                    <Tap
+                      key={g.goal.id}
+                      label={`Put ${g.goal.label} on the card`}
+                      role="radio"
+                      selected={chosen}
+                      onPress={() => setGoalId(g.goal.id)}
+                      style={{
+                        paddingVertical: 10,
+                        borderBottomWidth: n < d.goals.length - 1 ? 1 : 0,
+                        borderBottomColor: border(t.line, 0.5),
+                      }}
+                    >
+                      <Line style={{ gap: 12 }}>
+                        <View style={{ flex: 1 }}>
+                          <Copy size={14} weight="medium">
+                            {g.goal.label}
+                          </Copy>
+                          <Copy size={12} muted>
+                            {g.hit
+                              ? `Hit · ${g.entry?.value ?? ""}`
+                              : `${Math.round(g.pct * 100)}% of target`}
+                          </Copy>
+                        </View>
+                        <View
+                          style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            borderWidth: chosen ? 0 : 1,
+                            borderColor: t.muted,
+                            backgroundColor: chosen ? t.primary : "transparent",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {chosen && <Check size={14} color={t.bg} />}
+                        </View>
+                      </Line>
+                    </Tap>
+                  )
+                })}
+              </Frame>
+            )}
+            {/* A way to more goals, apart from the list it adds to. */}
+            <View style={{ marginTop: 8 }}>
+              <Button tone="quiet" onPress={() => setMoreGoals(true)}>
+                More goals to choose from
+              </Button>
+            </View>
+            <Sheet
+              open={moreGoals}
+              title="More goals"
+              onClose={() => setMoreGoals(false)}
+            >
+              <ScrollView style={{ maxHeight: 520 }}>
+                <GoalIdeas
+                  title="Tap one to set it and put it on the card"
+                  onAdd={(g) => {
+                    setGoalId(g.id)
+                    setMoreGoals(false)
+                  }}
+                />
+              </ScrollView>
+            </Sheet>
+          </View>
+        )}
         <View>
           <SectionHeading>Show on card</SectionHeading>
           <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>

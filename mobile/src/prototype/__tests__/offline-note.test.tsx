@@ -3,6 +3,7 @@
 // changes are safe, and screen readers hear it as one alert.
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render, screen } from "@testing-library/react-native"
+import { type StyleProp, StyleSheet, type ViewStyle } from "react-native"
 
 // Reduce Motion per test; ``mockFade`` holds the last fade's finish callback,
 // fired by hand to stand in for the UI thread ending the animation.
@@ -58,10 +59,7 @@ test("without the bar: a small Fern speaks, above the home indicator", () => {
 })
 
 const flatten = (style: unknown): Record<string, unknown> =>
-  [style]
-    .flat(Infinity)
-    .filter(Boolean)
-    .reduce((a, b) => ({ ...a, ...b }), {})
+  StyleSheet.flatten(style as StyleProp<ViewStyle>) ?? {}
 
 // Kai, 2026-11-08: the pill sat in a full-width black strip that hid the
 // page behind it. It floats over the page now: no backing, no room taken,
