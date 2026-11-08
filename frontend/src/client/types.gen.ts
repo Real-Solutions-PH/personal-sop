@@ -228,7 +228,8 @@ export type app__modules__capture__schema__CaptureIn = {
     text?: string;
     transcript?: (string | null);
     duration_sec?: (number | null);
-    hint?: ('auto' | 'meal' | 'receipt' | 'label' | 'statement' | 'whiteboard' | 'journal' | 'expense' | 'task' | 'weigh-in' | null);
+    hint?: ('auto' | 'meal' | 'receipt' | 'label' | 'statement' | 'whiteboard' | 'journal' | 'expense' | 'task' | 'weigh-in' | 'catch_up' | 'checkin' | null);
+    range_from?: (string | null);
     file_name?: (string | null);
     media_id?: (string | null);
     extra_media_ids?: Array<(string)>;
@@ -264,11 +265,30 @@ export type app__modules__companion__schema__MessagesPublic = {
     count: number;
 };
 
+/**
+ * ``POST /companion/review``: Fern's wins-first review of a range.
+ */
+export type app__modules__companion__schema__ReviewIn = {
+    kind: 'way_back' | 'weekly';
+    from_day: string;
+    to_day: string;
+    dismissed?: Array<(string)>;
+};
+
+export type kind2 = 'way_back' | 'weekly';
+
 export type app__modules__companion__schema__SeriesOut = {
     metric: string;
     label: string;
     days: number;
     points: Array<Point>;
+};
+
+export type app__modules__dashboard__schema__ReviewIn = {
+    done?: (boolean | null);
+    reflection?: (string | null);
+    focus?: (string | null);
+    journal?: boolean;
 };
 
 /**
@@ -555,7 +575,7 @@ export type app__modules__stats__schema__SeriesOut = {
     slices: Array<SliceOut>;
 };
 
-export type kind2 = 'line' | 'bars' | 'donut';
+export type kind3 = 'line' | 'bars' | 'donut';
 
 export type app__modules__stats__schema__TodayOut = {
     day: string;
@@ -653,7 +673,7 @@ export type AskOut = {
     changes?: Array<SyncChange>;
 };
 
-export type kind3 = 'reply' | 'capture';
+export type kind4 = 'reply' | 'capture';
 
 export type engine = 'ai' | 'rules';
 
@@ -735,7 +755,7 @@ export type Block = {
     item: (ItemRef | null);
 };
 
-export type kind4 = 'focus' | 'break' | 'pause';
+export type kind5 = 'focus' | 'break' | 'pause';
 
 export type BodyOut = {
     latest: (WeighInPublic | null);
@@ -908,7 +928,7 @@ export type CatalogModelOut = {
     usd_out: number;
 };
 
-export type kind5 = 'text' | 'vision';
+export type kind6 = 'text' | 'vision';
 
 export type CategoriesPublic = {
     data: Array<CategoryPublic>;
@@ -926,7 +946,7 @@ export type CategoryCreate = {
     id?: (string | null);
 };
 
-export type kind6 = 'expense' | 'income';
+export type kind7 = 'expense' | 'income';
 
 export type CategoryFields = {
     name?: (string | null);
@@ -1224,7 +1244,7 @@ export type DraftPublic = {
     updated_at: (string | null);
 };
 
-export type kind7 = 'post' | 'story';
+export type kind8 = 'post' | 'story';
 
 export type DueIn = {
     due_date: (string | null);
@@ -2022,7 +2042,7 @@ export type ItemRef = {
     title?: (string | null);
 };
 
-export type kind8 = 'task' | 'habit';
+export type kind9 = 'task' | 'habit';
 
 export type ItemSession = {
     session_id: string;
@@ -2165,7 +2185,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind9 = 'standard' | 'shopping';
+export type kind10 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -2218,7 +2238,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind10 = 'timer' | 'routine' | 'workout';
+export type kind11 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -2454,7 +2474,7 @@ export type MediaIn = {
     ratio?: (number | null);
 };
 
-export type kind11 = 'image' | 'video';
+export type kind12 = 'image' | 'video';
 
 export type MediaPublic = {
     media_id: string;
@@ -2484,7 +2504,7 @@ export type MediaWithUrl = {
     preview_url?: (string | null);
 };
 
-export type kind12 = 'image' | 'video' | 'audio' | 'file';
+export type kind13 = 'image' | 'video' | 'audio' | 'file';
 
 export type state = 'pending' | 'ready' | 'rejected';
 
@@ -2688,7 +2708,7 @@ export type NotificationPublic = {
     version: number;
 };
 
-export type kind13 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+export type kind14 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
 
 export type NotificationsOut = {
     data: Array<NotificationPublic>;
@@ -2948,7 +2968,7 @@ export type PhaseOut = {
 
 export type status6 = 'running' | 'paused' | 'waiting' | 'ended';
 
-export type kind14 = 'focus' | 'break';
+export type kind15 = 'focus' | 'break';
 
 export type PhotoPayload = {
     kind: "photo";
@@ -3154,6 +3174,7 @@ export type ProfilePublic = {
     push_morning: (string | null);
     push_evening: (string | null);
     push_review: boolean;
+    push_checkin?: (string | null);
     fern_eval_consent: boolean;
     fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
@@ -3194,6 +3215,7 @@ export type ProfileUpdate = {
     push_morning?: (string | null);
     push_evening?: (string | null);
     push_review?: (boolean | null);
+    push_checkin?: (string | null);
     fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
@@ -3516,11 +3538,22 @@ export type RestTimerPublic = {
     duration_sec: number;
 };
 
-export type ReviewIn = {
-    done?: (boolean | null);
-    reflection?: (string | null);
-    focus?: (string | null);
-    journal?: boolean;
+export type ReviewGap = {
+    text: string;
+    how: string;
+    suggestion: ReviewSuggestion;
+};
+
+export type ReviewOut = {
+    wins: Array<ReviewPoint>;
+    gaps: Array<ReviewGap>;
+    source: 'ai' | 'rules';
+};
+
+export type source8 = 'ai' | 'rules';
+
+export type ReviewPoint = {
+    text: string;
 };
 
 export type ReviewPublic = {
@@ -3538,6 +3571,12 @@ export type ReviewPublic = {
 export type ReviewsOut = {
     data: Array<ReviewPublic>;
     count: number;
+};
+
+export type ReviewSuggestion = {
+    kind: 'habit' | 'task';
+    title: string;
+    days_per_week?: (number | null);
 };
 
 export type RingOut = {
@@ -3971,7 +4010,7 @@ export type StartWorkout = {
     id?: (string | null);
 };
 
-export type source8 = 'empty' | 'template' | 'repeat';
+export type source9 = 'empty' | 'template' | 'repeat';
 
 export type StartWorkoutOut = {
     workout: WorkoutOut;
@@ -4050,7 +4089,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind15 = 'image' | 'video' | 'text' | 'progress';
+export type kind16 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -4139,7 +4178,7 @@ export type SyncOp = {
     at?: (string | null);
 };
 
-export type kind16 = 'upsert' | 'delete' | 'action';
+export type kind17 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -4635,7 +4674,7 @@ export type WeatherPrefPublic = {
     version: number;
 };
 
-export type source9 = 'device' | 'city';
+export type source10 = 'device' | 'city';
 
 export type unit = 'c' | 'f';
 
@@ -4853,7 +4892,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind17 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind18 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;
@@ -5225,6 +5264,12 @@ export type CompanionSeriesData = {
 
 export type CompanionSeriesResponse = (app__modules__companion__schema__SeriesOut);
 
+export type CompanionFernReviewData = {
+    requestBody: app__modules__companion__schema__ReviewIn;
+};
+
+export type CompanionFernReviewResponse = (ReviewOut);
+
 export type CompanionInsightsResponse = (InsightsOut);
 
 export type DashboardTodayResponse = (TodayBundle);
@@ -5288,7 +5333,7 @@ export type DashboardListReviewsResponse = (ReviewsOut);
 
 export type DashboardSaveReviewData = {
     key: string;
-    requestBody: ReviewIn;
+    requestBody: app__modules__dashboard__schema__ReviewIn;
 };
 
 export type DashboardSaveReviewResponse = (ReviewPublic);

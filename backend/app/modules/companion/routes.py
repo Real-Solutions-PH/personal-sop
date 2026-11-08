@@ -9,7 +9,16 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
-from app.modules.companion import feedback, gate, memory, notify, runs, services, turn
+from app.modules.companion import (
+    feedback,
+    gate,
+    memory,
+    notify,
+    review,
+    runs,
+    services,
+    turn,
+)
 from app.modules.companion.schema import (
     AskIn,
     AskOut,
@@ -26,6 +35,8 @@ from app.modules.companion.schema import (
     Metric,
     RenameIn,
     ReplyOut,
+    ReviewIn,
+    ReviewOut,
     RuleStatus,
     SeriesOut,
     TrackerIn,
@@ -407,6 +418,15 @@ def series(
 ) -> Any:
     """Chart block data (``stats.public.series``)."""
     return services.series(ctx, metric=metric, days=days)
+
+
+@router.post("/review", response_model=ReviewOut, dependencies=WRITE)
+def fern_review(ctx: CtxDep, data: ReviewIn) -> Any:
+    """Fern's wins-first review of a range (the way back, or a week): at
+    most two gaps, each with one tiny habit or task suggestion. Kept per
+    range until its facts change. 503 ``review_failed`` when the provider
+    fails; nothing is kept then."""
+    return review.review(ctx, data)
 
 
 @router.get("/insights", response_model=InsightsOut, dependencies=READ)

@@ -14340,6 +14340,17 @@ export const ProfilePublicSchema = {
             type: 'boolean',
             title: 'Push Review'
         },
+        push_checkin: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Push Checkin'
+        },
         fern_eval_consent: {
             type: 'boolean',
             title: 'Fern Eval Consent'
@@ -14667,6 +14678,17 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Push Review'
+        },
+        push_checkin: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Push Checkin'
         },
         fern_eval_consent: {
             anyOf: [
@@ -16485,51 +16507,62 @@ export const RestTimerPublicSchema = {
     title: 'RestTimerPublic'
 } as const;
 
-export const ReviewInSchema = {
+export const ReviewGapSchema = {
     properties: {
-        done: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Done'
+        text: {
+            type: 'string',
+            title: 'Text'
         },
-        reflection: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 4000
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Reflection'
+        how: {
+            type: 'string',
+            title: 'How'
         },
-        focus: {
-            anyOf: [
-                {
-                    type: 'string',
-                    maxLength: 64
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Focus'
-        },
-        journal: {
-            type: 'boolean',
-            title: 'Journal',
-            default: false
+        suggestion: {
+            '$ref': '#/components/schemas/ReviewSuggestion'
         }
     },
     type: 'object',
-    title: 'ReviewIn'
+    required: ['text', 'how', 'suggestion'],
+    title: 'ReviewGap'
+} as const;
+
+export const ReviewOutSchema = {
+    properties: {
+        wins: {
+            items: {
+                '$ref': '#/components/schemas/ReviewPoint'
+            },
+            type: 'array',
+            title: 'Wins'
+        },
+        gaps: {
+            items: {
+                '$ref': '#/components/schemas/ReviewGap'
+            },
+            type: 'array',
+            title: 'Gaps'
+        },
+        source: {
+            type: 'string',
+            enum: ['ai', 'rules'],
+            title: 'Source'
+        }
+    },
+    type: 'object',
+    required: ['wins', 'gaps', 'source'],
+    title: 'ReviewOut'
+} as const;
+
+export const ReviewPointSchema = {
+    properties: {
+        text: {
+            type: 'string',
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['text'],
+    title: 'ReviewPoint'
 } as const;
 
 export const ReviewPublicSchema = {
@@ -16606,6 +16639,37 @@ export const ReviewPublicSchema = {
     type: 'object',
     required: ['id', 'key', 'done', 'done_at', 'reflection', 'focus', 'updated_at', 'version'],
     title: 'ReviewPublic'
+} as const;
+
+export const ReviewSuggestionSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: ['habit', 'task'],
+            title: 'Kind'
+        },
+        title: {
+            type: 'string',
+            maxLength: 60,
+            title: 'Title'
+        },
+        days_per_week: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 7,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Days Per Week'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'title'],
+    title: 'ReviewSuggestion'
 } as const;
 
 export const ReviewsOutSchema = {
@@ -23749,13 +23813,25 @@ export const app__modules__capture__schema__CaptureInSchema = {
                 },
                 {
                     type: 'string',
-                    enum: ['journal', 'expense', 'task', 'weigh-in']
+                    enum: ['journal', 'expense', 'task', 'weigh-in', 'catch_up', 'checkin']
                 },
                 {
                     type: 'null'
                 }
             ],
             title: 'Hint'
+        },
+        range_from: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Range From'
         },
         file_name: {
             anyOf: [
@@ -23961,6 +24037,39 @@ export const app__modules__companion__schema__MessagesPublicSchema = {
     title: 'MessagesPublic'
 } as const;
 
+export const app__modules__companion__schema__ReviewInSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: ['way_back', 'weekly'],
+            title: 'Kind'
+        },
+        from_day: {
+            type: 'string',
+            format: 'date',
+            title: 'From Day'
+        },
+        to_day: {
+            type: 'string',
+            format: 'date',
+            title: 'To Day'
+        },
+        dismissed: {
+            items: {
+                type: 'string',
+                maxLength: 60
+            },
+            type: 'array',
+            maxItems: 50,
+            title: 'Dismissed'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'from_day', 'to_day'],
+    title: 'ReviewIn',
+    description: `\`\`POST /companion/review\`\`: Fern's wins-first review of a range.`
+} as const;
+
 export const app__modules__companion__schema__SeriesOutSchema = {
     properties: {
         metric: {
@@ -23986,6 +24095,53 @@ export const app__modules__companion__schema__SeriesOutSchema = {
     type: 'object',
     required: ['metric', 'label', 'days', 'points'],
     title: 'SeriesOut'
+} as const;
+
+export const app__modules__dashboard__schema__ReviewInSchema = {
+    properties: {
+        done: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Done'
+        },
+        reflection: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 4000
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reflection'
+        },
+        focus: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 64
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Focus'
+        },
+        journal: {
+            type: 'boolean',
+            title: 'Journal',
+            default: false
+        }
+    },
+    type: 'object',
+    title: 'ReviewIn'
 } as const;
 
 export const app__modules__dashboard__schema__ShareCardOutSchema = {
