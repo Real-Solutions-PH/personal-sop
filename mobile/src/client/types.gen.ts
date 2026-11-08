@@ -3746,8 +3746,21 @@ export type ScorecardPublic = {
     streak: number;
     best: number;
     rates: Array<AreaRatePublic>;
+    facets?: Array<ScoreFacetPublic>;
     stats: Array<ProgressStat>;
     trophies: Array<TrophyPublic>;
+};
+
+/**
+ * One petal of the area flower: a rate from 0 to 1 this period and the
+ * period before.
+ */
+export type ScoreFacetPublic = {
+    key: string;
+    label: string;
+    module: string;
+    value: number;
+    prev: number;
 };
 
 export type SealIn = {

@@ -1,3 +1,5 @@
+import { AREA } from "@domain/dash/data"
+import type { Facet } from "@domain/dash/facets"
 import { dashStore } from "@domain/dash/store"
 import { newId } from "@domain/lib/ids"
 import { getConnectivity, toast } from "@domain/lib/platform"
@@ -73,10 +75,32 @@ export type Scorecard = {
   delta: number
   streak: number
   best: number
-  rates: Record<Area, number>
+  /** Only the areas the person shares (an area switched off is absent). */
+  rates: Partial<Record<Area, number>>
+  /** The petals of the person's area flower; absent from older servers. */
+  facets?: Facet[]
   stats: ProgressStat[]
   trophies: Trophy[]
 }
+/** A petal as a scorecard carries it: a rate from 0 to 1 this period and
+ * the period before. */
+export type SharedFacet = {
+  key: string
+  label: string
+  module: string
+  value: number
+  prev: number
+}
+
+/** The facets a profile shares, as the area flower draws them. The server
+ * sends only areas switched on; a module this app cannot draw is left out. */
+export const sharedFacets = (facets: SharedFacet[]): Facet[] =>
+  facets.flatMap((f) =>
+    f.module in AREA
+      ? [{ ...f, module: f.module as Facet["module"], off: false, href: "" }]
+      : [],
+  )
+
 export type Person = {
   id: string
   name: string
@@ -216,6 +240,32 @@ export type SocialState = {
 }
 
 export const ME = "me"
+/** A demo person's flower from their four area rates (prototype only; a
+ * live scorecard sends its own petals). */
+function demoFacets(r: Record<Area, number>): Facet[] {
+  const f = (
+    key: string,
+    label: string,
+    module: Facet["module"],
+    value: number,
+  ): Facet => ({
+    key,
+    label,
+    module,
+    value,
+    prev: Math.max(0, value - 0.05),
+    off: false,
+    href: "",
+  })
+  return [
+    f("habits", "Habits", "habits", r.habits),
+    f("routines", "Routines", "habits", Math.max(0, r.habits - 0.1)),
+    f("tasks", "Tasks", "tasks", r.tasks),
+    f("training", "Training", "fitness", r.fitness),
+    f("finance", "Finance", "finance", r.finance),
+  ]
+}
+
 const MIN = 60_000,
   HOUR = 60 * MIN,
   DAY = 24 * HOUR
@@ -241,6 +291,12 @@ const people: Person[] = [
       streak: 41,
       best: 63,
       rates: { habits: 0.78, tasks: 0.7, fitness: 0.96, finance: 0.74 },
+      facets: demoFacets({
+        habits: 0.78,
+        tasks: 0.7,
+        fitness: 0.96,
+        finance: 0.74,
+      }),
       stats: [
         { label: "Workouts", value: "142" },
         { label: "PRs", value: "37" },
@@ -270,6 +326,12 @@ const people: Person[] = [
       streak: 18,
       best: 40,
       rates: { habits: 0.7, tasks: 0.62, fitness: 0.9, finance: 0.6 },
+      facets: demoFacets({
+        habits: 0.7,
+        tasks: 0.62,
+        fitness: 0.9,
+        finance: 0.6,
+      }),
       stats: [
         { label: "Runs", value: "211" },
         { label: "5K best", value: "20:41" },
@@ -299,6 +361,12 @@ const people: Person[] = [
       streak: 27,
       best: 52,
       rates: { habits: 0.85, tasks: 0.66, fitness: 0.81, finance: 0.8 },
+      facets: demoFacets({
+        habits: 0.85,
+        tasks: 0.66,
+        fitness: 0.81,
+        finance: 0.8,
+      }),
       stats: [
         { label: "Meals logged", value: "1,904" },
         { label: "Protein hit", value: "91", unit: "%" },
@@ -325,6 +393,12 @@ const people: Person[] = [
       streak: 214,
       best: 214,
       rates: { habits: 0.97, tasks: 0.84, fitness: 0.72, finance: 0.86 },
+      facets: demoFacets({
+        habits: 0.97,
+        tasks: 0.84,
+        fitness: 0.72,
+        finance: 0.86,
+      }),
       stats: [
         { label: "Habits", value: "9" },
         { label: "Tasks done", value: "2,316" },
@@ -353,6 +427,12 @@ const people: Person[] = [
       streak: 12,
       best: 33,
       rates: { habits: 0.68, tasks: 0.72, fitness: 0.55, finance: 0.98 },
+      facets: demoFacets({
+        habits: 0.68,
+        tasks: 0.72,
+        fitness: 0.55,
+        finance: 0.98,
+      }),
       stats: [
         { label: "Saved", value: "₱148k" },
         { label: "Budgets kept", value: "11/12" },
@@ -381,6 +461,12 @@ const people: Person[] = [
       streak: 96,
       best: 120,
       rates: { habits: 0.95, tasks: 0.83, fitness: 0.92, finance: 0.9 },
+      facets: demoFacets({
+        habits: 0.95,
+        tasks: 0.83,
+        fitness: 0.92,
+        finance: 0.9,
+      }),
       stats: [
         { label: "Sessions", value: "604" },
         { label: "Mindful min", value: "9.2k" },
@@ -956,7 +1042,9 @@ export interface SocialRemote {
   openChat(id: string): Promise<void>
   /** Explore search: people, or posts by tag when it starts with #. */
   search(q: string): Promise<void>
-  loadExplore(): Promise<void>
+  /** Explore and the friends leaderboard, each landing on its own;
+   * resolves whether the leaderboard loaded. */
+  loadExplore(): Promise<boolean>
   likePost(id: string, on: boolean, kind?: Cheer): Promise<unknown>
   savePost(id: string, on: boolean): Promise<unknown>
   createPost(post: Post): Promise<unknown>
@@ -1229,7 +1317,22 @@ export async function openChatLive(
   }
 }
 export const searchLive = (q: string) => load((r) => r.search(q))
-export const loadExploreLive = () => load((r) => r.loadExplore())
+/** Whether the friends leaderboard has loaded (live mode; not persisted):
+ * until it does, the board must not read as "only you". */
+export const boardStore = create<{ state: "loading" | "ready" | "failed" }>(
+  () => ({ state: liveMode ? "loading" : "ready" }),
+)
+export async function loadExploreLive() {
+  if (!liveMode) return
+  // A reload keeps the rows already shown.
+  if (boardStore.getState().state === "failed")
+    boardStore.setState({ state: "loading" })
+  let board = false
+  await load(async (r) => {
+    board = await r.loadExplore()
+  })
+  boardStore.setState({ state: board ? "ready" : "failed" })
+}
 /** The composer changed: tell the other members (throttled by the remote). */
 export const noteTyping = (chatId: string) => nudge((r) => r.typing(chatId))
 

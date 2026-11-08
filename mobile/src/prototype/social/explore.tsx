@@ -1,5 +1,12 @@
 import { useFocusEffect, useLocalSearchParams } from "expo-router"
-import { Layers, Search, Trophy, Video, X } from "lucide-react-native"
+import {
+  Layers,
+  RotateCcw,
+  Search,
+  Trophy,
+  Video,
+  X,
+} from "lucide-react-native"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   FlatList,
@@ -26,6 +33,7 @@ import {
   type Activity,
   activityText,
   agoText,
+  boardStore,
   loadExploreLive,
   ME,
   markActivityRead,
@@ -38,6 +46,7 @@ import {
 function Leaderboard() {
   const t = useTheme()
   const people = socialStore.use((s) => s.people)
+  const board = boardStore((s) => s.state)
   const mine = useMyScorecard()
   const rows = useMemo(
     () =>
@@ -84,6 +93,70 @@ function Leaderboard() {
       {rows.map((r, i) => (
         <LeaderRow key={r.id} rank={i + 1} {...r} />
       ))}
+      {board === "loading" && rows.length === 1 && (
+        <View testID="leaderboard-loading" style={{ gap: 8, opacity: 0.35 }}>
+          {[0, 1].map((i) => (
+            <View
+              key={i}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10 }}
+            >
+              <View style={{ width: 20 }} />
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: t.soft,
+                }}
+              />
+              <View
+                style={{
+                  flex: 1,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: t.soft,
+                }}
+              />
+            </View>
+          ))}
+        </View>
+      )}
+      {board === "failed" && (
+        <Pressable
+          cssInterop={false}
+          accessibilityRole="button"
+          accessibilityLabel="Retry loading your friends' scores"
+          onPress={() => void loadExploreLive()}
+          style={({ pressed }) => ({
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 8,
+            paddingVertical: 4,
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Text
+            style={{
+              flex: 1,
+              color: t.bad,
+              fontFamily: fonts.medium,
+              fontSize: 13,
+            }}
+          >
+            Couldn't load your friends' scores
+          </Text>
+          <RotateCcw size={14} color={t.primary} />
+          <Text
+            style={{
+              color: t.primary,
+              fontFamily: fonts.semibold,
+              fontSize: 13,
+            }}
+          >
+            Retry
+          </Text>
+        </Pressable>
+      )}
     </View>
   )
 }
