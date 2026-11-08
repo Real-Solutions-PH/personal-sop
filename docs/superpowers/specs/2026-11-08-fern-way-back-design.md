@@ -1,6 +1,6 @@
 # Fern way back, grace day, daily check-in and review — design
 
-Date: 2026-11-08 · Status: draft for Kai's approval
+Date: 2026-11-08 · Status: approved by Kai 2026-11-08 (Q1 → A, run ends)
 
 ## Why
 
@@ -101,7 +101,6 @@ place of `lost`:
 |---|---|---|---|
 | Run alive, grace used | `🔥 12 · grace day used` | "12-day streak, grace day used" | flame (warn) as today |
 | Run ended yesterday | `2 days missed · run of 12 ended` | "2 days missed, 12-day run ended" | neutral muted, no red |
-| Gap longer than grace — only if Kai picks "paused" in Q1 | `3 days missed · streak paused at 12` | same | neutral muted |
 
 The cost (the run that ended) stays visible, satisfying the pillar; the
 punishment framing (red, "lost") goes. `streakLost()` in `rewards.ts:31`
@@ -142,8 +141,9 @@ it never re-appears for the same gap.
 4. After sending: the normal capture cards for what Fern parsed (person
    confirms/undoes as usual), then **"Here's where you are"** — three
    deterministic lines, no AI:
-   - streaks: "Gym: 3 days missed · streak paused at 12" / "Reading: 🔥 9 ·
-     grace day used" (the top two habits by run length);
+   - streaks: "Gym: 3 days missed · run of 12 ended — best run 12 is
+     kept" / "Reading: 🔥 9 · grace day used" (the top two habits by run
+     length);
    - today: "Today: 3 habits and 2 tasks" (titles wrap);
    - a win: the most recent on-target day or milestone before the gap.
 5. Then the Fern review (§5) for the gap range, then "Back to today"
@@ -260,17 +260,17 @@ local capture engine; the review uses a TS port of the rules fallback.
 File layout, component split, exact copy polish within the tone above,
 term list contents, fact-id format.
 
-## Open question for Kai
+## Decided
 
 **Q1. What happens to a streak when the gap is longer than the grace day.**
 Kai's example reads "3 days missed · grace day used · streak paused at 12".
 
-- **A — run ends (recommended).** Honest and stateless: the chip reads
+- **A — run ends. ✅ Kai chose this 2026-11-08.** Honest and stateless: the chip reads
   "3 days missed · run of 12 ended", best run kept, and the way back says
   "your best run of 12 is still yours". Catching up with real activity
   ("did gym Tuesday") still repairs it through the grace rule. Only a copy
   change plus the grace rule.
-- **B — paused, resumes at 12.** On a way back the run is frozen and picks up
+- ~~B — paused, resumes at 12.~~ Not built. On a way back the run is frozen and picks up
   at 12 when the person logs again, once per 30 days. Streaks are computed
   from logs today, so this needs a stored pause marker per habit (new table,
   Alembic, both TS and Python streak logic, the golden fixture, and sync).
