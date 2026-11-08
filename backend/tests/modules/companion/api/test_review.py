@@ -246,3 +246,26 @@ def test_review_cache_ignores_a_tick_outside_the_range(
         ctx.commit()
     assert a.post(REVIEW, _body(a)) == first
     assert len(model.seen) == 1
+
+
+def test_review_with_every_win_dropped_falls_back_to_rules_wins(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Nothing finishes silently: when validation drops every win, the
+    review still opens with the rules' wins, and the empty answer is not
+    kept (the next open asks again)."""
+    a = api(client, db)
+    a.assign("chat")
+    _seed(a)
+    made_up = {"text": "You ran a marathon.", "fact_ids": ["f999"]}
+    model = install(
+        monkeypatch,
+        say(_answer([made_up], [_gap("Stretch")])),
+        say(_answer([WIN], [])),
+    )
+    out = a.post(REVIEW, _body(a))
+    assert out["wins"] and out["wins"][0]["text"] != "You ran a marathon."
+    assert [g["suggestion"]["title"] for g in out["gaps"]] == ["Stretch"]
+    again = a.post(REVIEW, _body(a))
+    assert len(model.seen) == 2
+    assert [w["text"] for w in again["wins"]] == ["You read on two days."]

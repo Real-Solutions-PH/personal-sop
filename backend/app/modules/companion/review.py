@@ -437,6 +437,12 @@ def review(ctx: Ctx, data: ReviewIn) -> ReviewOut:
             503, "review_failed", "Fern could not put your review together. Try again."
         )
     wins, gaps = validated(raw, f, data.dismissed)
+    if not wins:
+        # Every win was dropped: open with the data's own wins rather than
+        # an empty card, and keep nothing so the next open asks again.
+        ctx.commit()  # the metered call stands
+        rules = rules_review(f, data.kind, data.dismissed)
+        return ReviewOut(wins=rules.wins, gaps=gaps or rules.gaps, source="ai")
     _keep(ctx, data, f, raw, resolved.model)
     ctx.commit()
     return ReviewOut(wins=wins, gaps=gaps, source="ai")
