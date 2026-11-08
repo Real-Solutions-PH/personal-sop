@@ -178,3 +178,13 @@ test("Help improve Fern starts off, turns on only after the prompt, and off at o
   expect(accepted).toHaveBeenCalledTimes(1)
   expect(privacyStore.get().fernEval).toBe(false)
 })
+
+test("the daily check-in is switched on in Settings at the evening time, then its time shows", () => {
+  render(<Settings />, { wrapper })
+  expect(screen.queryByLabelText("Check-in time")).toBeNull()
+  fireEvent.press(screen.getByLabelText("Daily check-in"))
+  expect(dashStore.get().push.checkin).toBe(dashStore.get().push.evening)
+  expect(screen.getAllByLabelText(/Check-in time/).length).toBeGreaterThan(0)
+  fireEvent.press(screen.getByLabelText("Daily check-in"))
+  expect(dashStore.get().push.checkin).toBe("")
+})

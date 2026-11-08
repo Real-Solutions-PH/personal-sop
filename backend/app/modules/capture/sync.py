@@ -59,6 +59,8 @@ class CaptureSync(BaseModel):
     media_id: uuid.UUID | None = None
     extra_media_ids: list[uuid.UUID] | None = Field(default=None, max_length=9)
     account_id: uuid.UUID | None = None
+    # A queued catch-up keeps its gap (see ``CaptureIn.range_from``).
+    range_from: date | None = None
 
 
 class JournalSync(BaseModel):

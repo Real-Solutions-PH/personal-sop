@@ -1041,6 +1041,18 @@ class Run:
     # The person's own words this run answers. A task keeps a date or time
     # only when these name one; empty means no check.
     said: str = ""
+    # A catch-up's gap (first and last unlogged day): every record's day is
+    # clamped into it.
+    gap: tuple[date, date] | None = None
+
+    def offset(self, days_ago: int) -> int:
+        """The record's day offset from the capture's day, inside ``gap``."""
+        if self.gap is None:
+            return -days_ago
+        cap_day = self.ctx.clock.day_of(self.capture().at)
+        day = cap_day - timedelta(days=days_ago)
+        first, last = self.gap
+        return (min(max(day, first), last) - cap_day).days
 
     def capture(self) -> Capture:
         if self.cap is None:
@@ -1288,10 +1300,6 @@ def _days(days: Days) -> list[int] | None:
     return sorted({WEEKDAYS.index(d) for d in days}) if days else None
 
 
-def _offset(days_ago: int) -> int:
-    return -days_ago
-
-
 def _with_converted(
     out: dict[str, Any], fx: dict[str, Any], cur: Any
 ) -> dict[str, Any]:
@@ -1488,7 +1496,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             kind="expense",
             target="finance",
             rule="expense",
-            day_offset=_offset(a.days_ago),
+            day_offset=run.offset(a.days_ago),
             payload={
                 k: v
                 for k, v in {
@@ -1533,7 +1541,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             kind="income",
             target="finance",
             rule="income",
-            day_offset=_offset(a.days_ago),
+            day_offset=run.offset(a.days_ago),
             payload={
                 k: v
                 for k, v in {
@@ -1724,7 +1732,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             kind="habitLog",
             target="habits",
             rule="habit",
-            day_offset=_offset(a.days_ago),
+            day_offset=run.offset(a.days_ago),
             payload=payload,
         )
         return _card(run, d)
@@ -2128,7 +2136,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             kind="workout",
             target="fitness",
             rule="workout",
-            day_offset=_offset(a.days_ago),
+            day_offset=run.offset(a.days_ago),
             payload=payload,
         )
         return _card(run, d)
@@ -2245,7 +2253,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
         # Seen live: a lunch retried after a refusal was logged a second time
         # on top of the saved one, counting its food twice.
         if label in _MAIN_MEALS and not a.eaten_again:
-            day = run.ctx.today - timedelta(days=a.days_ago)
+            day = run.ctx.today + timedelta(days=run.offset(a.days_ago))
             saved = ports.saved_meal_with(run.ctx, label, day, items)
             if saved is not None:
                 return {
@@ -2269,7 +2277,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
             confirm=confidence < 0.7,
             warn=missing,
             confidence=confidence,
-            day_offset=_offset(a.days_ago),
+            day_offset=run.offset(a.days_ago),
             payload={
                 k: v
                 for k, v in {
@@ -2966,6 +2974,14 @@ user did not give. Amounts are in {currency}. Today is {today} ({zone}).
 After the tools, reply with one short sentence; do not repeat the cards."""
 
 
+CATCH_UP = """
+The person is catching up on {first}..{last}, days they did not log. Log only
+what they state. A fact with a day goes on that day. A fact about a span with
+no day ("most nights", "a couple of times") becomes ONE journal entry on {last}
+with the span in its text. Never create an entry for a day they did not
+describe. "Skipped X" or "didn't X" writes nothing."""
+
+
 def run_capture_agent(
     ctx: Ctx,
     cap: Capture,
@@ -2976,6 +2992,7 @@ def run_capture_agent(
     text: str,
     journal_in_qa: bool,
     start: int = 0,
+    gap: tuple[date, date] | None = None,
 ) -> tuple[str, Run]:
     run = Run(
         ctx=ctx,
@@ -2985,6 +3002,7 @@ def run_capture_agent(
         journal_in_qa=journal_in_qa,
         position=start,
         said=text,
+        gap=gap,
     )
     day = ctx.clock.day_of(cap.at)
     system = SYSTEM.format(
@@ -2994,6 +3012,8 @@ def run_capture_agent(
         system += (
             f"\nThis note was written on {day.isoformat()}; 'today' means that day."
         )
+    if gap is not None:
+        system += CATCH_UP.format(first=gap[0].isoformat(), last=gap[1].isoformat())
     reply = run_loop(
         ctx,
         resolved,

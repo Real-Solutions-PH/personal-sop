@@ -80,7 +80,7 @@
             }
           ]
         },
-        "current": 5,
+        "current": 8,
         "goals": [
           {
             "goal": {
@@ -280,10 +280,19 @@
             "title": "7-day on-target streak",
             "requirement": "Hit your daily target 7 days in a row",
             "progress": {
-              "pct": 0.7142857142857143,
-              "text": "5 / 7 days"
+              "pct": 1,
+              "text": "7 / 7 days"
             },
-            "trophy": null
+            "trophy": {
+              "id": "streak-7-2026-10-16",
+              "type": "streak",
+              "title": "7-day on-target streak",
+              "value": "7d",
+              "detail": "7 on-target days in a row",
+              "day": "2026-10-16",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
           },
           {
             "id": "streak-30",
@@ -291,8 +300,8 @@
             "title": "30-day on-target streak",
             "requirement": "Hit your daily target 30 days in a row",
             "progress": {
-              "pct": 0.16666666666666666,
-              "text": "5 / 30 days"
+              "pct": 0.26666666666666666,
+              "text": "8 / 30 days"
             },
             "trophy": null
           },
@@ -302,8 +311,8 @@
             "title": "100-day on-target streak",
             "requirement": "Hit your daily target 100 days in a row",
             "progress": {
-              "pct": 0.05,
-              "text": "5 / 100 days"
+              "pct": 0.08,
+              "text": "8 / 100 days"
             },
             "trophy": null
           },
@@ -313,8 +322,8 @@
             "title": "365-day on-target streak",
             "requirement": "Hit your daily target 365 days in a row",
             "progress": {
-              "pct": 0.0136986301369863,
-              "text": "5 / 365 days"
+              "pct": 0.021917808219178082,
+              "text": "8 / 365 days"
             },
             "trophy": null
           },
@@ -330,10 +339,10 @@
             "trophy": {
               "id": "habit-streak-7",
               "type": "streak",
-              "title": "7-day streak · Morning workout",
+              "title": "7-day streak · Read 20 pages",
               "value": "7d",
-              "detail": "Current top habit streak: 17 days",
-              "day": "2026-10-08",
+              "detail": "Current top habit streak: 28 days",
+              "day": "2026-09-27",
               "href": "/habits",
               "shareRef": "streak"
             }
@@ -344,8 +353,8 @@
             "title": "30-day habit streak",
             "requirement": "Reach a 30-day streak on any habit",
             "progress": {
-              "pct": 0.5666666666666667,
-              "text": "17 / 30 days"
+              "pct": 0.9333333333333333,
+              "text": "28 / 30 days"
             },
             "trophy": null
           },
@@ -355,8 +364,8 @@
             "title": "100-day habit streak",
             "requirement": "Reach a 100-day streak on any habit",
             "progress": {
-              "pct": 0.17,
-              "text": "17 / 100 days"
+              "pct": 0.28,
+              "text": "28 / 100 days"
             },
             "trophy": null
           },
@@ -366,8 +375,8 @@
             "title": "365-day habit streak",
             "requirement": "Reach a 365-day streak on any habit",
             "progress": {
-              "pct": 0.04657534246575343,
-              "text": "17 / 365 days"
+              "pct": 0.07671232876712329,
+              "text": "28 / 365 days"
             },
             "trophy": null
           },
@@ -653,6 +662,16 @@
             "shareRef": "monthly"
           },
           {
+            "id": "streak-7-2026-10-16",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-10-16",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
             "id": "best-week-2026-10-15",
             "type": "best",
             "title": "Best week",
@@ -665,10 +684,10 @@
           {
             "id": "habit-streak-7",
             "type": "streak",
-            "title": "7-day streak · Morning workout",
+            "title": "7-day streak · Read 20 pages",
             "value": "7d",
-            "detail": "Current top habit streak: 17 days",
-            "day": "2026-10-08",
+            "detail": "Current top habit streak: 28 days",
+            "day": "2026-09-27",
             "href": "/habits",
             "shareRef": "streak"
           },
@@ -975,7 +994,16 @@
               "pct": 0,
               "text": "0 / 7 days"
             },
-            "trophy": null
+            "trophy": {
+              "id": "streak-7-2026-10-16",
+              "type": "streak",
+              "title": "7-day on-target streak",
+              "value": "7d",
+              "detail": "7 on-target days in a row",
+              "day": "2026-10-16",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
           },
           {
             "id": "streak-30",
@@ -1022,10 +1050,10 @@
             "trophy": {
               "id": "habit-streak-7",
               "type": "streak",
-              "title": "7-day streak · Morning workout",
+              "title": "7-day streak · Read 20 pages",
               "value": "7d",
-              "detail": "Current top habit streak: 17 days",
-              "day": "2026-10-08",
+              "detail": "Current top habit streak: 28 days",
+              "day": "2026-09-27",
               "href": "/habits",
               "shareRef": "streak"
             }
@@ -1036,8 +1064,8 @@
             "title": "30-day habit streak",
             "requirement": "Reach a 30-day streak on any habit",
             "progress": {
-              "pct": 0.5666666666666667,
-              "text": "17 / 30 days"
+              "pct": 0.9333333333333333,
+              "text": "28 / 30 days"
             },
             "trophy": null
           },
@@ -1047,8 +1075,8 @@
             "title": "100-day habit streak",
             "requirement": "Reach a 100-day streak on any habit",
             "progress": {
-              "pct": 0.17,
-              "text": "17 / 100 days"
+              "pct": 0.28,
+              "text": "28 / 100 days"
             },
             "trophy": null
           },
@@ -1058,8 +1086,8 @@
             "title": "365-day habit streak",
             "requirement": "Reach a 365-day streak on any habit",
             "progress": {
-              "pct": 0.04657534246575343,
-              "text": "17 / 365 days"
+              "pct": 0.07671232876712329,
+              "text": "28 / 365 days"
             },
             "trophy": null
           },
@@ -1353,6 +1381,16 @@
             "shareRef": "monthly"
           },
           {
+            "id": "streak-7-2026-10-16",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-10-16",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
             "id": "best-week-2026-10-15",
             "type": "best",
             "title": "Best week",
@@ -1374,10 +1412,10 @@
           {
             "id": "habit-streak-7",
             "type": "streak",
-            "title": "7-day streak · Morning workout",
+            "title": "7-day streak · Read 20 pages",
             "value": "7d",
-            "detail": "Current top habit streak: 17 days",
-            "day": "2026-10-08",
+            "detail": "Current top habit streak: 28 days",
+            "day": "2026-09-27",
             "href": "/habits",
             "shareRef": "streak"
           },
@@ -1478,7 +1516,7 @@
             }
           ]
         },
-        "current": 5,
+        "current": 8,
         "goals": [
           {
             "goal": {
@@ -1611,10 +1649,19 @@
             "title": "7-day on-target streak",
             "requirement": "Hit your daily target 7 days in a row",
             "progress": {
-              "pct": 0.7142857142857143,
-              "text": "5 / 7 days"
+              "pct": 1,
+              "text": "7 / 7 days"
             },
-            "trophy": null
+            "trophy": {
+              "id": "streak-7-2026-10-16",
+              "type": "streak",
+              "title": "7-day on-target streak",
+              "value": "7d",
+              "detail": "7 on-target days in a row",
+              "day": "2026-10-16",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
           },
           {
             "id": "streak-30",
@@ -1622,8 +1669,8 @@
             "title": "30-day on-target streak",
             "requirement": "Hit your daily target 30 days in a row",
             "progress": {
-              "pct": 0.16666666666666666,
-              "text": "5 / 30 days"
+              "pct": 0.26666666666666666,
+              "text": "8 / 30 days"
             },
             "trophy": null
           },
@@ -1633,8 +1680,8 @@
             "title": "100-day on-target streak",
             "requirement": "Hit your daily target 100 days in a row",
             "progress": {
-              "pct": 0.05,
-              "text": "5 / 100 days"
+              "pct": 0.08,
+              "text": "8 / 100 days"
             },
             "trophy": null
           },
@@ -1644,8 +1691,8 @@
             "title": "365-day on-target streak",
             "requirement": "Hit your daily target 365 days in a row",
             "progress": {
-              "pct": 0.0136986301369863,
-              "text": "5 / 365 days"
+              "pct": 0.021917808219178082,
+              "text": "8 / 365 days"
             },
             "trophy": null
           },
@@ -1661,10 +1708,10 @@
             "trophy": {
               "id": "habit-streak-7",
               "type": "streak",
-              "title": "7-day streak · Morning workout",
+              "title": "7-day streak · Read 20 pages",
               "value": "7d",
-              "detail": "Current top habit streak: 17 days",
-              "day": "2026-10-08",
+              "detail": "Current top habit streak: 28 days",
+              "day": "2026-09-27",
               "href": "/habits",
               "shareRef": "streak"
             }
@@ -1675,8 +1722,8 @@
             "title": "30-day habit streak",
             "requirement": "Reach a 30-day streak on any habit",
             "progress": {
-              "pct": 0.5666666666666667,
-              "text": "17 / 30 days"
+              "pct": 0.9333333333333333,
+              "text": "28 / 30 days"
             },
             "trophy": null
           },
@@ -1686,8 +1733,8 @@
             "title": "100-day habit streak",
             "requirement": "Reach a 100-day streak on any habit",
             "progress": {
-              "pct": 0.17,
-              "text": "17 / 100 days"
+              "pct": 0.28,
+              "text": "28 / 100 days"
             },
             "trophy": null
           },
@@ -1697,8 +1744,8 @@
             "title": "365-day habit streak",
             "requirement": "Reach a 365-day streak on any habit",
             "progress": {
-              "pct": 0.04657534246575343,
-              "text": "17 / 365 days"
+              "pct": 0.07671232876712329,
+              "text": "28 / 365 days"
             },
             "trophy": null
           },
@@ -1957,6 +2004,16 @@
             "shareRef": "monthly"
           },
           {
+            "id": "streak-7-2026-10-16",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-10-16",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
             "id": "best-week-2026-10-15",
             "type": "best",
             "title": "Best week",
@@ -1969,10 +2026,10 @@
           {
             "id": "habit-streak-7",
             "type": "streak",
-            "title": "7-day streak · Morning workout",
+            "title": "7-day streak · Read 20 pages",
             "value": "7d",
-            "detail": "Current top habit streak: 17 days",
-            "day": "2026-10-08",
+            "detail": "Current top habit streak: 28 days",
+            "day": "2026-09-27",
             "href": "/habits",
             "shareRef": "streak"
           },
@@ -2708,7 +2765,7 @@
             }
           ]
         },
-        "current": 9,
+        "current": 19,
         "goals": [
           {
             "goal": {
@@ -2912,12 +2969,12 @@
               "text": "7 / 7 days"
             },
             "trophy": {
-              "id": "streak-7-2026-10-15",
+              "id": "streak-7-2026-10-04",
               "type": "streak",
               "title": "7-day on-target streak",
               "value": "7d",
               "detail": "7 on-target days in a row",
-              "day": "2026-10-15",
+              "day": "2026-10-04",
               "href": "/stats",
               "shareRef": "streak"
             }
@@ -2928,8 +2985,8 @@
             "title": "30-day on-target streak",
             "requirement": "Hit your daily target 30 days in a row",
             "progress": {
-              "pct": 0.3,
-              "text": "9 / 30 days"
+              "pct": 0.6333333333333333,
+              "text": "19 / 30 days"
             },
             "trophy": null
           },
@@ -2939,8 +2996,8 @@
             "title": "100-day on-target streak",
             "requirement": "Hit your daily target 100 days in a row",
             "progress": {
-              "pct": 0.09,
-              "text": "9 / 100 days"
+              "pct": 0.19,
+              "text": "19 / 100 days"
             },
             "trophy": null
           },
@@ -2950,8 +3007,8 @@
             "title": "365-day on-target streak",
             "requirement": "Hit your daily target 365 days in a row",
             "progress": {
-              "pct": 0.024657534246575342,
-              "text": "9 / 365 days"
+              "pct": 0.052054794520547946,
+              "text": "19 / 365 days"
             },
             "trophy": null
           },
@@ -2967,10 +3024,10 @@
             "trophy": {
               "id": "habit-streak-7",
               "type": "streak",
-              "title": "7-day streak · Morning workout",
+              "title": "7-day streak · Read 20 pages",
               "value": "7d",
-              "detail": "Current top habit streak: 17 days",
-              "day": "2026-10-08",
+              "detail": "Current top habit streak: 28 days",
+              "day": "2026-09-27",
               "href": "/habits",
               "shareRef": "streak"
             }
@@ -2981,8 +3038,8 @@
             "title": "30-day habit streak",
             "requirement": "Reach a 30-day streak on any habit",
             "progress": {
-              "pct": 0.5666666666666667,
-              "text": "17 / 30 days"
+              "pct": 0.9333333333333333,
+              "text": "28 / 30 days"
             },
             "trophy": null
           },
@@ -2992,8 +3049,8 @@
             "title": "100-day habit streak",
             "requirement": "Reach a 100-day streak on any habit",
             "progress": {
-              "pct": 0.17,
-              "text": "17 / 100 days"
+              "pct": 0.28,
+              "text": "28 / 100 days"
             },
             "trophy": null
           },
@@ -3003,8 +3060,8 @@
             "title": "365-day habit streak",
             "requirement": "Reach a 365-day streak on any habit",
             "progress": {
-              "pct": 0.04657534246575343,
-              "text": "17 / 365 days"
+              "pct": 0.07671232876712329,
+              "text": "28 / 365 days"
             },
             "trophy": null
           },
@@ -3289,16 +3346,6 @@
             "href": "/fitness/stats"
           },
           {
-            "id": "streak-7-2026-10-15",
-            "type": "streak",
-            "title": "7-day on-target streak",
-            "value": "7d",
-            "detail": "7 on-target days in a row",
-            "day": "2026-10-15",
-            "href": "/stats",
-            "shareRef": "streak"
-          },
-          {
             "id": "best-month-2026-10-13",
             "type": "best",
             "title": "Best month",
@@ -3309,12 +3356,22 @@
             "shareRef": "monthly"
           },
           {
+            "id": "streak-7-2026-10-04",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-10-04",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
             "id": "habit-streak-7",
             "type": "streak",
-            "title": "7-day streak · Morning workout",
+            "title": "7-day streak · Read 20 pages",
             "value": "7d",
-            "detail": "Current top habit streak: 17 days",
-            "day": "2026-10-08",
+            "detail": "Current top habit streak: 28 days",
+            "day": "2026-09-27",
             "href": "/habits",
             "shareRef": "streak"
           },
@@ -3435,7 +3492,7 @@
             }
           ]
         },
-        "current": 5,
+        "current": 8,
         "goals": [
           {
             "goal": {
@@ -3635,10 +3692,19 @@
             "title": "7-day on-target streak",
             "requirement": "Hit your daily target 7 days in a row",
             "progress": {
-              "pct": 0.7142857142857143,
-              "text": "5 / 7 days"
+              "pct": 1,
+              "text": "7 / 7 days"
             },
-            "trophy": null
+            "trophy": {
+              "id": "streak-7-2026-10-16",
+              "type": "streak",
+              "title": "7-day on-target streak",
+              "value": "7d",
+              "detail": "7 on-target days in a row",
+              "day": "2026-10-16",
+              "href": "/stats",
+              "shareRef": "streak"
+            }
           },
           {
             "id": "streak-30",
@@ -3646,8 +3712,8 @@
             "title": "30-day on-target streak",
             "requirement": "Hit your daily target 30 days in a row",
             "progress": {
-              "pct": 0.16666666666666666,
-              "text": "5 / 30 days"
+              "pct": 0.26666666666666666,
+              "text": "8 / 30 days"
             },
             "trophy": null
           },
@@ -3657,8 +3723,8 @@
             "title": "100-day on-target streak",
             "requirement": "Hit your daily target 100 days in a row",
             "progress": {
-              "pct": 0.05,
-              "text": "5 / 100 days"
+              "pct": 0.08,
+              "text": "8 / 100 days"
             },
             "trophy": null
           },
@@ -3668,8 +3734,8 @@
             "title": "365-day on-target streak",
             "requirement": "Hit your daily target 365 days in a row",
             "progress": {
-              "pct": 0.0136986301369863,
-              "text": "5 / 365 days"
+              "pct": 0.021917808219178082,
+              "text": "8 / 365 days"
             },
             "trophy": null
           },
@@ -3685,10 +3751,10 @@
             "trophy": {
               "id": "habit-streak-7",
               "type": "streak",
-              "title": "7-day streak · Morning workout",
+              "title": "7-day streak · Read 20 pages",
               "value": "7d",
-              "detail": "Current top habit streak: 17 days",
-              "day": "2026-10-08",
+              "detail": "Current top habit streak: 28 days",
+              "day": "2026-09-27",
               "href": "/habits",
               "shareRef": "streak"
             }
@@ -3699,8 +3765,8 @@
             "title": "30-day habit streak",
             "requirement": "Reach a 30-day streak on any habit",
             "progress": {
-              "pct": 0.5666666666666667,
-              "text": "17 / 30 days"
+              "pct": 0.9333333333333333,
+              "text": "28 / 30 days"
             },
             "trophy": null
           },
@@ -3710,8 +3776,8 @@
             "title": "100-day habit streak",
             "requirement": "Reach a 100-day streak on any habit",
             "progress": {
-              "pct": 0.17,
-              "text": "17 / 100 days"
+              "pct": 0.28,
+              "text": "28 / 100 days"
             },
             "trophy": null
           },
@@ -3721,8 +3787,8 @@
             "title": "365-day habit streak",
             "requirement": "Reach a 365-day streak on any habit",
             "progress": {
-              "pct": 0.04657534246575343,
-              "text": "17 / 365 days"
+              "pct": 0.07671232876712329,
+              "text": "28 / 365 days"
             },
             "trophy": null
           },
@@ -4027,6 +4093,16 @@
             "shareRef": "monthly"
           },
           {
+            "id": "streak-7-2026-10-16",
+            "type": "streak",
+            "title": "7-day on-target streak",
+            "value": "7d",
+            "detail": "7 on-target days in a row",
+            "day": "2026-10-16",
+            "href": "/stats",
+            "shareRef": "streak"
+          },
+          {
             "id": "best-week-2026-10-15",
             "type": "best",
             "title": "Best week",
@@ -4039,10 +4115,10 @@
           {
             "id": "habit-streak-7",
             "type": "streak",
-            "title": "7-day streak · Morning workout",
+            "title": "7-day streak · Read 20 pages",
             "value": "7d",
-            "detail": "Current top habit streak: 17 days",
-            "day": "2026-10-08",
+            "detail": "Current top habit streak: 28 days",
+            "day": "2026-09-27",
             "href": "/habits",
             "shareRef": "streak"
           },

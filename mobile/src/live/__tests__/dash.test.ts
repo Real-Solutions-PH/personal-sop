@@ -231,6 +231,28 @@ test("profile round trip covers the dash, appearance, privacy and currency field
   expect(profileFromServer(row, cur)).toEqual(cur)
 })
 
+test("the daily check-in time syncs; off is null; lastCheckin stays local", () => {
+  setPush({ checkin: "20:30", lastCheckin: "2026-11-08" })
+  const cur = {
+    dash: dashStore.get(),
+    appearance: appearanceStore.get(),
+    privacy: privacyStore.get(),
+    currency: currencyStore.get(),
+    extras: extrasStore.get(),
+    homeLayout: homeLayoutStore.get(),
+  }
+  const row = profileToServer(cur)
+  expect(row.push_checkin).toBe("20:30")
+  expect(row).not.toHaveProperty("push_last_checkin")
+  const back = profileFromServer({ ...row, push_checkin: null }, cur)
+  expect(back.dash.push.checkin).toBe("")
+  expect(back.dash.push.lastCheckin).toBe("2026-11-08")
+  setPush({ checkin: "" })
+  expect(
+    profileToServer({ ...cur, dash: dashStore.get() }).push_checkin,
+  ).toBeNull()
+})
+
 test("a pulled currency the device does not know keeps the device's", () => {
   const cur = {
     dash: dashStore.get(),

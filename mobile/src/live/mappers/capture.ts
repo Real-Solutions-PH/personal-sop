@@ -257,6 +257,8 @@ const PARSER_HINTS = new Set([
   "expense",
   "task",
   "weigh-in",
+  "catch_up",
+  "checkin",
 ])
 /** Hints the server accepts; a statement's hint is its account, not a hint. */
 export const hintToServer = (hint: string | undefined) =>
@@ -328,6 +330,7 @@ export function captureToServer(c: Capture): Payload {
   if (c.durationSec !== undefined) out.duration_sec = Math.round(c.durationSec)
   const hint = hintToServer(c.hint)
   if (hint) out.hint = hint
+  if (hint === "catch_up" && c.rangeFrom) out.range_from = c.rangeFrom
   if (c.fileName) out.file_name = c.fileName.slice(0, 255)
   if (cap.mediaId) out.media_id = cap.mediaId
   if (cap.extraMediaIds?.length) out.extra_media_ids = cap.extraMediaIds

@@ -334,15 +334,33 @@ describe("the day's moments", () => {
 })
 
 describe("StreakChip", () => {
-  it("says a streak broke yesterday, in the bad colour", () => {
-    render(<StreakChip streak={0} lost={12} />, { wrapper })
-    expect(screen.getByText("streak lost · was 12")).toBeTruthy()
-    expect(screen.getByLabelText("Streak lost, was 12 days")).toBeTruthy()
+  it("shows what was missed and the run it ended, never as lost", () => {
+    render(<StreakChip streak={0} miss={{ missed: 2, run: 12 }} />, {
+      wrapper,
+    })
+    expect(screen.getByText("2 days missed · run of 12 ended")).toBeTruthy()
+    expect(
+      screen.getByLabelText("2 days missed, 12-day run ended"),
+    ).toBeTruthy()
+    expect(screen.queryByText(/lost/i)).toBeNull()
+  })
+  it("says one day in the singular", () => {
+    render(<StreakChip streak={0} miss={{ missed: 1, run: 5 }} />, { wrapper })
+    expect(screen.getByText("1 day missed · run of 5 ended")).toBeTruthy()
+  })
+  it("adds the grace day or the way-back pause to a live streak", () => {
+    const view = render(<StreakChip streak={12} note="grace day used" />, {
+      wrapper,
+    })
+    expect(screen.getByText("· grace day used")).toBeTruthy()
+    expect(screen.getByLabelText("12-day streak, grace day used")).toBeTruthy()
+    view.rerender(<StreakChip streak={12} note="paused 3 days" />)
+    expect(screen.getByText("· paused 3 days")).toBeTruthy()
   })
   it("is gone at 0 with no break", () => {
     render(<StreakChip streak={0} />, { wrapper })
     expect(screen.queryByTestId("streak-chip")).toBeNull()
-    expect(screen.queryByTestId("streak-lost")).toBeNull()
+    expect(screen.queryByTestId("streak-miss")).toBeNull()
   })
   it("wears gold on milestone days only, with a success tap as it is reached", () => {
     const view = render(<StreakChip streak={6} />, { wrapper })
@@ -362,12 +380,27 @@ describe("Today strips", () => {
     onTarget,
     done,
   })
-  it("yesterday off target names the streak it ended and the misses", () => {
+  it("yesterday off target after a grace day says the run was kept", () => {
     mockDay.series = [d(-4, true), d(-3, true), d(-2, true), d(-1, false)]
+    mockDay.misses = 1
+    render(<YesterdayStrip />, { wrapper })
+    expect(
+      screen.getByText("Yesterday: off target · grace day used"),
+    ).toBeTruthy()
+    expect(screen.queryByText(/ended/)).toBeNull()
+  })
+  it("yesterday off target names the streak it ended and the misses", () => {
+    mockDay.series = [
+      d(-5, true),
+      d(-4, true),
+      d(-3, true),
+      d(-2, false),
+      d(-1, false),
+    ]
     mockDay.misses = 4
     render(<YesterdayStrip />, { wrapper })
     expect(
-      screen.getByText("Yesterday: off target · 3-day streak ended"),
+      screen.getByText("Yesterday: off target · run of 3 ended"),
     ).toBeTruthy()
     expect(
       screen.getByText(

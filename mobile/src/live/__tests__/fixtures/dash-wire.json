@@ -18,6 +18,7 @@
       "push_morning": "07:00",
       "push_evening": "21:00",
       "push_review": true,
+      "push_checkin": null,
       "seen_trophies": [],
       "intro_offered": [],
       "intro_dismissed": [],

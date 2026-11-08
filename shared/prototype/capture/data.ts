@@ -290,6 +290,8 @@ export interface Capture {
   /** More photos sent with ``photo`` as one capture. */
   photos?: string[]
   hint?: string
+  /** A catch-up's first unlogged day (YYYY-MM-DD); the gap ends yesterday. */
+  rangeFrom?: string
   fileName?: string
   status: CaptureStatus
   reply?: {

@@ -14686,7 +14686,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/ReviewIn" }
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__dashboard__schema__ReviewIn"
+              }
             }
           }
         },
@@ -16032,6 +16034,43 @@
             "description": "Client Error"
           }
         }
+      }
+    },
+    "/api/v1/companion/review": {
+      "post": {
+        "tags": ["companion"],
+        "summary": "Fern Review",
+        "description": "Fern's wins-first review of a range (the way back, or a week): at\nmost two gaps, each with one tiny habit or task suggestion. Kept per\nrange until its facts change. 503 ``review_failed`` when the provider\nfails; nothing is kept then.",
+        "operationId": "companion-fern_review",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__companion__schema__ReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ReviewOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
       }
     },
     "/api/v1/companion/insights": {
@@ -28769,6 +28808,10 @@
             "title": "Push Evening"
           },
           "push_review": { "type": "boolean", "title": "Push Review" },
+          "push_checkin": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Push Checkin"
+          },
           "fern_eval_consent": {
             "type": "boolean",
             "title": "Fern Eval Consent"
@@ -29015,6 +29058,10 @@
           "push_review": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
             "title": "Push Review"
+          },
+          "push_checkin": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Push Checkin"
           },
           "fern_eval_consent": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
@@ -30299,30 +30346,43 @@
         "required": ["id", "version", "updated_at", "ends_at", "duration_sec"],
         "title": "RestTimerPublic"
       },
-      "ReviewIn": {
+      "ReviewGap": {
         "properties": {
-          "done": {
-            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
-            "title": "Done"
-          },
-          "reflection": {
-            "anyOf": [
-              { "type": "string", "maxLength": 4000 },
-              { "type": "null" }
-            ],
-            "title": "Reflection"
-          },
-          "focus": {
-            "anyOf": [
-              { "type": "string", "maxLength": 64 },
-              { "type": "null" }
-            ],
-            "title": "Focus"
-          },
-          "journal": { "type": "boolean", "title": "Journal", "default": false }
+          "text": { "type": "string", "title": "Text" },
+          "how": { "type": "string", "title": "How" },
+          "suggestion": { "$ref": "#/components/schemas/ReviewSuggestion" }
         },
         "type": "object",
-        "title": "ReviewIn"
+        "required": ["text", "how", "suggestion"],
+        "title": "ReviewGap"
+      },
+      "ReviewOut": {
+        "properties": {
+          "wins": {
+            "items": { "$ref": "#/components/schemas/ReviewPoint" },
+            "type": "array",
+            "title": "Wins"
+          },
+          "gaps": {
+            "items": { "$ref": "#/components/schemas/ReviewGap" },
+            "type": "array",
+            "title": "Gaps"
+          },
+          "source": {
+            "type": "string",
+            "enum": ["ai", "rules"],
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": ["wins", "gaps", "source"],
+        "title": "ReviewOut"
+      },
+      "ReviewPoint": {
+        "properties": { "text": { "type": "string", "title": "Text" } },
+        "type": "object",
+        "required": ["text"],
+        "title": "ReviewPoint"
       },
       "ReviewPublic": {
         "properties": {
@@ -30370,6 +30430,26 @@
           "version"
         ],
         "title": "ReviewPublic"
+      },
+      "ReviewSuggestion": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["habit", "task"],
+            "title": "Kind"
+          },
+          "title": { "type": "string", "maxLength": 60, "title": "Title" },
+          "days_per_week": {
+            "anyOf": [
+              { "type": "integer", "maximum": 7.0, "minimum": 1.0 },
+              { "type": "null" }
+            ],
+            "title": "Days Per Week"
+          }
+        },
+        "type": "object",
+        "required": ["kind", "title"],
+        "title": "ReviewSuggestion"
       },
       "ReviewsOut": {
         "properties": {
@@ -35199,11 +35279,25 @@
               },
               {
                 "type": "string",
-                "enum": ["journal", "expense", "task", "weigh-in"]
+                "enum": [
+                  "journal",
+                  "expense",
+                  "task",
+                  "weigh-in",
+                  "catch_up",
+                  "checkin"
+                ]
               },
               { "type": "null" }
             ],
             "title": "Hint"
+          },
+          "range_from": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Range From"
           },
           "file_name": {
             "anyOf": [
@@ -35335,6 +35429,31 @@
         "required": ["data", "count"],
         "title": "MessagesPublic"
       },
+      "app__modules__companion__schema__ReviewIn": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["way_back", "weekly"],
+            "title": "Kind"
+          },
+          "from_day": {
+            "type": "string",
+            "format": "date",
+            "title": "From Day"
+          },
+          "to_day": { "type": "string", "format": "date", "title": "To Day" },
+          "dismissed": {
+            "items": { "type": "string", "maxLength": 60 },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Dismissed"
+          }
+        },
+        "type": "object",
+        "required": ["kind", "from_day", "to_day"],
+        "title": "ReviewIn",
+        "description": "``POST /companion/review``: Fern's wins-first review of a range."
+      },
       "app__modules__companion__schema__SeriesOut": {
         "properties": {
           "metric": { "type": "string", "title": "Metric" },
@@ -35349,6 +35468,31 @@
         "type": "object",
         "required": ["metric", "label", "days", "points"],
         "title": "SeriesOut"
+      },
+      "app__modules__dashboard__schema__ReviewIn": {
+        "properties": {
+          "done": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Done"
+          },
+          "reflection": {
+            "anyOf": [
+              { "type": "string", "maxLength": 4000 },
+              { "type": "null" }
+            ],
+            "title": "Reflection"
+          },
+          "focus": {
+            "anyOf": [
+              { "type": "string", "maxLength": 64 },
+              { "type": "null" }
+            ],
+            "title": "Focus"
+          },
+          "journal": { "type": "boolean", "title": "Journal", "default": false }
+        },
+        "type": "object",
+        "title": "ReviewIn"
       },
       "app__modules__dashboard__schema__ShareCardOut": {
         "properties": {

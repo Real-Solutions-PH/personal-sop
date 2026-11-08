@@ -1,4 +1,5 @@
 import { addJournalEntry } from "@domain/capture/actions"
+import { weeklyRange } from "@domain/companion/review-rules"
 import {
   AREA,
   addDaysKey,
@@ -29,6 +30,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { TextInput, View } from "react-native"
+import { FernReviewCard } from "../companion/review-card"
 import {
   border,
   Copy,
@@ -252,6 +254,7 @@ function Review({ id }: { id: string }) {
     [reflection, setReflection] = useState(r?.reflection ?? ""),
     [focus, setFocus] = useState<MetricRef | undefined>(r?.focus),
     [aiOn, setAiOn] = useState(true),
+    [askedFern, setAskedFern] = useState(false),
     [goalFor, setGoalFor] = useState<MetricRef | null>(null)
   // Opening the page is what Today's weekly review card waits for.
   useEffect(() => {
@@ -264,6 +267,7 @@ function Review({ id }: { id: string }) {
         <Button href="/stats/reviews">All reviews</Button>
       </Screen>
     )
+  const fernRange = weeklyRange(p.from, p.to, dayKey())
   const { ls, misses, cur, best, wins, targetDelta } = digest,
     share = `/stats/share?t=${p.kind === "week" ? "weekly" : "monthly"}`,
     focusOptions = [
@@ -475,6 +479,26 @@ function Review({ id }: { id: string }) {
               {digest.tip}
             </Copy>
           </View>
+        )}
+        {p.kind === "week" && fernRange && (
+          <>
+            <SectionHeading>Fern’s review</SectionHeading>
+            {askedFern ? (
+              <FernReviewCard
+                kind="weekly"
+                fromDay={fernRange.fromDay}
+                toDay={fernRange.toDay}
+              />
+            ) : (
+              <Button
+                tone="quiet"
+                icon={Sparkles}
+                onPress={() => setAskedFern(true)}
+              >
+                Ask Fern for a review
+              </Button>
+            )}
+          </>
         )}
         <SectionHeading>Reflection</SectionHeading>
         <TextInput

@@ -893,3 +893,51 @@ describe("the running app rebuilds when Journal is switched", () => {
     }
   })
 })
+
+describe("the daily Fern check-in", () => {
+  // NOW's own business day, as the planner computes it.
+  const today = require("@domain/lib/day").dayKey(NOW)
+  it("asks every day at the chosen time, opening Fern's check-in", () => {
+    const [p] = planReminders([], [], NOW, {
+      checkin: { at: "20:30", lastCheckin: null },
+    })
+    expect(p).toMatchObject({
+      id: "checkin",
+      title: "How did today go?",
+      body: "Tell Fern in a sentence — it logs it for you.",
+      href: "/today/checkin",
+      daily: { hour: 20, minute: 30 },
+    })
+  })
+  it("is off when no time is set", () => {
+    expect(
+      planReminders([], [], NOW, { checkin: { at: "", lastCheckin: null } }),
+    ).toEqual([])
+  })
+  it("skips today once checked in, and still asks every day after", () => {
+    const plan = planReminders([], [], NOW, {
+      checkin: { at: "20:30", lastCheckin: today },
+    })
+    // One dated ask per day ahead: ignoring tomorrow's (without opening
+    // the app) must not end the check-ins.
+    expect(plan.map((p) => p.id)).toEqual(
+      [1, 2, 3, 4, 5, 6].map((n) => `checkin-${n}`),
+    )
+    // The first ask is the business day after ``today``, which before the
+    // day's rollover is not NOW's calendar date plus one.
+    const first = plan[0]
+    const { addDays } = require("@domain/habits/logic")
+    expect("at" in first && require("@domain/lib/day").dayKey(first.at)).toBe(
+      addDays(today, 1),
+    )
+    expect("at" in first && first.at.getHours()).toBe(20)
+  })
+  it("never lands in quiet hours", () => {
+    expect(
+      planReminders([], [], NOW, {
+        checkin: { at: "23:00", lastCheckin: null },
+        quiet: { start: "22:00", end: "07:00" },
+      }),
+    ).toEqual([])
+  })
+})
