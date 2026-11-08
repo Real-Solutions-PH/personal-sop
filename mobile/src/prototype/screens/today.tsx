@@ -112,7 +112,7 @@ import {
 } from "../native-kit"
 import { go } from "../navigation"
 import { PrivacyEye } from "../privacy-eye"
-import { streakLost } from "../rewards"
+import { streakMiss, streakNote } from "../rewards"
 import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { type Accent, fonts, radius, useTheme } from "../theme"
@@ -484,7 +484,8 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
     log = idx.get(H.lk(habit.id, today)),
     st = H.streaks(habit, idx, today),
     streak = st.current,
-    lost = streakLost(st.broken, st.current, today),
+    miss = streakMiss(habit, idx, st, today),
+    note = streakNote(habit, idx, st, today),
     done = log?.status === "done",
     state = useRuleState(habit, today),
     [actions, setActions] = useState(false)
@@ -535,7 +536,7 @@ function RuleTodayHabit({ habit }: { habit: Habit }) {
                 done={done}
               />
               <AutoMark />
-              <StreakChip streak={streak} lost={lost} />
+              <StreakChip streak={streak} miss={miss} note={note} />
             </Line>
           </Tap>
         </Line>
@@ -557,7 +558,8 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
     log = idx.get(H.lk(habit.id, today)),
     st = H.streaks(habit, idx, today),
     streak = st.current,
-    lost = streakLost(st.broken, st.current, today),
+    miss = streakMiss(habit, idx, st, today),
+    note = streakNote(habit, idx, st, today),
     done = log?.status === "done"
   const toggle = () => {
     if (done) {
@@ -639,7 +641,7 @@ function ManualTodayHabit({ habit }: { habit: Habit }) {
                     {log?.status === "skipped" ? " · skipped, streak kept" : ""}
                   </Copy>
                   {habit.rule && <ScreenOffMark />}
-                  <StreakChip streak={streak} lost={lost} />
+                  <StreakChip streak={streak} miss={miss} note={note} />
                 </Line>
               </Tap>
               {habit.type === "count" && !done && (

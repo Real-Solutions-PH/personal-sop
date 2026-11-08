@@ -153,11 +153,11 @@ export function HabitCard({
           value={fmt(h.current)}
           unit={h.current === 1 ? "day" : "days"}
           delta={
-            <Change good={false}>{`${plural(ended.lost, "day")} lost`}</Change>
+            <Change good={false}>{`${fmt(ended.lost)}-day run ended`}</Change>
           }
         />
         <Sub bad>
-          {`Missed ${dayName(shiftDay(h.start, ended.at))}. The ${fmt(ended.lost)}-day streak ended there.`}
+          {`Missed ${dayName(shiftDay(h.start, ended.at))}. The ${fmt(ended.lost)}-day run ended there.`}
         </Sub>
         <Body end>
           <LeafCal
@@ -341,7 +341,7 @@ export function HabitCard({
         {delta < 0 && (
           <Sub bad>
             {fell
-              ? `${verdict(b.rate)}. ${plural(fell, "habit")} lost ${fell === 1 ? "its" : "their"} streak.`
+              ? `${verdict(b.rate)}. ${plural(fell, "run")} ended.`
               : `${verdict(b.rate)}.`}
           </Sub>
         )}

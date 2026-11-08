@@ -2,7 +2,8 @@
 // break, at the streak milestones. Pure rules plus one device-local record
 // of which once-a-day moments have played, so a relaunch never replays one
 // and a pull from another device never plays one here.
-import { addDays } from "@domain/habits/logic"
+import type { Habit, HabitLog } from "@domain/habits/data"
+import { addDays, cellFor, daysBetween } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
 import { createStore } from "@domain/lib/store"
 
@@ -26,17 +27,65 @@ export const MILESTONES = [7, 30, 100, 365] as const
 export const isMilestone = (n: number) =>
   (MILESTONES as readonly number[]).includes(n)
 
-/** A habit streak that broke on yesterday's miss, shown for that one day:
- * its length, or 0. A streak already restarted today shows as a streak. */
-export function streakLost(
-  broken: { day: string; length: number }[],
-  current: number,
-  today = dayKey(),
-): number {
-  if (current > 0) return 0
-  const yesterday = addDays(today, -1)
-  return broken.find((b) => b.day === yesterday)?.length ?? 0
+type Streaks = {
+  current: number
+  broken: { day: string; length: number }[]
+  graceDays: string[]
 }
+
+/** A run that ended on yesterday's miss, shown for that one day: the
+ * missed days in a row up to yesterday and the run they ended, or null. A
+ * streak already going again (or held by a grace day) shows as a streak. */
+export function streakMiss(
+  h: Habit,
+  idx: Map<string, HabitLog>,
+  st: Streaks,
+  today = dayKey(),
+): { missed: number; run: number } | null {
+  if (st.current > 0) return null
+  const yesterday = addDays(today, -1)
+  const ended = st.broken.find((b) => b.day === yesterday)
+  if (!ended) return null
+  let missed = 0
+  for (let d = yesterday; d >= h.createdAt; d = addDays(d, -1)) {
+    const c = cellFor(h, d, idx, today)
+    if (c === "missed") missed++
+    else if (c === "done" || c === "partial") break
+  }
+  return { missed, run: ended.length }
+}
+
+/** What the live streak chip adds: the way-back pause it is resting on
+ * (until the habit is next done), else a grace day used this week. */
+export function streakNote(
+  h: Habit,
+  idx: Map<string, HabitLog>,
+  st: Streaks,
+  today = dayKey(),
+): string | null {
+  if (st.current <= 0) return null
+  const away = h.pauses
+    .filter((p) => p.reason === WAY_BACK && p.to && p.to < today)
+    .sort((a, b) => (a.from < b.from ? 1 : -1))[0]
+  if (away?.to) {
+    let doneSince = false
+    for (let d = addDays(away.to, 1); d < today; d = addDays(d, 1)) {
+      const c = cellFor(h, d, idx, today)
+      if (c === "done" || c === "partial") doneSince = true
+    }
+    const t = cellFor(h, today, idx, today)
+    if (t === "done" || t === "partial") doneSince = true
+    if (!doneSince) {
+      const n = daysBetween(away.from, away.to).length
+      return `paused ${n} day${n === 1 ? "" : "s"}`
+    }
+  }
+  const last = st.graceDays[st.graceDays.length - 1]
+  return last && last >= addDays(today, -7) ? "grace day used" : null
+}
+
+/** The pause reason a way back writes (see ``way-back``). */
+export const WAY_BACK = "way_back"
 
 export type DayStanding = "perfect" | "target" | "below" | "free"
 /** Where today stands against the person's target. */

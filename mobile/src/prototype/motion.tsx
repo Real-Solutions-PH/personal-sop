@@ -572,14 +572,17 @@ export function Shimmer({ color = "rgba(255, 255, 255, 0.35)" }) {
 export function StreakChip({
   streak,
   from,
-  lost = 0,
+  miss = null,
+  note = null,
 }: {
   streak: number
   /** Where the count starts on mount: one less bumps it as it appears. */
   from?: number
-  /** The streak that broke on yesterday's miss (shown while ``streak`` is
-   * 0, for that day only). */
-  lost?: number
+  /** The run that ended on yesterday's miss and the days missed (shown
+   * while ``streak`` is 0, for that day only): its cost, never a loss. */
+  miss?: { missed: number; run: number } | null
+  /** What a live streak rests on: "grace day used", "paused 3 days". */
+  note?: string | null
 }) {
   const t = useTheme()
   const reduced = useReducedMotion()
@@ -609,14 +612,16 @@ export function StreakChip({
     opacity: dim.value,
     transform: [{ scale: scale.value }],
   }))
-  if (streak <= 0)
-    return lost > 0 ? (
+  if (streak <= 0) {
+    if (!miss) return null
+    const days = `${miss.missed} day${miss.missed === 1 ? "" : "s"}`
+    return (
       <View
-        testID="streak-lost"
-        accessibilityLabel={`Streak lost, was ${lost} days`}
+        testID="streak-miss"
+        accessibilityLabel={`${days} missed, ${miss.run}-day run ended`}
         style={{
           borderRadius: 12,
-          backgroundColor: alpha(t.bad, 0.1),
+          backgroundColor: alpha(t.muted, 0.1),
           paddingHorizontal: 6,
           paddingVertical: 1,
         }}
@@ -626,19 +631,20 @@ export function StreakChip({
             fontFamily: fonts.medium,
             fontSize: 11,
             lineHeight: 14,
-            color: t.bad,
+            color: t.muted,
           }}
         >
-          streak lost · was {lost}
+          {days} missed · run of {miss.run} ended
         </Text>
       </View>
-    ) : null
+    )
+  }
   const tone = milestone ? t.life : t.warn
   const Icon = milestone ? Trophy : Flame
   return (
     <Animated.View
       testID={milestone ? "streak-milestone" : "streak-chip"}
-      accessibilityLabel={`${streak}-day streak${milestone ? ", a milestone" : ""}`}
+      accessibilityLabel={`${streak}-day streak${milestone ? ", a milestone" : ""}${note ? `, ${note}` : ""}`}
       style={[
         {
           flexDirection: "row",
@@ -663,6 +669,19 @@ export function StreakChip({
       >
         {Math.round(n)}
       </Text>
+      {!!note && (
+        <Text
+          style={{
+            fontFamily: fonts.medium,
+            fontSize: 11,
+            lineHeight: 14,
+            color: t.muted,
+            marginLeft: 2,
+          }}
+        >
+          · {note}
+        </Text>
+      )}
     </Animated.View>
   )
 }

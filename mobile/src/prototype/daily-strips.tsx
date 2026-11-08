@@ -32,7 +32,7 @@ export function YesterdayStrip() {
   const recap = yesterdayRecap(series, today)
   if (dismissed || (!recap.offTarget && !missed)) return null
   const headline = recap.offTarget
-    ? `Yesterday: off target${recap.ended > 1 ? ` · ${recap.ended}-day streak ended` : ""}`
+    ? `Yesterday: off target${recap.ended > 1 ? ` · run of ${recap.ended} ended` : ""}`
     : `Yesterday: ${missed} missed`
   // Fern's line: the cost first, then the way back.
   const lost = missed ? `${missed} missed. ` : ""
