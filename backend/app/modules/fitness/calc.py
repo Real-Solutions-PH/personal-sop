@@ -133,6 +133,12 @@ class MealItemS(Macros):
     qty: float = 1
     unit: str = ""
     assumption: str | None = None
+    # Optional detail: fiber, saturated fat and sugar in grams, sodium in mg;
+    # None when the item does not say (unknown, never zero).
+    fiber: float | None = None
+    sat_fat: float | None = None
+    sugar: float | None = None
+    sodium: float | None = None
 
 
 @dataclass

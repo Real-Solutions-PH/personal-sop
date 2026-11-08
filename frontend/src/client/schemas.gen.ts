@@ -5921,6 +5921,12 @@ export const FoodOutSchema = {
             type: 'boolean',
             title: 'Can Edit',
             default: false
+        },
+        origin: {
+            type: 'string',
+            enum: ['you', 'fern', 'database'],
+            title: 'Origin',
+            default: 'you'
         }
     },
     type: 'object',

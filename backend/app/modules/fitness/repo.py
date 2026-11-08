@@ -192,6 +192,10 @@ def meal_s(m: Meal, items: list[MealItem]) -> C.MealS:
                 carbs=i.carbs,
                 fat=i.fat,
                 assumption=i.assumption,
+                fiber=i.fiber,
+                sat_fat=i.sat_fat,
+                sugar=i.sugar,
+                sodium=i.sodium,
             )
             for i in items
         ],

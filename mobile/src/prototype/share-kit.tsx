@@ -2558,6 +2558,249 @@ function Swatch({ stops }: { stops: string[] }) {
   )
 }
 
+/** Stacked columns, one a day, each split into its parts (bottom first),
+ * against dashed target lines stacked the same way. Each line is named at
+ * its right end, so the chart needs no legend; names that would touch are
+ * pushed apart. ``on`` is the column to bring forward. */
+export function StackBars({
+  days,
+  colors,
+  lines,
+  height,
+  label,
+}: {
+  days: { label: string; parts: number[]; on?: boolean }[]
+  /** One per part, bottom first. */
+  colors: string[]
+  lines: { at: number; color: string; name: string }[]
+  height: number
+  label: string
+}) {
+  const { c } = useCard(),
+    gutter = lines.length ? 52 : 0,
+    width = 312 - gutter,
+    n = Math.max(1, days.length),
+    slot = width / n,
+    bar = Math.min(26, slot * (n > 14 ? 0.62 : 0.56)),
+    top = 8,
+    bot = height - 18,
+    max = Math.max(
+      1,
+      ...lines.map((l) => l.at),
+      ...days.map((d) => d.parts.reduce((a, v) => a + Math.max(0, v), 0)),
+    ),
+    y = (v: number) => bot - (v / max) * (bot - top),
+    every = n <= 7 ? 1 : n <= 14 ? 2 : 5
+  // Line names from the bottom up, each at least 12 units above the last.
+  const names = [...lines]
+    .map((l) => ({ ...l, y: y(l.at) }))
+    .sort((a, b) => b.y - a.y)
+  for (let i = 1; i < names.length; i++)
+    names[i].y = Math.min(names[i].y, names[i - 1].y - 12)
+  return (
+    <Viz h={height} label={label}>
+      {days.map((d, i) => {
+        const x = slot * i + (slot - bar) / 2
+        const total = d.parts.reduce((a, v) => a + Math.max(0, v), 0)
+        let from = bot
+        return (
+          <G key={`${d.label}-${i}`} opacity={d.on === false ? 0.6 : 1}>
+            {total ? (
+              d.parts.map((v, k) => {
+                if (v <= 0) return null
+                const h = (v / max) * (bot - top),
+                  y0 = from - h
+                from = y0
+                const last = d.parts.slice(k + 1).every((w) => w <= 0)
+                const r = last ? Math.min(3, bar / 2, h) : 0
+                return (
+                  <Path
+                    key={k}
+                    d={`M${f1(x)} ${f1(y0 + h)} V${f1(y0 + r)} Q${f1(x)} ${f1(y0)} ${f1(x + r)} ${f1(y0)} H${f1(x + bar - r)} Q${f1(x + bar)} ${f1(y0)} ${f1(x + bar)} ${f1(y0 + r)} V${f1(y0 + h)} Z`}
+                    fill={colors[k] ?? c.muted}
+                    // On a photo each segment keeps an edge of the shadow
+                    // colour, so a bar holds on any picture.
+                    stroke={c.shadow}
+                    strokeWidth={c.shadow ? 0.8 : 0}
+                  />
+                )
+              })
+            ) : (
+              <Path
+                d={`M${f1(x)} ${f1(bot - 1.5)} H${f1(x + bar)}`}
+                stroke={c.track}
+                strokeWidth={3}
+                strokeLinecap="round"
+              />
+            )}
+            {(n - 1 - i) % every ? null : (
+              <VizText
+                x={f1(slot * i + slot / 2)}
+                y={height - 3}
+                color={d.on ? c.ink : c.muted}
+              >
+                {d.label}
+              </VizText>
+            )}
+          </G>
+        )
+      })}
+      {c.shadow
+        ? lines.map((l) => (
+            <Path
+              key={`under-${l.name}`}
+              d={`M0 ${f1(y(l.at))} H${f1(width + 4)}`}
+              stroke={c.shadow}
+              strokeWidth={3.2}
+            />
+          ))
+        : null}
+      {lines.map((l) => (
+        <Path
+          key={l.name}
+          d={`M0 ${f1(y(l.at))} H${f1(width + 4)}`}
+          stroke={l.color}
+          strokeWidth={1.6}
+          strokeDasharray="5 4"
+        />
+      ))}
+      {names.map((l) => (
+        <VizText
+          key={l.name}
+          x={f1(width + 6)}
+          y={f1(l.y + 4)}
+          color={l.color}
+          anchor="start"
+        >
+          {l.name}
+        </VizText>
+      ))}
+    </Viz>
+  )
+}
+
+/** Goals as rings that fill toward them, side by side: the value in the
+ * middle, the name under it. Past the goal a ring is full and a tick on it
+ * marks where the goal sat; ``bad`` draws the value in the miss colour. */
+export function Rings({
+  rings,
+  size = 64,
+}: {
+  rings: {
+    name: string
+    value: string
+    share: number | null
+    color: string
+    bad?: boolean
+  }[]
+  size?: number
+}) {
+  const { q, c } = useCard(),
+    p = P * q,
+    s = size * p,
+    stroke = 5 * p,
+    r = (s - stroke) / 2,
+    around = 2 * Math.PI * r
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        justifyContent: "space-between",
+        gap: 6 * p,
+      }}
+    >
+      {rings.map((g) => {
+        const share = Math.max(0, Math.min(1, g.share ?? 0)),
+          past = (g.share ?? 0) > 1 ? 1 / (g.share ?? 1) : null
+        return (
+          <View
+            key={g.name}
+            style={{ alignItems: "center", gap: 4 * p, flex: 1 }}
+          >
+            <View style={{ width: s, height: s }}>
+              <Svg width={s} height={s}>
+                <Circle
+                  cx={s / 2}
+                  cy={s / 2}
+                  r={r}
+                  stroke={c.track}
+                  strokeWidth={stroke * 0.5}
+                  strokeDasharray={`${p * 1.2} ${p * 3.4}`}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                {share > 0 && c.shadow ? (
+                  <Circle
+                    cx={s / 2}
+                    cy={s / 2}
+                    r={r}
+                    stroke={c.shadow}
+                    strokeWidth={stroke + 2 * p}
+                    strokeDasharray={`${around * share} ${around}`}
+                    strokeLinecap="round"
+                    fill="none"
+                    transform={`rotate(-90 ${s / 2} ${s / 2})`}
+                  />
+                ) : null}
+                {share > 0 ? (
+                  <Circle
+                    cx={s / 2}
+                    cy={s / 2}
+                    r={r}
+                    stroke={g.color}
+                    strokeWidth={stroke}
+                    strokeDasharray={`${around * share} ${around}`}
+                    strokeLinecap="round"
+                    fill="none"
+                    transform={`rotate(-90 ${s / 2} ${s / 2})`}
+                  />
+                ) : null}
+                {past ? (
+                  <Path
+                    d={(() => {
+                      const a = 2 * Math.PI * past - Math.PI / 2,
+                        x1 = s / 2 + (r - stroke) * Math.cos(a),
+                        y1 = s / 2 + (r - stroke) * Math.sin(a),
+                        x2 = s / 2 + (r + stroke) * Math.cos(a),
+                        y2 = s / 2 + (r + stroke) * Math.sin(a)
+                      return `M${f1(x1)} ${f1(y1)} L${f1(x2)} ${f1(y2)}`
+                    })()}
+                    stroke={c.ink}
+                    strokeWidth={2 * p}
+                    strokeLinecap="round"
+                  />
+                ) : null}
+              </Svg>
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Num
+                  size={13 * P}
+                  align="center"
+                  color={g.bad ? c.bad : undefined}
+                >
+                  {g.value}
+                </Num>
+              </View>
+            </View>
+            <Words size={12 * P} lines={1} align="center">
+              {g.name}
+            </Words>
+          </View>
+        )
+      })}
+    </View>
+  )
+}
+
 /** A long list on a card (every set of a workout): it takes the room left
  * and draws its content at the largest scale that fits, down to ``min``,
  * instead of dropping rows. ``children`` gets the scale it is drawn at and

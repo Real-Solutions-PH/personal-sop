@@ -6460,12 +6460,17 @@ export class MediaService {
 export class NutritionService {
     /**
      * List Foods
-     * The shared food library, most used first; ``q`` narrows it to foods
-     * whose name contains the text. With no ``q`` it lists the household's
-     * own foods and the imported ones (USDA, Open Food Facts) they have eaten;
-     * a search covers every food, the most trusted source first.
+     * The shared food library. ``q`` narrows it to foods holding every word
+     * typed (in the name or an alias, any order), the household's own and most
+     * recently eaten first (``food_library.search_order``). ``origin`` keeps
+     * only the foods the person made (``you``), Fern saved (``fern``) or a
+     * public database supplied (``database``). With neither, it lists the
+     * household's own foods and the database ones they have eaten, most used
+     * first; ``origin=database`` alone browses the databases, eaten ones
+     * first.
      * @param data The data for the request.
      * @param data.q
+     * @param data.origin
      * @param data.skip
      * @param data.limit
      * @returns FoodsOut Successful Response
@@ -6477,6 +6482,7 @@ export class NutritionService {
             url: '/api/v1/nutrition/foods',
             query: {
                 q: data.q,
+                origin: data.origin,
                 skip: data.skip,
                 limit: data.limit
             },

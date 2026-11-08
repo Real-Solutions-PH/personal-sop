@@ -11,8 +11,10 @@ import {
   CalendarX,
   CircleDollarSign,
   Clock,
+  Drumstick,
   Dumbbell,
   Flame,
+  Gauge,
   type LucideIcon,
   Receipt,
   Redo2,
@@ -20,6 +22,7 @@ import {
   Timer,
   TrendingDown,
   Wallet,
+  Wheat,
 } from "lucide-react-native"
 import { missCost } from "./goal-vine"
 
@@ -48,6 +51,10 @@ export function missKind(id: string): MissKind {
   if (id.startsWith("fit-stall-"))
     return { word: "Stalled lift", icon: TrendingDown }
   if (id.startsWith("nut-over-")) return { word: "Over calories", icon: Flame }
+  if (id.startsWith("nut-protein-"))
+    return { word: "Protein short", icon: Drumstick }
+  if (id.startsWith("nut-fiber-")) return { word: "Fiber short", icon: Wheat }
+  if (id.startsWith("nut-limit-")) return { word: "Over limit", icon: Gauge }
   if (id.startsWith("focus-under-")) return { word: "Focus short", icon: Timer }
   return { word: "Missed", icon: CalendarX }
 }
@@ -70,6 +77,14 @@ export function missParts(
   if (r) return { name: `${r[1]} budget`, cost: `over by ${r[2]} in ${r[3]}` }
   r = /^Over calories by (\d+%)$/.exec(title)
   if (r) return { name: "Calories", cost: `over the target by ${r[1]}` }
+  r = /^(Protein|Fiber) short by (.+) \((.+) of (.+)\)$/.exec(title)
+  if (r) return { name: r[1], cost: `${r[3]} of ${r[4]} · ${r[2]} short` }
+  r = /^Over (.+) limit by (.+) \((.+) of (.+)\)$/.exec(title)
+  if (r)
+    return {
+      name: r[1].charAt(0).toUpperCase() + r[1].slice(1),
+      cost: `${r[3]} of ${r[4]} · ${r[2]} over`,
+    }
   r = /^Focused (.+) of (.+)$/.exec(title)
   if (r) return { name: "Focus goal", cost: `${r[1]} of ${r[2]} focused` }
   r = /^Missed (\d+) gym sessions? \((.+)\)$/.exec(title)

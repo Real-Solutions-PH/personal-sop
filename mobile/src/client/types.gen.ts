@@ -1563,7 +1563,10 @@ export type FoodOut = {
     photo_media_id?: (string | null);
     photo_url?: (string | null);
     can_edit?: boolean;
+    origin?: 'you' | 'fern' | 'database';
 };
+
+export type origin = 'you' | 'fern' | 'database';
 
 /**
  * What a member may change on a food (every field optional).
@@ -6755,6 +6758,7 @@ export type MediaDeleteMediaResponse = (Message);
 
 export type NutritionListFoodsData = {
     limit?: number;
+    origin?: ('you' | 'fern' | 'database' | null);
     q?: (string | null);
     skip?: number;
 };
