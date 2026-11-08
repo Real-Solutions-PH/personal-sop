@@ -8180,7 +8180,7 @@
       "get": {
         "tags": ["nutrition"],
         "summary": "List Foods",
-        "description": "The shared food library, most used first; ``q`` narrows it to foods\nwhose name contains the text. With no ``q`` it lists the household's\nown foods and the imported ones (USDA, Open Food Facts) they have eaten;\na search covers every food, the most trusted source first.",
+        "description": "The shared food library. ``q`` narrows it to foods holding every word\ntyped (in the name or an alias, any order), the household's own and most\nrecently eaten first (``food_library.search_order``). ``origin`` keeps\nonly the foods the person made (``you``), Fern saved (``fern``) or a\npublic database supplied (``database``). With neither, it lists the\nhousehold's own foods and the database ones they have eaten, most used\nfirst; ``origin=database`` alone browses the databases, eaten ones\nfirst.",
         "operationId": "nutrition-list_foods",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -8194,6 +8194,18 @@
                 { "type": "null" }
               ],
               "title": "Q"
+            }
+          },
+          {
+            "name": "origin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "enum": ["you", "fern", "database"], "type": "string" },
+                { "type": "null" }
+              ],
+              "title": "Origin"
             }
           },
           {
@@ -23081,6 +23093,12 @@
             "type": "boolean",
             "title": "Can Edit",
             "default": false
+          },
+          "origin": {
+            "type": "string",
+            "enum": ["you", "fern", "database"],
+            "title": "Origin",
+            "default": "you"
           }
         },
         "type": "object",

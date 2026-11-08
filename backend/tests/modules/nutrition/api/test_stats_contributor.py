@@ -86,13 +86,23 @@ def test_metrics(seeded: User) -> None:
 def test_misses(seeded: User) -> None:
     with ctx_for(seeded, now=NOW) as ctx:
         misses = contributor.misses(ctx, _win(30))
-    want = {
-        f"nut-over-{d['day']}"
+    closed = [
+        d
         for d in GOLD["nutritionDays30"]
-        if d["over"] and d["day"] != TODAY.isoformat()
-    }
-    assert want
-    assert {m.id for m in misses} == want
+        if d["day"] != TODAY.isoformat() and d["meals"] > 0 and d["target"]
+    ]
+    over = {f"nut-over-{d['day']}" for d in closed if d["over"]}
+    short = {f"nut-protein-{d['day']}" for d in closed if not d["proteinHit"]}
+    assert over
+    ids = {m.id for m in misses}
+    assert {i for i in ids if i.startswith("nut-over-")} == over
+    assert {i for i in ids if i.startswith("nut-protein-")} == short
+    # Fiber and the stay-under limits are judged from item detail
+    # (day_misses, unit-tested); nothing else is emitted.
+    assert all(
+        i.startswith(("nut-over-", "nut-protein-", "nut-fiber-", "nut-limit-"))
+        for i in ids
+    )
     assert all(m.module == "nutrition" for m in misses)
     assert all(m.href == f"/nutrition?day={m.day.isoformat()}" for m in misses)
 

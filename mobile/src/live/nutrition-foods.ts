@@ -44,6 +44,9 @@ export interface LibraryFood {
   photo_url?: string | null
   /** Whether the signed-in member may edit it (its author, or an admin). */
   can_edit?: boolean
+  /** Who it came from: the person, Fern (saved from a label or what it was
+   * told), or a public database the server imported (USDA and others). */
+  origin?: "you" | "fern" | "database"
 }
 
 /** Where a food's numbers came from, as the app credits it: Open Food
@@ -113,11 +116,17 @@ export interface FoodsPage {
  * stalled server shows the retry card instead of a long skeleton. */
 const FOODS_TIMEOUT_MS = 8_000
 
-/** Up to 100 foods, most used first; ``q`` narrows by name. Auth is loaded
- * lazily, so prototype mode never builds it. */
-export async function fetchFoods(q = ""): Promise<FoodsPage> {
+/** Up to 100 foods: with ``q``, the foods holding every word, the
+ * household's own and most recently eaten first; ``origin`` keeps one
+ * source. Auth is loaded lazily, so prototype mode never builds it. */
+export async function fetchFoods(
+  q = "",
+  origin?: LibraryFood["origin"],
+): Promise<FoodsPage> {
   const auth = require("./auth") as typeof import("./auth")
-  const query = q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ""
+  const query =
+    (q.trim() ? `&q=${encodeURIComponent(q.trim())}` : "") +
+    (origin ? `&origin=${origin}` : "")
   return auth.http.request(
     "GET",
     `/nutrition/foods?limit=100${query}`,
@@ -126,15 +135,23 @@ export async function fetchFoods(q = ""): Promise<FoodsPage> {
   )
 }
 
-export const foodsKey = (q: string) => ["nutrition", "foods", q.trim()]
+export const foodsKey = (q: string, origin?: LibraryFood["origin"]) =>
+  origin
+    ? ["nutrition", "foods", q.trim(), origin]
+    : ["nutrition", "foods", q.trim()]
 
-/** The library for ``q``. Off (never pending) outside live mode; while a
- * new search runs, the last answer stays on screen. A failure settles as
- * an error after one retry, never as a skeleton left running. */
-export function useFoods(q: string, enabled: boolean) {
+/** The library for ``q`` (and one ``origin``). Off (never pending) outside
+ * live mode; while a new search runs, the last answer stays on screen. A
+ * failure settles as an error after one retry, never as a skeleton left
+ * running. */
+export function useFoods(
+  q: string,
+  enabled: boolean,
+  origin?: LibraryFood["origin"],
+) {
   return useQuery({
-    queryKey: foodsKey(q),
-    queryFn: () => fetchFoods(q),
+    queryKey: foodsKey(q, origin),
+    queryFn: () => fetchFoods(q, origin),
     enabled,
     retry: 1,
     staleTime: 60_000,

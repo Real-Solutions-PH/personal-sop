@@ -22,9 +22,10 @@ import math
 import re
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Literal, cast
 
-from sqlalchemy import ColumnElement, TextClause, case, or_
+from sqlalchemy import ColumnElement, String, TextClause, case, or_
+from sqlalchemy import cast as sa_cast
 from sqlalchemy import text as sql
 from sqlmodel import col, func
 
@@ -427,6 +428,66 @@ def rank_foods(query: str, rows: list[FoodItem]) -> list[FoodItem]:
         )
     )
     return [r for _, r in scored]
+
+
+# Who a food came from, as the library shows it: a public database the
+# server imported (USDA, Open Food Facts, FNRI), Fern (read from a label, or
+# what someone told it, saved by its save_food tool), or the person
+# themselves (their own import or recipe). A household row may carry a
+# database's ``source`` (Kai's Notion rows say "usda"), so a database food is
+# one a bulk import made, never one whose source merely names a database.
+FERN_SOURCES = ("label", "said", "brand")
+Origin = Literal["you", "fern", "database"]
+
+
+def origin(f: FoodItem) -> Origin:
+    """Who ``f`` came from (see ``FERN_SOURCES``)."""
+    if is_bulk(f):
+        return "database"
+    return "fern" if f.source in FERN_SOURCES else "you"
+
+
+def origin_sql(o: Origin) -> Any:
+    """``origin(f) == o`` as a SQL filter."""
+    bulk = _bulk_sql()
+    if o == "database":
+        return bulk
+    fern = col(FoodItem.source).in_(FERN_SOURCES)
+    return ~bulk & (fern if o == "fern" else ~fern)
+
+
+def words_sql(text: str) -> list[Any]:
+    """One filter per word of ``text``: every word must appear somewhere in
+    the food's name, its folded key or its aliases, in any order ("adobo
+    chicken" finds "Chicken Adobo")."""
+    out = []
+    for w in fold(text).split():
+        like = f"%{w}%"
+        out.append(
+            or_(
+                col(FoodItem.name).ilike(like),
+                col(FoodItem.key).ilike(like),
+                sa_cast(col(FoodItem.aliases), String).ilike(like),
+            )
+        )
+    return out
+
+
+def search_order(text: str) -> list[Any]:
+    """A search's order: the household's own foods (theirs and Fern's)
+    before database ones; among them the most recently eaten; then names
+    that start with what was typed, the most trusted source, the most used,
+    the shortest name."""
+    starts = fold(text)
+    return [
+        _bulk_sql(),
+        col(FoodItem.last_used_at).desc().nulls_last(),
+        ~col(FoodItem.key).startswith(starts),
+        tier_sql(),
+        col(FoodItem.use_count).desc(),
+        func.length(col(FoodItem.name)),
+        col(FoodItem.name),
+    ]
 
 
 def own_or_used() -> Any:

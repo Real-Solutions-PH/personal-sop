@@ -8,7 +8,7 @@ import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlmodel import col, func, or_
+from sqlmodel import col
 
 from app.modules.fitness import food_library
 from app.modules.fitness.models import FoodItem
@@ -41,6 +41,7 @@ def _out(ctx: Ctx, rows: list[FoodItem]) -> list[S.FoodOut]:
                 update={
                     "photo_url": (photo.preview_url or photo.url) if photo else None,
                     "can_edit": owned_repo.can_write(ctx, r),
+                    "origin": food_library.origin(r),
                 }
             )
         )
@@ -52,24 +53,31 @@ def list_foods(
     ctx: CtxDep,
     pagination: PaginationDep,
     q: Annotated[str | None, Query(max_length=80)] = None,
+    origin: food_library.Origin | None = None,
 ) -> Any:
-    """The shared food library, most used first; ``q`` narrows it to foods
-    whose name contains the text. With no ``q`` it lists the household's
-    own foods and the imported ones (USDA, Open Food Facts) they have eaten;
-    a search covers every food, the most trusted source first."""
+    """The shared food library. ``q`` narrows it to foods holding every word
+    typed (in the name or an alias, any order), the household's own and most
+    recently eaten first (``food_library.search_order``). ``origin`` keeps
+    only the foods the person made (``you``), Fern saved (``fern``) or a
+    public database supplied (``database``). With neither, it lists the
+    household's own foods and the database ones they have eaten, most used
+    first; ``origin=database`` alone browses the databases, eaten ones
+    first."""
     text = (q or "").strip()
+    where: list[Any] = []
+    if origin is not None:
+        where.append(food_library.origin_sql(origin))
     if text:
-        like = f"%{text}%"
-        where = [or_(col(FoodItem.name).ilike(like), col(FoodItem.key).ilike(like))]
+        where += food_library.words_sql(text)
+        order = food_library.search_order(text)
+    else:
+        if origin is None:
+            where.append(food_library.own_or_used())
         order = [
-            food_library.tier_sql(),
+            col(FoodItem.last_used_at).desc().nulls_last(),
             col(FoodItem.use_count).desc(),
-            func.length(col(FoodItem.name)),
             col(FoodItem.name),
         ]
-    else:
-        where = [food_library.own_or_used()]
-        order = [col(FoodItem.use_count).desc(), col(FoodItem.name)]
     rows = owned_repo.list_rows(
         ctx,
         FoodItem,

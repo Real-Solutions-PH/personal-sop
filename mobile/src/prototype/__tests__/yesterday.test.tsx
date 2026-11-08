@@ -274,6 +274,35 @@ describe("the list", () => {
     expect(screen.getByText("3 of 6 done · off target · 2 misses")).toBeTruthy()
   })
 
+  it("lists nutrition misses in the same row, each opening its day", () => {
+    mockRequest.mockReturnValue(new Promise(() => {}))
+    const nut = (id: string, title: string): Miss => ({
+      id: `${id}-${yesterday}`,
+      day: yesterday,
+      title,
+      module: "nutrition",
+      href: `/nutrition?day=${yesterday}`,
+    })
+    mockFeed.misses = [
+      nut("nut-protein", "Protein short by 35 g (105 of 140 g)"),
+      nut("nut-fiber", "Fiber short by 15 g (10 of 25 g)"),
+      nut(
+        "nut-limit-sodium",
+        "Over sodium limit by 450 mg (2,450 of 2,000 mg)",
+      ),
+    ]
+    show()
+    expect(screen.getAllByTestId("yesterday-miss")).toHaveLength(3)
+    expect(screen.getByText("Protein short")).toBeTruthy()
+    expect(screen.getByText("105 of 140 g · 35 g short")).toBeTruthy()
+    expect(screen.getByText("Fiber short")).toBeTruthy()
+    expect(screen.getByText("Over limit")).toBeTruthy()
+    expect(screen.getByText("Sodium")).toBeTruthy()
+    expect(screen.getByText("2,450 of 2,000 mg · 450 mg over")).toBeTruthy()
+    fireEvent.press(screen.getByLabelText(/^Over limit: Sodium/))
+    expect(router.push).toHaveBeenCalledWith(`/nutrition?day=${yesterday}`)
+  })
+
   it("a row opens its record", () => {
     mockRequest.mockReturnValue(new Promise(() => {}))
     show()
@@ -300,6 +329,9 @@ describe("helpers", () => {
     expect(missKind("fin-budget-x-2026-11").word).toBe("Over budget")
     expect(missKind("nut-over-2026-11-05").word).toBe("Over calories")
     expect(missKind("focus-under-2026-11-05").word).toBe("Focus short")
+    expect(missKind("nut-protein-2026-11-05").word).toBe("Protein short")
+    expect(missKind("nut-fiber-2026-11-05").word).toBe("Fiber short")
+    expect(missKind("nut-limit-sodium-2026-11-05").word).toBe("Over limit")
     expect(missKind("something-new").word).toBe("Missed")
   })
 
@@ -313,6 +345,21 @@ describe("helpers", () => {
     expect(p("Over calories by 9%", "nutrition")).toEqual({
       name: "Calories",
       cost: "over the target by 9%",
+    })
+    expect(p("Protein short by 35 g (105 of 140 g)", "nutrition")).toEqual({
+      name: "Protein",
+      cost: "105 of 140 g · 35 g short",
+    })
+    expect(p("Fiber short by 26 g (1 of 27 g)", "nutrition")).toEqual({
+      name: "Fiber",
+      cost: "1 of 27 g · 26 g short",
+    })
+    expect(
+      p("Over sodium limit by 450 mg (2,450 of 2,000 mg)", "nutrition"),
+    ).toEqual({ name: "Sodium", cost: "2,450 of 2,000 mg · 450 mg over" })
+    expect(p("Over sat fat limit by 4 g (17 of 13 g)", "nutrition")).toEqual({
+      name: "Sat fat",
+      cost: "17 of 13 g · 4 g over",
     })
     expect(p("Focused 1h 10m of 2h", "focus")).toEqual({
       name: "Focus goal",
