@@ -6,6 +6,7 @@ import type { Habit, HabitLog } from "@domain/habits/data"
 import { addDays, cellFor, daysBetween } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
 import { createStore } from "@domain/lib/store"
+import { WAY_BACK } from "@domain/way-back"
 
 /** Each once-a-day moment's key → the last day it played on this phone. */
 export const rewardStore = createStore("rewards", () => ({
@@ -83,9 +84,6 @@ export function streakNote(
   const last = st.graceDays[st.graceDays.length - 1]
   return last && last >= addDays(today, -7) ? "grace day used" : null
 }
-
-/** The pause reason a way back writes (see ``way-back``). */
-export const WAY_BACK = "way_back"
 
 export type DayStanding = "perfect" | "target" | "below" | "free"
 /** Where today stands against the person's target. */

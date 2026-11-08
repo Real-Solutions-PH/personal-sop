@@ -151,6 +151,8 @@ export interface DashState {
   targetThreshold: number
   eveningStart: string
   seenTrophies: string[]
+  /** The last active day the way back was shown for (this device only). */
+  wayBackSeenFor?: string
   /** The one-time reintroduction of a hidden part (a module, the Journal
    * or Community): offered once by Fern, and turned down for good with
    * "Not for me". On the account, so they outlive a reinstall. */
