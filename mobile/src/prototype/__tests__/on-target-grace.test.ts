@@ -31,3 +31,24 @@ describe("on-target streak grace day", () => {
     expect(s.graceDays).toEqual(["2026-11-03"])
   })
 })
+
+describe("walkRun milestones", () => {
+  it("reports each run length as it is reached, through a grace day", () => {
+    const { walkRun } = require("@domain/lib/grace")
+    const hits: [string, number][] = []
+    walkRun(
+      [
+        ["2026-11-01", true],
+        ["2026-11-02", true],
+        ["2026-11-03", false],
+        ["2026-11-04", true],
+      ],
+      (day: string, run: number) => hits.push([day, run]),
+    )
+    expect(hits).toEqual([
+      ["2026-11-01", 1],
+      ["2026-11-02", 2],
+      ["2026-11-04", 3],
+    ])
+  })
+})

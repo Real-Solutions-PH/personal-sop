@@ -219,3 +219,23 @@ def test_public_contract(db: Session) -> None:
         public.delete_log(ctx, log_id=log.id)
         restored = public.restore_log(ctx, log_id=log.id)
         assert restored.deleted_at is None
+
+
+def test_streak_achievement_counts_through_a_grace_day(db: Session) -> None:
+    """Seven done days with one lone miss in the middle reach the 7-day
+    milestone, the same as the streak chip that celebrates it."""
+    user, _ = signed_in(db)
+    with ctx_for(user, now=NOON) as ctx:
+        h = svc.create_habit(ctx, data=HabitCreate(name="Read"))
+        hid = h.id
+        today = ctx.today
+        ctx.commit()
+    _backdate(db, hid, 9)
+    with ctx_for(user, now=NOON) as ctx:
+        for back in (8, 7, 6, 5, 3, 2, 1):  # day 4 back is the lone miss
+            public.log_habit(ctx, habit_id=hid, day=today - timedelta(days=back))
+        ctx.commit()
+    with ctx_for(user, now=NOON) as ctx:
+        ach = {a.id: a for a in contributor.achievements(ctx)}
+    assert ach["habits-streak-7"].earned is True
+    assert ach["habits-streak-7"].day == today - timedelta(days=1)

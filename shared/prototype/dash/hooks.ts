@@ -701,13 +701,14 @@ function useLocalAchievements(): Achievement[] {
         dayOffset(-1),
       )
     }
+    // The same walk as the streak (a lone miss is a grace day).
     const hitDay = new Map<number, string>()
-    let run = 0
-    for (const d of s) {
-      if (d.onTarget === null) continue
-      run = d.onTarget ? run + 1 : 0
-      if (STREAK_MILESTONES.includes(run)) hitDay.set(run, d.day)
-    }
+    walkRun(
+      s.map((d): [string, boolean | null] => [d.day, d.onTarget]),
+      (day, run) => {
+        if (STREAK_MILESTONES.includes(run)) hitDay.set(run, day)
+      },
+    )
     for (const n of STREAK_MILESTONES) {
       const day = hitDay.get(n)
       out.push({

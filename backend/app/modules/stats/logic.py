@@ -476,14 +476,14 @@ def achievements(
         pr("pr-90-10", "10 PRs in 90 days", "Set 10 new best lifts within 90 days",
            p90, 10, f"{js_num(p90)} new best lifts in 90 days")  # fmt: skip
 
+    # The same walk as the streak (a lone miss is a grace day).
     hit_day: dict[int, date] = {}
-    run = 0
-    for d in series:
-        if d.on_target is None:
-            continue
-        run = run + 1 if d.on_target else 0
+
+    def hit(day: date, run: int) -> None:
         if run in STREAK_MILESTONES:
-            hit_day[run] = d.day
+            hit_day[run] = day
+
+    walk_run(((d.day, d.on_target) for d in series), on_hit=hit)
     for n in STREAK_MILESTONES:
         day = hit_day.get(n)
         title = f"{n}-day on-target streak"

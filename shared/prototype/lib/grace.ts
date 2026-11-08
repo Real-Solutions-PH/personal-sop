@@ -18,7 +18,11 @@ export interface RunWalk {
  * when the next scored day is a hit, or has not come yet; two misses in a
  * row, or a second lone miss within ``GRACE_GAP_DAYS`` of the run's last
  * grace day, end the run on that day. ``broken`` keeps ended runs of 3+. */
-export function walkRun(steps: Iterable<[string, boolean | null]>): RunWalk {
+export function walkRun(
+  steps: Iterable<[string, boolean | null]>,
+  /** Called with each day the run grows on and its new length. */
+  onHit?: (day: string, run: number) => void,
+): RunWalk {
   let best = 0
   let run = 0
   let grace: string[] = []
@@ -30,6 +34,7 @@ export function walkRun(steps: Iterable<[string, boolean | null]>): RunWalk {
       held = null
       run++
       best = Math.max(best, run)
+      onHit?.(day, run)
     } else if (hit === false) {
       const last = grace[grace.length - 1]
       if (

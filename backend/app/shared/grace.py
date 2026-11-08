@@ -7,7 +7,7 @@ or has not come yet; two misses in a row, or a second lone miss within
 ``broken`` keeps ended runs of three days or more.
 """
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -23,7 +23,11 @@ class RunWalk:
     grace_days: list[date] = field(default_factory=list)
 
 
-def walk_run(steps: Iterable[tuple[date, bool | None]]) -> RunWalk:
+def walk_run(
+    steps: Iterable[tuple[date, bool | None]],
+    on_hit: Callable[[date, int], None] | None = None,
+) -> RunWalk:
+    """``on_hit`` is called with each day the run grows on and its length."""
     best = 0
     run = 0
     grace: list[date] = []
@@ -36,6 +40,8 @@ def walk_run(steps: Iterable[tuple[date, bool | None]]) -> RunWalk:
             held = None
             run += 1
             best = max(best, run)
+            if on_hit is not None:
+                on_hit(day, run)
         elif hit is False:
             last = grace[-1] if grace else None
             if (
