@@ -143,6 +143,10 @@ export interface DashState {
     morning: string
     evening: string
     review: string
+    /** Daily Fern check-in time (HH:MM); empty = off. Syncs. */
+    checkin: string
+    /** The business day a check-in was last sent; this device only. */
+    lastCheckin: string
   }
   targetThreshold: number
   eveningStart: string
@@ -330,6 +334,8 @@ export const seed = (): DashState => ({
     morning: "07:00",
     evening: "21:00",
     review: "Sun 19:00",
+    checkin: "",
+    lastCheckin: "",
   },
   targetThreshold: 0.8,
   eveningStart: "18:00",

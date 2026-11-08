@@ -255,6 +255,7 @@ export function profileToServer(v: ProfileState): Payload {
     push_morning: HM.test(d.push.morning) ? d.push.morning : null,
     push_evening: HM.test(d.push.evening) ? d.push.evening : null,
     push_review: Boolean(d.push.review),
+    push_checkin: HM.test(d.push.checkin ?? "") ? d.push.checkin : null,
     seen_trophies: d.seenTrophies.slice(-500),
     intro_offered: d.intro.offered,
     intro_dismissed: d.intro.dismissed,
@@ -319,6 +320,7 @@ export function profileFromServer(
         morning: str(row.push_morning) ?? "",
         evening: str(row.push_evening) ?? "",
         review: row.push_review ? d.push.review || DEFAULT_REVIEW : "",
+        checkin: str(row.push_checkin) ?? "",
       },
       seenTrophies: Array.isArray(row.seen_trophies)
         ? row.seen_trophies.map(String)
