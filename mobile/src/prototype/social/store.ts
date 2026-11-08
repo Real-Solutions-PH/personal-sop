@@ -1,3 +1,5 @@
+import { AREA } from "@domain/dash/data"
+import type { Facet } from "@domain/dash/facets"
 import { dashStore } from "@domain/dash/store"
 import { newId } from "@domain/lib/ids"
 import { getConnectivity, toast } from "@domain/lib/platform"
@@ -73,10 +75,32 @@ export type Scorecard = {
   delta: number
   streak: number
   best: number
-  rates: Record<Area, number>
+  /** Only the areas the person shares (an area switched off is absent). */
+  rates: Partial<Record<Area, number>>
+  /** The petals of the person's area flower; absent from older servers. */
+  facets?: Facet[]
   stats: ProgressStat[]
   trophies: Trophy[]
 }
+/** A petal as a scorecard carries it: a rate from 0 to 1 this period and
+ * the period before. */
+export type SharedFacet = {
+  key: string
+  label: string
+  module: string
+  value: number
+  prev: number
+}
+
+/** The facets a profile shares, as the area flower draws them. The server
+ * sends only areas switched on; a module this app cannot draw is left out. */
+export const sharedFacets = (facets: SharedFacet[]): Facet[] =>
+  facets.flatMap((f) =>
+    f.module in AREA
+      ? [{ ...f, module: f.module as Facet["module"], off: false, href: "" }]
+      : [],
+  )
+
 export type Person = {
   id: string
   name: string
@@ -956,7 +980,9 @@ export interface SocialRemote {
   openChat(id: string): Promise<void>
   /** Explore search: people, or posts by tag when it starts with #. */
   search(q: string): Promise<void>
-  loadExplore(): Promise<void>
+  /** Explore and the friends leaderboard, each landing on its own;
+   * resolves whether the leaderboard loaded. */
+  loadExplore(): Promise<boolean>
   likePost(id: string, on: boolean, kind?: Cheer): Promise<unknown>
   savePost(id: string, on: boolean): Promise<unknown>
   createPost(post: Post): Promise<unknown>
@@ -1229,7 +1255,22 @@ export async function openChatLive(
   }
 }
 export const searchLive = (q: string) => load((r) => r.search(q))
-export const loadExploreLive = () => load((r) => r.loadExplore())
+/** Whether the friends leaderboard has loaded (live mode; not persisted):
+ * until it does, the board must not read as "only you". */
+export const boardStore = create<{ state: "loading" | "ready" | "failed" }>(
+  () => ({ state: liveMode ? "loading" : "ready" }),
+)
+export async function loadExploreLive() {
+  if (!liveMode) return
+  // A reload keeps the rows already shown.
+  if (boardStore.getState().state === "failed")
+    boardStore.setState({ state: "loading" })
+  let board = false
+  await load(async (r) => {
+    board = await r.loadExplore()
+  })
+  boardStore.setState({ state: board ? "ready" : "failed" })
+}
 /** The composer changed: tell the other members (throttled by the remote). */
 export const noteTyping = (chatId: string) => nudge((r) => r.typing(chatId))
 
