@@ -1993,3 +1993,63 @@ section {
   display: grid;
   gap: 32px;
 }
+
+/* Why people quit: each reason over the line that answers it. One column on
+   phones, two by two from 768px. */
+.reasons {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 880px;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+@media (min-width: 768px) {
+  .reasons {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+.reasons li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+.reasons .rs-icon {
+  grid-row: span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 10%, transparent);
+}
+.reasons .rs-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.reasons b {
+  font-size: 16px;
+  font-weight: 600;
+}
+.reasons .rs-answer {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--good);
+}
+.reasons .rs-answer svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+}

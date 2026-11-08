@@ -1,6 +1,12 @@
 "use client"
 
-import { Check } from "lucide-react"
+import {
+  BellRing,
+  CalendarX,
+  Check,
+  ClipboardList,
+  ScanSearch,
+} from "lucide-react"
 import { type RefObject, useEffect, useRef } from "react"
 import { STACK } from "@/config/pricing"
 import { loadMotion } from "@/lib/motion"
@@ -95,6 +101,63 @@ export function ProblemSection() {
             region and change.
           </p>
         </div>
+      </div>
+    </section>
+  )
+}
+
+// Act one, part two: the reasons people give for quitting a tracker, from
+// the 2026-11-07 research pass (app-store reviews, forum threads, published
+// studies), ordered by how broad the evidence is. Each carries what Unfurl
+// does instead, in a line. Static, like the stack above it.
+const REASONS = [
+  {
+    icon: <ClipboardList />,
+    problem: "Logging turns into a chore.",
+    answer: "Say one sentence. Fern files every part.",
+  },
+  {
+    icon: <CalendarX />,
+    problem: "One missed day wipes the streak.",
+    answer: "A grace day covers it.",
+  },
+  {
+    icon: <ScanSearch />,
+    problem: "Quick logging you can't trust.",
+    answer: "See where each part landed, and undo it.",
+  },
+  {
+    icon: <BellRing />,
+    problem: "Reminders start to scold.",
+    answer: "Fern notices what you did. It doesn't nag.",
+  },
+]
+
+export function ReasonsSection() {
+  return (
+    <section id="reasons" aria-labelledby="reasons-title">
+      <div className="wrap sc-center why">
+        <h2 className="h2" id="reasons-title" data-no-split>
+          Why people quit trackers.
+        </h2>
+        <ul className="reasons">
+          {REASONS.map((r) => (
+            <li key={r.problem}>
+              <span className="rs-icon" aria-hidden="true">
+                {r.icon}
+              </span>
+              <b>{r.problem}</b>
+              <span className="rs-answer">
+                <Check aria-hidden="true" />
+                {r.answer}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="fine">
+          From app-store reviews, forum threads and published studies on why
+          people stop tracking.
+        </p>
       </div>
     </section>
   )

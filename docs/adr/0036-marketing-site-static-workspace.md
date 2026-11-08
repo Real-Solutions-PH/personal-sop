@@ -69,6 +69,7 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
 - The share cards are images captured from the app itself (`mobile/src/prototype`, Fern ground) and saved to `marketing/public/share/`; recapture them when the card design changes.
 - A headless check measures every section against one screen at 375, 768 and 1280 px wide.
 - No sticky waitlist bar and no reading-progress bar (owner, 2026-11-09): the ask lives in the header, the hero and the closing form.
+- Act one names the four reasons people give for quitting a tracker (chores, a wiped streak, logging you can't trust, scolding reminders), each with Unfurl's answer. They come from the marketing research pass of 2026-11-07 (app-store reviews, forum threads, published studies), ranked by breadth of evidence. No quotes and no percentages: that pass's quotes are internal only and its sample supports no share.
 
 **Follow-ups:**
 - Pick the production domain and add the Cloudflare Pages project (Kai).

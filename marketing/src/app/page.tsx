@@ -20,7 +20,12 @@ import { HeroVideo } from "@/components/HeroVideo"
 import { Logo } from "@/components/Logo"
 import { PrimaryCta } from "@/components/PrimaryCta"
 import { Reveal } from "@/components/Reveal"
-import { FernScene, ProblemSection, ShareScene } from "@/components/Scenes"
+import {
+  FernScene,
+  ProblemSection,
+  ReasonsSection,
+  ShareScene,
+} from "@/components/Scenes"
 import { ScrollFx } from "@/components/ScrollFx"
 import { ScrollStory } from "@/components/ScrollStory"
 import { SiteFooter } from "@/components/SiteFooter"
@@ -189,6 +194,7 @@ export default function Home() {
 
         {/* Act one, the problem. */}
         <ProblemSection />
+        <ReasonsSection />
 
         {/* Act two, the solution: the pinned, scroll-scrubbed story. */}
         <ScrollStory />
