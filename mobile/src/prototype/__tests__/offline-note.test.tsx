@@ -3,6 +3,7 @@
 // changes are safe, and screen readers hear it as one alert.
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, render, screen } from "@testing-library/react-native"
+import { type StyleProp, StyleSheet, type ViewStyle } from "react-native"
 
 // Reduce Motion per test; ``mockFade`` holds the last fade's finish callback,
 // fired by hand to stand in for the UI thread ending the animation.
@@ -53,9 +54,32 @@ test("with the tab bar: reassures, as one alert, without its own Fern", () => {
 test("without the bar: a small Fern speaks, above the home indicator", () => {
   render(<OfflineNote offline withBar={false} bottomInset={34} />)
   expect(screen.UNSAFE_queryAllByProps({ decorative: true })).toHaveLength(1)
-  const note = screen.getByTestId("offline-note")
-  const flat = [note.props.style].flat().reduce((a, b) => ({ ...a, ...b }), {})
-  expect(flat.paddingBottom).toBe(34)
+  const layer = screen.getByTestId("offline-note-layer")
+  expect(flatten(layer.props.style).paddingBottom).toBe(34)
+})
+
+const flatten = (style: unknown): Record<string, unknown> =>
+  (StyleSheet.flatten(style as StyleProp<ViewStyle>) ?? {}) as Record<
+    string,
+    unknown
+  >
+
+// Kai, 2026-11-08: the pill sat in a full-width black strip that hid the
+// page behind it. It floats over the page now: no backing, no room taken,
+// and a touch beside the pill reaches the page.
+test.each([
+  true,
+  false,
+])("floats over the page with nothing behind it (bar: %s)", (withBar) => {
+  render(<OfflineNote offline withBar={withBar} />)
+  const layer = screen.getByTestId("offline-note-layer")
+  const style = flatten(layer.props.style)
+  expect(style.position).toBe("absolute")
+  expect(style.bottom).toBe(0)
+  expect(style.left).toBe(0)
+  expect(style.right).toBe(0)
+  expect(style.backgroundColor).toBeUndefined()
+  expect(layer.props.pointerEvents).toBe("box-none")
 })
 
 test("online: nothing, and coming back online gives the room back", () => {

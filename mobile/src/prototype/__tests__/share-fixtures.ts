@@ -161,6 +161,15 @@ export function dashData(long = false): CardData {
       hit: long,
       current: long ? 12345678 : 72,
     },
+    goals: [
+      {
+        goal,
+        entry: { n: 80, label: goal.label, value: "80%" },
+        pct: 1.1,
+        hit: true,
+        current: 80,
+      },
+    ],
     facets7: facets(0.6),
     facets30: facets(0.7),
   } as unknown as CardData
