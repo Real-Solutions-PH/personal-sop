@@ -107,8 +107,8 @@ describe("FernReviewView", () => {
   it("renders wins before gaps", () => {
     view({ state: "ready", review })
     const all = screen.getAllByText(/./).map((n) => n.props.children)
-    const win = all.findIndex((c) => c === "You read on four days.")
-    const gap = all.findIndex((c) => c === "Walks slipped after Tuesday.")
+    const win = all.indexOf("You read on four days.")
+    const gap = all.indexOf("Walks slipped after Tuesday.")
     expect(win).toBeGreaterThanOrEqual(0)
     expect(gap).toBeGreaterThan(win)
   })
