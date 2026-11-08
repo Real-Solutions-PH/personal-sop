@@ -29,6 +29,9 @@ export function SiteFooter() {
               <li>
                 <a href="/#waitlist">Join the waitlist</a>
               </li>
+              <li>
+                <a href="/research/">Help shape Unfurl</a>
+              </li>
             </ul>
           </div>
           <div>

@@ -777,6 +777,13 @@ section {
 .ring .center .num {
   letter-spacing: -0.06em;
 }
+/* At hero sizes Geist Mono's full-width period reads as "$49 . 99";
+   the large plan prices use Geist with tabular figures instead. */
+.plan .price .num {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
 .share-card .big small {
   font-family: var(--font-sans), system-ui, sans-serif;
   letter-spacing: 0;
@@ -1523,6 +1530,280 @@ section {
 .form-msg a {
   font-weight: 500;
   color: var(--primary);
+}
+
+/* ---------- Help shape Unfurl band ---------- */
+.shape-band {
+  padding: 32px 0;
+  border-top: 1px solid var(--border);
+}
+.shape-inner {
+  display: grid;
+  gap: 16px;
+  align-items: center;
+}
+@media (min-width: 740px) {
+  .shape-inner {
+    grid-template-columns: 40px 1fr auto;
+    gap: 20px;
+  }
+}
+.shape-inner .ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--info) 12%, transparent);
+  color: var(--info);
+}
+.shape-inner .ic svg {
+  width: 20px;
+  height: 20px;
+}
+.shape-inner h2 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.shape-inner p {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--muted-foreground);
+}
+
+/* ---------- Research page / interview ---------- */
+.research {
+  max-width: 760px;
+  padding-top: 40px;
+  padding-bottom: 96px;
+}
+.research h1 {
+  margin-top: 12px;
+  font-size: clamp(30px, 5vw, 44px);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+.interview {
+  margin-top: 32px;
+  padding: 20px;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  border: 1px solid var(--border);
+  display: grid;
+  gap: 20px;
+}
+@media (min-width: 740px) {
+  .interview {
+    padding: 32px;
+  }
+}
+.iv-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.iv-bar {
+  display: flex;
+  gap: 4px;
+}
+.iv-bar i {
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+.iv-bar i.on {
+  background: var(--primary);
+}
+.iv-title {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  scroll-margin-top: 88px;
+}
+.iv-title:focus {
+  outline: none;
+}
+.iv-sub {
+  color: var(--muted-foreground);
+  margin-top: -12px;
+}
+.iv-sub a,
+.iv-msg a {
+  color: var(--primary);
+  font-weight: 500;
+}
+.iv-q {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.iv-q legend {
+  font-weight: 500;
+  padding: 0;
+  margin-bottom: 10px;
+}
+.iv-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.iv-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--input);
+  background: var(--card);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+.iv-choice:has(input:focus-visible),
+.iv-check:has(input:focus-visible) {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.iv-choice svg {
+  width: 16px;
+  height: 16px;
+  color: var(--primary);
+}
+.iv-choice:has(input:checked) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
+}
+.iv-q.miss .iv-choice {
+  border-color: var(--bad);
+}
+.iv-field {
+  display: grid;
+  gap: 8px;
+}
+.iv-field .iv-label {
+  font-weight: 500;
+}
+.iv-field input,
+.iv-field textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--input);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.45;
+  resize: vertical;
+}
+.iv-field input::placeholder,
+.iv-field textarea::placeholder {
+  color: var(--muted-foreground);
+}
+.iv-field.miss input {
+  border-color: var(--bad);
+}
+.iv-open b {
+  color: var(--muted-foreground);
+  font-weight: 400;
+  margin-right: 2px;
+}
+.iv-pitch {
+  padding: 14px 16px;
+  border-radius: 18px 18px 18px 4px;
+  background: var(--mist);
+}
+.iv-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.iv-check .box {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 6px;
+  border: 1.5px solid var(--input);
+  display: grid;
+  place-items: center;
+}
+.iv-check:has(input:checked) .box {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+}
+.iv-check .box svg {
+  width: 16px;
+  height: 16px;
+}
+.iv-note,
+.iv-err {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+.iv-note svg,
+.iv-err svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-top: 3px;
+}
+.iv-note svg {
+  color: var(--info);
+}
+.iv-err {
+  color: var(--bad);
+}
+.iv-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.iv-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+.iv-msg > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-top: 3px;
+}
+.iv-msg[data-tone="info"] > svg {
+  color: var(--info);
+}
+.iv-msg[data-tone="good"] > svg {
+  color: var(--good);
 }
 
 /* ---------- Sticky CTA ---------- */

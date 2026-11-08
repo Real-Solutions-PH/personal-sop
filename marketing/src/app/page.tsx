@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   BookOpen,
   Camera,
   Check,
@@ -11,6 +12,7 @@ import {
   Layers,
   ListChecks,
   MessageCircle,
+  MessagesSquare,
   Mic,
   Plus,
   RefreshCw,
@@ -38,7 +40,14 @@ import { SiteFooter } from "@/components/SiteFooter"
 import { StickyCta } from "@/components/StickyCta"
 import { StreakRing } from "@/components/StreakRing"
 import { WaitlistForm } from "@/components/WaitlistForm"
-import { PRICING, SHOW_PRICES, STACK, STUDENT_NOTE } from "@/config/pricing"
+import {
+  FAIR_USE,
+  PLANS,
+  REGIONAL_NOTE,
+  SHOW_PRICES,
+  STACK,
+  STUDENT_NOTE,
+} from "@/config/pricing"
 import { CTA, FEATURE_STATUS, PROOF, SITE } from "@/config/site"
 
 const usd = (n: number) =>
@@ -122,7 +131,7 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: "Why does Fern have a daily limit?",
-    a: `Every message to Fern has a real running cost, so the free plan comes with a daily allowance and the paid plan with a fair-use limit we state up front. Logging by hand, charts and streaks are never limited. ${PRICING.fairUse}`,
+    a: `Every message to Fern has a real running cost, so the free plan comes with a daily allowance and Plus with a monthly fair-use budget we state up front; past it, Fern switches to a lighter model. Logging by hand, charts and streaks are never limited.`,
   },
   {
     q: "Does it work offline?",
@@ -647,6 +656,27 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Research: the customer interview. Secondary on purpose: an
+            outline button, so it never competes with the waitlist. */}
+        <div className="shape-band">
+          <div className="wrap shape-inner reveal">
+            <span className="ic">
+              <MessagesSquare aria-hidden />
+            </span>
+            <div>
+              <h2>Quit a tracking app before? Help shape Unfurl.</h2>
+              <p>
+                Ten minutes about what you used, why you stopped and what you do
+                now. Your stories decide what we build next.
+              </p>
+            </div>
+            <a className="btn btn-outline" href="/research/">
+              Answer the questions
+              <ArrowRight aria-hidden />
+            </a>
+          </div>
+        </div>
+
         {/* Pricing, anchored against the stack. Config-driven. */}
         <section
           id="pricing"
@@ -672,13 +702,13 @@ export default function Home() {
                   <span>
                     Unfurl:{" "}
                     <b className="num" style={{ color: "var(--foreground)" }}>
-                      {PRICING.plans.find((p) => p.highlighted)?.price}{" "}
-                      {PRICING.plans.find((p) => p.highlighted)?.cadence}
+                      {PLANS.find((p) => p.highlighted)?.price}{" "}
+                      {PLANS.find((p) => p.highlighted)?.cadence}
                     </b>
                   </span>
                 </p>
                 <div className="plans">
-                  {PRICING.plans.map((p) => (
+                  {PLANS.map((p) => (
                     <article
                       key={p.id}
                       className={`plan reveal ${p.highlighted ? "hl" : ""}`}
@@ -712,18 +742,17 @@ export default function Home() {
                         className={`btn ${p.highlighted ? "btn-primary" : "btn-outline"}`}
                         href={CTA.appStoreUrl ?? CTA.primaryHref}
                       >
-                        {p.cta}
+                        {CTA.appStoreUrl
+                          ? "Download on the App Store"
+                          : CTA.primaryLabel}
                       </a>
                     </article>
                   ))}
                 </div>
                 <div className="pricing-foot reveal">
-                  <p>{PRICING.fairUse}</p>
+                  <p>{FAIR_USE}</p>
                   <p>{STUDENT_NOTE}</p>
-                  <p>
-                    Prices in US dollars. Your local price shows in the App
-                    Store.
-                  </p>
+                  <p>{REGIONAL_NOTE}</p>
                 </div>
               </>
             ) : (

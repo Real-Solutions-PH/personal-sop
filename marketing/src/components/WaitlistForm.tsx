@@ -78,7 +78,8 @@ export function WaitlistForm() {
         {state.kind === "done" && (
           <p className="form-msg" data-tone="good">
             <CircleCheck aria-hidden /> You're on the list as {state.email}. One
-            email when your invite is ready, nothing else.
+            email when your invite is ready, nothing else.{" "}
+            <a href="/research/">Got 10 minutes? Help shape Unfurl.</a>
           </p>
         )}
         {state.kind === "error" && (
@@ -94,7 +95,8 @@ export function WaitlistForm() {
               <a href={`mailto:${SITE.contactEmail}?subject=Unfurl%20waitlist`}>
                 {SITE.contactEmail}
               </a>{" "}
-              and you're first in line.
+              and you're first in line. Meanwhile,{" "}
+              <a href="/research/">help shape Unfurl</a> in 10 minutes.
             </span>
           </p>
         )}
