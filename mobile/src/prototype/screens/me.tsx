@@ -25,6 +25,7 @@ import {
   Eye,
   Flame,
   FlaskConical,
+  Gem,
   LayoutGrid,
   LogOut,
   Pencil,
@@ -459,9 +460,9 @@ export function Me() {
         <SectionHeading>App</SectionHeading>
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
           <LinkRow
-            title="Plan"
+            title="Unfurl Plus"
             detail={planDetail}
-            icon={Sparkles}
+            icon={Gem}
             accent="primary"
             href="/me/plan"
           />
@@ -519,14 +520,14 @@ export function Me() {
   )
 }
 
-/** Me's Plan row: Free, or Plus with when it renews or ends. */
+/** Me's Unfurl Plus row: the free plan, or Plus with when it renews or ends. */
 function planLine(plan: ReturnType<typeof planStore.get>): string {
-  if (!plusInForce(plan)) return "Free · See Unfurl Plus"
-  if (!plan.plusUntil) return "Unfurl Plus"
+  if (!plusInForce(plan)) return "You're on Free · see what Plus adds"
+  if (!plan.plusUntil) return "Active"
   const when = new Date(plan.plusUntil).toLocaleDateString("en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
   })
-  return `Unfurl Plus · ${plan.willRenew ? "renews" : "ends"} ${when}`
+  return `Active · ${plan.willRenew ? "renews" : "ends"} ${when}`
 }

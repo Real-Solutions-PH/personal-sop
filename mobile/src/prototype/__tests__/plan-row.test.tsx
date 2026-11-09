@@ -1,4 +1,4 @@
-// Me → Plan: the row says which plan the server reports (Free, or Plus with
+// Me → Unfurl Plus: the row says which plan the server reports (Free, or Plus with
 // its renewal or end date) and opens the Unfurl Plus screen.
 
 import { configureStorage, resetAll } from "@domain/lib/store"
@@ -74,8 +74,8 @@ beforeEach(() => {
 
 test("a free account sees Free and the row opens the plan screen", () => {
   render(<Me />, { wrapper })
-  expect(screen.getByText("Free · See Unfurl Plus")).toBeTruthy()
-  fireEvent.press(screen.getByText("Plan"))
+  expect(screen.getByText("You're on Free · see what Plus adds")).toBeTruthy()
+  fireEvent.press(screen.getByText("Unfurl Plus"))
   expect(router.push).toHaveBeenCalledWith("/me/plan")
 })
 
@@ -87,7 +87,7 @@ test("a Plus account sees Plus with its renewal date", () => {
     productId: "plus_yearly",
   })
   render(<Me />, { wrapper })
-  expect(screen.getByText("Unfurl Plus · renews Nov 9, 2099")).toBeTruthy()
+  expect(screen.getByText("Active · renews Nov 9, 2099")).toBeTruthy()
 })
 
 test("a Plus period that has ended shows Free", () => {
@@ -98,5 +98,5 @@ test("a Plus period that has ended shows Free", () => {
     productId: "plus_yearly",
   })
   render(<Me />, { wrapper })
-  expect(screen.getByText("Free · See Unfurl Plus")).toBeTruthy()
+  expect(screen.getByText("You're on Free · see what Plus adds")).toBeTruthy()
 })

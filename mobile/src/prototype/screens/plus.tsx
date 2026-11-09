@@ -7,8 +7,8 @@
 import {
   Check,
   CircleAlert,
+  Gem,
   RotateCcw,
-  Sparkles,
   Store,
   X,
 } from "lucide-react-native"
@@ -196,7 +196,7 @@ export function Plus() {
       <Screen title="Unfurl Plus" actions={close}>
         <Frame testID="plus-active" style={{ padding: 16, gap: 8 }}>
           <Line style={{ gap: 10 }}>
-            <Sparkles size={20} color={t.primary} />
+            <Gem size={20} color={t.primary} />
             <Copy size={20} weight="semibold">
               You have Unfurl Plus
             </Copy>
