@@ -109,9 +109,35 @@ const STEP_LABELS: Record<string, string> = {
   forget_fact: "Forgetting that",
   show_memories: "Gathering what I remember",
   suggest: "Suggesting next questions",
+  todo: "Planning the steps",
+  ask_choice: "Asking you to choose",
+  load_tools: "Getting the right tools",
+  query_records: "Reading your records",
+  recall_memories: "Recalling what I know",
+  nutrition_status: "Checking today's macros",
+  find_foods: "Checking your food library",
+  find_fitness_logs: "Finding your logs",
+  find_transactions: "Finding transactions",
+  confirm_pending: "Saving what was waiting",
+  discard_pending: "Dropping what was waiting",
 }
-export const stepLabel = (tool: string) =>
-  STEP_LABELS[tool] ?? tool.replace(/_/g, " ")
+/** Said for a tool with no label written for it: never its identifier
+ * (Kai, 2026-11-09: a step read "todo"). */
+export const STEP_RUNNING = "Working on it"
+export const STEP_DONE = "Finished a step"
+export const stepLabel = (tool: string) => STEP_LABELS[tool] ?? STEP_RUNNING
+
+/** What a step row reads: the running label, else the server's sentence.
+ * A sentence that is only the tool's own name (replies stored before the
+ * server wrote one for every tool) reads as a finished step instead. */
+export const stepText = (s: StepItem) => {
+  const raw = (text?: string) =>
+    !text || text === s.tool || text === s.tool.replace(/_/g, " ")
+  const label = raw(s.label) ? stepLabel(s.tool) : s.label
+  if (s.running) return `${label}…`
+  if (!raw(s.summary)) return s.summary as string
+  return label === STEP_RUNNING ? STEP_DONE : label
+}
 
 export type Msg = {
   id: string
