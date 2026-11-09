@@ -212,6 +212,24 @@ export type AISettingsUpdate = {
     model?: (string | null);
 };
 
+/**
+ * Where today's Fern messages stand. ``applies`` is false when a new
+ * message would not count (the person's own provider key, or the AI off
+ * and the router answering); the other figures are then still today's.
+ */
+export type AllowanceOut = {
+    applies: boolean;
+    plan: 'free' | 'plus';
+    limit: number;
+    used: number;
+    remaining: number;
+    resets_at: string;
+    month_stopped: boolean;
+    month_resets_at: (string | null);
+};
+
+export type plan = 'free' | 'plus';
+
 export type AnswerIn = {
     value: string;
 };
@@ -3168,6 +3186,7 @@ export type ProfilePublic = {
     since: (string | null);
     timezone: string;
     currency: string;
+    storefront_country?: (string | null);
     day_start_hour: number;
     evening_start: string;
     target_threshold: number;
@@ -3212,6 +3231,7 @@ export type ProfileUpdate = {
     day_start_hour?: (number | null);
     evening_start?: (string | null);
     target_threshold?: (number | null);
+    storefront_country?: (string | null);
     appearance?: ('system' | 'light' | 'dark' | null);
     privacy_hidden?: (boolean | null);
     onboarded?: (boolean | null);
@@ -5211,6 +5231,8 @@ export type CompanionSpeakData = {
 };
 
 export type CompanionSpeakResponse = (unknown);
+
+export type CompanionGetAllowanceResponse = (AllowanceOut);
 
 export type CompanionAskData = {
     requestBody: app__modules__companion__schema__AskIn;

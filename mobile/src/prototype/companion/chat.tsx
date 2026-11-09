@@ -64,6 +64,7 @@ import { Exchange, ThreadComposer } from "../screens/capture-thread"
 import { fonts, radius, space, useTheme } from "../theme"
 import { JumpToLatest, Screen } from "../ui"
 import { wake } from "../wake-word"
+import { AllowanceNote } from "./allowance-note"
 import { AskStatus } from "./ask-status"
 import { BlockView, Chips, TrackerCard } from "./blocks"
 import { ask } from "./brain"
@@ -777,6 +778,7 @@ export function CompanionChat() {
             paddingBottom: keyboardUp ? 0 : Math.max(0, inset.bottom - 12),
           }}
         >
+          <AllowanceNote name={name} />
           <ThreadComposer
             onText={(v, hint, photos) => send(v, hint, photos)}
             initialText={params.q ?? ""}
@@ -1144,6 +1146,7 @@ export function CompanionDrawer({ bottom }: { bottom: number }) {
               <JumpToLatest unread={latest.unread} onPress={latest.jump} />
             )}
           </View>
+          <AllowanceNote name={name} />
           <ThreadComposer
             onText={(v, hint, photos) => send(v, hint, photos)}
             hints={false}

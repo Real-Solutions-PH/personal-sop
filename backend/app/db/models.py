@@ -14,6 +14,7 @@ from app.modules.ai_providers.models import (  # noqa: F401
     AIModelAssignment,
     AIProviderCredential,
     AIUsage,
+    FernTurn,
 )
 from app.modules.audit.models import AuditLog  # noqa: F401
 from app.modules.capture.models import (  # noqa: F401

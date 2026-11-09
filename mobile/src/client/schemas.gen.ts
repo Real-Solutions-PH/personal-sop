@@ -1285,6 +1285,59 @@ export const AdvicePublicSchema = {
     title: 'AdvicePublic'
 } as const;
 
+export const AllowanceOutSchema = {
+    properties: {
+        applies: {
+            type: 'boolean',
+            title: 'Applies'
+        },
+        plan: {
+            type: 'string',
+            enum: ['free', 'plus'],
+            title: 'Plan'
+        },
+        limit: {
+            type: 'integer',
+            title: 'Limit'
+        },
+        used: {
+            type: 'integer',
+            title: 'Used'
+        },
+        remaining: {
+            type: 'integer',
+            title: 'Remaining'
+        },
+        resets_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Resets At'
+        },
+        month_stopped: {
+            type: 'boolean',
+            title: 'Month Stopped'
+        },
+        month_resets_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Month Resets At'
+        }
+    },
+    type: 'object',
+    required: ['applies', 'plan', 'limit', 'used', 'remaining', 'resets_at', 'month_stopped', 'month_resets_at'],
+    title: 'AllowanceOut',
+    description: `Where today's Fern messages stand. \`\`applies\`\` is false when a new
+message would not count (the person's own provider key, or the AI off
+and the router answering); the other figures are then still today's.`
+} as const;
+
 export const AnswerInSchema = {
     properties: {
         value: {
@@ -14297,6 +14350,17 @@ export const ProfilePublicSchema = {
             type: 'string',
             title: 'Currency'
         },
+        storefront_country: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Storefront Country'
+        },
         day_start_hour: {
             type: 'integer',
             title: 'Day Start Hour'
@@ -14598,6 +14662,20 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Target Threshold'
+        },
+        storefront_country: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2,
+                    minLength: 2,
+                    pattern: '^[A-Za-z]{2}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Storefront Country'
         },
         appearance: {
             anyOf: [

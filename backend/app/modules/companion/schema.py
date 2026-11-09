@@ -87,6 +87,24 @@ class AskOut(BaseModel):
     changes: list[SyncChange] = Field(default_factory=list)
 
 
+class AllowanceOut(BaseModel):
+    """Where today's Fern messages stand. ``applies`` is false when a new
+    message would not count (the person's own provider key, or the AI off
+    and the router answering); the other figures are then still today's."""
+
+    applies: bool
+    plan: Literal["free", "plus"]
+    # Messages a day: the free allowance, or Plus's hard stop.
+    limit: int
+    used: int
+    remaining: int
+    # When today's count starts again: the next business-day start.
+    resets_at: datetime
+    # Plus at its monthly hard stop: no messages until ``month_resets_at``.
+    month_stopped: bool
+    month_resets_at: datetime | None
+
+
 class ReplyOut(BaseModel):
     """Where the reply to a question stands, for an app that lost its
     stream: ``done`` with the stored question and reply (or the capture a
