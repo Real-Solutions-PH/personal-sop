@@ -4,7 +4,7 @@ from app.modules.billing import services
 from app.modules.billing.schema import PlanPublic
 from app.modules.iam.deps import CurrentUser, require_permission
 from app.shared.deps import SessionDep
-from app.shared.rate_limit import rate_limited
+from app.shared.rate_limit import guarded
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -22,7 +22,9 @@ def read_plan(session: SessionDep, current_user: CurrentUser) -> PlanPublic:
     "/refresh",
     response_model=PlanPublic,
     dependencies=[
-        rate_limited("billing"),
+        # Per person and per address (the tenant-wide budget is off in
+        # production): each call waits on RevenueCat.
+        guarded("account", "billing-refresh"),
         Depends(require_permission("billing:read")),
     ],
 )

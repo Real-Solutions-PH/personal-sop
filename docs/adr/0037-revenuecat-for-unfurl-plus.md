@@ -23,11 +23,12 @@ Options considered:
 3. **The server holds the plan.** One `entitlement` row per account (`plan` free or plus, `plus_until`, `will_renew`). It is written only:
    - from RevenueCat webhooks (`POST /api/v1/webhooks/revenuecat`), accepted only when the `Authorization` header matches `REVENUECAT_WEBHOOK_AUTH` (constant-time compare);
    - from `POST /api/v1/billing/refresh`, where the server asks RevenueCat's REST API (`REVENUECAT_SECRET_API_KEY`) what the account holds. The app calls it on start and right after a purchase or a restore; the request carries nothing from the device.
-4. Plus is in force while `plan` is plus and `plus_until` is empty or still ahead. So a cancelled subscription lapses at the end of its paid period with no further event, and a refund (a `CANCELLATION` with `cancel_reason` `CUSTOMER_SUPPORT`) makes the plan free at once.
-5. The row reaches the phone through sync as a read-only entity (ADR-0011) and in `GET /users/me`. The phone shows what the server says. Its only check of its own is that a `plus_until` already past shows as free, which can only take Plus away, never grant it.
-6. Purchase moments go into `usage_event`: the phone sends `paywall_shown`, `purchase_started` and `restored`; the server writes `purchased`, `cancelled` and `refunded` from webhooks, and does not accept those three from the phone.
-7. Sandbox purchases (TestFlight) count while `REVENUECAT_ALLOW_SANDBOX` is true, which is the default. It is turned off once paying customers only buy through the App Store build.
-8. Data export is never gated by plan.
+4. Plus is in force while `plan` is plus and `plus_until` is empty or still ahead. So a cancelled subscription lapses at the end of its paid period with no further event, and a refund (a `CANCELLATION` with `cancel_reason` `CUSTOMER_SUPPORT`) makes the plan free at once, when the refunded product is the one held (an upgrade can refund the product left behind).
+5. The app shows the Unfurl Plus row in Me only when the build can buy (the RevenueCat key is set) or the account already holds Plus.
+6. The plan reaches the phone through sync as a read-only entity (ADR-0011) and in `GET /users/me`. The phone shows what the server says. Its only check of its own is that a `plus_until` already past shows as free, which can only take Plus away, never grant it.
+7. Purchase moments go into `usage_event`: the phone sends `paywall_shown`, `purchase_started` and `restored`; the server writes `purchased`, `cancelled` and `refunded` from webhooks, and does not accept those three from the phone.
+8. Sandbox purchases (TestFlight) count while `REVENUECAT_ALLOW_SANDBOX` is true, which is the default. It is turned off once paying customers only buy through the App Store build.
+9. Data export is never gated by plan.
 
 ## Constitution clause deviated from
 
@@ -45,5 +46,6 @@ None. RevenueCat is a hosted processor, but the exit is named: the plan lives in
 - A native module: the next build must be a native build, not an over-the-air update.
 
 **Follow-ups:**
+- Set the app's RevenueCat key only once the Fern allowance (free daily allowance, Plus fair-use budget) is live: the paywall's main benefit is going beyond that allowance, and until the key is set the app hides the Unfurl Plus row from free accounts.
 - Create the App Store Connect products, the RevenueCat project, entitlement and offering, and the webhook, then set the four settings (`REVENUECAT_WEBHOOK_AUTH`, `REVENUECAT_SECRET_API_KEY` on the server; `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the app build).
 - Turn `REVENUECAT_ALLOW_SANDBOX` off at App Store launch.

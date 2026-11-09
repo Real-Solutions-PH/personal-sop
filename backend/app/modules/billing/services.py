@@ -11,13 +11,15 @@ Event handling (RevenueCat webhook ``type``):
   refund: Plus until ``expiration_at_ms`` (none: no end), renewing;
 - ``CANCELLATION``: renewal is off and Plus runs to the end of the paid
   period; with ``cancel_reason`` ``CUSTOMER_SUPPORT`` it is a refund, and
-  the plan is free from the moment of the event;
+  the plan is free from the moment of the event (only when the refunded
+  product is the one held: an upgrade can refund the old one);
 - ``EXPIRATION``: free;
+- ``BILLING_ISSUE`` with a grace period: Plus runs to the grace period's end;
 - ``TRANSFER``: the purchase moved to another account (a restore on a
-  different sign-in): the accounts it left are free at once, and each
-  account it reached is refreshed from RevenueCat;
-- anything else (``TEST``, a billing issue, Android-only pauses, types added
-  later) changes nothing.
+  different sign-in): every account on either side is refreshed from
+  RevenueCat; without the API key, the accounts it left are free;
+- anything else (``TEST``, Android-only pauses, types added later) changes
+  nothing.
 
 News older than the newest already applied is "stale": it changes no plan,
 though the usage event it stands for is still logged.
@@ -194,8 +196,20 @@ def apply_event(session: Session, body: Any) -> str:
     if kind == "TEST":
         return "test"
     if kind == "TRANSFER":
+        if (
+            _environment(event.get("environment")) == "sandbox"
+            and not settings.REVENUECAT_ALLOW_SANDBOX
+        ):
+            return "ignored"
         return _transfer(session, event)
-    if kind not in GRANTS and kind not in ("CANCELLATION", "EXPIRATION"):
+    grace = _ms_to_dt(event.get("grace_period_expiration_at_ms"))
+    if kind == "BILLING_ISSUE" and grace is None:
+        return "ignored"
+    if kind not in GRANTS and kind not in (
+        "CANCELLATION",
+        "EXPIRATION",
+        "BILLING_ISSUE",
+    ):
         return "ignored"
     if not _ours(event):
         return "ignored"
@@ -211,6 +225,9 @@ def apply_event(session: Session, body: Any) -> str:
     at = _ms_to_dt(at_ms)
     assert at is not None
     product = _product_key(event)
+    if kind == "PRODUCT_CHANGE":
+        # RevenueCat names the product left in product_id.
+        product = _product_key({"product_id": event.get("new_product_id")}) or product
     refund = kind == "CANCELLATION" and event.get("cancel_reason") == REFUND_REASON
 
     usage = {
@@ -225,7 +242,15 @@ def apply_event(session: Session, body: Any) -> str:
         session.commit()
         return "stale"
     expires = _ms_to_dt(event.get("expiration_at_ms"))
-    if kind in GRANTS:
+    other_product = bool(row.product_id and product and product != row.product_id)
+    if kind == "BILLING_ISSUE":
+        row.plus_until = grace
+    elif refund and other_product:
+        # A refund of a product the account no longer holds (the monthly
+        # left behind by an upgrade): the plan held stands.
+        session.commit()
+        return "ignored"
+    elif kind in GRANTS:
         row.plan = "plus"
         row.plus_until = expires
         row.will_renew = kind != "NON_RENEWING_PURCHASE"
@@ -242,7 +267,7 @@ def apply_event(session: Session, body: Any) -> str:
         row.will_renew = False
         if expires is not None:
             row.plus_until = expires
-    if product:
+    if product and kind != "BILLING_ISSUE":
         row.product_id = product
     row.environment = environment
     row.last_event_ms = at_ms
@@ -264,7 +289,9 @@ def _transfer(session: Session, event: dict[str, Any]) -> str:
             user = _account(session, {"app_user_id": raw})
             if user is None:
                 continue
-            if leaving:
+            # RevenueCat says what each side holds after the move; the account
+            # left may still hold Plus through another purchase.
+            if not _refresh_user(session, user, now) and leaving:
                 row = _locked_row(session, user)
                 row.plan = "free"
                 row.will_renew = False
@@ -273,8 +300,6 @@ def _transfer(session: Session, event: dict[str, Any]) -> str:
                 _touch(row)
                 session.add(row)
                 session.commit()
-            else:
-                _refresh_user(session, user, now)
             touched = True
     return "applied" if touched else "unknown_user"
 
@@ -321,10 +346,16 @@ def _refresh_user(session: Session, user: User, now: datetime) -> bool:
     body = revenuecat.fetch_subscriber(str(user.id))
     if body is None:
         return False
+    now_ms = int(now.timestamp() * 1000)
     row = _locked_row(session, user)
+    if row.last_event_ms is not None and row.last_event_ms > now_ms:
+        # A webhook landed while RevenueCat was being read: it is newer than
+        # the snapshot read, so it stands.
+        session.commit()
+        return True
     _from_subscriber(row, body, now)
     # What RevenueCat holds now outranks any news dated before this moment.
-    row.last_event_ms = max(row.last_event_ms or 0, int(now.timestamp() * 1000))
+    row.last_event_ms = max(row.last_event_ms or 0, now_ms)
     _touch(row)
     session.add(row)
     session.commit()

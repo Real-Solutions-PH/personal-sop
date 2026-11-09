@@ -302,3 +302,155 @@ def test_a_malformed_body_is_refused(client: TestClient) -> None:
     assert r.status_code == 422
     r = client.post(URL, json={"api_version": "1.0"}, headers={"Authorization": AUTH})
     assert r.status_code == 422
+
+
+def test_a_billing_issue_keeps_plus_through_the_grace_period(
+    client: TestClient, db: Session
+) -> None:
+    user = create_random_user(db)
+    _send(client, _event(user, "INITIAL_PURCHASE"))
+    grace = NOW + timedelta(days=381)
+    r = _send(
+        client,
+        _event(
+            user,
+            "BILLING_ISSUE",
+            event_timestamp_ms=_ms(NOW + timedelta(days=365)),
+            grace_period_expiration_at_ms=_ms(grace),
+        ),
+    )
+    assert r.json() == {"result": "applied"}
+    row = _row(db, user)
+    assert row is not None and row.plan == "plus"
+    assert row.plus_until == grace
+    assert _plan(db, user, at=NOW + timedelta(days=370)) == "plus"
+
+
+def test_a_billing_issue_without_grace_changes_nothing(
+    client: TestClient, db: Session
+) -> None:
+    user = create_random_user(db)
+    _send(client, _event(user, "INITIAL_PURCHASE"))
+    body = _event(user, "BILLING_ISSUE", event_timestamp_ms=_ms(NOW + timedelta(1)))
+    assert _send(client, body).json() == {"result": "ignored"}
+    row = _row(db, user)
+    assert row is not None and row.plus_until == NOW + timedelta(days=365)
+
+
+def test_a_product_change_stores_the_new_product(
+    client: TestClient, db: Session
+) -> None:
+    user = create_random_user(db)
+    _send(client, _event(user, "INITIAL_PURCHASE", product_id="plus_monthly"))
+    _send(
+        client,
+        _event(
+            user,
+            "PRODUCT_CHANGE",
+            product_id="plus_monthly",
+            new_product_id="plus_yearly",
+            event_timestamp_ms=_ms(NOW + timedelta(days=1)),
+        ),
+    )
+    row = _row(db, user)
+    assert row is not None and row.product_id == "plus_yearly"
+
+
+def test_a_refund_of_a_product_no_longer_held_keeps_plus(
+    client: TestClient, db: Session
+) -> None:
+    """An upgrade from monthly to yearly can refund the old monthly
+    transaction; the yearly Plus stays."""
+    user = create_random_user(db)
+    _send(client, _event(user, "INITIAL_PURCHASE", product_id="plus_yearly"))
+    r = _send(
+        client,
+        _event(
+            user,
+            "CANCELLATION",
+            product_id="plus_monthly",
+            cancel_reason="CUSTOMER_SUPPORT",
+            event_timestamp_ms=_ms(NOW + timedelta(days=1)),
+        ),
+    )
+    assert r.status_code == 200
+    row = _row(db, user)
+    assert row is not None and row.plan == "plus"
+    assert row.product_id == "plus_yearly"
+    assert _plan(db, user) == "plus"
+
+
+def _transfer(src: User, dst: User, **over: Any) -> dict[str, Any]:
+    ev: dict[str, Any] = {
+        "id": str(uuid.uuid4()),
+        "type": "TRANSFER",
+        "transferred_from": [str(src.id)],
+        "transferred_to": [str(dst.id)],
+        "environment": "SANDBOX",
+        "event_timestamp_ms": _ms(NOW + timedelta(days=2)),
+    }
+    ev.update(over)
+    return {"api_version": "1.0", "event": ev}
+
+
+def _rc_answers(
+    monkeypatch: pytest.MonkeyPatch, answers: dict[str, dict[str, Any]]
+) -> None:
+    from app.modules.billing import revenuecat
+
+    monkeypatch.setattr(settings, "REVENUECAT_SECRET_API_KEY", SecretStr("sk_t"))
+    monkeypatch.setattr(revenuecat, "fetch_subscriber", lambda uid: answers.get(uid))
+
+
+def _active() -> dict[str, Any]:
+    exp = (NOW + timedelta(days=300)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {
+        "subscriber": {
+            "entitlements": {
+                "plus": {"expires_date": exp, "product_identifier": "plus_yearly"}
+            },
+            "subscriptions": {"plus_yearly": {"expires_date": exp, "is_sandbox": True}},
+        }
+    }
+
+
+def test_a_transfer_moves_plus_by_asking_revenuecat_for_both_accounts(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src, dst = create_random_user(db), create_random_user(db)
+    _send(client, _event(src, "INITIAL_PURCHASE"))
+    empty: dict[str, Any] = {"subscriber": {"entitlements": {}, "subscriptions": {}}}
+    _rc_answers(monkeypatch, {str(src.id): empty, str(dst.id): _active()})
+    assert _send(client, _transfer(src, dst)).json() == {"result": "applied"}
+    assert _plan(db, src) == "free"
+    assert _plan(db, dst) == "plus"
+
+
+def test_a_transfer_away_from_an_account_that_still_holds_plus_keeps_it(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src, dst = create_random_user(db), create_random_user(db)
+    _send(client, _event(src, "INITIAL_PURCHASE"))
+    _rc_answers(monkeypatch, {str(src.id): _active(), str(dst.id): _active()})
+    _send(client, _transfer(src, dst))
+    assert _plan(db, src) == "plus"
+
+
+def test_a_transfer_without_a_key_frees_the_account_it_left(
+    client: TestClient, db: Session
+) -> None:
+    src, dst = create_random_user(db), create_random_user(db)
+    _send(client, _event(src, "INITIAL_PURCHASE"))
+    assert _send(client, _transfer(src, dst)).json() == {"result": "applied"}
+    assert _plan(db, src) == "free"
+    assert _plan(db, dst) == "free"
+
+
+def test_a_sandbox_transfer_is_ignored_when_sandbox_is_off(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    src, dst = create_random_user(db), create_random_user(db)
+    _send(client, _event(src, "INITIAL_PURCHASE", environment="PRODUCTION"))
+    monkeypatch.setattr(settings, "REVENUECAT_ALLOW_SANDBOX", False)
+    assert _send(client, _transfer(src, dst)).json() == {"result": "ignored"}
+    assert _plan(db, src) == "plus"

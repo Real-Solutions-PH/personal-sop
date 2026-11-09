@@ -229,3 +229,56 @@ def test_export_stays_free(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     r = client.get(f"{API}/users/me/export", headers=h)
     assert r.status_code == 200, r.text
+
+
+def test_refresh_never_overwrites_news_that_landed_while_it_read(
+    client: TestClient, db: Session, rc: dict[str, Any]
+) -> None:
+    """A refund webhook applied after the refresh began wins over the older
+    snapshot the refresh read from RevenueCat."""
+    user, h = signed_in(db)
+    rc["answer"] = _subscriber(NOW + timedelta(days=30))
+    client.post(f"{API}/billing/refresh", headers=h)
+    row = _row(db, user.id)
+    assert row is not None
+    row.plan = "free"
+    row.last_event_ms = int((NOW + timedelta(hours=1)).timestamp() * 1000)
+    db.add(row)
+    db.commit()
+    body = client.post(f"{API}/billing/refresh", headers=h).json()
+    assert body["plan"] == "free"
+
+
+def test_refresh_of_a_refunded_purchase_is_free(
+    client: TestClient, db: Session, rc: dict[str, Any]
+) -> None:
+    _, h = signed_in(db)
+    rc["answer"] = _subscriber(NOW + timedelta(days=30), refunded_at=_iso(NOW))
+    assert client.post(f"{API}/billing/refresh", headers=h).json()["plan"] == "free"
+
+
+def test_refresh_of_a_sandbox_purchase_is_free_when_sandbox_is_off(
+    client: TestClient,
+    db: Session,
+    rc: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "REVENUECAT_ALLOW_SANDBOX", False)
+    _, h = signed_in(db)
+    rc["answer"] = _subscriber(NOW + timedelta(days=30))
+    assert client.post(f"{API}/billing/refresh", headers=h).json()["plan"] == "free"
+
+
+def test_refresh_is_limited_per_person(
+    client: TestClient, db: Session, rc: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.shared import rate_limit
+
+    class Refuse:
+        def allow(self, *_: object) -> bool:
+            return False
+
+    monkeypatch.setitem(rate_limit.guards, "account", Refuse())
+    _, h = signed_in(db)
+    assert client.post(f"{API}/billing/refresh", headers=h).status_code == 429
+    assert rc["asked"] == []
