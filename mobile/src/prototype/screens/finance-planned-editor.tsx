@@ -283,12 +283,8 @@ function Editor({
               onChangeText={setCount}
             />
           )}
-          {type === "transfer" && (
-            <Toggle
-              label="Credit-card installment"
-              value={inst}
-              onChange={setInst}
-            />
+          {type !== "income" && (
+            <Toggle label="Installment" value={inst} onChange={setInst} />
           )}
           <Copy size={12} muted>
             When it's due
@@ -369,7 +365,7 @@ function Editor({
                   autoLog: auto,
                   isWhatIf: whatIf,
                   inProjection: !whatIf && proj,
-                  isInstallment: type === "transfer" && inst,
+                  isInstallment: type !== "income" && inst,
                 }
                 if (p) A.updatePlanned(p.id, input)
                 else A.addPlanned(input)
