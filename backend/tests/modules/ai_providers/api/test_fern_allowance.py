@@ -35,6 +35,13 @@ DAY_7 = datetime(2026, 11, 8, 4, 0, tzinfo=UTC)
 DAY_8 = datetime(2026, 11, 9, 4, 0, tzinfo=UTC)
 
 
+@pytest.fixture(autouse=True)
+def enforced(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The allowance switched on (it is off while the app is in testing);
+    the tests that read the switched-off behaviour turn it off again."""
+    monkeypatch.setattr(settings, "FERN_ALLOWANCE_ENFORCED", True)
+
+
 def _account(
     db: Session,
     *,
@@ -424,3 +431,43 @@ def test_plus_past_its_budget_is_answered_by_the_light_model(
     api.post("/companion/ask", {"text": "hello again", "id": str(uuid.uuid4())})
     assert server_key.models
     assert set(server_key.models) == {"deepseek-ai/DeepSeek-V4-Flash-0731"}
+
+
+# ---------------------------------------------------------------------------
+# Switched off (FERN_ALLOWANCE_ENFORCED false, the testing default)
+# ---------------------------------------------------------------------------
+
+
+def test_the_testing_default_is_switched_off() -> None:
+    from app.core.config import Settings
+
+    assert Settings.model_fields["FERN_ALLOWANCE_ENFORCED"].default is False
+
+
+def test_switched_off_nothing_is_refused_and_turns_still_count(
+    db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "FERN_ALLOWANCE_ENFORCED", False)
+    u = _account(db, storefront="US")
+    # Well past day 2's 15.
+    for i in range(20):
+        _send(u, DAY_2 + timedelta(minutes=i))
+    with ctx_for(u, now=DAY_2 + timedelta(hours=1)) as ctx:
+        assert public.allowance(ctx).used == 20
+
+
+@pytest.mark.usefixtures("server_key")
+def test_switched_off_the_chat_answers_and_shows_no_count(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "FERN_ALLOWANCE_ENFORCED", False)
+    _clock(monkeypatch, DAY_8)
+    api = _api(client, db, storefront="US")
+    for i in range(6):
+        api.post("/companion/ask", {"text": f"hello {i}", "id": str(uuid.uuid4())})
+    # Day 8 allows 5 when enforced; the sixth is answered.
+    assert _turns(db, api) == 6
+    # The app hides its "messages left" note when the count does not apply.
+    assert api.get("/companion/allowance")["applies"] is False

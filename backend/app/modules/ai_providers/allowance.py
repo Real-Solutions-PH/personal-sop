@@ -177,6 +177,8 @@ def check_fern_turn(ctx: Ctx) -> Allowance:
     ``fern_monthly_limit_reached`` (Plus's monthly hard stop); both carry
     ``resets_at``. Reads only."""
     a = allowance(ctx)
+    if not settings.FERN_ALLOWANCE_ENFORCED:
+        return a
     if a.month_stopped and a.month_resets_at is not None:
         raise domain_error(
             402,
