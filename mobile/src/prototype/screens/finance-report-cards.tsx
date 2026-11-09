@@ -71,7 +71,9 @@ export function ReportCard({
   empty,
 }: {
   title: string
-  href: string
+  /** Where the card opens; none on the page it would open, where it is
+   * drawn as a plain card with no chevron. */
+  href?: string
   children: ReactNode
   /** When set, the body (drawn from sample data) is dimmed, with why it
    * is empty and the one step that fills it under it. */
@@ -81,19 +83,24 @@ export function ReportCard({
     shown = useContext(SpendActionShown),
     action =
       shown && empty?.action.href === LOG_SPEND.href ? undefined : empty?.action
-  return (
+  const card = (
+    <Frame style={{ padding: 16 }}>
+      <Line style={{ justifyContent: "space-between", marginBottom: 12 }}>
+        <Copy size={14} weight="medium">
+          {title}
+        </Copy>
+        {href && <ChevronRight size={16} color={t.muted} />}
+      </Line>
+      <View style={{ opacity: empty ? DIM : 1 }}>{children}</View>
+      {empty && <EmptyFoot hint={empty.hint} action={action} />}
+    </Frame>
+  )
+  return href ? (
     <Tap onPress={() => go(href)} label={title}>
-      <Frame style={{ padding: 16 }}>
-        <Line style={{ justifyContent: "space-between", marginBottom: 12 }}>
-          <Copy size={14} weight="medium">
-            {title}
-          </Copy>
-          <ChevronRight size={16} color={t.muted} />
-        </Line>
-        <View style={{ opacity: empty ? DIM : 1 }}>{children}</View>
-        {empty && <EmptyFoot hint={empty.hint} action={action} />}
-      </Frame>
+      {card}
     </Tap>
+  ) : (
+    card
   )
 }
 
@@ -247,7 +254,8 @@ export function ExpectedNetWorthCard({
   d,
   period,
   s,
-}: CardProps & { s: FinState }) {
+  linked = true,
+}: CardProps & { s: FinState; linked?: boolean }) {
   const t = useTheme()
   const money = useMoney()
   const r = trendRange(s, d, period)
@@ -275,7 +283,9 @@ export function ExpectedNetWorthCard({
   return (
     <ReportCard
       title="Expected vs actual net worth"
-      href={`/finance/reports/networth${periodQuery(period)}`}
+      href={
+        linked ? `/finance/reports/networth${periodQuery(period)}` : undefined
+      }
       empty={
         none
           ? {

@@ -503,6 +503,30 @@ export function occurrences(
   }
   return out
 }
+/** What the Projection names the one-off downpayment it saves beside an
+ * installment plan: "<plan name> downpayment". */
+export const DOWNPAYMENT_SUFFIX = " downpayment"
+/** The other half of an installment purchase: a plan's downpayment, or a
+ * downpayment's plan. Matched by name, so a rename unpairs them. */
+export function companionOf(
+  s: { planned: PlannedItem[] },
+  p: PlannedItem,
+): PlannedItem | undefined {
+  if (p.isInstallment)
+    return s.planned.find(
+      (x) =>
+        x.id !== p.id &&
+        x.schedule.kind === "once" &&
+        x.name === `${p.name}${DOWNPAYMENT_SUFFIX}`,
+    )
+  if (p.schedule.kind === "once" && p.name.endsWith(DOWNPAYMENT_SUFFIX)) {
+    const plan = p.name.slice(0, -DOWNPAYMENT_SUFFIX.length)
+    return s.planned.find(
+      (x) => x.id !== p.id && x.isInstallment && x.name === plan,
+    )
+  }
+  return undefined
+}
 /** A recurring item whose end rule leaves no occurrence after ``on``: over,
  * so off the scheduled list (its paid occurrences stay in transactions).
  * Covers items "ended" before Delete existed, which set ``end`` to that

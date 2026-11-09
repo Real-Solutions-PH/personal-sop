@@ -162,7 +162,8 @@ it("saves an installment plan with no credit card, as scheduled expenses the pro
     type: "expense",
     accountId: s.settings.defaultAccountId,
     toAccountId: undefined,
-    schedule: { kind: "monthly", day: 8 },
+    // Paid on the purchase day (the 15th), the first in the purchase month.
+    schedule: { kind: "monthly", day: 15 },
     end: { kind: "count", n: 6 },
     isWhatIf: false,
     inProjection: true,
