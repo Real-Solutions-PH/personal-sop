@@ -1,12 +1,14 @@
 "use client"
 
 import {
-  ArrowRight,
   BellRing,
   Check,
-  ClipboardList,
+  Dumbbell,
   Flame,
-  ScanSearch,
+  ListChecks,
+  Target,
+  Utensils,
+  Wallet,
 } from "lucide-react"
 import { type ReactNode, type RefObject, useEffect, useRef } from "react"
 import { STACK } from "@/config/pricing"
@@ -109,116 +111,263 @@ export function ProblemSection() {
 
 // Act one, part two: the reasons people give for quitting a tracker, from
 // the 2026-11-07 research pass (app-store reviews, forum threads, published
-// studies), ordered by how broad the evidence is. Each card shows the moment
-// as a small piece of interface: the old way, dimmed, then Unfurl's way.
-// Static, like the stack above it.
+// studies), ordered by how broad the evidence is. A pinned scene: each
+// stretch of scroll plays one reason inside a small app screen, first the
+// way it goes wrong elsewhere, then Unfurl's way in the same spot. Without
+// motion, the four reasons and their answers read as a plain list.
+const AREA = {
+  fit: { name: "Fitness", icon: <Dumbbell />, k: "var(--fit)" },
+  nut: { name: "Nutrition", icon: <Utensils />, k: "var(--nut)" },
+  fin: { name: "Money", icon: <Wallet />, k: "var(--fin)" },
+  hab: { name: "Habits", icon: <Target />, k: "var(--hab)" },
+  tsk: { name: "Tasks", icon: <ListChecks />, k: "var(--tsk)" },
+}
+type AreaKey = keyof typeof AREA
+
+const Tile = ({ a }: { a: AreaKey }) => (
+  <span className="rs-tile" style={{ ["--k" as string]: AREA[a].k }}>
+    {AREA[a].icon}
+  </span>
+)
+
+const Week = ({ last }: { last: ReactNode }) => (
+  <span className="rs-week rs-i" aria-hidden="true">
+    {[0, 1, 2, 3, 4, 5].map((d) => (
+      <i key={d} />
+    ))}
+    {last}
+  </span>
+)
+
 const REASONS: {
   problem: string
+  answer: string
   old: ReactNode
-  oldLabel: string
   next: ReactNode
-  nextLabel: string
 }[] = [
   {
     problem: "Logging turns into a chore.",
-    oldLabel: "Elsewhere: five apps, five forms",
+    answer: "Say one sentence. Fern files every part.",
     old: (
       <>
-        <ClipboardList aria-hidden="true" />5 apps, 5 forms
+        <small className="rs-cap rs-i">5 apps, 5 forms</small>
+        {(
+          [
+            ["fit", "Sets, reps, distance"],
+            ["nut", "Search a food"],
+            ["fin", "Amount, category"],
+            ["hab", "Mark done"],
+            ["tsk", "Add a task"],
+          ] as [AreaKey, string][]
+        ).map(([a, hint]) => (
+          <span key={a} className="rs-form rs-i">
+            <Tile a={a} />
+            <b>{AREA[a].name}</b>
+            <span className="rs-field">{hint}</span>
+          </span>
+        ))}
       </>
     ),
-    nextLabel: "Unfurl: one sentence to Fern",
     next: (
       <>
-        <Fern mood="listening" size={22} />
-        “Ran 5k, lunch $12, slept 7h”
+        <small className="rs-cap rs-i">One sentence</small>
+        <span className="rs-say rs-i">
+          <Fern mood="listening" size={44} />
+          <span className="rs-bubble">“Ran 5k, spent $12 on lunch.”</span>
+        </span>
+        <span className="rs-landed">
+          {(["fit", "nut", "fin"] as AreaKey[]).map((a) => (
+            <span key={a} className="rs-chip rs-i">
+              <Tile a={a} />
+              {AREA[a].name}
+              <Check className="rs-ok" aria-hidden="true" />
+            </span>
+          ))}
+        </span>
       </>
     ),
   },
   {
     problem: "One missed day wipes the streak.",
-    oldLabel: "Elsewhere: a 47-day streak drops to 0",
+    answer: "A grace day covers it.",
     old: (
       <>
-        <Flame aria-hidden="true" />
-        <span className="tnum">47</span>
-        <ArrowRight className="pb-step" aria-hidden="true" />
-        <span className="tnum">0</span>
+        <small className="rs-cap rs-i">Morning workout</small>
+        <Week last={<i className="rs-miss" />} />
+        <span className="rs-count bad rs-i">
+          <Flame aria-hidden="true" />
+          <span className="tnum">0</span>
+        </span>
+        <small className="rs-sub rs-i">Streak reset · was 47</small>
       </>
     ),
-    nextLabel: "Unfurl: a grace day keeps it at 47",
     next: (
       <>
-        <Flame aria-hidden="true" />
-        <span className="tnum">47</span>
-        <span className="pb-chip">Grace day</span>
+        <small className="rs-cap rs-i">Morning workout</small>
+        <Week last={<i className="rs-grace" />} />
+        <span className="rs-count good rs-i">
+          <Flame aria-hidden="true" />
+          <span className="tnum">47</span>
+        </span>
+        <span className="rs-chip rs-i">Grace day used</span>
       </>
     ),
   },
   {
     problem: "Quick logging you can't trust.",
-    oldLabel: "Elsewhere: a number with no way to check it",
+    answer: "See where each part landed, and undo it.",
     old: (
       <>
-        <ScanSearch aria-hidden="true" />
-        Lunch <span className="tnum">1,240 kcal?</span>
+        <small className="rs-cap rs-i">Meal photo</small>
+        <span className="rs-meal rs-i">
+          <Tile a="nut" />
+          <b>Lunch</b>
+          <span className="tnum">1,240 kcal</span>
+          <span className="rs-q">?</span>
+        </span>
+        <small className="rs-sub rs-i">No way to check it, or fix it</small>
       </>
     ),
-    nextLabel: "Unfurl: an estimate you can see and undo",
     next: (
       <>
-        <Check aria-hidden="true" />
-        Lunch, about <span className="tnum">640 kcal</span>
-        <span className="pb-chip">Undo</span>
+        <small className="rs-cap rs-i">Meal photo</small>
+        <span className="rs-meal good rs-i">
+          <Tile a="nut" />
+          <b>Lunch</b>
+          <span>
+            about <span className="tnum">640 kcal</span>
+          </span>
+        </span>
+        <span className="rs-landed">
+          <span className="rs-chip rs-i">
+            <Check className="rs-ok" aria-hidden="true" />
+            Landed in Nutrition
+          </span>
+          <span className="rs-chip rs-undo rs-i">Undo</span>
+        </span>
       </>
     ),
   },
   {
     problem: "Reminders start to scold.",
-    oldLabel: "Elsewhere: a scolding reminder",
+    answer: "Fern notices what you did. It doesn't nag.",
     old: (
       <>
-        <BellRing aria-hidden="true" />
-        “You missed your goal. Again.”
+        <span className="rs-note rs-i">
+          <BellRing aria-hidden="true" />
+          You missed your goal. Again.
+        </span>
+        <span className="rs-note rs-i">
+          <BellRing aria-hidden="true" />
+          Don't break your streak!
+        </span>
+        <span className="rs-note rs-i">
+          <BellRing aria-hidden="true" />3 reminders ignored
+        </span>
       </>
     ),
-    nextLabel: "Unfurl: Fern notices what you did",
     next: (
       <>
-        <Fern mood="celebrating" size={22} />
-        “Twelve days in a row.”
+        <span className="rs-fern rs-i">
+          <Fern mood="celebrating" size={128} />
+        </span>
+        <span className="rs-bubble rs-i">“Twelve days in a row.”</span>
       </>
     ),
   },
 ]
 
 export function ReasonsSection() {
+  const root = useRef<HTMLElement>(null)
+  useScene(root, (gsap, q, tl) => {
+    const panels = q(".rs-panel")
+    const lines = q(".rs-line")
+    const dots = q(".rs-dots i")
+    gsap.set(panels.slice(1), { autoAlpha: 0, y: 24 })
+    gsap.set(lines.slice(1), { autoAlpha: 0, y: 16 })
+    gsap.set(dots.slice(1), { opacity: 0.25 })
+    panels.forEach((p, i) => {
+      const at = i
+      const olds = Array.from(p.querySelectorAll<HTMLElement>(".rs-o .rs-i"))
+      const news = Array.from(p.querySelectorAll<HTMLElement>(".rs-n .rs-i"))
+      const fix = lines[i].querySelector(".rs-fix")
+      gsap.set(news, { autoAlpha: 0, y: 14, scale: 0.96 })
+      gsap.set(fix, { autoAlpha: 0, y: 8 })
+      if (i > 0) {
+        tl.to(panels[i - 1], { autoAlpha: 0, y: -24, duration: 0.2 }, at)
+        tl.to(lines[i - 1], { autoAlpha: 0, y: -16, duration: 0.2 }, at)
+        tl.to(panels[i], { autoAlpha: 1, y: 0, duration: 0.25 }, at + 0.1)
+        tl.to(lines[i], { autoAlpha: 1, y: 0, duration: 0.25 }, at + 0.1)
+        tl.to(dots[i], { opacity: 1, duration: 0.15 }, at + 0.1)
+      }
+      // The problem builds up, piece by piece.
+      tl.from(
+        olds,
+        { autoAlpha: 0, y: 14, stagger: 0.05, duration: 0.15 },
+        at + (i > 0 ? 0.2 : 0),
+      )
+      // Then it clears, and Unfurl's way takes its place.
+      tl.to(
+        olds,
+        { autoAlpha: 0, scale: 0.94, stagger: 0.02, duration: 0.12 },
+        at + 0.55,
+      )
+      tl.to(
+        news,
+        { autoAlpha: 1, y: 0, scale: 1, stagger: 0.06, duration: 0.18 },
+        at + 0.65,
+      )
+      tl.to(fix, { autoAlpha: 1, y: 0, duration: 0.15 }, at + 0.65)
+    })
+    tl.to({}, { duration: 0.5 })
+  })
+
   return (
-    <section id="reasons" aria-labelledby="reasons-title">
-      <div className="wrap sc-center why">
-        <h2 className="h2" id="reasons-title" data-no-split>
-          Why people quit trackers.
-        </h2>
-        <ul className="problems">
-          {REASONS.map((r) => (
-            <li key={r.problem} className="pb-card">
-              <h3>{r.problem}</h3>
-              <div className="pb-flow">
-                <span className="pb-old" role="img" aria-label={r.oldLabel}>
-                  {r.old}
-                </span>
-                <ArrowRight className="pb-arrow" aria-hidden="true" />
-                <span className="pb-new" role="img" aria-label={r.nextLabel}>
-                  {r.next}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <p className="fine">
-          From app-store reviews, forum threads and published studies on why
-          people stop tracking.
-        </p>
+    <section
+      ref={root}
+      id="reasons"
+      className="scene"
+      aria-labelledby="reasons-title"
+      style={{ ["--beats" as string]: REASONS.length }}
+    >
+      <div className="sc-track">
+        <div className="sc-stage sc-split wrap">
+          <div className="rs-copy">
+            <h2 className="h2" id="reasons-title" data-no-split>
+              Why people quit trackers.
+            </h2>
+            <ol className="rs-lines">
+              {REASONS.map((r) => (
+                <li key={r.problem} className="rs-line">
+                  <b>{r.problem}</b>
+                  <span className="rs-fix">
+                    <Check aria-hidden="true" />
+                    {r.answer}
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <span className="rs-dots" aria-hidden="true">
+              {REASONS.map((r) => (
+                <i key={r.problem} />
+              ))}
+            </span>
+            <p className="fine rs-src">
+              From app-store reviews, forum threads and published studies on why
+              people stop tracking.
+            </p>
+          </div>
+          <div className="rs-stage" aria-hidden="true">
+            <div className="rs-screen">
+              {REASONS.map((r) => (
+                <div key={r.problem} className="rs-panel">
+                  <div className="rs-o">{r.old}</div>
+                  <div className="rs-n">{r.next}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -305,7 +454,7 @@ export function FernScene() {
           <div className="fs-stage" aria-hidden="true">
             {MOODS.map((m) => (
               <span key={m.id} className="fs-fern">
-                <Fern mood={m.id} size={280} />
+                <Fern mood={m.id} size={380} />
               </span>
             ))}
           </div>

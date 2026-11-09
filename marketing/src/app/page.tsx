@@ -256,35 +256,79 @@ export default function Home() {
           className="privacy"
           aria-labelledby="privacy-title"
         >
-          <div className="wrap">
-            <div className="section-head reveal">
+          <div className="wrap pv-grid">
+            <div className="pv-copy reveal">
               <h2 className="h2" id="privacy-title">
                 Your life, on your phone first.
               </h2>
+              <ul className="privacy-list">
+                <li>
+                  <span className="pv-tile">
+                    <Smartphone aria-hidden />
+                  </span>
+                  Saved on your phone first
+                </li>
+                <li>
+                  <span className="pv-tile">
+                    <RefreshCw aria-hidden />
+                  </span>
+                  A copy syncs, so Fern can answer
+                </li>
+                <li>
+                  <span className="pv-tile">
+                    <CloudOff aria-hidden />
+                  </span>
+                  <span>
+                    No-account mode
+                    {FEATURE_STATUS.localOnlyMode === "coming-soon" && (
+                      <span className="soon">Coming soon</span>
+                    )}
+                  </span>
+                </li>
+                <li>
+                  <span className="pv-tile">
+                    <Download aria-hidden />
+                  </span>
+                  Export everything, free
+                </li>
+              </ul>
             </div>
-            <ul className="privacy-list">
-              <li className="reveal">
-                <Smartphone aria-hidden />
-                <h3>Saved on your phone first</h3>
-              </li>
-              <li className="reveal">
-                <RefreshCw aria-hidden />
-                <h3>A copy syncs, so Fern can answer</h3>
-              </li>
-              <li className="reveal">
-                <CloudOff aria-hidden />
-                <h3>
-                  No-account mode
-                  {FEATURE_STATUS.localOnlyMode === "coming-soon" && (
-                    <span className="soon">Coming soon</span>
-                  )}
-                </h3>
-              </li>
-              <li className="reveal">
-                <Download aria-hidden />
-                <h3>Export everything, free</h3>
-              </li>
-            </ul>
+            {/* The same four facts as a picture: records live on the phone,
+                one copy travels to the cloud for Fern, an export leaves any
+                time. The dots travel on a loop and stop under reduced motion. */}
+            <div className="pv-diagram reveal" aria-hidden="true">
+              <div className="pv-phone">
+                <small>On your phone</small>
+                {[
+                  ["var(--fit)", <Dumbbell key="f" />, "Ran 5k"],
+                  ["var(--nut)", <Utensils key="n" />, "Lunch"],
+                  ["var(--fin)", <Wallet key="w" />, "$12"],
+                  ["var(--hab)", <Target key="h" />, "Workout"],
+                ].map(([k, icon, label]) => (
+                  <span
+                    key={label as string}
+                    className="pv-row"
+                    style={{ ["--k" as string]: k as string }}
+                  >
+                    <span className="pv-rt">{icon}</span>
+                    {label}
+                  </span>
+                ))}
+                <span className="pv-export">
+                  <Download />
+                  Export
+                </span>
+              </div>
+              <div className="pv-link">
+                <i />
+                <i />
+                <i />
+              </div>
+              <div className="pv-cloud">
+                <Fern mood="listening" size={72} />
+                <small>A copy, so Fern can answer</small>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -349,6 +393,16 @@ export default function Home() {
                           </li>
                         ))}
                       </ul>
+                      {/* Payment is not live: every plan joins the waitlist.
+                          The highlighted plan carries the filled button. */}
+                      <a
+                        className={`btn plan-cta ${p.highlighted ? "btn-primary" : "btn-outline"}`}
+                        href={CTA.appStoreUrl ?? CTA.primaryHref}
+                      >
+                        {CTA.appStoreUrl
+                          ? "Download on the App Store"
+                          : CTA.primaryLabel}
+                      </a>
                     </article>
                   ))}
                 </div>

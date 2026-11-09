@@ -345,7 +345,7 @@ export function ScrollStory() {
                   <div className="st-screen">
                     <div className="st-bar-top">
                       <b>Today</b>
-                      <Fern mood="listening" size={28} />
+                      <Fern mood="listening" size={38} />
                     </div>
                     <div className="st-chat">
                       <p className="st-bubble">
@@ -418,7 +418,7 @@ export function ScrollStory() {
                       ))}
                     </div>
                     <div className="st-fern">
-                      <Fern mood="celebrating" size={96} />
+                      <Fern mood="celebrating" size={132} />
                       <span>Nice day. All three are in.</span>
                     </div>
                   </div>
