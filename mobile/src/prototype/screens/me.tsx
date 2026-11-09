@@ -60,6 +60,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { planStore, plusInForce } from "../plan"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
 import { sessionStore } from "../session"
@@ -82,7 +83,9 @@ export function Me() {
     account = sessionStore.use((s) => s.user?.email),
     companionName = companionStore.use((s) => s.name),
     memories = companionStore.use((s) => s.memories),
-    shown = extrasStore.use((s) => s)
+    shown = extrasStore.use((s) => s),
+    plan = planStore.use((s) => s)
+  const planDetail = planLine(plan)
   // Turning it on asks first, in plain words; turning it off is immediate
   // (the next refresh of the test set drops this person's chats).
   const setFernEval = () =>
@@ -456,6 +459,13 @@ export function Me() {
         <SectionHeading>App</SectionHeading>
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
           <LinkRow
+            title="Plan"
+            detail={planDetail}
+            icon={Sparkles}
+            accent="primary"
+            href="/me/plan"
+          />
+          <LinkRow
             title="Account & security"
             detail="Email, password, export, delete account"
             icon={ShieldCheck}
@@ -507,4 +517,16 @@ export function Me() {
       </View>
     </Screen>
   )
+}
+
+/** Me's Plan row: Free, or Plus with when it renews or ends. */
+function planLine(plan: ReturnType<typeof planStore.get>): string {
+  if (!plusInForce(plan)) return "Free · See Unfurl Plus"
+  if (!plan.plusUntil) return "Unfurl Plus"
+  const when = new Date(plan.plusUntil).toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+  return `Unfurl Plus · ${plan.willRenew ? "renews" : "ends"} ${when}`
 }

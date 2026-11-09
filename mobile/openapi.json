@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "test", "version": "0.1.0" },
+  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -95,7 +95,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserPublic" }
+                "schema": { "$ref": "#/components/schemas/UserMe" }
               }
             }
           },
@@ -18980,6 +18980,59 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
+    "/api/v1/billing/plan": {
+      "get": {
+        "tags": ["billing"],
+        "summary": "Read Plan",
+        "operationId": "billing-read_plan",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlanPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/billing/refresh": {
+      "post": {
+        "tags": ["billing"],
+        "summary": "Refresh Plan",
+        "description": "Ask RevenueCat what this account holds and store it (app start, and\nright after a purchase or a restore). The phone sends nothing: the\nanswer comes from RevenueCat, never from the device.",
+        "operationId": "billing-refresh_plan",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlanPublic" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/api/v1/media/uploads": {
       "post": {
         "tags": ["media"],
@@ -19303,6 +19356,43 @@
             "schema": {
               "anyOf": [{ "type": "string" }, { "type": "null" }],
               "title": "Webhook-Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookAck" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/revenuecat": {
+      "post": {
+        "tags": ["webhooks"],
+        "summary": "Revenuecat Event",
+        "description": "RevenueCat sends the Authorization header value set in its dashboard;\nthat shared secret is the credential (compared in constant time).",
+        "operationId": "webhooks-revenuecat_event",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "type": "string" }, { "type": "null" }],
+              "title": "Authorization"
             }
           }
         ],
@@ -28048,6 +28138,27 @@
         "required": ["name", "lat", "lon"],
         "title": "PlacePublic"
       },
+      "PlanPublic": {
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": ["free", "plus"],
+            "title": "Plan"
+          },
+          "plus_until": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Plus Until"
+          },
+          "will_renew": { "type": "boolean", "title": "Will Renew" }
+        },
+        "type": "object",
+        "required": ["plan", "plus_until", "will_renew"],
+        "title": "PlanPublic",
+        "description": "The plan in force now, as the server decides it."
+      },
       "PlannedCreate": {
         "properties": {
           "name": {
@@ -34062,7 +34173,14 @@
         "properties": {
           "kind": {
             "type": "string",
-            "enum": ["app_open", "app_close", "share_card"],
+            "enum": [
+              "app_open",
+              "app_close",
+              "share_card",
+              "paywall_shown",
+              "purchase_started",
+              "restored"
+            ],
             "title": "Kind"
           },
           "at": { "type": "string", "format": "date-time", "title": "At" },
@@ -34171,6 +34289,63 @@
         "type": "object",
         "required": ["email"],
         "title": "UserCreate"
+      },
+      "UserMe": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "maxLength": 255,
+            "format": "email",
+            "title": "Email"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "title": "Is Superuser",
+            "default": false
+          },
+          "full_name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
+            ],
+            "title": "Full Name"
+          },
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "tenant_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Tenant Id"
+          },
+          "created_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Created At"
+          },
+          "plan": {
+            "type": "string",
+            "enum": ["free", "plus"],
+            "title": "Plan",
+            "default": "free"
+          },
+          "plus_until": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Plus Until"
+          }
+        },
+        "type": "object",
+        "required": ["email", "id", "tenant_id"],
+        "title": "UserMe",
+        "description": "The signed-in account, with its plan as the server decides it."
       },
       "UserPermissions": {
         "properties": {

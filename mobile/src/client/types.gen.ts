@@ -3070,6 +3070,17 @@ export type PlannedPublic = {
 };
 
 /**
+ * The plan in force now, as the server decides it.
+ */
+export type PlanPublic = {
+    plan: 'free' | 'plus';
+    plus_until: (string | null);
+    will_renew: boolean;
+};
+
+export type plan = 'free' | 'plus';
+
+/**
  * The routine player: the run plus the derived clock of its step.
  */
 export type PlayerState = {
@@ -4615,12 +4626,12 @@ export type UsageBatch = {
 };
 
 export type UsageEventIn = {
-    kind: 'app_open' | 'app_close' | 'share_card';
+    kind: 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored';
     at: string;
     detail?: (string | null);
 };
 
-export type kind18 = 'app_open' | 'app_close' | 'share_card';
+export type kind18 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored';
 
 export type UsageOut = {
     month: string;
@@ -4649,6 +4660,21 @@ export type UserCreate = {
     is_active?: boolean;
     is_superuser?: boolean;
     full_name?: (string | null);
+};
+
+/**
+ * The signed-in account, with its plan as the server decides it.
+ */
+export type UserMe = {
+    email: string;
+    is_active?: boolean;
+    is_superuser?: boolean;
+    full_name?: (string | null);
+    id: string;
+    tenant_id: string;
+    created_at?: (string | null);
+    plan?: 'free' | 'plus';
+    plus_until?: (string | null);
 };
 
 /**
@@ -5045,6 +5071,10 @@ export type AuditReadAuditLogsData = {
 };
 
 export type AuditReadAuditLogsResponse = (AuditLogsPublic);
+
+export type BillingReadPlanResponse = (PlanPublic);
+
+export type BillingRefreshPlanResponse = (PlanPublic);
 
 export type CaptureGetSettingsResponse = (AISettingsPublic);
 
@@ -7728,7 +7758,7 @@ export type UsersCreateUserData = {
 
 export type UsersCreateUserResponse = (UserPublic);
 
-export type UsersReadUserMeResponse = (UserPublic);
+export type UsersReadUserMeResponse = (UserMe);
 
 export type UsersDeleteUserMeResponse = (Message);
 
@@ -7815,3 +7845,9 @@ export type WebhooksSupabaseAuthEventData = {
 };
 
 export type WebhooksSupabaseAuthEventResponse = (WebhookAck);
+
+export type WebhooksRevenuecatEventData = {
+    authorization?: (string | null);
+};
+
+export type WebhooksRevenuecatEventResponse = (WebhookAck);

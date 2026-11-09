@@ -1,0 +1,68 @@
+{
+  "identifier" : "6A4C1F7E-3B2D-4E59-9C1A-0F1E2D3C4B5A",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "UNFURLPLUS",
+      "localizations" : [],
+      "name" : "Unfurl Plus",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "49.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "UNFURLPLUSYEARLY",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unfurl Plus, billed yearly",
+              "displayName" : "Unfurl Plus Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "plus_yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Unfurl Plus Yearly",
+          "subscriptionGroupID" : "UNFURLPLUS",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "7.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "UNFURLPLUSMONTHLY",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unfurl Plus, billed monthly",
+              "displayName" : "Unfurl Plus Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "plus_monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Unfurl Plus Monthly",
+          "subscriptionGroupID" : "UNFURLPLUS",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

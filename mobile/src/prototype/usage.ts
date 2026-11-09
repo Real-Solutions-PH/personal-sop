@@ -1,5 +1,6 @@
-// App usage events: the app came to the foreground, left it, or a share
-// card was shared. They measure app opens, time in app and share cards
+// App usage events: the app came to the foreground, left it, a share card
+// was shared, or an Unfurl Plus moment (the paywall shown, a purchase
+// started, purchases restored). They measure app opens, time in app and share cards
 // (docs/25-retention-kpis.md); the record tables cannot. Signed-in, live
 // mode only. Each event carries the kind, the moment and, for a share, the
 // card's fixed key, never anything typed. Kept in a queue on the phone and
@@ -9,8 +10,10 @@ import { liveMode } from "@/live/config"
 import { sessionStore } from "./session"
 
 export type UsageEvent =
-  | { kind: "app_open" | "app_close" }
+  | { kind: "app_open" | "app_close" | "paywall_shown" | "restored" }
   | { kind: "share_card"; detail: string }
+  // Unfurl Plus: which product the person tapped.
+  | { kind: "purchase_started"; detail: string }
 
 /** ``account``: whose session it was logged in, so a queue left from one
  * account is never sent as another's. Stays on the phone. */

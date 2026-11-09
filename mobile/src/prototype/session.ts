@@ -376,6 +376,10 @@ function forgetLiveDevice() {
   )
   storage().removeItem("sop-live:owner")
   ;(require("@/live/blank") as typeof import("@/live/blank")).clearToBlank()
+  // The next account must not inherit this one's App Store purchases.
+  void (
+    require("@/live/purchases") as typeof import("@/live/purchases")
+  ).signOutPurchases()
 }
 /** Changes made on this device that the server has not acknowledged:
  * the engine's outbox (plus an edit still in its debounce window), or the
