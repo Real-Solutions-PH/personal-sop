@@ -7,10 +7,12 @@
 //
 // Web adaptations, all marked for Kai's sign-off in the PR:
 // - S4 and S5 are split into single-answer parts (S4a/S4b, S5a/S5b/S5c).
-// - The close keeps Z1 (first thing to check) and Z2 (try it on TestFlight,
-//   via the optional email). Z3 (deposit) is left out because no deposit link
-//   exists and the kit never quotes a price; Z4 (introduce someone) is left
-//   out so the form never collects a third person's details.
+// - The close keeps Z1 (where they last tracked, phone or computer, asked
+//   before the pitch), Z2 (first thing to check), Z3 (try it on TestFlight)
+//   and Z4 (join the list for a browser version that isn't built yet); Z3
+//   and Z4 go through the optional email. Z5 (deposit) is left out because
+//   no deposit link exists; Z6 (introduce someone) is left out so the form
+//   never collects a third person's details.
 // - Every module question is optional; any answer is better than none.
 
 export type Choice = { value: string; label: string }
@@ -423,10 +425,16 @@ export const C3_QUIT_ONCE: ModuleQ = {
 }
 
 export const CLOSE = {
-  pitch:
-    "Unfurl is an app where you tell a companion what happened, in a sentence, a voice note or a photo, and it files your money, food, workouts, habits and tasks for you. It's on TestFlight now.",
+  // Kit Z1, asked before the pitch so the phone-app framing can't steer it.
   Z1: {
     id: "Z1",
+    text: "Think of the last few times you logged or checked anything: money, food, a workout, a to-do. Were you on your phone or on a computer? Tell us about a time you did it, or wanted to, on a laptop or in a browser.",
+    placeholder: "e.g. a budget spreadsheet on my work laptop",
+  },
+  pitch:
+    "Unfurl is an app where you tell a companion what happened, in a sentence, a voice note or a photo, and it files your money, food, workouts, habits and tasks for you. It's on TestFlight now.",
+  Z2: {
+    id: "Z2",
     text: "What's the first thing you'd want to check that it gets right?",
     placeholder: "e.g. that it puts lunch under food, not groceries",
   },
