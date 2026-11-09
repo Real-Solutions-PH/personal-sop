@@ -31,6 +31,12 @@ def api(client: TestClient, db: Session) -> Api:
     u, h = signed_in(db)
     a = Api(client, h)
     a.user = u  # type: ignore[attr-defined]
+    # No weekly gym goal. Fitness reports a week under its session target as
+    # a miss dated that week's Sunday, and it counts weeks from before the
+    # account existed, so on every Monday business day a fresh account's
+    # yesterday holds a "Missed 4 gym sessions (0/4)". These tests are about
+    # habits and tasks; without this they fail one day in seven.
+    a.patch("/fitness/settings", {"weekly_target": 0})
     return a
 
 
