@@ -69,7 +69,9 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
 - The share cards are images captured from the app itself (`mobile/src/prototype`, Fern ground) and saved to `marketing/public/share/`; recapture them when the card design changes.
 - A headless check measures every section against one screen at 375, 768 and 1280 px wide.
 - No sticky waitlist bar and no reading-progress bar (owner, 2026-11-09): the ask lives in the header, the hero and the closing form.
-- Act one names the four reasons people give for quitting a tracker (chores, a wiped streak, logging you can't trust, scolding reminders), each drawn as a card where the old way sits dimmed above Unfurl's way, as small pieces of the interface rather than sentences. They come from the marketing research pass of 2026-11-07 (app-store reviews, forum threads, published studies), ranked by breadth of evidence. No quotes and no percentages: that pass's quotes are internal only and its sample supports no share.
+- Act one names the four reasons people give for quitting a tracker (chores, a wiped streak, logging you can't trust, scolding reminders) as a pinned scene, problem only (owner, 2026-11-09): each beat builds the frustration in a small app screen (a tap tally over a pile of five apps, a 47-day streak dropping to 0, a calorie number with doubts, reminders piling up) and offers no answer; the scroll story after it is where Unfurl comes in. The reasons come from the marketing research pass of 2026-11-07 (app-store reviews, forum threads, published studies), ranked by breadth of evidence. No quotes and no percentages: that pass's quotes are internal only and its sample supports no share. The tap tally counts only the taps drawn.
+- Privacy is a diagram (records on the phone, one copy to the cloud for Fern, export) beside the four statements; every pricing plan ends in the waitlist button, since payment is not live.
+- The Fern sprite files use a wider frame (`scripts/gen-fern.mjs`) because an `<img>` crops the ripple and halo drawn outside it.
 
 - The app is React Native and the site says iPhone and Android throughout (owner, 2026-11-09).
 

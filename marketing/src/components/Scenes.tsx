@@ -111,10 +111,12 @@ export function ProblemSection() {
 
 // Act one, part two: the reasons people give for quitting a tracker, from
 // the 2026-11-07 research pass (app-store reviews, forum threads, published
-// studies), ordered by how broad the evidence is. A pinned scene: each
-// stretch of scroll plays one reason inside a small app screen, first the
-// way it goes wrong elsewhere, then Unfurl's way in the same spot. Without
-// motion, the four reasons and their answers read as a plain list.
+// studies), ordered by how broad the evidence is. Problem only: this scene
+// builds the frustration up and offers no answer; the next section (the
+// scroll story) is where Unfurl comes in. Each stretch of scroll plays one
+// reason inside a small app screen: the pieces arrive (`rs-i`), a tally
+// counts (`data-count`), then it turns for the worse (`rs-late` arrives,
+// `rs-gone` leaves). Without motion it reads as a list of the four reasons.
 const AREA = {
   fit: { name: "Fitness", icon: <Dumbbell />, k: "var(--fit)" },
   nut: { name: "Nutrition", icon: <Utensils />, k: "var(--nut)" },
@@ -130,148 +132,129 @@ const Tile = ({ a }: { a: AreaKey }) => (
   </span>
 )
 
-const Week = ({ last }: { last: ReactNode }) => (
-  <span className="rs-week rs-i" aria-hidden="true">
-    {[0, 1, 2, 3, 4, 5].map((d) => (
-      <i key={d} />
-    ))}
-    {last}
-  </span>
-)
+// One day, logged by hand across five apps: every step is one tap.
+const CHORE: [AreaKey, string[]][] = [
+  ["fit", ["Open", "Pick workout", "Add set", "Type reps", "Save"]],
+  ["nut", ["Open", "Search “rice”", "Pick portion", "Save"]],
+  ["fin", ["Open", "Type 12.00", "Pick category", "Save"]],
+  ["hab", ["Open", "Find habit", "Tick"]],
+  ["tsk", ["Open", "New task", "Type it", "Set date", "Save"]],
+]
+const TAPS = CHORE.reduce((n, [, steps]) => n + steps.length, 0)
 
-const REASONS: {
-  problem: string
-  answer: string
-  old: ReactNode
-  next: ReactNode
-}[] = [
+const NAGS = [
+  "You missed your goal. Again.",
+  "Don't break your streak!",
+  "You haven't logged lunch.",
+  "Still no workout today?",
+]
+
+const REASONS: { problem: string; feel: string; scene: ReactNode }[] = [
   {
     problem: "Logging turns into a chore.",
-    answer: "Say one sentence. Fern files every part.",
-    old: (
+    feel: "Five apps, five forms, every single day.",
+    scene: (
       <>
-        <small className="rs-cap rs-i">5 apps, 5 forms</small>
-        {(
-          [
-            ["fit", "Sets, reps, distance"],
-            ["nut", "Search a food"],
-            ["fin", "Amount, category"],
-            ["hab", "Mark done"],
-            ["tsk", "Add a task"],
-          ] as [AreaKey, string][]
-        ).map(([a, hint]) => (
-          <span key={a} className="rs-form rs-i">
-            <Tile a={a} />
-            <b>{AREA[a].name}</b>
-            <span className="rs-field">{hint}</span>
+        <span className="rs-tally rs-i">
+          <span className="tnum" data-count={TAPS}>
+            0
           </span>
-        ))}
-      </>
-    ),
-    next: (
-      <>
-        <small className="rs-cap rs-i">One sentence</small>
-        <span className="rs-say rs-i">
-          <Fern mood="listening" size={44} />
-          <span className="rs-bubble">“Ran 5k, spent $12 on lunch.”</span>
+          <small>taps to log one day</small>
         </span>
-        <span className="rs-landed">
-          {(["fit", "nut", "fin"] as AreaKey[]).map((a) => (
-            <span key={a} className="rs-chip rs-i">
-              <Tile a={a} />
-              {AREA[a].name}
-              <Check className="rs-ok" aria-hidden="true" />
+        <span className="rs-pile">
+          {CHORE.map(([a, steps], i) => (
+            <span
+              key={a}
+              className="rs-app rs-i"
+              style={{ ["--i" as string]: i }}
+            >
+              <span className="rs-app-head">
+                <Tile a={a} />
+                <b>{AREA[a].name} app</b>
+              </span>
+              <span className="rs-steps">
+                {steps.map((st) => (
+                  <span key={st} className="rs-step">
+                    {st}
+                  </span>
+                ))}
+              </span>
             </span>
           ))}
         </span>
+        <small className="rs-sub bad rs-late">…and that's one day.</small>
       </>
     ),
   },
   {
     problem: "One missed day wipes the streak.",
-    answer: "A grace day covers it.",
-    old: (
+    feel: "Weeks of showing up, gone overnight.",
+    scene: (
       <>
         <small className="rs-cap rs-i">Morning workout</small>
-        <Week last={<i className="rs-miss" />} />
-        <span className="rs-count bad rs-i">
-          <Flame aria-hidden="true" />
-          <span className="tnum">0</span>
+        <span className="rs-week" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((d) => (
+            <i key={d} className="rs-i" />
+          ))}
+          <i className="rs-miss rs-late" />
         </span>
-        <small className="rs-sub rs-i">Streak reset · was 47</small>
-      </>
-    ),
-    next: (
-      <>
-        <small className="rs-cap rs-i">Morning workout</small>
-        <Week last={<i className="rs-grace" />} />
-        <span className="rs-count good rs-i">
-          <Flame aria-hidden="true" />
-          <span className="tnum">47</span>
+        <span className="rs-swap">
+          <span className="rs-count good rs-i rs-gone">
+            <Flame aria-hidden="true" />
+            <span className="tnum" data-count={47}>
+              0
+            </span>
+          </span>
+          <span className="rs-count bad rs-late">
+            <Flame aria-hidden="true" />
+            <span className="tnum">0</span>
+          </span>
         </span>
-        <span className="rs-chip rs-i">Grace day used</span>
+        <small className="rs-sub bad rs-late">Streak reset · was 47</small>
       </>
     ),
   },
   {
     problem: "Quick logging you can't trust.",
-    answer: "See where each part landed, and undo it.",
-    old: (
+    feel: "A number from a photo, and no way to check it.",
+    scene: (
       <>
         <small className="rs-cap rs-i">Meal photo</small>
         <span className="rs-meal rs-i">
           <Tile a="nut" />
           <b>Lunch</b>
-          <span className="tnum">1,240 kcal</span>
+          <span className="tnum" data-count={1240}>
+            0
+          </span>
+          kcal
           <span className="rs-q">?</span>
         </span>
-        <small className="rs-sub rs-i">No way to check it, or fix it</small>
-      </>
-    ),
-    next: (
-      <>
-        <small className="rs-cap rs-i">Meal photo</small>
-        <span className="rs-meal good rs-i">
-          <Tile a="nut" />
-          <b>Lunch</b>
-          <span>
-            about <span className="tnum">640 kcal</span>
-          </span>
-        </span>
-        <span className="rs-landed">
-          <span className="rs-chip rs-i">
-            <Check className="rs-ok" aria-hidden="true" />
-            Landed in Nutrition
-          </span>
-          <span className="rs-chip rs-undo rs-i">Undo</span>
+        <span className="rs-doubts">
+          <span className="rs-doubt rs-late">Was that the whole plate?</span>
+          <span className="rs-doubt rs-late">What did it count?</span>
+          <span className="rs-doubt rs-late">How do I fix it?</span>
         </span>
       </>
     ),
   },
   {
     problem: "Reminders start to scold.",
-    answer: "Fern notices what you did. It doesn't nag.",
-    old: (
+    feel: "The app that was meant to help starts telling you off.",
+    scene: (
       <>
-        <span className="rs-note rs-i">
+        <span className="rs-tally rs-i">
           <BellRing aria-hidden="true" />
-          You missed your goal. Again.
+          <span className="tnum" data-count={12}>
+            0
+          </span>
+          <small>unread reminders</small>
         </span>
-        <span className="rs-note rs-i">
-          <BellRing aria-hidden="true" />
-          Don't break your streak!
-        </span>
-        <span className="rs-note rs-i">
-          <BellRing aria-hidden="true" />3 reminders ignored
-        </span>
-      </>
-    ),
-    next: (
-      <>
-        <span className="rs-fern rs-i">
-          <Fern mood="celebrating" size={128} />
-        </span>
-        <span className="rs-bubble rs-i">“Twelve days in a row.”</span>
+        {NAGS.map((n, i) => (
+          <span key={n} className={`rs-note ${i < 2 ? "rs-i" : "rs-late"}`}>
+            <BellRing aria-hidden="true" />
+            {n}
+          </span>
+        ))}
       </>
     ),
   },
@@ -288,11 +271,11 @@ export function ReasonsSection() {
     gsap.set(dots.slice(1), { opacity: 0.25 })
     panels.forEach((p, i) => {
       const at = i
-      const olds = Array.from(p.querySelectorAll<HTMLElement>(".rs-o .rs-i"))
-      const news = Array.from(p.querySelectorAll<HTMLElement>(".rs-n .rs-i"))
-      const fix = lines[i].querySelector(".rs-fix")
-      gsap.set(news, { autoAlpha: 0, y: 14, scale: 0.96 })
-      gsap.set(fix, { autoAlpha: 0, y: 8 })
+      const start = at + (i > 0 ? 0.2 : 0)
+      const pieces = Array.from(p.querySelectorAll<HTMLElement>(".rs-i"))
+      const late = Array.from(p.querySelectorAll<HTMLElement>(".rs-late"))
+      const gone = Array.from(p.querySelectorAll<HTMLElement>(".rs-gone"))
+      gsap.set(late, { autoAlpha: 0, scale: 1.08 })
       if (i > 0) {
         tl.to(panels[i - 1], { autoAlpha: 0, y: -24, duration: 0.2 }, at)
         tl.to(lines[i - 1], { autoAlpha: 0, y: -16, duration: 0.2 }, at)
@@ -300,24 +283,41 @@ export function ReasonsSection() {
         tl.to(lines[i], { autoAlpha: 1, y: 0, duration: 0.25 }, at + 0.1)
         tl.to(dots[i], { opacity: 1, duration: 0.15 }, at + 0.1)
       }
-      // The problem builds up, piece by piece.
+      // The pieces arrive one by one, and the tally climbs with them.
       tl.from(
-        olds,
-        { autoAlpha: 0, y: 14, stagger: 0.05, duration: 0.15 },
-        at + (i > 0 ? 0.2 : 0),
+        pieces,
+        { autoAlpha: 0, y: 14, stagger: 0.04, duration: 0.14 },
+        start,
       )
-      // Then it clears, and Unfurl's way takes its place.
+      for (const el of p.querySelectorAll<HTMLElement>("[data-count]")) {
+        const n = { v: 0 }
+        const to = Number(el.dataset.count)
+        tl.to(
+          n,
+          {
+            v: to,
+            duration: 0.35,
+            ease: "none",
+            onUpdate: () => {
+              el.textContent = Math.round(n.v).toLocaleString("en-US")
+            },
+          },
+          start,
+        )
+      }
+      // Then it turns for the worse.
+      tl.to(gone, { autoAlpha: 0, scale: 0.9, duration: 0.1 }, at + 0.6)
       tl.to(
-        olds,
-        { autoAlpha: 0, scale: 0.94, stagger: 0.02, duration: 0.12 },
-        at + 0.55,
+        late,
+        { autoAlpha: 1, scale: 1, stagger: 0.07, duration: 0.14 },
+        at + 0.6,
       )
-      tl.to(
-        news,
-        { autoAlpha: 1, y: 0, scale: 1, stagger: 0.06, duration: 0.18 },
-        at + 0.65,
+      tl.fromTo(
+        p,
+        { x: 0 },
+        { keyframes: { x: [0, -6, 6, -4, 0] }, duration: 0.12 },
+        at + 0.62,
       )
-      tl.to(fix, { autoAlpha: 1, y: 0, duration: 0.15 }, at + 0.65)
     })
     tl.to({}, { duration: 0.5 })
   })
@@ -340,10 +340,7 @@ export function ReasonsSection() {
               {REASONS.map((r) => (
                 <li key={r.problem} className="rs-line">
                   <b>{r.problem}</b>
-                  <span className="rs-fix">
-                    <Check aria-hidden="true" />
-                    {r.answer}
-                  </span>
+                  <span className="rs-feel">{r.feel}</span>
                 </li>
               ))}
             </ol>
@@ -361,8 +358,7 @@ export function ReasonsSection() {
             <div className="rs-screen">
               {REASONS.map((r) => (
                 <div key={r.problem} className="rs-panel">
-                  <div className="rs-o">{r.old}</div>
-                  <div className="rs-n">{r.next}</div>
+                  {r.scene}
                 </div>
               ))}
             </div>
