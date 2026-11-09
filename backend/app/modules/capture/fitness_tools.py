@@ -16,7 +16,13 @@ from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from langchain_core.tools import BaseTool, StructuredTool
-from pydantic import AfterValidator, BaseModel, Field, WithJsonSchema
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    Field,
+    WithJsonSchema,
+)
 
 from app.modules.capture import ports
 from app.modules.capture.parse import RecordDraft, meal_label
@@ -76,6 +82,20 @@ def _fx() -> Any:
 
 # Asked for on every estimate (the daily goals and limits count them); a
 # meal sent without them is still saved, with a warning on its card.
+ASSUMPTION_MAX = 120
+
+
+def _clip_assumption(v: object) -> object:
+    """An assumption is display text: past its limit it is cut, never
+    refused. Seen live (2026-11-06 to 11-08): four meal logs and an edit
+    were refused as "invalid arguments" for a 135-character assumption, and
+    the reply ran out of steps retrying them."""
+    return v[:ASSUMPTION_MAX].rstrip() if isinstance(v, str) else v
+
+
+Assumption = Annotated[
+    str, BeforeValidator(_clip_assumption), Field(max_length=ASSUMPTION_MAX)
+]
 FIBER_SAYS = "Grams of total fiber; estimate it, 0 when there is none."
 SAT_FAT_SAYS = "Grams of saturated fat; estimate it, 0 when there is none."
 FIBER_SOLUBLE_SAYS = (
@@ -274,7 +294,7 @@ class ItemArgs(BaseModel):
         description="Edible grams this amount weighs (no bone or shell). "
         "Required for estimates.",
     )
-    assumption: Annotated[str, Field(max_length=120)] | None = None
+    assumption: Assumption | None = None
     alcohol: Annotated[float, Field(ge=0, le=500)] | None = None
 
 

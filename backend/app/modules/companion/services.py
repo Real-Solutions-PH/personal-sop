@@ -609,7 +609,12 @@ class PortionFoodIn(BaseModel):
 
 
 class PortionPlanArgs(BaseModel):
-    foods: list[PortionFoodIn] = Field(min_length=1, max_length=8)
+    foods: list[PortionFoodIn] = Field(
+        min_length=1,
+        max_length=8,
+        description="Only what is still to eat. Food logged today (waiting "
+        "or saved) is already counted in what is left: never list it again.",
+    )
     kcal: Annotated[float, Field(gt=0, le=6000)] | None = Field(
         default=None, description="Only when they named a calorie target."
     )
@@ -620,6 +625,11 @@ class PortionPlanArgs(BaseModel):
         default=False,
         description="True when this meal should cover everything left today "
         "(their last meal, or they say so).",
+    )
+    kcal_over_ok: Annotated[float, Field(ge=0, le=600)] | None = Field(
+        default=None,
+        description="Calories past today's target they accept to hit protein, "
+        "when they set such a margin (ABOUT THEM). Leave out otherwise.",
     )
 
 
@@ -827,12 +837,21 @@ _CONFIRM_SHORT = re.compile(
 )
 
 
+# "record this for yesterday's dinner" right after the dinner was laid out
+# (2026-11-05) was refused, and the reply said nothing was waiting. With a
+# photo, "record this" means the photo, never what waits.
+_CONFIRM_THIS = re.compile(r"^\W*(save|add|log|record) (this|that)\b", re.I)
+
+
 def said_confirm(said: str) -> bool:
     """Whether the person's latest message tells Fern to save what is
     waiting: it says confirm (or approve) anywhere, or it is a short yes."""
-    text = said.split("\n[", 1)[0].strip()  # without any photo reading
-    return bool(_CONFIRM_WORD.search(text)) or (
-        len(text) <= 60 and bool(_CONFIRM_SHORT.search(text))
+    text, photo = said.split("\n[", 1)[0].strip(), "\n[" in said
+    short = len(text) <= 60
+    return (
+        bool(_CONFIRM_WORD.search(text))
+        or (short and bool(_CONFIRM_SHORT.search(text)))
+        or (short and not photo and bool(_CONFIRM_THIS.search(text)))
     )
 
 
@@ -1060,6 +1079,45 @@ _REDO_WORDS = re.compile(
 )
 
 
+# A memory Fern keeps on its own that is about itself or the chat, not the
+# person. Kept live (2026-11-02): "I don't have enough context here — this
+# refers to an edit task I don't have details on."
+_NOT_ABOUT_THEM = re.compile(
+    r"^\W*i\b|^\W*i'(?:m|ve|ll|d)\b|\b(?:the assistant|this (?:conversation|chat)|"
+    r"(?:enough|more|no) context|(?:the|this) (?:message|request|reply) "
+    r"(?:refers|is about|says))\b",
+    re.I,
+)
+
+
+def about_them(fact: str) -> bool:
+    """Whether a memory Fern would keep unasked is about the person."""
+    return not _NOT_ABOUT_THEM.search(fact)
+
+
+def plan_budget(
+    a: PortionPlanArgs, left: dict[str, Any] | None, share: int
+) -> dict[str, float]:
+    """What a portion plan aims at: a target they named, else what is left
+    today shared by the meals ahead. Their calorie margin (``kcal_over_ok``)
+    widens the calories only, so protein can be hit past the target. Seen
+    live (2026-11-08): with "protein first, at most ~200 kcal over" kept, the
+    plan held the bare 185 kcal left and gave 15 g of rice."""
+    kcal = (
+        a.kcal
+        if a.kcal is not None
+        else max(0.0, float((left or {}).get("kcal", 0))) / share
+    )
+    if a.kcal is None and a.kcal_over_ok:
+        kcal += a.kcal_over_ok
+    return {
+        "kcal": kcal,
+        "protein": a.protein
+        if a.protein is not None
+        else max(0.0, float((left or {}).get("protein", 0))) / share,
+    }
+
+
 def sol_tools(run: SolRun) -> list[BaseTool]:
     ctx = run.ctx
 
@@ -1119,6 +1177,15 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def remember_fact(**kw: Any) -> dict[str, Any]:
         a = RememberArgs(**kw)
+        # "said" only when the person asked for it to be kept; Fern saving
+        # on its own (mid-reply, or in `learn`) is "inferred".
+        said = bool(_ASKS_TO_REMEMBER.search(run.said or ""))
+        if not said and not about_them(a.fact):
+            return {
+                "error": "not_a_fact_about_them",
+                "instead": "keep only lasting facts about the person; this "
+                "one is about the assistant or the conversation",
+            }
         saved = memory.remember(
             ctx,
             text=a.fact,
@@ -1126,9 +1193,7 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             tags=a.tags,
             importance=a.importance,
             always_on=a.always_on,
-            # "said" only when the person asked for it to be kept; Fern
-            # saving on its own (mid-reply, or in `learn`) is "inferred".
-            source="said" if _ASKS_TO_REMEMBER.search(run.said or "") else "inferred",
+            source="said" if said else "inferred",
             judge=run.judge,
         )
         out: dict[str, Any] = {
@@ -1369,14 +1434,7 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
                 "instead": "ask their calorie and protein target for this meal",
             }
         share = 1 if a.whole_day else max(1, len(day.get("meals_ahead") or []))
-        budget = {
-            "kcal": a.kcal
-            if a.kcal is not None
-            else max(0.0, float((left or {}).get("kcal", 0))) / share,
-            "protein": a.protein
-            if a.protein is not None
-            else max(0.0, float((left or {}).get("protein", 0))) / share,
-        }
+        budget = plan_budget(a, left, share)
         out = portions.result(
             portions.plan(foods, budget),
             budget=budget,
@@ -1660,8 +1718,31 @@ _INTERNAL_SPAN = re.compile(
 )
 
 
+# Thinking aloud that reached the reply (2026-11-06): "Let me look at the
+# pakbet estimates…", "focus directly on the question: should he cut or add
+# rice", "Let me give a direct answer." A sentence that narrates the next
+# step of the work, or speaks of the person in the third person, marks its
+# paragraph as working notes. "Let me know" and "let me add it" are not
+# here (an offer, and a promise :func:`promised` already catches).
+_THINKING = re.compile(
+    r"(?:^|(?<=[.!?:]\s))let me (?:now )?(?:look|check|use|give|focus|skip|"
+    r"think|see|start|figure|work|calculate|compute|verify|re-?check|pull|get|"
+    r"find|read|answer|go|try|review)\b|\bthe user\b|\bshould (?:he|she)\b|"
+    r"\b(?:he|she) (?:wants|asked|named|said|means|is asking)\b",
+    re.I | re.M,
+)
+
+
+def drop_thinking_aloud(text: str) -> str:
+    """``text`` without its paragraphs of working notes."""
+    paras = re.split(r"\n\s*\n", text)
+    return "\n\n".join(p for p in paras if not _THINKING.search(p.strip()))
+
+
 def strip_internal(text: str) -> str:
-    """``text`` without any internal note of what a turn did."""
+    """``text`` without any internal note of what a turn did, or working
+    notes written as if they were the answer."""
+    text = drop_thinking_aloud(text)
     text = _INTERNAL_SPAN.sub("", _INTERNAL_LINE.sub("", text))
     text = re.sub(r"[ \t]+$", "", text, flags=re.M)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
@@ -1767,9 +1848,11 @@ stated plainly and positively: "JUST GIVE ME THE PORTION" after a long
 answer keeps "Wants portions given directly (grams per food) without
 preamble". A one-off fix to one entry is not a lasting wish.
 
-Do NOT keep: what they did or ate today, a purchase or a log entry, a
-question, a one-time request, a feeling of the moment, or anything about
-the assistant itself. Most messages hold nothing lasting: then call
+Do NOT keep: what they did or ate today, a purchase or a log entry, what
+one meal held ("eats tilapia and peaches"), the words they happened to use
+("refers to a second meal"), a word that looks misheard, a question, a
+one-time request, a feeling of the moment, or anything about the assistant
+itself. Most messages hold nothing lasting: then call
 nothing."""
 
 
@@ -1870,6 +1953,9 @@ _ASKS_TO_WRITE = re.compile(
     r"confirm|approve|had|eaten|drank|breakfast|lunch|dinner|snack|"
     r"remember|don'?t forget|keep in mind|from now on)\b",
     re.I,
+)
+_NARRATES = frozenset(
+    {"spent", "paid", "bought", "ate", "ran", "weighed", "had", "eaten", "drank"}
 )
 # Things to keep, named in a statement ("these are my tasks: …"), are a
 # record to make; in a question ("how many tasks are left?") they are not.
@@ -2098,6 +2184,59 @@ def _still_waiting(ctx: Ctx, steps: list[Step]) -> bool:
     return any(st in WAITING_STATES for st in capture.card_states(ctx, ids).values())
 
 
+def _turn_card_states(ctx: Ctx, steps: list[Step]) -> dict[str, str]:
+    """The state of each card this turn made, read from the cards now."""
+    ids = [i for s in steps for i in s.card_ids()]
+    return capture.card_states(ctx, ids) if ids else {}
+
+
+# A sentence saying an entry is saved, and the words that make it say the
+# opposite ("not saved yet", "saved once you confirm").
+_SAYS_SAVED = re.compile(r"\b(saved|all set|now set|in effect)\b", re.I)
+_NOT_YET = re.compile(
+    r"\b(not|nothing|before|until|once|after|when|if|wait\w*|await\w*|"
+    r"pending|queued|confirm\w*|ok)\b|n't",
+    re.I,
+)
+WAITING_NUDGE = (
+    "Nothing in your reply is saved yet: every entry you made is waiting for "
+    "their OK on its card. Write the reply again saying what waits, never "
+    "that it is saved or set. Never mention this note."
+)
+SAYS_WAITING = "It's waiting for your OK."
+
+
+def _claims_saved(sentence: str) -> bool:
+    return bool(_SAYS_SAVED.search(sentence)) and not _NOT_YET.search(sentence)
+
+
+def saved_while_waiting(answer: str, states: dict[str, str]) -> bool:
+    """The reply says an entry is saved while every card this turn made
+    still waits. Seen live: "The Spotify recurring bill is now set on Maya
+    (₱85, saved). All set." over two changes still proposed (2026-11-07),
+    and "Both meals saved" over a dinner waiting for its OK (2026-11-06)."""
+    if not states or "saved" in states.values():
+        return False
+    if not any(st in WAITING_STATES for st in states.values()):
+        return False
+    return any(
+        _claims_saved(s)
+        for line in answer.split("\n")
+        for s in re.split(r"(?<=[.!?])\s+", line)
+    )
+
+
+def say_waiting(answer: str) -> str:
+    """``answer`` without its sentences claiming a save, ending with the
+    plain truth that the entry waits for their OK."""
+    lines = []
+    for line in answer.split("\n"):
+        kept = [s for s in re.split(r"(?<=[.!?])\s+", line) if not _claims_saved(s)]
+        lines.append(" ".join(kept).strip())
+    text = re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+    return f"{text}\n\n{SAYS_WAITING}" if text else SAYS_WAITING
+
+
 def _wrote(steps: list[Any]) -> bool:
     return any(
         s.name in WRITE_TOOLS and s.ok and s.summary != NOTHING_WAITING for s in steps
@@ -2181,7 +2320,14 @@ def unbacked_claim(
         and not _GIVES_DATA.search(asked)
     )
     statement = "?" not in asked and not about
-    asks = bool(_ASKS_TO_WRITE.search(asked)) or (
+    # In a question about records, a past-tense verb tells what happened
+    # ("i already paid it why is it still planned"), not what to write; seen
+    # live 2026-11-06, the answer was replaced by "I didn't manage to record
+    # that".
+    verbs = {m.lower() for m in _ASKS_TO_WRITE.findall(asked)}
+    if about:
+        verbs -= _NARRATES
+    asks = bool(verbs) or (
         statement
         and (bool(_GIVES_DATA.search(asked)) or bool(_NAMES_RECORDS.search(asked)))
     )
@@ -2843,6 +2989,15 @@ def _ask_ai(
                 *(s.summary for s in stream.steps if s.summary),
             ]
 
+        if saved_while_waiting(answer, _turn_card_states(ctx, stream.steps)):
+            # Every entry this reply made waits for their OK, yet the reply
+            # says it is saved: one pass to say so, then the claim goes.
+            if passes < MAX_FIX_PASSES:
+                passes += 1
+                reply = again(reply, WAITING_NUDGE)
+                answer, tables = shaped(reply)
+            if saved_while_waiting(answer, _turn_card_states(ctx, stream.steps)):
+                answer = say_waiting(answer)
         bad = numbers.unmatched(answer, backed_by())
         if bad and passes < MAX_FIX_PASSES:
             # Figures nothing backs: one pass to answer from the tools; what

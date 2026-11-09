@@ -123,6 +123,27 @@ def _stream_usage(chunks_usage: list[dict[str, Any]]) -> dict[str, Any] | None:
     return {"input_tokens": i, "output_tokens": o, "total_tokens": i + o}
 
 
+def invalid_arguments(exc: ValidationError) -> dict[str, Any]:
+    """A refused call, with which field was wrong and why, so the next call
+    can fix it. Seen live (2026-11-06 to 11-08): "invalid_arguments" alone
+    came back nine times; the model resent the same call, or gave up and
+    said nothing was saved. Only the field paths and the rule each broke go
+    back, never the values sent (they hold what the person said)."""
+    fixes = [
+        {
+            "field": ".".join(str(p) for p in e["loc"]) or "(arguments)",
+            "problem": e["type"],
+            "rule": e["msg"],
+        }
+        for e in exc.errors(include_input=False, include_url=False)[:6]
+    ]
+    return {
+        "error": "invalid_arguments",
+        "fix": fixes,
+        "instead": "call again with these fields fixed; keep everything else",
+    }
+
+
 def _call_key(tc: dict[str, Any]) -> str:
     """A tool call's name and arguments, as compared for a repeat."""
     args = json.dumps(tc.get("args") or {}, sort_keys=True, default=str)
@@ -386,8 +407,8 @@ def run_loop(
                 load([tc["name"]])
                 try:
                     result = tool.invoke(tc["args"])
-                except ValidationError:
-                    result = {"error": "invalid_arguments"}
+                except ValidationError as exc:
+                    result = invalid_arguments(exc)
                 except seams.SeamError as exc:
                     result = {"error": exc.code}
                 calls += 1
@@ -953,7 +974,7 @@ class MealItemArgs(BaseModel):
         description="Edible grams this amount weighs (no bone or shell). "
         "Required for estimates.",
     )
-    assumption: Annotated[str, Field(max_length=120)] | None = Field(
+    assumption: fitness_tools.Assumption | None = Field(
         default=None,
         description="The portion you assumed and where the numbers came from "
         "(label, web and the site, or estimate), e.g. 'breast quarter with "
@@ -1450,6 +1471,52 @@ def _waiting_expense(run: Run, d: RecordDraft) -> RecordCard | None:
     return None
 
 
+def same_plan(name: str, amount_minor: int, other: tuple[str, int | None]) -> bool:
+    """Two planned payments for one bill: the same name, ignoring case and
+    spacing, and the same amount."""
+
+    def norm(n: str) -> str:
+        return " ".join(n.lower().split())
+
+    return norm(name) == norm(other[0]) and amount_minor == other[1]
+
+
+def _planned_already(run: Run, name: str, amount_minor: int) -> dict[str, Any] | None:
+    """A repeating bill already scheduled, or already waiting for their OK
+    from an earlier message (one-time payments and instalments repeat
+    names and amounts on purpose, so they are never matched). Seen live (2026-11-06): Netflix ₱449 asked for
+    as recurring was added again on the next message, and two Netflix bills
+    showed in the planner."""
+    for card in _waiting(run):
+        q: dict[str, Any] = card.payload or {}
+        if (
+            q.get("kind") == "planned"
+            and q.get("day")
+            and same_plan(
+                name, amount_minor, (str(q.get("name") or ""), q.get("amount_minor"))
+            )
+        ):
+            return {
+                "card_id": str(card.id),
+                "state": card.state,
+                "already_waiting": True,
+                "instead": "it's already added and waiting for their OK; "
+                "don't add it again",
+            }
+    for p in ports.finance.list_planned_items(run.ctx):
+        if p.is_installment or p.is_what_if:
+            continue
+        if same_plan(name, amount_minor, (p.name, p.amount_minor)):
+            return {
+                "error": "already_scheduled",
+                "id": str(p.id),
+                "schedule": p.schedule,
+                "instead": "it's already in their planner; change it with "
+                "edit_scheduled only if something differs",
+            }
+    return None
+
+
 def _waiting_removal(run: Run, entity: str, ids: list[str]) -> RecordCard | None:
     want = set(ids)
     for card in _waiting(run):
@@ -1606,6 +1673,11 @@ def capture_tools(run: Run) -> list[BaseTool]:
             return {"error": "every_months_needs_day_of_month"}
         if a.due_date is not None and a.due_date < run.ctx.today - timedelta(days=60):
             return {"error": "due_date_is_long_past", "today": str(run.ctx.today)}
+        same = (
+            _planned_already(run, a.name, _minor(a.amount)) if a.day_of_month else None
+        )
+        if same is not None:
+            return same
         payload = {
             "kind": "planned",
             "name": a.name,
