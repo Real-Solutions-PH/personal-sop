@@ -59,6 +59,7 @@ import {
 import { go } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Screen } from "../ui"
+import { BuiltInMark } from "./fitness-exercises"
 import { LockedPreview } from "./locked-preview"
 import { BASIS_LABEL, FoodThumb, SAMPLE_FOODS } from "./nutrition-food-detail"
 
@@ -437,6 +438,7 @@ function FoodRow({
           </Line>
           <Line style={{ gap: 6, flexWrap: "wrap" }}>
             <SourceBadge origin={e.origin} label={e.label} />
+            {f?.is_global && <BuiltInMark />}
             <Copy size={12} muted>
               {e.amount} · P {n(e.protein)} · C {n(e.carbs)} · F {n(e.fat)} g
             </Copy>
