@@ -23,6 +23,7 @@ export const SITE = {
 // Where the primary call to action sends people. While the App Store listing
 // does not exist, every primary button goes to the waitlist form on the page.
 export const CTA = {
+  // The app is React Native and runs on iPhone and Android.
   // PLACEHOLDER: set to the App Store URL when the listing is live; the
   // buttons switch from "Join the waitlist" to "Download on the App Store".
   appStoreUrl: null as string | null,
@@ -33,7 +34,7 @@ export const CTA = {
   // The low-commitment line under every primary button. It must stay true:
   // the app still needs an account until local-only mode ships, so this
   // says "free to start" and "just an email", never "no account needed".
-  reassurance: "Free to start · just an email · iPhone first",
+  reassurance: "Free to start · just an email · iPhone and Android",
 } as const
 
 // The waitlist has no backend yet. When `endpoint` is null the form says so
@@ -58,8 +59,6 @@ export const PROOF = {
 export const FEATURE_STATUS = {
   // Local-only mode (no account, no sync) is in progress, not shipped.
   localOnlyMode: "coming-soon" as "coming-soon" | "shipped",
-  // Android build is not public.
-  android: "coming-soon" as "coming-soon" | "shipped",
 } as const
 
 // Credit for the music in the hero video (CC BY 4.0 requires attribution).

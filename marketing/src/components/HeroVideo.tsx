@@ -134,9 +134,6 @@ export function HeroVideo() {
           </button>
         </div>
       </div>
-      <figcaption className="video-caption">
-        17 seconds · sound off · captions on
-      </figcaption>
     </figure>
   )
 }

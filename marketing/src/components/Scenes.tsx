@@ -1,13 +1,14 @@
 "use client"
 
 import {
+  ArrowRight,
   BellRing,
-  CalendarX,
   Check,
   ClipboardList,
+  Flame,
   ScanSearch,
 } from "lucide-react"
-import { type RefObject, useEffect, useRef } from "react"
+import { type ReactNode, type RefObject, useEffect, useRef } from "react"
 import { STACK } from "@/config/pricing"
 import { loadMotion } from "@/lib/motion"
 import { Fern, type FernMood } from "./Fern"
@@ -108,28 +109,86 @@ export function ProblemSection() {
 
 // Act one, part two: the reasons people give for quitting a tracker, from
 // the 2026-11-07 research pass (app-store reviews, forum threads, published
-// studies), ordered by how broad the evidence is. Each carries what Unfurl
-// does instead, in a line. Static, like the stack above it.
-const REASONS = [
+// studies), ordered by how broad the evidence is. Each card shows the moment
+// as a small piece of interface: the old way, dimmed, then Unfurl's way.
+// Static, like the stack above it.
+const REASONS: {
+  problem: string
+  old: ReactNode
+  oldLabel: string
+  next: ReactNode
+  nextLabel: string
+}[] = [
   {
-    icon: <ClipboardList />,
     problem: "Logging turns into a chore.",
-    answer: "Say one sentence. Fern files every part.",
+    oldLabel: "Elsewhere: five apps, five forms",
+    old: (
+      <>
+        <ClipboardList aria-hidden="true" />5 apps, 5 forms
+      </>
+    ),
+    nextLabel: "Unfurl: one sentence to Fern",
+    next: (
+      <>
+        <Fern mood="listening" size={22} />
+        “Ran 5k, lunch $12, slept 7h”
+      </>
+    ),
   },
   {
-    icon: <CalendarX />,
     problem: "One missed day wipes the streak.",
-    answer: "A grace day covers it.",
+    oldLabel: "Elsewhere: a 47-day streak drops to 0",
+    old: (
+      <>
+        <Flame aria-hidden="true" />
+        <span className="tnum">47</span>
+        <ArrowRight className="pb-step" aria-hidden="true" />
+        <span className="tnum">0</span>
+      </>
+    ),
+    nextLabel: "Unfurl: a grace day keeps it at 47",
+    next: (
+      <>
+        <Flame aria-hidden="true" />
+        <span className="tnum">47</span>
+        <span className="pb-chip">Grace day</span>
+      </>
+    ),
   },
   {
-    icon: <ScanSearch />,
     problem: "Quick logging you can't trust.",
-    answer: "See where each part landed, and undo it.",
+    oldLabel: "Elsewhere: a number with no way to check it",
+    old: (
+      <>
+        <ScanSearch aria-hidden="true" />
+        Lunch <span className="tnum">1,240 kcal?</span>
+      </>
+    ),
+    nextLabel: "Unfurl: an estimate you can see and undo",
+    next: (
+      <>
+        <Check aria-hidden="true" />
+        Lunch, about <span className="tnum">640 kcal</span>
+        <span className="pb-chip">Undo</span>
+      </>
+    ),
   },
   {
-    icon: <BellRing />,
     problem: "Reminders start to scold.",
-    answer: "Fern notices what you did. It doesn't nag.",
+    oldLabel: "Elsewhere: a scolding reminder",
+    old: (
+      <>
+        <BellRing aria-hidden="true" />
+        “You missed your goal. Again.”
+      </>
+    ),
+    nextLabel: "Unfurl: Fern notices what you did",
+    next: (
+      <>
+        <Fern mood="celebrating" size={22} />
+        “Twelve days in a row.”
+      </>
+    ),
   },
 ]
 
@@ -140,17 +199,19 @@ export function ReasonsSection() {
         <h2 className="h2" id="reasons-title" data-no-split>
           Why people quit trackers.
         </h2>
-        <ul className="reasons">
+        <ul className="problems">
           {REASONS.map((r) => (
-            <li key={r.problem}>
-              <span className="rs-icon" aria-hidden="true">
-                {r.icon}
-              </span>
-              <b>{r.problem}</b>
-              <span className="rs-answer">
-                <Check aria-hidden="true" />
-                {r.answer}
-              </span>
+            <li key={r.problem} className="pb-card">
+              <h3>{r.problem}</h3>
+              <div className="pb-flow">
+                <span className="pb-old" role="img" aria-label={r.oldLabel}>
+                  {r.old}
+                </span>
+                <ArrowRight className="pb-arrow" aria-hidden="true" />
+                <span className="pb-new" role="img" aria-label={r.nextLabel}>
+                  {r.next}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

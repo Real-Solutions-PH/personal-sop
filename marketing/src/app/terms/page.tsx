@@ -18,7 +18,7 @@ export default function Terms() {
         },
         {
           heading: "Plans and limits",
-          body: "The free plan includes a daily Fern allowance. Paid plans carry a fair-use limit stated in the app. Subscriptions are billed and cancelled through the App Store.",
+          body: "The free plan includes a daily Fern allowance. Paid plans carry a fair-use limit stated in the app. Subscriptions are billed and cancelled through the App Store or Google Play.",
         },
         {
           heading: "Your content",

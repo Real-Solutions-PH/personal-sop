@@ -127,11 +127,8 @@ const FAQ: { q: string; a: ReactNode }[] = [
         : "For now, an email sign-in. A mode with no account is coming.",
   },
   {
-    q: "Is it on Android?",
-    a:
-      FEATURE_STATUS.android === "shipped"
-        ? "Yes, on Google Play."
-        : "iPhone comes first. The waitlist gets an email when Android is ready.",
+    q: "Is it on iPhone and Android?",
+    a: "Yes. Unfurl runs on iPhone and Android.",
   },
 ]
 
@@ -141,7 +138,7 @@ export default function Home() {
     "@type": "SoftwareApplication",
     name: SITE.name,
     applicationCategory: "LifestyleApplication",
-    operatingSystem: "iOS",
+    operatingSystem: "iOS, Android",
     description: SITE.description,
     publisher: { "@type": "Organization", name: SITE.company },
   }
