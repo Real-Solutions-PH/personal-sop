@@ -3,7 +3,6 @@ import { AREA, MODULE_KEYS, orderModules } from "@domain/dash/data"
 import { fmtGoal, useGoals, useLifeScore } from "@domain/dash/hooks"
 import {
   dashStore,
-  moveModule,
   resetWeights,
   saveProfileEdits,
   setEnabled,
@@ -57,7 +56,6 @@ import {
 import { go } from "../navigation"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
-import { ReorderList } from "../reorder-list"
 import { enableScreenTime } from "../screen-sync"
 import { screenTimeAvailable } from "../screen-time"
 import { checkUsername, usernameError } from "../session"
@@ -607,89 +605,84 @@ export function Settings() {
               }
             />
           </Line>
-          <ReorderList
-            keys={orderModules(s.order)}
-            label={(k) => AREA[k].label}
-            onMove={moveModule}
-            renderRow={(k, grip) => {
-              const m = modules[k],
-                I = m.icon
-              const toggle = () =>
-                s.enabled[k]
-                  ? confirm(
-                      `Turn off ${AREA[k].label}?`,
-                      "Its cards, stats, share fields and misses hide. Your data is kept — turn it back on anytime.",
-                      () => setEnabled(k, false),
-                    )
-                  : turnOn(k)
-              return (
-                <View
-                  style={{
-                    paddingVertical: 8,
-                    borderBottomWidth: 1,
-                    borderBottomColor: border(t.line, 0.5),
-                  }}
-                >
-                  <Line style={{ gap: 8, paddingVertical: 4 }}>
-                    {grip}
-                    <View
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 14,
-                        backgroundColor: border(t[m.color], 0.15),
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <I size={16} color={t[m.color]} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Copy weight="medium">{AREA[k].label}</Copy>
-                      {k === "screen" && !screenTimeAvailable() && (
-                        <Copy size={12} muted>
-                          Not in this version of Unfurl yet
-                        </Copy>
-                      )}
-                    </View>
-                    <Switch
-                      compact
-                      accent="primary"
-                      label={AREA[k].label}
-                      value={s.enabled[k]}
-                      onChange={toggle}
-                    />
-                  </Line>
-                  {s.enabled[k] && (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        flexWrap: "wrap",
-                        gap: 6,
-                        paddingLeft: 76,
-                        marginTop: 4,
-                      }}
-                    >
-                      {m.links.map(([label, href]) => (
-                        <Tap
-                          key={href}
-                          onPress={() => go(href)}
-                          style={{
-                            borderRadius: 20,
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            backgroundColor: t.soft,
-                          }}
-                        >
-                          <Copy size={12}>{label}</Copy>
-                        </Tap>
-                      ))}
-                    </View>
-                  )}
-                </View>
-              )
-            }}
-          />
+          {orderModules(s.order).map((k) => {
+            const m = modules[k],
+              I = m.icon
+            const toggle = () =>
+              s.enabled[k]
+                ? confirm(
+                    `Turn off ${AREA[k].label}?`,
+                    "Its cards, stats, share fields and misses hide. Your data is kept — turn it back on anytime.",
+                    () => setEnabled(k, false),
+                  )
+                : turnOn(k)
+            return (
+              <View
+                key={k}
+                style={{
+                  paddingVertical: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: border(t.line, 0.5),
+                }}
+              >
+                <Line style={{ gap: 12, paddingVertical: 4 }}>
+                  <View
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: border(t[m.color], 0.15),
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <I size={16} color={t[m.color]} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Copy weight="medium">{AREA[k].label}</Copy>
+                    {k === "screen" && !screenTimeAvailable() && (
+                      <Copy size={12} muted>
+                        Not in this version of Unfurl yet
+                      </Copy>
+                    )}
+                  </View>
+                  <Switch
+                    compact
+                    accent="primary"
+                    label={AREA[k].label}
+                    value={s.enabled[k]}
+                    onChange={toggle}
+                  />
+                </Line>
+                {s.enabled[k] && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: 6,
+                      paddingLeft: 40,
+                      marginTop: 4,
+                    }}
+                  >
+                    {m.links.map(([label, href]) => (
+                      <Tap
+                        key={href}
+                        onPress={() => go(href)}
+                        style={{
+                          borderRadius: 20,
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          backgroundColor: t.soft,
+                        }}
+                      >
+                        <Copy size={12}>{label}</Copy>
+                      </Tap>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )
+          })}
           {EXTRAS.map((x) => {
             const I = extraIcon[x.key]
             return (
@@ -737,10 +730,6 @@ export function Settings() {
             </Copy>
           </Line>
         </Frame>
-        <Copy size={12} muted style={{ marginTop: 4, paddingHorizontal: 4 }}>
-          Drag a section by its grip to set the order of its cards on Today and
-          in Your apps.
-        </Copy>
         <Frame
           style={{ paddingHorizontal: 8, paddingVertical: 4, marginTop: 12 }}
         >
