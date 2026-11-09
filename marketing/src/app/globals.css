@@ -597,69 +597,6 @@ section {
   height: 14px;
 }
 
-/* ---------- Features ---------- */
-.features {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(2, 1fr);
-}
-@media (min-width: 1024px) {
-  .features {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-.feature {
-  padding: 20px;
-  border-radius: var(--radius-card);
-  background: var(--card);
-  border: 1px solid var(--border);
-  display: grid;
-  gap: 8px;
-  align-content: start;
-}
-@media (max-width: 599px) {
-  .feature {
-    padding: 14px;
-  }
-}
-.feature-head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.feature-head .tile {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: grid;
-  place-items: center;
-  background: var(--muted);
-  color: var(--k);
-}
-.feature-head svg {
-  width: 18px;
-  height: 18px;
-}
-.feature h3 {
-  font-size: 17px;
-  font-weight: 600;
-}
-.feature .say {
-  font-size: 14px;
-  color: var(--foreground);
-  background: var(--muted);
-  padding: 6px 10px;
-  border-radius: 12px 12px 12px 4px;
-  justify-self: start;
-}
-.feature.fern-card {
-  background: var(--mist);
-  border-color: transparent;
-}
-
 /* ---------- Way back / streak ring ---------- */
 .wayback-grid {
   display: grid;
@@ -1870,7 +1807,8 @@ section {
   background: var(--k);
   transform-origin: left;
 }
-.st-fern {
+.st-fern,
+.st-ask {
   display: none;
 }
 .st-tile {
@@ -1924,7 +1862,7 @@ section {
 /* Pinned mode: the stage sticks for the length of the track and the steps
    stack in one grid cell to cross-fade. */
 .motion-ok .st-track {
-  height: 460vh;
+  height: 560vh;
 }
 .motion-ok .st-stage {
   position: sticky;
@@ -1936,7 +1874,7 @@ section {
   grid-area: 1 / 1;
 }
 .motion-ok .st-rail i {
-  transform: scaleY(0.25);
+  transform: scaleY(0.2);
 }
 .motion-ok .st-chat {
   will-change: transform, opacity;
@@ -2034,62 +1972,6 @@ section {
   .motion-ok .sc-split {
     grid-template-rows: auto minmax(0, 1fr);
   }
-}
-
-/* Fern: five moods, one per stretch of scroll. */
-.fs-lines {
-  list-style: none;
-  margin: 24px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 16px;
-}
-.fs-line {
-  font-size: clamp(18px, 2.2vw, 22px);
-  font-weight: 500;
-  text-wrap: balance;
-}
-.fs-line small {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--muted-foreground);
-}
-.fs-dots {
-  display: none;
-}
-.fs-stage {
-  display: grid;
-  place-items: center;
-  min-height: 0;
-}
-.fs-fern {
-  grid-area: 1 / 1;
-}
-.fs-fern + .fs-fern {
-  display: none;
-}
-.fs-fern .fern-img {
-  width: min(380px, 46svh);
-  height: auto;
-}
-.motion-ok .fs-line {
-  grid-area: 1 / 1;
-}
-.motion-ok .fs-fern + .fs-fern {
-  display: block;
-}
-.motion-ok .fs-dots {
-  display: flex;
-  gap: 8px;
-  margin-top: 24px;
-}
-.fs-dots i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--primary);
 }
 
 /* Sharing: the app's real share cards. */
@@ -2229,21 +2111,6 @@ section {
   font-size: 13px;
   color: var(--muted-foreground);
 }
-.rs-tile {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  color: var(--k);
-  background: color-mix(in srgb, var(--k) 14%, transparent);
-}
-.rs-tile svg {
-  width: 15px;
-  height: 15px;
-}
 .rs-week {
   display: flex;
   gap: 8px;
@@ -2279,27 +2146,6 @@ section {
 .rs-sub {
   font-size: 13px;
   color: var(--muted-foreground);
-}
-.rs-meal {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: var(--muted);
-  font-size: 15px;
-}
-.rs-q {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--bad);
 }
 .rs-note {
   display: flex;
@@ -2392,50 +2238,6 @@ section {
 .rs-tally.good {
   color: var(--good);
 }
-.rs-pile {
-  position: relative;
-  width: 100%;
-  height: 176px;
-}
-.rs-app {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  display: grid;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: 14px;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
-  translate: calc((var(--i) - 2) * 6px) calc(var(--i) * 26px);
-  rotate: calc((var(--i) - 2) * 1.5deg);
-  text-align: left;
-}
-.rs-app-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-}
-.rs-app .rs-tile {
-  width: 22px;
-  height: 22px;
-}
-.rs-steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.rs-step {
-  padding: 2px 7px;
-  border-radius: 999px;
-  font-size: 11px;
-  color: var(--muted-foreground);
-  border: 1px dashed var(--input);
-  white-space: nowrap;
-}
 .rs-sub.bad {
   color: var(--bad);
   font-weight: 600;
@@ -2463,4 +2265,268 @@ section {
   width: 28px;
   height: 28px;
   align-self: center;
+}
+
+/* The long form: a window onto a form taller than itself, scrolled by the
+   scene; its ends fade so it reads as more above and below. */
+.rs-window {
+  display: block;
+  width: 100%;
+  height: 170px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--muted);
+  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+}
+.rs-scroll {
+  display: grid;
+  gap: 6px;
+  padding: 18px 12px;
+  text-align: left;
+}
+.rs-head {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #fff;
+  background: color-mix(in srgb, var(--info) 70%, #000);
+}
+.rs-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 12px;
+}
+.rs-row small {
+  color: var(--muted-foreground);
+}
+.rs-btn {
+  justify-self: stretch;
+  padding: 6px 10px;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: color-mix(in srgb, var(--info) 80%, #000);
+}
+.rs-paywall {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.rs-paywall small {
+  color: var(--muted-foreground);
+}
+.rs-paywall .rs-btn {
+  margin-top: 4px;
+  justify-self: center;
+  padding: 6px 16px;
+  background: var(--warn);
+}
+.rs-viewfinder {
+  position: relative;
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  width: 150px;
+  height: 110px;
+  border-radius: 10px;
+  background:
+    linear-gradient(var(--foreground), var(--foreground)) top left / 18px 2px,
+    linear-gradient(var(--foreground), var(--foreground)) top left / 2px 18px,
+    linear-gradient(var(--foreground), var(--foreground)) top right / 18px 2px,
+    linear-gradient(var(--foreground), var(--foreground)) top right / 2px 18px,
+    linear-gradient(var(--foreground), var(--foreground)) bottom left / 18px 2px,
+    linear-gradient(var(--foreground), var(--foreground)) bottom left / 2px 18px,
+    linear-gradient(var(--foreground), var(--foreground)) bottom right / 18px
+    2px,
+    linear-gradient(var(--foreground), var(--foreground)) bottom right / 2px
+    18px;
+  background-repeat: no-repeat;
+}
+.rs-viewfinder small {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.rs-plate {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 45%, #e9d8a6 0 30%, transparent 31%),
+    radial-gradient(circle at 62% 58%, #c98a4b 0 22%, transparent 23%),
+    radial-gradient(circle at 35% 68%, #6aa84f 0 12%, transparent 13%),
+    radial-gradient(circle, #f4f1ea 0 64%, #d9d4c7 65% 100%);
+}
+.rs-result {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 13px;
+}
+.rs-kcal {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.rs-result small {
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+
+/* Story beat 5: a question about the week and Fern's answer, with a chart. */
+.motion-ok .st-ask {
+  position: absolute;
+  top: 60px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.st-answer {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px 16px 16px 4px;
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.st-answer-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.st-answer-head .fern-img {
+  width: 36px;
+  height: 36px;
+}
+.st-week {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: end;
+  gap: 6px;
+  height: 84px;
+}
+.st-day {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  justify-items: center;
+  height: 100%;
+  gap: 4px;
+}
+.st-week i {
+  position: relative;
+  align-self: end;
+  width: 100%;
+  border-radius: 4px 4px 2px 2px;
+  background: color-mix(in srgb, var(--fit) 40%, transparent);
+  transform-origin: bottom;
+}
+.st-week i.hi {
+  background: var(--fit);
+}
+.st-week i small {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  translate: -50% -2px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fit);
+}
+.st-week small {
+  font-size: 10px;
+  color: var(--muted-foreground);
+}
+.st-insight {
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.st-insight b {
+  color: var(--good);
+}
+
+/* Feature gallery: real app screens as tiles. */
+.gl-stage {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  text-align: center;
+}
+.gl-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  justify-content: center;
+  gap: 20px 16px;
+  text-align: left;
+}
+.gl-tile {
+  display: grid;
+  gap: 6px;
+  width: calc(min(320px, (100svh - 310px) / 2) * 480 / 1039);
+}
+.gl-tile img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+}
+.gl-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.gl-name svg {
+  width: 15px;
+  height: 15px;
+  color: var(--k);
+}
+/* Wide screens: a still grid, no pinning. */
+@media (min-width: 900px) {
+  .motion-ok .gallery .sc-track {
+    height: auto;
+  }
+  .motion-ok .gallery .sc-stage {
+    position: static;
+    height: auto;
+    padding-block: 72px;
+  }
+}
+/* Narrow screens: two rows of tiles, wider than the screen, slid by scroll. */
+@media (max-width: 899px) {
+  .gl-strip {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, auto);
+    justify-content: start;
+    justify-self: start;
+    width: 100%;
+  }
+  .gl-tile {
+    width: calc(min(300px, (100svh - 300px) / 2) * 480 / 1039);
+  }
+  .motion-ok .gallery .gl-strip {
+    overflow: visible;
+  }
 }

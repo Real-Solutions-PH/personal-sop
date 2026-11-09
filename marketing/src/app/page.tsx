@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   BookOpen,
+  ChartColumn,
   Check,
   CloudOff,
   Download,
@@ -9,6 +10,7 @@ import {
   MessageCircle,
   RefreshCw,
   Smartphone,
+  Sun,
   Target,
   Timer,
   Utensils,
@@ -21,7 +23,7 @@ import { Logo } from "@/components/Logo"
 import { PrimaryCta } from "@/components/PrimaryCta"
 import { Reveal } from "@/components/Reveal"
 import {
-  FernScene,
+  FeatureGallery,
   ProblemSection,
   ReasonsSection,
   ShareScene,
@@ -40,70 +42,85 @@ import {
 } from "@/config/pricing"
 import { CTA, FEATURE_STATUS, SITE } from "@/config/site"
 
+// Every area, as the app shows it: a real screen from the app's demo build
+// (mobile/src/prototype, captured 2026-11-09 in US dollars with neutral demo
+// names), with one line on what it does.
 const FEATURES: {
   k: string
   icon: ReactNode
   name: string
-  say: string
+  shot: string
   text: string
-  fern?: boolean
 }[] = [
+  {
+    k: "var(--primary)",
+    icon: <Sun aria-hidden />,
+    name: "Today",
+    shot: "today",
+    text: "Your plan, your week's review and what slipped.",
+  },
+  {
+    k: "var(--primary)",
+    icon: <MessageCircle aria-hidden />,
+    name: "Fern",
+    shot: "capture",
+    text: "Tell it anything; it asks when unsure.",
+  },
   {
     k: "var(--hab)",
     icon: <Target aria-hidden />,
     name: "Habits",
-    say: "meditated 10 min",
-    text: "Routines, streaks and perfect days, with a check-off you can feel.",
+    shot: "habits",
+    text: "Routines, streaks and perfect days.",
   },
   {
     k: "var(--tsk)",
     icon: <ListChecks aria-hidden />,
     name: "Tasks",
-    say: "call the dentist tomorrow at 9",
-    text: "Due times and one-tap Done, Today or Tomorrow.",
+    shot: "tasks",
+    text: "Due times and one-tap triage.",
   },
   {
     k: "var(--fit)",
     icon: <Dumbbell aria-hidden />,
     name: "Training",
-    say: "squat 5x5 at 80kg",
-    text: "Routines, sets with the gain since last time, PRs and a rest timer.",
+    shot: "fitness",
+    text: "Routines, sets vs last time, runs.",
   },
   {
     k: "var(--nut)",
     icon: <Utensils aria-hidden />,
     name: "Food",
-    say: "📷 photo of lunch",
-    text: "Meals with macros. A photo gives an estimate you can adjust.",
+    shot: "nutrition",
+    text: "Meals, macros and nutrients.",
   },
   {
     k: "var(--fin)",
     icon: <Wallet aria-hidden />,
     name: "Money",
-    say: "coffee 4.50",
-    text: "Expenses, accounts, budgets, bills and where the month is heading.",
+    shot: "finance",
+    text: "Spending, bills and what's coming.",
   },
   {
     k: "var(--jnl)",
     icon: <BookOpen aria-hidden />,
     name: "Journal",
-    say: "good talk with mum tonight",
-    text: "A line about your day, kept next to everything else you did.",
+    shot: "journal",
+    text: "A line a day, and your mood over time.",
   },
   {
     k: "var(--foc)",
     icon: <Timer aria-hidden />,
     name: "Focus",
-    say: "focus 25 on the essay",
-    text: "Pomodoro and stopwatch sessions that record where the time went.",
+    shot: "focus",
+    text: "Pomodoro and stopwatch, recorded.",
   },
   {
-    k: "var(--primary)",
-    icon: <MessageCircle aria-hidden />,
-    name: "Ask Fern",
-    say: "when did I last train legs?",
-    text: "Answers from your own records, with the chart to show it.",
-    fern: true,
+    k: "var(--life)",
+    icon: <ChartColumn aria-hidden />,
+    name: "Stats",
+    shot: "stats",
+    text: "Every area against its target, and patterns.",
   },
 ]
 
@@ -196,39 +213,8 @@ export default function Home() {
         {/* Act two, the solution: the pinned, scroll-scrubbed story. */}
         <ScrollStory />
 
-        {/* Features grid. */}
-        <section
-          id="features"
-          aria-labelledby="features-title"
-          style={{ paddingTop: 0 }}
-        >
-          <div className="wrap">
-            <div className="section-head reveal">
-              <h2 className="h2" id="features-title">
-                Seven areas of your day. One way in.
-              </h2>
-            </div>
-            <ul className="features">
-              {FEATURES.map((f) => (
-                <li
-                  key={f.name}
-                  className={`feature reveal ${f.fern ? "fern-card" : ""}`}
-                  data-tilt="5"
-                  style={{ ["--k" as string]: f.k }}
-                >
-                  <span className="feature-head">
-                    <span className="tile">{f.icon}</span>
-                    <h3>{f.name}</h3>
-                  </span>
-                  <span className="say">“{f.say}”</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </section>
-
-        {/* Act three, the showcase: Fern, streaks, sharing, privacy. */}
-        <FernScene />
+        {/* Every area as a real app screen: an appendix of tiles. */}
+        <FeatureGallery features={FEATURES} />
 
         {/* Grace day and the way back (PR 331). */}
         <section id="way-back" aria-labelledby="wayback-title">

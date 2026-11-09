@@ -101,10 +101,26 @@ const STEPS: { title: string; body: string }[] = [
     title: "Five apps, folded into one",
     body: "One sentence. Nothing to fill in.",
   },
+  {
+    title: "Ask Fern anything",
+    body: "It reads your records and answers with a chart, like asking an assistant about your own data.",
+  },
+]
+
+// Beat 5: a question, answered from the very records step 2 filed: the
+// run joins the 5k history (bar height is the time, shorter is faster; each
+// bar is scaled from 26:00 up to the slowest run), and the groceries come off
+// this week's food budget ($80 - $46.20 leaves about $34, as step 3 shows).
+const RUNS: { d: string; t: string; v: number }[] = [
+  { d: "1", t: "29:40", v: 0.9 },
+  { d: "2", t: "29:10", v: 0.78 },
+  { d: "3", t: "30:05", v: 1 },
+  { d: "4", t: "28:50", v: 0.69 },
+  { d: "Today", t: "28:00", v: 0.49 },
 ]
 
 // A pinned, scroll-scrubbed walk through the core loop. The stage stays on
-// screen while scrolling plays four beats: the sentence appears word by word,
+// screen while scrolling plays five beats: the sentence appears word by word,
 // splits into three records, the day fills in, and the seven area tiles fold
 // into the phone. Scrolling back plays it in reverse.
 //
@@ -257,7 +273,41 @@ export function ScrollStory() {
           { autoAlpha: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(2)" },
           6.8,
         )
-        tl.to({}, { duration: 0.6 }, 7.5)
+
+        // Beat 5: a question, and Fern answers from the records with a chart
+        // and what it notices.
+        showStep(tl, 4, 8)
+        tl.to(
+          [q(".st-today"), q(".st-fern")],
+          { autoAlpha: 0, y: -40, duration: 0.5 },
+          8,
+        )
+        tl.to(q(".st-phone"), { scale: 1, duration: 0.6 }, 8)
+        tl.fromTo(
+          q(".st-ask-q"),
+          { autoAlpha: 0, y: 20 },
+          { autoAlpha: 1, y: 0, duration: 0.4 },
+          8.3,
+        )
+        tl.fromTo(
+          q(".st-answer"),
+          { autoAlpha: 0, y: 24 },
+          { autoAlpha: 1, y: 0, duration: 0.5 },
+          8.7,
+        )
+        tl.fromTo(
+          q(".st-week i"),
+          { scaleY: 0 },
+          { scaleY: 1, stagger: 0.05, duration: 0.4 },
+          8.9,
+        )
+        tl.fromTo(
+          q(".st-insight"),
+          { autoAlpha: 0, x: -12 },
+          { autoAlpha: 1, x: 0, stagger: 0.2, duration: 0.35 },
+          9.3,
+        )
+        tl.to({}, { duration: 0.6 }, 9.9)
 
         // Pointer tilt on top of the scroll pose, on a separate wrapper so the
         // two never fight over one transform.
@@ -421,6 +471,40 @@ export function ScrollStory() {
                       <Fern mood="celebrating" size={132} />
                       <span>Nice day. All three are in.</span>
                     </div>
+                    <div className="st-ask">
+                      <p className="st-bubble st-ask-q">
+                        How am I doing this week?
+                      </p>
+                      <div className="st-answer">
+                        <span className="st-answer-head">
+                          <Fern mood="speaking" size={36} />
+                          <b>Your 5k times</b>
+                        </span>
+                        <span className="st-week">
+                          {RUNS.map((r) => (
+                            <span key={r.d} className="st-day">
+                              <i
+                                className={r.d === "Today" ? "hi" : ""}
+                                style={{ height: `${r.v * 100}%` }}
+                              >
+                                {r.d === "Today" && (
+                                  <small className="num">{r.t}</small>
+                                )}
+                              </i>
+                              <small>{r.d}</small>
+                            </span>
+                          ))}
+                        </span>
+                        <p className="st-insight">
+                          Today's <b className="num">28:00</b> is your fastest
+                          5k yet, 1:40 under your first.
+                        </p>
+                        <p className="st-insight">
+                          The groceries leave <b className="num">$34</b> of this
+                          week's food budget.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -433,7 +517,9 @@ export function ScrollStory() {
         Example: you type “ran 5k in 28 min, groceries 46.20, call mum on
         sunday”. Fern logs a 5 km run in 28 minutes, a $46.20 grocery expense
         and a task to call mum on Sunday, and your day&apos;s training, food
-        budget and tasks update.
+        budget and tasks update. Ask “How&apos;s my week going?” and Fern
+        answers from your records with a chart of food spend per day: $34 under
+        budget, and tasks slip on Tuesdays.
       </p>
     </section>
   )

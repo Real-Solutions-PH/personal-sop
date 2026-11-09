@@ -1,19 +1,9 @@
 "use client"
 
-import {
-  BellRing,
-  Check,
-  Dumbbell,
-  Flame,
-  ListChecks,
-  Target,
-  Utensils,
-  Wallet,
-} from "lucide-react"
+import { BellRing, Check, Flame } from "lucide-react"
 import { type ReactNode, type RefObject, useEffect, useRef } from "react"
 import { STACK } from "@/config/pricing"
 import { loadMotion } from "@/lib/motion"
-import { Fern, type FernMood } from "./Fern"
 
 type Gsap = NonNullable<Awaited<ReturnType<typeof loadMotion>>>["gsap"]
 type Build = (
@@ -117,91 +107,85 @@ export function ProblemSection() {
 // reason inside a small app screen: the pieces arrive (`rs-i`), a tally
 // counts (`data-count`), then it turns for the worse (`rs-late` arrives,
 // `rs-gone` leaves). Without motion it reads as a list of the four reasons.
-const AREA = {
-  fit: { name: "Fitness", icon: <Dumbbell />, k: "var(--fit)" },
-  nut: { name: "Nutrition", icon: <Utensils />, k: "var(--nut)" },
-  fin: { name: "Money", icon: <Wallet />, k: "var(--fin)" },
-  hab: { name: "Habits", icon: <Target />, k: "var(--hab)" },
-  tsk: { name: "Tasks", icon: <ListChecks />, k: "var(--tsk)" },
-}
-type AreaKey = keyof typeof AREA
+// Each beat recalls the kind of app people quit, without naming one: the
+// food log and budget app's long forms, the streak app's paywall, the photo
+// scanner's confident number, the reminder that guilt-trips. Shapes and
+// wording are generic; no logo, mascot or brand colour is copied.
 
-const Tile = ({ a }: { a: AreaKey }) => (
-  <span className="rs-tile" style={{ ["--k" as string]: AREA[a].k }}>
-    {AREA[a].icon}
-  </span>
-)
-
-// One day, logged by hand across five apps: every step is one tap.
-const CHORE: [AreaKey, string[]][] = [
-  ["fit", ["Open", "Pick workout", "Add set", "Type reps", "Save"]],
-  ["nut", ["Open", "Search “rice”", "Pick portion", "Save"]],
-  ["fin", ["Open", "Type 12.00", "Pick category", "Save"]],
-  ["hab", ["Open", "Find habit", "Tick"]],
-  ["tsk", ["Open", "New task", "Type it", "Set date", "Save"]],
-]
-const TAPS = CHORE.reduce((n, [, steps]) => n + steps.length, 0)
+// One lunch, logged by hand: a food entry, then the same lunch as an
+// expense. Every row is a field to fill or a tap; the tally counts rows.
+const LUNCH: { head?: string; label?: string; value?: string; tap?: string }[] =
+  [
+    { head: "Add food" },
+    { label: "Search", value: "chicken rice" },
+    { label: "Pick a match", value: "Chicken rice (generic) · 1 cup" },
+    { label: "Serving size", value: "1 cup ▾" },
+    { label: "Servings", value: "1.5" },
+    { label: "Meal", value: "Lunch ▾" },
+    { label: "Time", value: "12:40" },
+    { tap: "Add" },
+    { head: "Add transaction" },
+    { label: "Payee", value: "Food stall" },
+    { label: "Category", value: "Eating out ▾" },
+    { label: "Account", value: "Debit card ▾" },
+    { label: "Outflow", value: "12.00" },
+    { label: "Memo", value: "lunch" },
+    { tap: "Save" },
+  ]
+const FIELDS = LUNCH.filter((r) => !r.head).length
 
 const NAGS = [
-  "You missed your goal. Again.",
-  "Don't break your streak!",
-  "You haven't logged lunch.",
-  "Still no workout today?",
+  "You're about to lose your 412-day streak!",
+  "These reminders don't seem to work. We'll stop for now.",
+  "You haven't logged lunch. Again.",
+  "Unlock your insights with Premium.",
 ]
 
 const REASONS: { problem: string; feel: string; scene: ReactNode }[] = [
   {
     problem: "Logging turns into a chore.",
-    feel: "Five apps, five forms, every single day.",
+    feel: "One lunch: a food log, then the same lunch again as an expense.",
     scene: (
       <>
         <span className="rs-tally rs-i">
-          <span className="tnum" data-count={TAPS}>
+          <span className="tnum" data-count={FIELDS}>
             0
           </span>
-          <small>taps to log one day</small>
+          <small>fields to log one lunch</small>
         </span>
-        <span className="rs-pile">
-          {CHORE.map(([a, steps], i) => (
-            <span
-              key={a}
-              className="rs-app rs-i"
-              style={{ ["--i" as string]: i }}
-            >
-              <span className="rs-app-head">
-                <Tile a={a} />
-                <b>{AREA[a].name} app</b>
-              </span>
-              <span className="rs-steps">
-                {steps.map((st) => (
-                  <span key={st} className="rs-step">
-                    {st}
-                  </span>
-                ))}
-              </span>
-            </span>
-          ))}
+        <span className="rs-window">
+          <span className="rs-scroll">
+            {LUNCH.map((r, i) =>
+              r.head ? (
+                <b key={r.head} className="rs-head">
+                  {r.head}
+                </b>
+              ) : r.tap ? (
+                <span key={r.tap} className="rs-btn">
+                  {r.tap}
+                </span>
+              ) : (
+                <span key={`${r.label}${i}`} className="rs-row">
+                  <small>{r.label}</small>
+                  <span>{r.value}</span>
+                </span>
+              ),
+            )}
+          </span>
         </span>
-        <small className="rs-sub bad rs-late">…and that's one day.</small>
+        <small className="rs-sub bad rs-late">…and that's one lunch.</small>
       </>
     ),
   },
   {
     problem: "One missed day wipes the streak.",
-    feel: "Weeks of showing up, gone overnight.",
+    feel: "Hundreds of days of showing up, gone overnight. Unless you pay.",
     scene: (
       <>
-        <small className="rs-cap rs-i">Morning workout</small>
-        <span className="rs-week" aria-hidden="true">
-          {[0, 1, 2, 3, 4, 5].map((d) => (
-            <i key={d} className="rs-i" />
-          ))}
-          <i className="rs-miss rs-late" />
-        </span>
         <span className="rs-swap">
           <span className="rs-count good rs-i rs-gone">
             <Flame aria-hidden="true" />
-            <span className="tnum" data-count={47}>
+            <span className="tnum" data-count={412}>
               0
             </span>
           </span>
@@ -210,24 +194,39 @@ const REASONS: { problem: string; feel: string; scene: ReactNode }[] = [
             <span className="tnum">0</span>
           </span>
         </span>
-        <small className="rs-sub bad rs-late">Streak reset · was 47</small>
+        <small className="rs-cap rs-i">day streak</small>
+        <span className="rs-week" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5].map((d) => (
+            <i key={d} className="rs-i" />
+          ))}
+          <i className="rs-miss rs-late" />
+        </span>
+        <span className="rs-paywall rs-late">
+          <b>Your streak is gone</b>
+          <small>Restore all 412 days?</small>
+          <span className="rs-btn">Restore with Premium</span>
+        </span>
       </>
     ),
   },
   {
     problem: "Quick logging you can't trust.",
-    feel: "A number from a photo, and no way to check it.",
+    feel: "A confident number from a photo, and no way to check it.",
     scene: (
       <>
-        <small className="rs-cap rs-i">Meal photo</small>
-        <span className="rs-meal rs-i">
-          <Tile a="nut" />
-          <b>Lunch</b>
-          <span className="tnum" data-count={1240}>
-            0
+        <span className="rs-viewfinder rs-i">
+          <span className="rs-plate" />
+          <small>Analyzing…</small>
+        </span>
+        <span className="rs-result rs-i">
+          <b>Chicken rice</b>
+          <span className="rs-kcal">
+            <span className="tnum" data-count={1240}>
+              0
+            </span>{" "}
+            kcal
           </span>
-          kcal
-          <span className="rs-q">?</span>
+          <small>Protein 38 g · Carbs 160 g · Fat 42 g</small>
         </span>
         <span className="rs-doubts">
           <span className="rs-doubt rs-late">Was that the whole plate?</span>
@@ -239,7 +238,7 @@ const REASONS: { problem: string; feel: string; scene: ReactNode }[] = [
   },
   {
     problem: "Reminders start to scold.",
-    feel: "The app that was meant to help starts telling you off.",
+    feel: "The app that was meant to help starts guilt-tripping you.",
     scene: (
       <>
         <span className="rs-tally rs-i">
@@ -303,6 +302,19 @@ export function ReasonsSection() {
             },
           },
           start,
+        )
+      }
+      // A form longer than the screen scrolls past while its tally climbs.
+      for (const sc of p.querySelectorAll<HTMLElement>(".rs-scroll")) {
+        const win = sc.parentElement as HTMLElement
+        tl.to(
+          sc,
+          {
+            y: () => -Math.max(0, sc.scrollHeight - win.clientHeight),
+            duration: 0.45,
+            ease: "none",
+          },
+          start + 0.05,
         )
       }
       // Then it turns for the worse.
@@ -369,108 +381,22 @@ export function ReasonsSection() {
   )
 }
 
-const MOODS: { id: FernMood; when: string; line: string }[] = [
-  {
-    id: "listening",
-    when: "While you talk",
-    line: "Go on. I'm getting all of it.",
-  },
-  {
-    id: "thinking",
-    when: "While it files",
-    line: "Lunch to money, bench to today's workout.",
-  },
-  {
-    id: "speaking",
-    when: "When you ask",
-    line: "$86 on food since Monday, $14 more than last week.",
-  },
-  {
-    id: "celebrating",
-    when: "When you finish",
-    line: "Today's plan is done. Twelve days in a row.",
-  },
-  {
-    id: "consoling",
-    when: "When a day slips",
-    line: "Missed yesterday. Your grace day covered it.",
-  },
-]
-
-// Showcase: Fern. Each stretch of scroll moves Fern to its next mood, with
-// the line it says at that moment.
-export function FernScene() {
-  const root = useRef<HTMLElement>(null)
-  useScene(root, (gsap, q, tl) => {
-    const ferns = q(".fs-fern")
-    const lines = q(".fs-line")
-    const dots = q(".fs-dots i")
-    gsap.set(ferns.slice(1), { autoAlpha: 0, scale: 0.85 })
-    gsap.set(lines.slice(1), { autoAlpha: 0, y: 16 })
-    gsap.set(dots.slice(1), { opacity: 0.25 })
-    for (let i = 1; i < ferns.length; i++) {
-      const at = i
-      tl.to(ferns[i - 1], { autoAlpha: 0, scale: 0.85, duration: 0.3 }, at)
-      tl.to(lines[i - 1], { autoAlpha: 0, y: -16, duration: 0.3 }, at)
-      tl.to(ferns[i], { autoAlpha: 1, scale: 1, duration: 0.4 }, at + 0.15)
-      tl.to(lines[i], { autoAlpha: 1, y: 0, duration: 0.4 }, at + 0.15)
-      tl.to(dots[i], { opacity: 1, duration: 0.2 }, at + 0.15)
-    }
-    tl.to({}, { duration: 0.6 })
-  })
-
-  return (
-    <section
-      ref={root}
-      id="fern"
-      className="scene"
-      aria-labelledby="fern-title"
-      style={{ ["--beats" as string]: MOODS.length }}
-    >
-      <div className="sc-track">
-        <div className="sc-stage sc-split wrap">
-          <div className="fs-copy">
-            <h2 className="h2" id="fern-title" data-no-split>
-              A companion that notices, and never nags.
-            </h2>
-            <ol className="fs-lines">
-              {MOODS.map((m) => (
-                <li key={m.id} className="fs-line">
-                  <small>{m.when}</small>
-                  {m.line}
-                </li>
-              ))}
-            </ol>
-            <span className="fs-dots" aria-hidden="true">
-              {MOODS.map((m) => (
-                <i key={m.id} />
-              ))}
-            </span>
-          </div>
-          <div className="fs-stage" aria-hidden="true">
-            {MOODS.map((m) => (
-              <span key={m.id} className="fs-fern">
-                <Fern mood={m.id} size={380} />
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-// The real share cards, rendered from the app itself (mobile/src/prototype,
-// the share composer's Fern ground) and saved as images.
+// The real share cards, rendered by the app itself (mobile/src/prototype,
+// the share composer's Photo ground) over a picture, the way a person
+// shares one: their own photo with the card's numbers on top. The photos
+// were generated for the site (Figma AI, 2026-11-09); no real person is shown.
 const CARDS = [
-  { src: "/share/tasks.webp", alt: "Share card: 22 tasks done this week" },
+  {
+    src: "/share/tasks.webp",
+    alt: "Share card on a desk photo: 22 tasks done this week",
+  },
   {
     src: "/share/habits.webp",
-    alt: "Share card: Morning workout, a 15-day streak, its longest yet",
+    alt: "Share card on a sunrise run photo: Morning workout, a 16-day streak, its longest yet",
   },
   {
     src: "/share/finance.webp",
-    alt: "Share card: savings rate 32%, down 6 points on September",
+    alt: "Share card on a café photo: savings rate 32%, down 6 points on September",
   },
 ]
 
@@ -522,7 +448,7 @@ export function ShareScene() {
               Share the win, not the spreadsheet.
             </h2>
             <p className="lede">
-              Every area makes a card for your story, for the win and the miss.
+              Every area makes a card for your story, on your own photo.
             </p>
             <p className="sh-win">
               <Check aria-hidden /> Money cards show shares and ratios, never
@@ -537,13 +463,78 @@ export function ShareScene() {
                 className="sh-card"
                 src={c.src}
                 alt={c.alt}
-                width={520}
-                height={924}
+                width={732}
+                height={1304}
                 loading="lazy"
                 decoding="async"
               />
             ))}
           </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// Every area as a real app screen: tiles of screenshots. Laptops and tablets
+// see them as a grid in one screen; phones, where ten screens cannot fit, see
+// two rows that slide sideways as you scroll down.
+export function FeatureGallery({
+  features,
+}: {
+  features: {
+    k: string
+    icon: ReactNode
+    name: string
+    shot: string
+    text: string
+  }[]
+}) {
+  const root = useRef<HTMLElement>(null)
+  useScene(root, (_gsap, q, tl) => {
+    const strip = q(".gl-strip")[0]
+    tl.to(strip, {
+      x: () => -Math.max(0, strip.scrollWidth - strip.clientWidth),
+      ease: "none",
+      duration: 1,
+    })
+  })
+  return (
+    <section
+      ref={root}
+      id="features"
+      className="scene gallery"
+      aria-labelledby="features-title"
+      style={{ ["--beats" as string]: 2 }}
+    >
+      <div className="sc-track">
+        <div className="sc-stage wrap gl-stage">
+          <h2 className="h2" id="features-title" data-no-split>
+            Every part of your day, in one app.
+          </h2>
+          <ul className="gl-strip">
+            {features.map((f) => (
+              <li
+                key={f.name}
+                className="gl-tile"
+                style={{ ["--k" as string]: f.k }}
+              >
+                {/* biome-ignore lint/performance/noImgElement: static export, no image optimiser */}
+                <img
+                  src={`/screens/${f.shot}.webp`}
+                  alt={`The ${f.name} screen in Unfurl`}
+                  width={480}
+                  height={1039}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span className="gl-name">
+                  {f.icon}
+                  {f.name}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
