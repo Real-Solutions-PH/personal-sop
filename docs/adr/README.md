@@ -30,3 +30,4 @@ Start new ADRs from [template.md](template.md).
 | [0032](0032-hand-drawn-line-in-the-app.md) | The brand's hand-drawn line in the app's shared chart parts; chrome stays calm |
 | [0033](0033-recurring-transactions-generated-by-the-job.md) | Recurring transactions: the 15-minute job creates one record per occurrence, with interval rules and a 60-day catch-up |
 | [0037](0037-revenuecat-for-unfurl-plus.md) | RevenueCat for Unfurl Plus; the server holds the plan, written only from verified webhooks and a refresh |
+| [0038](0038-fern-allowance-and-plus-fair-use.md) | Fern allowance and Plus fair use: a turn ledger, server-key only, every limit in settings |

@@ -2,7 +2,7 @@
 the Plus moments as usage events (ADR-0037).
 
 Revision ID: fddd1ce9e22e
-Revises: 2f24e6183b14
+Revises: 4d6171529d45
 Create Date: 2026-11-09
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "fddd1ce9e22e"
-down_revision = "2f24e6183b14"
+down_revision = "4d6171529d45"
 branch_labels = None
 depends_on = None
 

@@ -14,6 +14,10 @@ import { GrowBar } from "../motion"
 import { Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { useTheme } from "../theme"
 import { useMoney } from "./finance"
+import { OutlookRow } from "./finance-outlook"
+
+/** Scheduled rows shown before "Show all". */
+const SHOWN = 6
 
 export interface MonthFlow {
   /** The budget month, ``YYYY-MM``. */
@@ -29,6 +33,9 @@ export interface MonthFlow {
   /** Money on hand at the month's last day, in the accounts the Projection
    * counts: actual once the month has ended, expected before. */
   balance: number
+  /** The scheduled income and expenses behind ``aheadIn`` / ``aheadOut``,
+   * by day: the same occurrences, so the list adds up to the totals. */
+  aheadItems: N.Occurrence[]
 }
 
 /** How far ahead the chart steps. */
@@ -65,7 +72,18 @@ export function monthlyFlow(
         ? N.scheduledFlow(s, to)
         : future
           ? scheduledBetween(s, from, to)
-          : { income: 0, spend: 0 }
+          : { income: 0, spend: 0 },
+      // What scheduledFlow and scheduledBetween add up: unpaid, unskipped
+      // income and expenses (overdue ones land in the current month).
+      aheadItems = (
+        current
+          ? N.outlook(s, to).items
+          : future
+            ? N.occurrencesIn(s, from, to).filter(
+                (o) => o.status !== "paid" && o.status !== "skipped",
+              )
+            : []
+      ).filter((o) => o.item.type !== "transfer")
     return {
       key,
       income: f.income,
@@ -75,6 +93,7 @@ export function monthlyFlow(
       current,
       future,
       balance: atEnd[i],
+      aheadItems,
     }
   })
 }
@@ -146,6 +165,8 @@ export function MonthlyFlowBars({ s }: { s: FinState }) {
     // the current one. Stepping past either edge slides the bars along, so
     // the picked month always has its bar; tapping a bar leaves them put.
     [view, setView] = useState({ at: 0, end: 0 }),
+    // The month whose scheduled list is opened in full.
+    [allOf, setAllOf] = useState<string | null>(null),
     { at, end } = view,
     step = (d: number) => {
       const next = at + d
@@ -345,6 +366,44 @@ export function MonthlyFlowBars({ s }: { s: FinState }) {
           </Copy>
         </Line>
       </View>
+      {m.aheadItems.length > 0 && (
+        <View
+          testID="monthly-flow-scheduled"
+          style={{ paddingTop: 12, borderTopWidth: 1, borderColor: t.line }}
+        >
+          <Line style={{ justifyContent: "space-between", gap: 12 }}>
+            <Copy size={14} weight="semibold" style={{ flex: 1 }}>
+              {m.current ? "Still expected this month" : "Expected"}
+            </Copy>
+            <Copy size={12} muted>
+              {m.aheadItems.length}{" "}
+              {m.aheadItems.length === 1 ? "item" : "items"}
+            </Copy>
+          </Line>
+          {(allOf === m.key ? m.aheadItems : m.aheadItems.slice(0, SHOWN)).map(
+            (o) => (
+              <OutlookRow key={`${o.item.id}-${o.orig}`} x={o} />
+            ),
+          )}
+          {m.aheadItems.length > SHOWN && (
+            <Tap
+              label={
+                allOf === m.key
+                  ? "Show fewer"
+                  : `Show all ${m.aheadItems.length}`
+              }
+              onPress={() => setAllOf(allOf === m.key ? null : m.key)}
+              style={{ paddingVertical: 10 }}
+            >
+              <Copy size={12} style={{ color: t.fin, textAlign: "center" }}>
+                {allOf === m.key
+                  ? "Show fewer"
+                  : `Show all ${m.aheadItems.length}`}
+              </Copy>
+            </Tap>
+          )}
+        </View>
+      )}
     </Frame>
   )
 }

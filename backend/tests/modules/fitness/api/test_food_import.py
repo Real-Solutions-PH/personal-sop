@@ -1,6 +1,7 @@
 """Bulk imports of public food databases (USDA FoodData Central, Open Food
-Facts, PhilFCT) into the shared food library: re-running updates instead of
-duplicating, a household's own food is never overwritten, and a lookup
+Facts, PhilFCT) into the food library as built-in foods: re-running updates
+instead of duplicating, a member's own food is never read or overwritten
+(it may share a name with a built-in one), and a lookup
 prefers the household's foods, then USDA, then Open Food Facts, and never
 lets an imported food stand in for a dish on one shared word."""
 
@@ -89,9 +90,11 @@ def test_a_re_import_updates_in_place_and_never_duplicates(db: Session) -> None:
     assert (changed.added, changed.updated) == (0, 1)
     rows = rows_by_ref(f"usda:{t}")
     assert sorted(r.kcal for r in rows) == [130, 131]
+    # Everything an import makes is built in.
+    assert all(r.is_global for r in rows)
 
 
-def test_a_household_food_of_the_same_name_is_never_overwritten(
+def test_a_members_food_of_the_same_name_is_never_overwritten(
     db: Session,
 ) -> None:
     user_, _ = signed_in(db)
@@ -102,11 +105,22 @@ def test_a_household_food_of_the_same_name_is_never_overwritten(
         )
         ctx.commit()
         res = I.upsert_drafts(
-            ctx, [usda(f"{t}b", f"Banana {t}", kcal=89, aliases=[f"saging {t}"])]
+            ctx,
+            [
+                usda(f"{t}b", f"Banana {t}", kcal=89, aliases=[f"saging {t}"]),
+                # A name a built-in food already holds is skipped.
+                usda(f"{t}c", f"Banana {t}", kcal=90),
+            ],
         )
         ctx.session.refresh(own)
-        assert res.skipped_name_taken == 1 and res.added == 0
+        assert (res.added, res.skipped_name_taken) == (1, 1)
         assert (own.kcal, own.basis, own.source) == (105, "piece", "said")
+        assert own.is_global is False
+        [built_in] = rows_by_ref(f"usda:{t}b")
+        assert built_in.is_global and built_in.kcal == 89
+        # The member's own food answers the name.
+        found = L.find_food(ctx, f"banana {t}")
+        assert found is not None and found.id == own.id
 
 
 def test_saving_a_label_food_never_rewrites_an_imported_one(db: Session) -> None:
@@ -145,9 +159,14 @@ def test_a_deleted_import_stays_deleted(db: Session) -> None:
     with ctx_for(user_) as ctx:
         I.upsert_drafts(ctx, [usda(f"{t}d", f"Kale {t}, raw")])
     [row] = rows_by_ref(f"usda:{t}d")
+    # A built-in food is removed only server-side (never through the API).
+    with Session(db_engine) as s:
+        s.execute(
+            text("UPDATE food_item SET deleted_at = now() WHERE id = :id"),
+            {"id": row.id},
+        )
+        s.commit()
     with ctx_for(user_) as ctx:
-        L.delete_food(ctx, row.id)
-        ctx.commit()
         res = I.upsert_drafts(ctx, [usda(f"{t}d", f"Kale {t}, raw")])
     assert (res.added, res.skipped_deleted) == (0, 1)
     assert [r.deleted_at is not None for r in rows_by_ref(f"usda:{t}d")] == [True]
@@ -157,8 +176,10 @@ def test_an_alias_another_food_is_named_is_dropped(db: Session) -> None:
     user_, _ = signed_in(db)
     t = _tag()
     with ctx_for(user_) as ctx:
-        L.save_food(ctx, L.FoodDraft(name=f"kanin {t}", kcal=200, source="said"))
+        # A member's own food's name never costs a built-in food an alias.
+        L.save_food(ctx, L.FoodDraft(name=f"bigas {t}", kcal=200, source="said"))
         ctx.commit()
+        I.upsert_drafts(ctx, [usda(f"{t}k", f"kanin {t}")])
         I.upsert_drafts(
             ctx,
             [

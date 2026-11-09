@@ -16,9 +16,10 @@ Every domain table in the mobile API inherits :class:`OwnedRow`:
 - ``deleted_at`` is the tombstone: sync pulls ship deleted rows so other
   devices drop them, and undo restores by clearing it.
 
-A table that sets ``shared_catalog = True`` is app-wide instead: every member
-of the tenant reads its rows, ``owner_id`` is the row's author, and only the
-author or an admin writes it (see :mod:`app.shared.owned_repo`).
+A table that sets ``global_catalog = True`` (exercises, workout routines and
+their slots, foods) carries an ``is_global`` column: a global row is built in, read
+by every member of the tenant and written by nobody through the API; every
+other row is its owner's alone, like any owned row.
 """
 
 import uuid
@@ -35,8 +36,9 @@ def utcnow() -> datetime:
 
 
 class OwnedRow(SQLModel):
-    # True: readable by the whole tenant, writable by its author or an admin.
-    shared_catalog: ClassVar[bool] = False
+    # True: the table has ``is_global``; global rows are tenant-wide and
+    # read-only, the rest are their owner's only.
+    global_catalog: ClassVar[bool] = False
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     owner_id: uuid.UUID = Field(

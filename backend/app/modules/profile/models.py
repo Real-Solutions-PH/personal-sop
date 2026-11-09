@@ -87,6 +87,9 @@ class UserProfile(OwnedRow, table=True):
         sa_type=String(3),  # type: ignore
         sa_column_kwargs={"server_default": "PHP"},
     )
+    # ISO 3166 alpha-2 country of the App Store storefront, set by the phone
+    # when it knows it; it picks the price tier (ai_providers.price_tier).
+    storefront_country: str | None = Field(default=None, sa_type=String(2))  # type: ignore
     day_start_hour: int = Field(default=4, sa_type=Integer)
     evening_start: str = Field(default="18:00", max_length=5)
     target_threshold: float = Field(default=0.8, sa_type=Float)

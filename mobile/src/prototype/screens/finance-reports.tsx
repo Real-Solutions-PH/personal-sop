@@ -31,6 +31,11 @@ import { Button, DateField, Empty, Screen, Sheet, shareText } from "../ui"
 import { useMoney } from "./finance"
 import { balanceColor, MonthlyFlowBars } from "./finance-monthly-flow"
 import { RecurringNet } from "./finance-monthly-net"
+import {
+  NetWorthAhead,
+  NetWorthByMonth,
+  NetWorthMakeup,
+} from "./finance-networth-cards"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
 import {
@@ -496,31 +501,47 @@ export function Reports({ kind }: { kind?: string }) {
           </Frame>
         </>
       ) : kind === "networth" ? (
-        <Frame style={{ paddingHorizontal: 8, paddingVertical: 16 }}>
-          <FinanceLineChart
-            series={[{ values: d.nw, color: t.fin, area: true }]}
-            labels={d.nw.map((_, i) =>
-              i % Math.max(1, Math.round(d.nw.length / 6)) === 0
-                ? C.shortDate(C.addDays(nwFrom, i))
-                : "",
-            )}
-          />
-          <View style={{ paddingHorizontal: 8, paddingBottom: 8, gap: 4 }}>
-            <Copy size={12} muted>
-              Assets minus credit card debt. Investments at their last manual
-              value.
-            </Copy>
-            <FinPill
-              tone={(d.nw.at(-1) ?? 0) >= (d.nw[0] ?? 0) ? "good" : "bad"}
-            >
-              {C.pct(
-                ((d.nw.at(-1) ?? 0) - (d.nw[0] ?? 0)) / Math.abs(d.nw[0] || 1),
-                1,
-              )}{" "}
-              in {d.nw.length} days
-            </FinPill>
-          </View>
-        </Frame>
+        <>
+          <Frame style={{ paddingHorizontal: 8, paddingVertical: 16 }}>
+            <View style={{ paddingHorizontal: 8, marginBottom: 8 }}>
+              <Copy size={12} muted>
+                Net worth today
+              </Copy>
+              <Copy size={30} weight="displayMedium" fit>
+                {(d.nw.at(-1) ?? 0) < 0 ? "−" : ""}
+                {money(Math.abs(d.nw.at(-1) ?? 0))}
+              </Copy>
+            </View>
+            <FinanceLineChart
+              series={[{ values: d.nw, color: t.fin, area: true }]}
+              labels={d.nw.map((_, i) =>
+                i % Math.max(1, Math.round(d.nw.length / 6)) === 0
+                  ? C.shortDate(C.addDays(nwFrom, i))
+                  : "",
+              )}
+            />
+            <View style={{ paddingHorizontal: 8, paddingBottom: 8, gap: 4 }}>
+              <Copy size={12} muted>
+                Assets minus credit card debt. Investments at their last manual
+                value.
+              </Copy>
+              <FinPill
+                tone={(d.nw.at(-1) ?? 0) >= (d.nw[0] ?? 0) ? "good" : "bad"}
+              >
+                {C.pct(
+                  ((d.nw.at(-1) ?? 0) - (d.nw[0] ?? 0)) /
+                    Math.abs(d.nw[0] || 1),
+                  1,
+                )}{" "}
+                in {d.nw.length} days
+              </FinPill>
+            </View>
+          </Frame>
+          <NetWorthByMonth s={s} />
+          <NetWorthMakeup s={s} />
+          <ExpectedNetWorthCard d={d} period={p} s={s} linked={false} />
+          <NetWorthAhead s={s} />
+        </>
       ) : kind === "payees" ? (
         <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
           {d.payees.map(([name, v], i) => (

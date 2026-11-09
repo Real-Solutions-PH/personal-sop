@@ -38,7 +38,7 @@ None. RevenueCat is a hosted processor, but the exit is named: the plan lives in
 
 **Positive:**
 - Renewals, refunds, grace periods and receipt checks are not ours to build.
-- One server-side answer to "is this account Plus", which the Fern allowance (a later change) reads through `billing.public.plan_of`.
+- One server-side answer to "is this account Plus", which the Fern allowance (ADR-0038) reads through `billing.public.plan_of`.
 
 **Negative:**
 - A new data processor (RevenueCat sees the account id and purchase history, no health or money records). The App Store privacy label gains "Purchases".

@@ -51,7 +51,7 @@ MEAL_STATUSES = ("pending_estimate", "estimated", "confirmed")
 
 class Exercise(OwnedRow, table=True):
     __tablename__ = "exercise"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
     __table_args__ = (
         enum_check("equipment", EQUIPMENT, name="ck_exercise_equipment"),
         enum_check("muscle", MUSCLES, name="ck_exercise_muscle"),
@@ -87,19 +87,27 @@ class Exercise(OwnedRow, table=True):
     merged_into_id: uuid.UUID | None = Field(
         default=None, foreign_key="exercise.id", ondelete="SET NULL", index=True
     )
+    # Built in: every member of the tenant reads it; nobody edits it.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
 
 
 class WorkoutTemplate(OwnedRow, table=True):
     __tablename__ = "workout_template"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
 
     name: str = Field(max_length=80)
     sort_order: int = 0
+    # Built in: every member of the tenant reads it; nobody edits it.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
 
 
 class TemplateItem(OwnedRow, table=True):
     __tablename__ = "template_item"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
     __table_args__ = (
         UniqueConstraint("template_id", "position", name="uq_template_item_pos"),
         CheckConstraint("sets BETWEEN 1 AND 20", name="ck_template_item_sets"),
@@ -117,6 +125,10 @@ class TemplateItem(OwnedRow, table=True):
     sets: int = 3
     # A timed exercise's goal, in seconds (e.g. 1200: walk 20 minutes).
     target_sec: int | None = None
+    # Always its routine's: a built-in routine's slots are built in.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
 
 
 class Workout(OwnedRow, table=True):
@@ -493,9 +505,11 @@ FOOD_SOURCES = (
 
 
 class FoodItem(OwnedRow, table=True):
-    """The shared food library: one food's nutrition, as read from a label,
-    said by a member, or imported. Every member reads it; its author (or an
-    admin) edits it. Meal logging scales these values to the
+    """The food library: one food's nutrition, as read from a label, said
+    by a member, or imported. A built-in food (``is_global``: one a bulk
+    import of a public database made) is read by every member and edited by
+    nobody; every other food is its owner's alone. Meal logging scales these
+    values to the
     amount eaten before it falls back to an estimate, so the same food gives
     the same numbers every time.
 
@@ -504,15 +518,24 @@ class FoodItem(OwnedRow, table=True):
     added sugar; sodium is in milligrams; every other amount is in grams."""
 
     __tablename__ = "food_item"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
     __table_args__ = (
-        # One live food per name in the shared library.
+        # One live built-in food per name in the tenant, and one live food
+        # per name in each member's own foods; an own food may share a name
+        # with a built-in one (it then ranks first).
         Index(
-            "uq_food_item_tenant_key_live",
+            "uq_food_item_global_key_live",
             "tenant_id",
             "key",
             unique=True,
-            postgresql_where=text("deleted_at IS NULL"),
+            postgresql_where=text("is_global AND deleted_at IS NULL"),
+        ),
+        Index(
+            "uq_food_item_owner_key_live",
+            "owner_id",
+            "key",
+            unique=True,
+            postgresql_where=text("NOT is_global AND deleted_at IS NULL"),
         ),
         enum_check("basis", FOOD_BASES, name="ck_food_item_basis"),
         enum_check("source", FOOD_SOURCES, name="ck_food_item_source"),
@@ -584,5 +607,12 @@ class FoodItem(OwnedRow, table=True):
         default=None, foreign_key="media_object.id", ondelete="SET NULL"
     )
     verified: bool = False
+    # On a built-in food these count every member's uses together (a
+    # counter, not an edit).
     use_count: int = 0
     last_used_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    # Built in (a bulk import of a public database made it): every member
+    # of the tenant reads it; nobody edits it.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )

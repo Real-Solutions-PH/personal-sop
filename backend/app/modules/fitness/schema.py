@@ -80,11 +80,15 @@ class ExercisePublic(_Row):
     track: TimeTrack | None = None
     aliases: list[str] = []
     merged_into_id: uuid.UUID | None = None
+    # Built in: every member's, read-only (else the caller's own).
+    is_global: bool = False
 
 
 class WorkoutTemplatePublic(_Row):
     name: str
     sort_order: int
+    # Built in: every member's, read-only (else the caller's own).
+    is_global: bool = False
 
 
 class TemplateItemPublic(_Row):
@@ -93,6 +97,7 @@ class TemplateItemPublic(_Row):
     position: int
     sets: int
     target_sec: int | None = None
+    is_global: bool = False
 
 
 class WorkoutPublic(_Row):
@@ -481,6 +486,11 @@ class TemplateItemSpec(BaseModel):
 class TemplateUpsert(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     items: list[TemplateItemSpec] = Field(default_factory=list, max_length=40)
+    id: uuid.UUID | None = None
+
+
+class TemplateCopy(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
     id: uuid.UUID | None = None
 
 

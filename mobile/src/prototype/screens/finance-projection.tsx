@@ -36,6 +36,7 @@ import { Button, DateField, Empty, Field, Screen } from "../ui"
 import { useMoney } from "./finance"
 import { OutlookRow } from "./finance-outlook"
 import { ProjectedItems } from "./finance-projected-items"
+import { ProjectedExpenses } from "./finance-projected-manage"
 
 const INSTALLMENT_TERMS = [3, 6, 12, 24]
 /** The second line's name: the balance with none of the planned money out. */
@@ -93,6 +94,15 @@ function quickEnds(s: { settings: { monthStartDay: number } }) {
     { label: "Next 90 days", to: C.addDays(t, 90) },
     { label: "End of year", to: `${t.slice(0, 4)}-12-31` },
   ]
+}
+/** The day a planned purchase lands: the 15th of its month, or tomorrow
+ * when that has passed this month (the Projection counts from tomorrow,
+ * so a day already gone would leave the purchase out of every month). */
+export function purchaseDay(month: string, on = C.today()) {
+  const mid = `${month}-15`,
+    next = C.addDays(on, 1)
+  if (mid >= next) return mid
+  return next.slice(0, 7) === month ? next : on
 }
 /** At most 120 evenly spaced points, keeping the last. */
 const thin = <T,>(xs: T[]) => {
@@ -241,8 +251,10 @@ export function Projection() {
   }
   const runway = expense ? proj.start / (expense / 3) : 0
   // The accounts a purchase can come from, and the card an installment plan
-  // runs on: the user's own (live accounts are UUIDs, not the demo's
-  // "bpi" / "bpicc", which the server refused).
+  // runs on, when there is one: the user's own (live accounts are UUIDs, not
+  // the demo's "bpi" / "bpicc", which the server refused). A card is
+  // optional: without one, the monthly payments are plain expenses from the
+  // picked (or default) account, so a plan saves for anyone.
   const payable = s.accounts.filter((a) => a.inProjection && !a.archived),
     acct = (
       payable.find((a) => a.id === picked) ??
@@ -250,22 +262,24 @@ export function Projection() {
       payable[0]
     )?.id,
     card = s.accounts.find((a) => a.type === "credit" && !a.archived),
-    instFrom = (payable.find((a) => a.type === "bank") ?? payable[0])?.id
+    instFrom = card
+      ? (
+          payable.find((a) => a.type === "bank" && a.id !== card.id) ??
+          payable.find((a) => a.id !== card.id)
+        )?.id
+      : acct,
+    onCard = mode === "inst" && !!card
   const save = (draft: boolean) => {
     if (!whatIf) return
     const from = mode === "inst" ? instFrom : acct
-    if (!from || (mode === "inst" && !card)) {
-      toast.error(
-        mode === "inst"
-          ? "Add a credit card to plan installments"
-          : "Add an account first",
-      )
+    if (!from) {
+      toast.error("Add an account first")
       return
     }
-    const date = `${month}-15`
+    const date = purchaseDay(month)
     if (plan && downMinor > 0)
       A.addPlanned({
-        name: `${name || "Planned purchase"} downpayment`,
+        name: `${name || "Planned purchase"}${C.DOWNPAYMENT_SUFFIX}`,
         type: "expense",
         amount: downMinor / 100,
         estimated: false,
@@ -280,14 +294,18 @@ export function Projection() {
       })
     A.addPlanned({
       name: name || "Planned purchase",
-      type: mode === "inst" ? "transfer" : "expense",
+      type: onCard ? "transfer" : "expense",
       amount: plan ? plan.monthlyMinor / 100 : Number(amount),
       estimated: false,
       accountId: from,
-      toAccountId: mode === "inst" ? card?.id : undefined,
-      categoryId: mode === "inst" ? undefined : "shopping",
+      toAccountId: onCard ? card?.id : undefined,
+      categoryId: onCard ? undefined : "shopping",
+      // The first payment falls in the purchase month, on the purchase day,
+      // as the what-if preview counts it.
       schedule:
-        mode === "inst" ? { kind: "monthly", day: 8 } : { kind: "once", date },
+        mode === "inst"
+          ? { kind: "monthly", day: Number(date.slice(8)) }
+          : { kind: "once", date },
       start: date,
       end: mode === "inst" ? { kind: "count", n } : { kind: "never" },
       autoLog: false,
@@ -745,7 +763,18 @@ export function Projection() {
                 { value: "inst", label: "Installments" },
               ]}
             />
-            {mode === "inst" ? (
+            {(mode !== "inst" || !card) &&
+              chiprow(
+                payable.map((a) => (
+                  <FinChip
+                    key={a.id}
+                    label={a.name}
+                    active={acct === a.id}
+                    onPress={() => setAcct(a.id)}
+                  />
+                )),
+              )}
+            {mode === "inst" && (
               <>
                 <Line style={{ gap: 8, flexWrap: "wrap" }}>
                   {INSTALLMENT_TERMS.map((v) => (
@@ -822,8 +851,8 @@ export function Projection() {
                 {plan && (
                   <View testID="installment-plan" style={{ gap: 2 }}>
                     <Copy weight="semibold">
-                      {money(plan.monthlyMinor / 100)}/mo × {n} on{" "}
-                      {card?.name ?? "a credit card"}
+                      {money(plan.monthlyMinor / 100)}/mo × {n}
+                      {card ? ` on ${card.name}` : ""}
                     </Copy>
                     <Copy
                       size={12}
@@ -842,17 +871,6 @@ export function Projection() {
                   </View>
                 )}
               </>
-            ) : (
-              chiprow(
-                payable.map((a) => (
-                  <FinChip
-                    key={a.id}
-                    label={a.name}
-                    active={acct === a.id}
-                    onPress={() => setAcct(a.id)}
-                  />
-                )),
-              )
             )}
             {whatIf && (
               <View
@@ -942,20 +960,40 @@ export function Projection() {
           <View style={{ marginTop: -12 }}>
             <SectionHeading>What-if drafts</SectionHeading>
             {chiprow(
-              drafts.map((p) => (
-                <FinChip
-                  key={p.id}
-                  label={`${p.name} · ${money(p.amount)}`}
-                  onPress={() => {
-                    setName(p.name.replace(" (draft)", ""))
-                    setAmount(String(p.amount))
-                    if (p.schedule.kind === "once")
-                      setMonth(p.schedule.date.slice(0, 7))
-                    setMode("lump")
-                    setWhat(true)
-                  }}
-                />
-              )),
+              // A downpayment rides with its plan: one chip per purchase.
+              drafts
+                .filter((p) => !C.companionOf(s, p)?.isInstallment)
+                .map((p) => {
+                  const dp = p.isInstallment ? C.companionOf(s, p) : undefined,
+                    n = p.isInstallment && p.end.kind === "count" ? p.end.n : 1,
+                    price = p.amount * n + (dp?.amount ?? 0)
+                  return (
+                    <FinChip
+                      key={p.id}
+                      label={`${p.name} · ${money(price)}`}
+                      onPress={() => {
+                        setName(p.name.replace(" (draft)", ""))
+                        setAmount(String(Math.round(price)))
+                        setMonth(
+                          (p.schedule.kind === "once"
+                            ? p.schedule.date
+                            : p.start
+                          ).slice(0, 7),
+                        )
+                        setMode(p.isInstallment ? "inst" : "lump")
+                        if (p.isInstallment) {
+                          setN(clampTerm(n))
+                          setCustom(
+                            INSTALLMENT_TERMS.includes(n) ? null : String(n),
+                          )
+                          setDown(dp ? String(dp.amount) : "")
+                          setRate(0)
+                        }
+                        setWhat(true)
+                      }}
+                    />
+                  )
+                }),
             )}
           </View>
         )}
@@ -1130,6 +1168,7 @@ export function Projection() {
             </Frame>
           </View>
         )}
+        <ProjectedExpenses />
         <Tap onPress={() => setAssump(!assump)}>
           <Line style={{ justifyContent: "space-between", padding: 4 }}>
             <Copy size={12} weight="medium" muted style={{ letterSpacing: 1 }}>
@@ -1161,28 +1200,6 @@ export function Projection() {
                           ? excluded.filter((id) => id !== a.id)
                           : [...excluded, a.id],
                       ),
-                  )}
-                </View>
-              ))}
-            <Copy size={14} weight="medium">
-              Planned items
-            </Copy>
-            {s.planned
-              .filter((p) => !p.archived && !p.isWhatIf && p.inProjection)
-              .map((p) => (
-                <View key={p.id}>
-                  {toggle(
-                    p.name,
-                    `${money(p.amount)} · ${C.scheduleLabel(p)}`,
-                    !s.settings.projExcludedPlanned.includes(p.id),
-                    (v) =>
-                      A.updateSettings({
-                        projExcludedPlanned: v
-                          ? s.settings.projExcludedPlanned.filter(
-                              (id) => id !== p.id,
-                            )
-                          : [...s.settings.projExcludedPlanned, p.id],
-                      }),
                   )}
                 </View>
               ))}

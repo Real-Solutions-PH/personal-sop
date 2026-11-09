@@ -1285,6 +1285,59 @@ export const AdvicePublicSchema = {
     title: 'AdvicePublic'
 } as const;
 
+export const AllowanceOutSchema = {
+    properties: {
+        applies: {
+            type: 'boolean',
+            title: 'Applies'
+        },
+        plan: {
+            type: 'string',
+            enum: ['free', 'plus'],
+            title: 'Plan'
+        },
+        limit: {
+            type: 'integer',
+            title: 'Limit'
+        },
+        used: {
+            type: 'integer',
+            title: 'Used'
+        },
+        remaining: {
+            type: 'integer',
+            title: 'Remaining'
+        },
+        resets_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Resets At'
+        },
+        month_stopped: {
+            type: 'boolean',
+            title: 'Month Stopped'
+        },
+        month_resets_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Month Resets At'
+        }
+    },
+    type: 'object',
+    required: ['applies', 'plan', 'limit', 'used', 'remaining', 'resets_at', 'month_stopped', 'month_resets_at'],
+    title: 'AllowanceOut',
+    description: `Where today's Fern messages stand. \`\`applies\`\` is false when a new
+message would not count (the person's own provider key, or the AI off
+and the router answering); the other figures are then still today's.`
+} as const;
+
 export const AnswerInSchema = {
     properties: {
         value: {
@@ -4464,6 +4517,11 @@ export const ExerciseDetailSchema = {
             ],
             title: 'Merged Into Id'
         },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4629,6 +4687,11 @@ export const ExercisePublicSchema = {
                 }
             ],
             title: 'Merged Into Id'
+        },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
         }
     },
     type: 'object',
@@ -4797,6 +4860,11 @@ export const ExerciseWithStatsSchema = {
                 }
             ],
             title: 'Merged Into Id'
+        },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
         },
         last_done_at: {
             anyOf: [
@@ -5922,6 +5990,11 @@ export const FoodOutSchema = {
             title: 'Can Edit',
             default: false
         },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
+        },
         origin: {
             type: 'string',
             enum: ['you', 'fern', 'database'],
@@ -5932,9 +6005,11 @@ export const FoodOutSchema = {
     type: 'object',
     required: ['id', 'name', 'aliases', 'basis', 'unit_grams', 'state', 'kcal', 'protein', 'carbs', 'fat', 'fiber', 'sat_fat', 'fiber_soluble', 'fiber_insoluble', 'sugar', 'sodium', 'source', 'verified', 'use_count', 'last_used_at'],
     title: 'FoodOut',
-    description: `One food of the shared library. Amounts are per \`\`basis\`\` (per 100 g,
-per piece or per serving); sodium is in milligrams, every other amount in
-grams. \`\`can_edit\`\`: the caller is its author or an admin.`
+    description: `One food of the library: a built-in one (\`\`is_global\`\`, every
+member's, read-only) or the caller's own. Amounts are per \`\`basis\`\` (per
+100 g, per piece or per serving); sodium is in milligrams, every other
+amount in grams. \`\`can_edit\`\`: it is the caller's own (never a built-in
+one; copy it instead).`
 } as const;
 
 export const FoodPatchSchema = {
@@ -14312,6 +14387,17 @@ export const ProfilePublicSchema = {
             type: 'string',
             title: 'Currency'
         },
+        storefront_country: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Storefront Country'
+        },
         day_start_hour: {
             type: 'integer',
             title: 'Day Start Hour'
@@ -14613,6 +14699,20 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Target Threshold'
+        },
+        storefront_country: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 2,
+                    minLength: 2,
+                    pattern: '^[A-Za-z]{2}$'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Storefront Country'
         },
         appearance: {
             anyOf: [
@@ -21049,6 +21149,38 @@ export const TasksPublicSchema = {
     title: 'TasksPublic'
 } as const;
 
+export const TemplateCopySchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        }
+    },
+    type: 'object',
+    title: 'TemplateCopy'
+} as const;
+
 export const TemplateItemOutSchema = {
     properties: {
         exercise_id: {
@@ -21113,6 +21245,11 @@ export const TemplateOutSchema = {
         sort_order: {
             type: 'integer',
             title: 'Sort Order'
+        },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
         },
         items: {
             items: {

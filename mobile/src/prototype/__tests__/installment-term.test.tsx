@@ -136,6 +136,69 @@ it("0% says no interest, and saving schedules the downpayment and the payments",
   })
 })
 
+it("saves an installment plan with no credit card, as scheduled expenses the projection counts", () => {
+  // Credit cards are retired: a user may have none at all.
+  finStore.set((s) => ({
+    ...s,
+    accounts: s.accounts.filter((a) => a.type !== "credit"),
+  }))
+  render(<Projection />, { wrapper })
+  fireEvent.changeText(screen.getByLabelText("Price ₱"), "33000")
+  fireEvent.press(screen.getByText("Installments"))
+  fireEvent.press(screen.getByText("6×"))
+  // No card to name, so the summary does not claim one.
+  const summary = screen.getByTestId("installment-plan")
+  expect(summary).toHaveTextContent(/₱5,500\/mo × 6/)
+  expect(summary).not.toHaveTextContent(/ on /)
+  const { toast } = require("sonner-native")
+  toast.error.mockClear()
+  const before = finStore.get().planned.length
+  fireEvent.press(screen.getByText("Save as scheduled"))
+  expect(toast.error).not.toHaveBeenCalled()
+  const s = finStore.get()
+  const inst = s.planned.slice(before).find((p) => p.isInstallment)
+  expect(inst).toMatchObject({
+    amount: 5500,
+    type: "expense",
+    accountId: s.settings.defaultAccountId,
+    toAccountId: undefined,
+    // Paid on the purchase day (the 15th), the first in the purchase month.
+    schedule: { kind: "monthly", day: 15 },
+    end: { kind: "count", n: 6 },
+    isWhatIf: false,
+    inProjection: true,
+  })
+  // The projection takes the six payments out, one a month.
+  const proj = C.project(s, {
+    horizon: 12,
+    includeUnplanned: false,
+    excludedPlanned: [],
+    excludedAccounts: [],
+  })
+  const paid = proj.months.flatMap((m) =>
+    m.items.filter((x) => x.item.id === inst?.id),
+  )
+  expect(paid).toHaveLength(6)
+  expect(paid.every((x) => x.amount === -5500)).toBe(true)
+})
+
+it("saves a card-less installment plan as a draft", () => {
+  finStore.set((s) => ({
+    ...s,
+    accounts: s.accounts.filter((a) => a.type !== "credit"),
+  }))
+  render(<Projection />, { wrapper })
+  fireEvent.press(screen.getByText("Installments"))
+  fireEvent.press(screen.getByText("6×"))
+  const before = finStore.get().planned.length
+  fireEvent.press(screen.getByText("Save as draft"))
+  const inst = finStore
+    .get()
+    .planned.slice(before)
+    .find((p) => p.isInstallment)
+  expect(inst).toMatchObject({ type: "expense", isWhatIf: true })
+})
+
 describe("installmentPlan", () => {
   const plan = (x: Partial<Parameters<typeof C.installmentPlan>[0]>) =>
     C.installmentPlan({

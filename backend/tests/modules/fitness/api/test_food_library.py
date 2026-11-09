@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
@@ -135,7 +136,9 @@ def test_a_loose_match_never_overrides_a_label_that_disagrees(db: Session) -> No
         assert mine["kcal"] == 489
 
 
-def test_a_food_another_member_added_is_reused_not_copied(db: Session) -> None:
+def test_another_members_food_stays_theirs(db: Session) -> None:
+    """A food a member saved is theirs alone: another member saying the same
+    name gets a food of their own, and the first one never changes."""
     author, _ = signed_in(db)
     other, _ = signed_in(db)
     with ctx_for(author) as ctx:
@@ -143,11 +146,122 @@ def test_a_food_another_member_added_is_reused_not_copied(db: Session) -> None:
         mine_id = mine.id
         ctx.session.commit()
     with ctx_for(other) as ctx:
-        for said in ("japanese siomai", "Japanese siomais", "japanese siomia"):
-            got, new = L.save_food(ctx, L.FoodDraft(name=said, kcal=999))
-            assert (got.id, new, got.kcal) == (mine_id, False, 140)
+        assert L.find_food(ctx, "japanese siomai") is None
+        got, new = L.save_food(ctx, L.FoodDraft(name="japanese siomai", kcal=999))
+        assert new and got.id != mine_id and got.owner_id == other.id
+        again, new = L.save_food(ctx, L.FoodDraft(name="Japanese siomais", kcal=990))
+        assert (again.id, new, again.kcal) == (got.id, False, 990)
         ctx.session.commit()
-    assert foods_of(other.id) == []
+    assert [f.kcal for f in foods_of(author.id)] == [140]
+    assert [f.kcal for f in foods_of(other.id)] == [990]
+
+
+def _built_in_banana(ctx: Any) -> FoodItem:
+    row = FoodItem(
+        name="Banana",
+        key="banana",
+        kcal=89,
+        protein=1.1,
+        carbs=22.8,
+        fat=0.3,
+        source="usda",
+        external_ref="usda:173944",
+        is_global=True,
+        **ctx.owned(),
+    )
+    ctx.session.add(row)
+    ctx.session.commit()
+    return row
+
+
+def test_a_built_in_food_is_reused_as_said_and_never_changed(db: Session) -> None:
+    """Saving a built-in food's own numbers reuses it; saving different
+    numbers for its name (a label, what was said) makes the member's own
+    food, which then ranks first; the built-in one is untouched."""
+    admin, _ = signed_in(db)
+    member, _ = signed_in(db)
+    with ctx_for(admin) as ctx:
+        banana_id = _built_in_banana(ctx).id
+    with ctx_for(member) as ctx:
+        same, new = L.save_food(
+            ctx, L.FoodDraft(name="banana", kcal=89, protein=1.1, carbs=22.8, fat=0.3)
+        )
+        assert (same.id, new) == (banana_id, False)
+        own, new = L.save_food(
+            ctx,
+            L.FoodDraft(
+                name="Banana", kcal=105, carbs=27, basis="piece", source="label"
+            ),
+        )
+        assert new and own.id != banana_id and own.is_global is False
+        assert (own.owner_id, own.kcal, own.basis) == (member.id, 105, "piece")
+        found = L.find_food(ctx, "banana")
+        assert found is not None and found.id == own.id
+        ctx.session.commit()
+    with Session(db_engine) as s:
+        b = s.get(FoodItem, banana_id)
+        assert b is not None and (b.kcal, b.basis, b.is_global) == (89, "100g", True)
+    # The admin's view is unchanged: still the built-in one only.
+    with ctx_for(admin) as ctx:
+        found = L.find_food(ctx, "banana")
+        assert found is not None and found.id == banana_id
+
+
+def test_nobody_updates_deletes_or_restores_what_is_not_theirs(db: Session) -> None:
+    admin, _ = signed_in(db)
+    admin.is_superuser = True
+    db.add(admin)
+    db.commit()
+    author, _ = signed_in(db)
+    with ctx_for(admin) as ctx:
+        banana_id = _built_in_banana(ctx).id
+    with ctx_for(author) as ctx:
+        mine, _ = L.save_food(ctx, L.FoodDraft(name="Pandesal", kcal=90))
+        mine_id = mine.id
+        L.delete_food(ctx, mine_id)
+        ctx.session.commit()
+    for who in (admin, author):
+        with ctx_for(who) as ctx:
+            for act_ in (
+                lambda: L.update_food(ctx, banana_id, {"kcal": 1}),
+                lambda: L.delete_food(ctx, banana_id),
+                lambda: L.restore_food(ctx, banana_id),
+            ):
+                with pytest.raises(HTTPException) as e:
+                    act_()
+                assert e.value.status_code == 403
+                assert "catalog_read_only" in str(e.value.detail)
+    # Another member (an admin too) can't restore the author's deleted food.
+    with ctx_for(admin) as ctx:
+        with pytest.raises(HTTPException) as e:
+            L.restore_food(ctx, mine_id)
+        assert e.value.status_code == 404
+    with ctx_for(author) as ctx:
+        L.restore_food(ctx, mine_id)
+        ctx.session.commit()
+    with Session(db_engine) as s:
+        b = s.get(FoodItem, banana_id)
+        assert b is not None and b.kcal == 89 and b.deleted_at is None
+        m = s.get(FoodItem, mine_id)
+        assert m is not None and m.deleted_at is None
+
+
+def test_an_own_food_may_share_a_built_in_name_but_not_another_own_one(
+    db: Session,
+) -> None:
+    admin, _ = signed_in(db)
+    member, _ = signed_in(db)
+    with ctx_for(admin) as ctx:
+        _built_in_banana(ctx)
+    with ctx_for(member) as ctx:
+        a, _ = L.save_food(ctx, L.FoodDraft(name="Saba", kcal=100))
+        L.save_food(ctx, L.FoodDraft(name="Lakatan", kcal=100))
+        renamed = L.update_food(ctx, a.id, {"name": "Banana"})
+        assert renamed.key == "banana"
+        with pytest.raises(HTTPException) as e:
+            L.update_food(ctx, a.id, {"name": "Lakatan"})
+        assert e.value.status_code == 409
+        ctx.session.commit()
 
 
 def test_saving_the_same_food_again_updates_it(db: Session) -> None:

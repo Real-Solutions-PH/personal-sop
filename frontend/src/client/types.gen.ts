@@ -212,6 +212,24 @@ export type AISettingsUpdate = {
     model?: (string | null);
 };
 
+/**
+ * Where today's Fern messages stand. ``applies`` is false when a new
+ * message would not count (the person's own provider key, or the AI off
+ * and the router answering); the other figures are then still today's.
+ */
+export type AllowanceOut = {
+    applies: boolean;
+    plan: 'free' | 'plus';
+    limit: number;
+    used: number;
+    remaining: number;
+    resets_at: string;
+    month_stopped: boolean;
+    month_resets_at: (string | null);
+};
+
+export type plan = 'free' | 'plus';
+
 export type AnswerIn = {
     value: string;
 };
@@ -1304,6 +1322,7 @@ export type ExerciseDetail = {
     track?: ('speed' | 'weight' | null);
     aliases?: Array<(string)>;
     merged_into_id?: (string | null);
+    is_global?: boolean;
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1336,6 +1355,7 @@ export type ExercisePublic = {
     track?: ('speed' | 'weight' | null);
     aliases?: Array<(string)>;
     merged_into_id?: (string | null);
+    is_global?: boolean;
 };
 
 export type ExercisesOut = {
@@ -1377,6 +1397,7 @@ export type ExerciseWithStats = {
     track?: ('speed' | 'weight' | null);
     aliases?: Array<(string)>;
     merged_into_id?: (string | null);
+    is_global?: boolean;
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1552,9 +1573,11 @@ export type FollowUpAnswerIn = {
 };
 
 /**
- * One food of the shared library. Amounts are per ``basis`` (per 100 g,
- * per piece or per serving); sodium is in milligrams, every other amount in
- * grams. ``can_edit``: the caller is its author or an admin.
+ * One food of the library: a built-in one (``is_global``, every
+ * member's, read-only) or the caller's own. Amounts are per ``basis`` (per
+ * 100 g, per piece or per serving); sodium is in milligrams, every other
+ * amount in grams. ``can_edit``: it is the caller's own (never a built-in
+ * one; copy it instead).
  */
 export type FoodOut = {
     id: string;
@@ -1583,6 +1606,7 @@ export type FoodOut = {
     photo_media_id?: (string | null);
     photo_url?: (string | null);
     can_edit?: boolean;
+    is_global?: boolean;
     origin?: 'you' | 'fern' | 'database';
 };
 
@@ -3078,8 +3102,6 @@ export type PlanPublic = {
     will_renew: boolean;
 };
 
-export type plan = 'free' | 'plus';
-
 /**
  * The routine player: the run plus the derived clock of its step.
  */
@@ -3176,6 +3198,7 @@ export type ProfilePublic = {
     since: (string | null);
     timezone: string;
     currency: string;
+    storefront_country?: (string | null);
     day_start_hour: number;
     evening_start: string;
     target_threshold: number;
@@ -3220,6 +3243,7 @@ export type ProfileUpdate = {
     day_start_hour?: (number | null);
     evening_start?: (string | null);
     target_threshold?: (number | null);
+    storefront_country?: (string | null);
     appearance?: ('system' | 'light' | 'dark' | null);
     privacy_hidden?: (boolean | null);
     onboarded?: (boolean | null);
@@ -4381,6 +4405,11 @@ export type TaskUpdate = {
     nag_every_min?: (number | null);
 };
 
+export type TemplateCopy = {
+    name?: (string | null);
+    id?: (string | null);
+};
+
 export type TemplateItemOut = {
     exercise_id: string;
     exercise_name: string;
@@ -4398,6 +4427,7 @@ export type TemplateOut = {
     updated_at: string;
     name: string;
     sort_order: number;
+    is_global?: boolean;
     items: Array<TemplateItemOut>;
     last_used_at: (string | null);
 };
@@ -5232,6 +5262,8 @@ export type CompanionSpeakData = {
 };
 
 export type CompanionSpeakResponse = (unknown);
+
+export type CompanionGetAllowanceResponse = (AllowanceOut);
 
 export type CompanionAskData = {
     requestBody: app__modules__companion__schema__AskIn;
@@ -6161,6 +6193,13 @@ export type FitnessDeleteTemplateData = {
 
 export type FitnessDeleteTemplateResponse = (Message);
 
+export type FitnessCopyTemplateData = {
+    requestBody: TemplateCopy;
+    templateId: string;
+};
+
+export type FitnessCopyTemplateResponse = (TemplateOut);
+
 export type FitnessRestoreTemplateData = {
     templateId: string;
 };
@@ -6852,6 +6891,12 @@ export type NutritionUpdateFoodData = {
 };
 
 export type NutritionUpdateFoodResponse = (FoodOut);
+
+export type NutritionCopyFoodData = {
+    foodId: string;
+};
+
+export type NutritionCopyFoodResponse = (FoodOut);
 
 export type NutritionCountFoodUseData = {
     foodId: string;

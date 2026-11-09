@@ -94,6 +94,9 @@ export interface Exercise {
   aliases?: string[]
   /** Set: merged into that exercise; this row stays archived as a pointer. */
   mergedInto?: string
+  /** Built in: every member's, read-only (the server's `is_global`). Every
+   * other exercise is the person's own to edit, archive and merge away. */
+  builtIn?: boolean
 }
 export interface TemplateItem {
   exerciseId: string
@@ -105,6 +108,8 @@ export interface WorkoutTemplate {
   id: string
   name: string
   items: TemplateItem[]
+  /** Built in: every member's, read-only; copy it to customise. */
+  builtIn?: boolean
 }
 /** The repeating weekly routine, Monday first (index 0 = Mon … 6 = Sun),
  * so it lines up with weekStart(). Each day is a template id to train, or

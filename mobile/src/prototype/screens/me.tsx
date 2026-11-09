@@ -117,7 +117,8 @@ export function Me() {
         tasksStore.set((s) => ({ ...s, tasks: [], events: [] }))
         fitStore.set((s) => ({
           ...s,
-          templates: [],
+          // Built-in routines are every member's: never removed.
+          templates: s.templates.filter((t) => t.builtIn),
           workouts: [],
           weighIns: [],
           meals: [],

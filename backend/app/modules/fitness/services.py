@@ -16,7 +16,7 @@ from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import col, select
+from sqlmodel import col, func, select
 
 from app.modules.fitness import calc as C
 from app.modules.fitness import catalog, exercise_shape, meal_ai, repo
@@ -61,8 +61,8 @@ def _dirty_at(ctx: Ctx, at: datetime) -> None:
 # --------------------------------------------------------------------------
 
 # The prototype's exercise library and split (``data.ts`` EXERCISES /
-# TEMPLATES): the shared catalog starts with them. Each is added only when
-# the catalog has nothing by that name, so members share one copy.
+# TEMPLATES): the built-in catalog starts with them. Each is added only when
+# no built-in row has that name, so members share one built-in copy.
 LIBRARY: tuple[tuple[str, str, str, str, str, int, int, float, bool], ...] = (
     ("bench", "Barbell Bench Press", "barbell", "chest", "weight", 6, 10, 2.5, False),
     ("incline-db", "Incline Dumbbell Press", "dumbbell", "chest", "weight", 8, 12, 2, False),
@@ -104,8 +104,18 @@ def catalog_exercises(ctx: Ctx) -> list[Exercise]:
     ]
 
 
+def _make_global(ctx: Ctx, row: Exercise | WorkoutTemplate | TemplateItem) -> None:
+    """Mark a row the server just seeded as built in (``is_global`` is
+    never written from a payload: see ``owned_repo.PROTECTED``)."""
+    row.is_global = True
+    ctx.session.add(row)
+    ctx.session.flush()
+
+
 def _seed_library(ctx: Ctx) -> None:
-    rows = catalog_exercises(ctx)
+    """Add the built-in library and split the tenant lacks. Only built-in
+    rows count: a member's own "Plank" never stops the built-in one."""
+    rows = [e for e in catalog_exercises(ctx) if e.is_global]
     ids: dict[str, uuid.UUID] = {}
     for key, name, equip, muscle, load, rmin, rmax, inc, archived in LIBRARY:
         found = catalog.resolve_exercise(name, rows)
@@ -113,10 +123,10 @@ def _seed_library(ctx: Ctx) -> None:
             ids[key] = found.id
             continue
         row_id = library_exercise_id(ctx, key)
-        if owned_repo.get(ctx, Exercise, row_id, include_deleted=True) is not None:
+        if ctx.session.get(Exercise, row_id) is not None:
             continue  # seeded once and since removed or merged: stays so
         ids[key] = row_id
-        owned_repo.insert(
+        ex = owned_repo.insert(
             ctx,
             Exercise,
             {
@@ -131,17 +141,29 @@ def _seed_library(ctx: Ctx) -> None:
             },
             row_id=row_id,
         )
-    routines = owned_repo.list_rows(ctx, WorkoutTemplate, include_deleted=True)
+        _make_global(ctx, ex)
+    routines = [
+        t
+        for t in owned_repo.list_rows(ctx, WorkoutTemplate, include_deleted=True)
+        if t.is_global
+    ]
     for order, (key, name, keys) in enumerate(SPLIT):
-        if catalog.resolve_routine(name, routines) is not None:
+        tid = derived_id("template", ctx.tenant_id, key)
+        if (
+            catalog.resolve_routine(name, routines) is not None
+            or ctx.session.get(WorkoutTemplate, tid) is not None
+        ):
             continue
-        _put_template(
+        t = _put_template(
             ctx,
-            derived_id("template", ctx.tenant_id, key),
+            tid,
             name,
             [(ids[k], DEFAULT_SETS) for k in keys if k in ids],
             sort_order=order,
         )
+        _make_global(ctx, t)
+        for it in repo.template_items(ctx, t.id):
+            _make_global(ctx, it)
 
 
 def ensure_settings(ctx: Ctx) -> FitnessSettings:
@@ -658,12 +680,25 @@ def find_or_create_exercise(ctx: Ctx, name: str) -> Exercise:
 
 def exercise_by_name(ctx: Ctx, name: str) -> Exercise | None:
     """The live, unmerged catalog exercise ``name`` means: the exact name
-    (any case) first, then ``catalog.resolve_exercise``."""
+    (any case) first, then the survivor of an exercise of the caller's own
+    merged away under that name (a built-in survivor gains no alias), then
+    ``catalog.resolve_exercise``."""
     n = name.strip().lower()
     rows = catalog_exercises(ctx)
     by_name = next((e for e in rows if e.name.lower() == n), None)
     if by_name is not None:
         return by_name
+    merged = owned_repo.list_rows(
+        ctx,
+        Exercise,
+        col(Exercise.owner_id) == ctx.user_id,
+        col(Exercise.merged_into_id).is_not(None),
+        func.lower(Exercise.name) == n,
+        include_deleted=True,
+        limit=1,
+    )
+    if merged:
+        return survivor_of(ctx, merged[0])
     return catalog.resolve_exercise(name, rows)
 
 
@@ -988,8 +1023,31 @@ def save_as_template(
     return t
 
 
+def copy_template(
+    *,
+    ctx: Ctx,
+    template_id: uuid.UUID,
+    name: str | None = None,
+    new_id: uuid.UUID | None = None,
+) -> WorkoutTemplate:
+    """A routine of the caller's own with the same slots as ``template_id``
+    (a built-in one, typically, to customise). Replaying with the same
+    ``new_id`` rewrites that copy."""
+    src = owned_repo.require(ctx, WorkoutTemplate, template_id, what="template")
+    slots = repo.template_items(ctx, src.id)
+    t = _put_template(
+        ctx,
+        new_id or uuid.uuid4(),
+        name or f"{src.name[:73]} (copy)",
+        [(i.exercise_id, i.sets) for i in slots],
+        target_secs=[i.target_sec for i in slots],
+    )
+    ctx.commit()
+    return t
+
+
 def _delete_template(ctx: Ctx, template_id: uuid.UUID) -> None:
-    t = owned_repo.require(ctx, WorkoutTemplate, template_id, what="template")
+    t = owned_repo.require_writable(ctx, WorkoutTemplate, template_id, what="template")
     for it in repo.template_items(ctx, t.id):
         owned_repo.soft_delete(ctx, it)
     owned_repo.soft_delete(ctx, t)
@@ -1116,12 +1174,14 @@ def merge_exercises(
         raise invalid(
             "merge_load_type_mismatch", "Only exercises of the same type can merge"
         )
-    # The catalog is shared: every member's references move, tombstoned
-    # ones too, so an undo never revives a split.
+    # The source is the caller's own (built-ins never merge away), so only
+    # their references point at it; tombstoned ones move too, so an undo
+    # never revives a split.
     moved = list(
         ctx.session.exec(
             select(WorkoutExercise).where(
                 WorkoutExercise.tenant_id == ctx.tenant_id,
+                WorkoutExercise.owner_id == ctx.user_id,
                 WorkoutExercise.exercise_id == source.id,
             )
         ).all()
@@ -1142,10 +1202,14 @@ def merge_exercises(
     ):
         earlier.merged_into_id = target.id
         ctx.session.add(earlier)
-    target.aliases = _merged_aliases(target, source)
+    if not target.is_global:
+        # A built-in is never written: one member's old name must not
+        # become every member's alias for it.
+        target.aliases = _merged_aliases(target, source)
+        ctx.session.add(target)
     source.merged_into_id = target.id
     source.archived = True
-    ctx.session.add_all([target, source])
+    ctx.session.add(source)
     ctx.session.flush()
     # Only the caller's own days are marked for the stats rollup.
     workout_ids = {
@@ -1750,8 +1814,8 @@ def set_macro_target(
 # Resets
 # --------------------------------------------------------------------------
 
-# A member's own rows. Exercises and routines are the shared catalog: one
-# member starting over never removes what every member uses.
+# A member's own logs. Exercises and routines (built in, or the member's
+# own library) are never removed by starting over.
 _LOGS: tuple[type[Any], ...] = (
     WorkoutSet,
     WorkoutExercise,
@@ -1767,7 +1831,8 @@ _ALL: tuple[type[Any], ...] = (*_LOGS, MacroTarget, FitnessSettings)
 def _tombstone(ctx: Ctx, models: tuple[type[Any], ...]) -> int:
     n = 0
     for model in models:
-        assert not model.shared_catalog, model  # tenant-wide: never bulk-removed
+        # Catalogs are never bulk-removed (tenant-wide, or built in).
+        assert not model.global_catalog, model
         for row in owned_repo.list_rows(ctx, model):
             row.deleted_at = ctx.now
             ctx.session.add(row)

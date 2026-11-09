@@ -16,6 +16,10 @@ Before any model call a caller runs :func:`check_budget`: it refuses with
 (``capture.ai_settings``). Callers that fall back to the rules engine catch
 those two and route there; the order is check_budget -> resolve_model ->
 build_chat_model -> record_usage.
+
+A Fern chat message answered on the server's key also passes
+:func:`check_fern_turn` (the free daily allowance and the Plus fair-use
+limit, ``allowance``) and is counted once with :func:`count_fern_turn`.
 """
 
 import functools
@@ -33,6 +37,12 @@ from sqlmodel import col, func, select
 
 from app.core.config import settings
 from app.modules.ai_providers import catalog
+from app.modules.ai_providers.allowance import Allowance as Allowance
+from app.modules.ai_providers.allowance import allowance as allowance
+from app.modules.ai_providers.allowance import check_fern_turn as check_fern_turn
+from app.modules.ai_providers.allowance import count_fern_turn as count_fern_turn
+from app.modules.ai_providers.allowance import day_window as day_window
+from app.modules.ai_providers.allowance import light_model as light_model
 from app.modules.ai_providers.models import (
     AIModelAssignment,
     AIProviderCredential,
