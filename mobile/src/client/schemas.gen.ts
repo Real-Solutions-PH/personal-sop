@@ -5990,6 +5990,11 @@ export const FoodOutSchema = {
             title: 'Can Edit',
             default: false
         },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
+        },
         origin: {
             type: 'string',
             enum: ['you', 'fern', 'database'],
@@ -6000,9 +6005,11 @@ export const FoodOutSchema = {
     type: 'object',
     required: ['id', 'name', 'aliases', 'basis', 'unit_grams', 'state', 'kcal', 'protein', 'carbs', 'fat', 'fiber', 'sat_fat', 'fiber_soluble', 'fiber_insoluble', 'sugar', 'sodium', 'source', 'verified', 'use_count', 'last_used_at'],
     title: 'FoodOut',
-    description: `One food of the shared library. Amounts are per \`\`basis\`\` (per 100 g,
-per piece or per serving); sodium is in milligrams, every other amount in
-grams. \`\`can_edit\`\`: the caller is its author or an admin.`
+    description: `One food of the library: a built-in one (\`\`is_global\`\`, every
+member's, read-only) or the caller's own. Amounts are per \`\`basis\`\` (per
+100 g, per piece or per serving); sodium is in milligrams, every other
+amount in grams. \`\`can_edit\`\`: it is the caller's own (never a built-in
+one; copy it instead).`
 } as const;
 
 export const FoodPatchSchema = {

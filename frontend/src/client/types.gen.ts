@@ -1573,9 +1573,11 @@ export type FollowUpAnswerIn = {
 };
 
 /**
- * One food of the shared library. Amounts are per ``basis`` (per 100 g,
- * per piece or per serving); sodium is in milligrams, every other amount in
- * grams. ``can_edit``: the caller is its author or an admin.
+ * One food of the library: a built-in one (``is_global``, every
+ * member's, read-only) or the caller's own. Amounts are per ``basis`` (per
+ * 100 g, per piece or per serving); sodium is in milligrams, every other
+ * amount in grams. ``can_edit``: it is the caller's own (never a built-in
+ * one; copy it instead).
  */
 export type FoodOut = {
     id: string;
@@ -1604,6 +1606,7 @@ export type FoodOut = {
     photo_media_id?: (string | null);
     photo_url?: (string | null);
     can_edit?: boolean;
+    is_global?: boolean;
     origin?: 'you' | 'fern' | 'database';
 };
 
@@ -6860,6 +6863,12 @@ export type NutritionUpdateFoodData = {
 };
 
 export type NutritionUpdateFoodResponse = (FoodOut);
+
+export type NutritionCopyFoodData = {
+    foodId: string;
+};
+
+export type NutritionCopyFoodResponse = (FoodOut);
 
 export type NutritionCountFoodUseData = {
     foodId: string;
