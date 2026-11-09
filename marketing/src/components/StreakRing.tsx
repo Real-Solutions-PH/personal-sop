@@ -73,7 +73,7 @@ export function StreakRing() {
         </svg>
         <div className="center">
           <span className="num">12</span>
-          <small>day run, still going</small>
+          <small className="ring-sub">day run, still going</small>
         </div>
       </div>
       <div

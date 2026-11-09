@@ -11,7 +11,7 @@ export const INTERVIEW_ENDPOINT: string | null = null
 
 export type InterviewPayload = {
   // Kit version the ids refer to.
-  kit: "2026-11-08"
+  kit: "2026-11-09"
   submittedAt: string
   persona: "A" | "B" | "C" | "D" | "E"
   tag?: string
@@ -21,10 +21,15 @@ export type InterviewPayload = {
   screener: Record<string, string | string[] | undefined>
   answers: Record<string, string>
   close: {
+    // Kit Z1: where they last tracked (phone or computer), asked before the pitch.
     Z1?: string
+    // Kit Z2: the first thing they'd check it gets right.
+    Z2?: string
     email?: string
-    // Kit Z2 (commitment level 1): asked for a TestFlight invite.
+    // Kit Z3 (commitment level 1): asked for a TestFlight invite.
     testFlight: boolean
+    // Kit Z4: joined the list for a browser version that isn't built yet.
+    browserList: boolean
     followUpCall: boolean
   }
 }

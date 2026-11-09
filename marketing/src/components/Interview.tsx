@@ -47,6 +47,8 @@ export function Interview() {
   const [s5c, setS5c] = useState("")
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [z1, setZ1] = useState("")
+  const [z2, setZ2] = useState("")
+  const [browserList, setBrowserList] = useState(false)
   const [email, setEmail] = useState("")
   const [call, setCall] = useState(false)
   const [wantsTestFlight, setWantsTestFlight] = useState(false)
@@ -114,7 +116,7 @@ export function Interview() {
   function payload(): InterviewPayload {
     const asked = new Set(questions.map((q) => q.id))
     return {
-      kit: "2026-11-08",
+      kit: "2026-11-09",
       submittedAt: new Date().toISOString(),
       persona: routed.persona as Persona,
       tag: routed.tag,
@@ -125,9 +127,11 @@ export function Interview() {
       ),
       close: {
         Z1: z1.trim() || undefined,
+        Z2: z2.trim() || undefined,
         email: email.trim() || undefined,
         followUpCall: call && !!email.trim(),
         testFlight: wantsTestFlight && !!email.trim(),
+        browserList: browserList && !!email.trim(),
       },
     }
   }
@@ -141,9 +145,11 @@ export function Interview() {
       ...questions
         .filter((q) => p.answers[q.id])
         .map((q) => `${q.id}. ${q.text}\n${p.answers[q.id]}`),
-      p.close.Z1 ? `Z1: ${p.close.Z1}` : "",
+      p.close.Z1 ? `Z1. ${CLOSE.Z1.text}\n${p.close.Z1}` : "",
+      p.close.Z2 ? `Z2. ${CLOSE.Z2.text}\n${p.close.Z2}` : "",
       p.close.email ? `Email: ${p.close.email}` : "",
       `TestFlight link: ${p.close.testFlight ? "yes" : "no"}`,
+      `Browser version list: ${p.close.browserList ? "yes" : "no"}`,
       `Follow-up call: ${p.close.followUpCall ? "yes" : "no"}`,
     ]
     return lines.filter(Boolean).join("\n\n")
@@ -332,7 +338,6 @@ export function Interview() {
           <h2 className="iv-title" ref={headRef} tabIndex={-1}>
             Last one
           </h2>
-          <p className="iv-pitch">{CLOSE.pitch}</p>
           <label className="iv-field iv-open">
             <span className="iv-label">{CLOSE.Z1.text}</span>
             <textarea
@@ -340,6 +345,16 @@ export function Interview() {
               value={z1}
               onChange={(e) => setZ1(e.target.value)}
               placeholder={CLOSE.Z1.placeholder}
+            />
+          </label>
+          <p className="iv-pitch">{CLOSE.pitch}</p>
+          <label className="iv-field iv-open">
+            <span className="iv-label">{CLOSE.Z2.text}</span>
+            <textarea
+              rows={3}
+              value={z2}
+              onChange={(e) => setZ2(e.target.value)}
+              placeholder={CLOSE.Z2.placeholder}
             />
           </label>
           <label
@@ -377,6 +392,20 @@ export function Interview() {
             <input
               className="sr-only"
               type="checkbox"
+              checked={browserList}
+              onChange={(e) => setBrowserList(e.target.checked)}
+            />
+            <span className="box" aria-hidden="true">
+              {browserList && <Check />}
+            </span>
+            We're thinking about a browser version you could open on any
+            computer, with the same records as the phone. It isn't built yet.
+            Put me on the list for it.
+          </label>
+          <label className="iv-check">
+            <input
+              className="sr-only"
+              type="checkbox"
               checked={call}
               onChange={(e) => setCall(e.target.checked)}
             />
@@ -385,7 +414,7 @@ export function Interview() {
             </span>
             I'm happy to join a 30-minute follow-up call.
           </label>
-          {(call || wantsTestFlight) && !email.trim() && (
+          {(call || wantsTestFlight || browserList) && !email.trim() && (
             <p className="iv-note">
               <Info aria-hidden /> Add your email above so we can reach you.
             </p>

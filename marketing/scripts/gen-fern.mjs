@@ -52,6 +52,10 @@ for (const [name, [state, opts]] of Object.entries(moods)) {
         `<svg xmlns="http://www.w3.org/2000/svg" class="fern ${c ?? ""}" `,
     )
     .replace(/^(<svg[^>]*>)/, `$1${style}`)
+    // The sprite draws its ripple and halo past its 64-unit frame, relying
+    // on overflow:visible, which an <img> ignores: widen the frame so they
+    // are not cropped.
+    .replace('viewBox="0 0 64 64"', 'viewBox="-12 -10 88 88"')
   // End with a newline: the repo's end-of-file-fixer hook requires one.
   writeFileSync(join(root, `public/fern/${name}.svg`), `${svg}\n`)
 }
