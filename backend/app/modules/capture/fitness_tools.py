@@ -478,7 +478,22 @@ def removal_target(
     ](name, run)
     if isinstance(hit, dict):
         return hit
+    if (refused := _built_in(hit)) is not None:
+        return refused
     return [str(hit.id)], hit.name
+
+
+def _built_in(row: Any) -> dict[str, Any] | None:
+    """The refusal for a built-in exercise or routine: every member's, and
+    nobody's to change (``owned_repo.guard_write`` refuses it anyway)."""
+    if not getattr(row, "is_global", False):
+        return None
+    return {
+        "error": "built_in",
+        "name": _name(row),
+        "instead": "it is built in and can't be changed; offer to make one of "
+        "their own (a routine can be copied in the app)",
+    }
 
 
 def _in_workout(pairs: list[tuple[Any, str]], name: str) -> Any:
@@ -617,6 +632,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         ex = find_exercise(a.exercise, run)
         if isinstance(ex, dict):
             return ex
+        if (refused := _built_in(ex)) is not None:
+            return refused
         ch = _exercise_changes(a)
         if a.new_name and a.new_name.strip() != ex.name:
             taken = [
@@ -652,6 +669,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         t = find_template(a.template, run)
         if isinstance(t, dict):
             return t
+        if (refused := _built_in(t)) is not None:
+            return refused
         now = fx.template_public(ctx, t)["exercises"]
 
         def slot(s: SlotArgs) -> dict[str, Any]:

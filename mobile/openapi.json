@@ -6697,6 +6697,53 @@
         }
       }
     },
+    "/api/v1/fitness/templates/{template_id}/copy": {
+      "post": {
+        "tags": ["fitness"],
+        "summary": "Copy Template",
+        "description": "A routine of your own from any you can see (a built-in one to\ncustomise).",
+        "operationId": "fitness-copy_template",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemplateCopy" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TemplateOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/fitness/templates/{template_id}/restore": {
       "post": {
         "tags": ["fitness"],
@@ -22201,6 +22248,11 @@
             ],
             "title": "Merged Into Id"
           },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
+          },
           "last_done_at": {
             "anyOf": [
               { "type": "string", "format": "date-time" },
@@ -22311,6 +22363,11 @@
               { "type": "null" }
             ],
             "title": "Merged Into Id"
+          },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
           }
         },
         "type": "object",
@@ -22463,6 +22520,11 @@
               { "type": "null" }
             ],
             "title": "Merged Into Id"
+          },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
           },
           "last_done_at": {
             "anyOf": [
@@ -33323,6 +33385,26 @@
         "required": ["data", "count"],
         "title": "TasksPublic"
       },
+      "TemplateCopy": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80, "minLength": 1 },
+              { "type": "null" }
+            ],
+            "title": "Name"
+          },
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "title": "TemplateCopy"
+      },
       "TemplateItemOut": {
         "properties": {
           "exercise_id": {
@@ -33367,6 +33449,11 @@
           },
           "name": { "type": "string", "title": "Name" },
           "sort_order": { "type": "integer", "title": "Sort Order" },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
+          },
           "items": {
             "items": { "$ref": "#/components/schemas/TemplateItemOut" },
             "type": "array",

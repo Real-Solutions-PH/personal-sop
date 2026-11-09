@@ -11,8 +11,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from langchain_core.messages import ToolMessage
+from sqlalchemy import text
 from sqlmodel import Session
 
+from app.core.db import engine as db_engine
 from app.modules.fitness.models import (
     Exercise,
     FitnessSettings,
@@ -37,10 +39,21 @@ from tests.modules.companion.api.test_fern_agent import (
 )
 
 
-def fern(client: TestClient, db: Session) -> Any:
+def fern(client: TestClient, db: Session, *, own_library: bool = False) -> Any:
+    """A signed-in member, alone in a tenant of their own. ``own_library``:
+    the seeded library and split become the member's own rows (built-ins
+    are read-only), for the tests that edit them."""
     api: Any = user(client, db, accounts=False)
     api.assign("chat")
     api.get("/fitness/settings")  # first visit: the seeded library and split
+    if own_library:
+        with Session(db_engine) as s:
+            for table in ("exercise", "workout_template", "template_item"):
+                s.exec(
+                    text(f"UPDATE {table} SET is_global = false WHERE owner_id = :u"),
+                    params={"u": api.user.id},
+                )
+            s.commit()
     return api
 
 
@@ -111,7 +124,7 @@ def workout_sets(api: Api, w_id: Any) -> list[tuple[str, int, float, bool]]:
 def test_rename_and_retype_an_exercise_then_undo(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    api = fern(client, db)
+    api = fern(client, db, own_library=True)
     step, _ = turn(
         api,
         client,
@@ -136,6 +149,47 @@ def test_rename_and_retype_an_exercise_then_undo(
     undo(api, step)
     ex = exercise(api, "Lat Pulldown")
     assert ex.equipment == "cable"
+
+
+def test_fern_cannot_change_a_built_in_exercise_or_routine(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = fern(client, db)
+    step, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "rename lat pulldown to wide grip pulldown",
+        act("edit_exercise", exercise="lat pulldown", new_name="Wide Grip Pulldown"),
+        reply="Lat Pulldown is built in, so I can't rename it.",
+    )
+    assert not step["ok"], step
+    got = tool_result(model)
+    assert got["error"] == "built_in", got
+    assert exercise(api, "Lat Pulldown").is_global
+    step, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "in pull a drop face pulls",
+        act("edit_workout_template", template="pull a", remove=["face pull"]),
+        reply="Pull A is built in; I can copy it for you.",
+    )
+    assert not step["ok"], step
+    got = tool_result(model)
+    assert got["error"] == "built_in", got
+    assert ("Face Pull", 3) in template_names(api, template(api, "Pull A"))
+    step, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "delete my legs a template",
+        act("remove_item", what="template", name="legs a"),
+        reply="Legs A is built in, so it stays.",
+    )
+    assert not step["ok"], step
+    assert tool_result(model)["error"] == "built_in"
+    assert "Legs A" in {t.name for t in live(rows_of(api, WorkoutTemplate))}
 
 
 def test_an_ambiguous_exercise_name_changes_nothing_and_lists_the_matches(
@@ -318,7 +372,7 @@ def test_creating_a_routine_by_an_existing_name_reuses_it(
 def test_archiving_an_exercise_waits_for_confirm_then_undo_brings_it_back(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    api = fern(client, db)
+    api = fern(client, db, own_library=True)
     step, _ = turn(
         api,
         client,
@@ -341,7 +395,7 @@ def test_a_delete_waits_until_the_person_says_confirm(
 ) -> None:
     """The removal waits; a later "yes, confirm" turn runs confirm_pending,
     and only then is the template gone."""
-    api = fern(client, db)
+    api = fern(client, db, own_library=True)
     step, _ = turn(
         api,
         client,
@@ -372,7 +426,7 @@ def test_a_delete_waits_until_the_person_says_confirm(
 def test_edit_a_template_adds_removes_and_renames_then_undo(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    api = fern(client, db)
+    api = fern(client, db, own_library=True)
     step, _ = turn(
         api,
         client,
@@ -412,7 +466,7 @@ def test_edit_a_template_adds_removes_and_renames_then_undo(
 def test_reorder_a_template_and_set_a_timed_goal(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    api = fern(client, db)
+    api = fern(client, db, own_library=True)
     step, _ = turn(
         api,
         client,
