@@ -13,6 +13,7 @@ import {
   Sun,
   Target,
   Timer,
+  Users,
   Utensils,
   Wallet,
 } from "lucide-react"
@@ -114,6 +115,13 @@ const FEATURES: {
     name: "Focus",
     shot: "focus",
     text: "Pomodoro and stopwatch, recorded.",
+  },
+  {
+    k: "var(--hab)",
+    icon: <Users aria-hidden />,
+    name: "Community",
+    shot: "social",
+    text: "Friends' wins, check-ins and progress stories.",
   },
   {
     k: "var(--life)",

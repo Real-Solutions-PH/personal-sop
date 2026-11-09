@@ -493,7 +493,14 @@ export function FeatureGallery({
   useScene(root, (_gsap, q, tl) => {
     const strip = q(".gl-strip")[0]
     tl.to(strip, {
-      x: () => -Math.max(0, strip.scrollWidth - strip.clientWidth),
+      // Slide until the last tile's right edge sits one side-padding in
+      // from the window's edge (scrollWidth drops a flex row's end padding).
+      x: () => {
+        const last = strip.lastElementChild as HTMLElement
+        const pad = Number.parseFloat(getComputedStyle(strip).paddingLeft)
+        const end = last.offsetLeft + last.offsetWidth + pad
+        return -Math.max(0, end - strip.clientWidth)
+      },
       ease: "none",
       duration: 1,
     })
