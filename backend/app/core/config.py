@@ -328,6 +328,54 @@ class Settings(BaseSettings):
     # summary (companion.services.history_budget). 64k is hundreds of
     # messages; raise it to use more of a 1M-token window at more cost.
     FERN_HISTORY_MAX_TOKENS: int = 64_000
+
+    # Fern allowance and Plus fair use (pricing ruling 2026-11-08; enforced
+    # in ai_providers.allowance). They count only turns answered on the
+    # server's key: a person on their own provider key pays for their own.
+    # Free: messages a day during the account's first FERN_FREE_WEEK_ONE_DAYS
+    # business days, then the lower number; low-price countries (price tier
+    # FERN_LOW_PRICE_TIER and up) get their own pair.
+    FERN_FREE_WEEK_ONE_DAYS: int = 7
+    FERN_FREE_DAILY_WEEK_ONE: int = 15
+    FERN_FREE_DAILY: int = 5
+    FERN_FREE_DAILY_WEEK_ONE_LOW_PRICE: int = 10
+    FERN_FREE_DAILY_LOW_PRICE: int = 3
+    FERN_LOW_PRICE_TIER: int = 3
+    # Plus: a monthly AI budget in US dollars by price tier (server-key spend
+    # of every purpose in the business month); past it Fern answers on
+    # FERN_LIGHT_MODEL. Hard stops refuse the turn. Never "unlimited".
+    FERN_PLUS_BUDGET_USD_TIER_1: float = 2.50
+    FERN_PLUS_BUDGET_USD_TIER_2: float = 1.50
+    FERN_PLUS_BUDGET_USD_TIER_3: float = 1.00
+    FERN_PLUS_DAILY_HARD_STOP: int = 60
+    FERN_PLUS_MONTHLY_HARD_STOP_USD: float = 5.00
+    # The lighter model per purpose for a Plus account past its budget, as
+    # "purpose=model" pairs; a purpose not listed keeps its model.
+    FERN_LIGHT_MODELS: str = "chat=deepseek-ai/DeepSeek-V4-Flash-0731"
+    # Price tier by ISO 3166 country (the pricing study's tiers 2 and 3);
+    # any country not listed is tier 1. "CC=tier" pairs.
+    PRICE_TIER_COUNTRIES: str = "BR=2,MX=2,PH=3,IN=3,ID=3"
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def price_tier_countries(self) -> dict[str, int]:
+        out: dict[str, int] = {}
+        for pair in self.PRICE_TIER_COUNTRIES.split(","):
+            cc, _, tier = pair.partition("=")
+            if cc.strip() and tier.strip().isdigit():
+                out[cc.strip().upper()] = int(tier.strip())
+        return out
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def fern_light_models(self) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for pair in self.FERN_LIGHT_MODELS.split(","):
+            purpose, _, model = pair.partition("=")
+            if purpose.strip() and model.strip():
+                out[purpose.strip()] = model.strip()
+        return out
+
     # The context window assumed for a model the catalogue does not list (a
     # user's own provider): 128k, what current chat models offer at least.
     AI_CONTEXT_WINDOW_DEFAULT: int = 131_072

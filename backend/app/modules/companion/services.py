@@ -432,7 +432,30 @@ def _resolve(ctx: Ctx) -> ai.ResolvedModel | None:
         # The companion falls back to the router when the AI is off or capped; a log it
         # hands to capture is refused there and kept as a failed capture.
         return None
+    if resolved.source == "server" and ai.allowance(ctx).light:
+        # Plus past its monthly AI budget: every chat call of Fern (the
+        # reply, and the learning and summary after it) on the light model.
+        resolved = ai.light_model(resolved)
     return resolved
+
+
+def allowance_applies(ctx: Ctx) -> bool:
+    """Whether a new message would be answered on the server's key, and so
+    count against the allowance (not on the person's own key, and not when
+    the AI is off or capped and the router answers)."""
+    resolved = _resolve(ctx)
+    return resolved is not None and resolved.source == "server"
+
+
+def check_allowance(ctx: Ctx, message_id: uuid.UUID | None) -> None:
+    """Refuse, before a stream opens, a new message the allowance does not
+    cover (402 ``fern_daily_allowance_reached`` or
+    ``fern_monthly_limit_reached``). A resend of a stored question passes:
+    it reads the reply it already has. Reads only."""
+    if message_id is not None and question_stored(ctx, message_id):
+        return
+    if allowance_applies(ctx):
+        ai.check_fern_turn(ctx)
 
 
 def _to_capture(ctx: Ctx, text: str, me_id: uuid.UUID, emit: Emit) -> dict[str, Any]:
@@ -491,6 +514,12 @@ def _ask(
     sol = companion_row(ctx)
     user_name = profile.get_profile(ctx).name
     resolved = _resolve(ctx)
+    if resolved is not None and resolved.source == "server":
+        # The free allowance and Plus fair use count messages answered on
+        # the server's key, once per question id (a resend was answered
+        # above). Refused here, before anything of the turn is stored.
+        allowed = ai.check_fern_turn(ctx)
+        ai.count_fern_turn(ctx, me_id, allowed)
     if resolved is not None:
         try:
             return _ask_ai(

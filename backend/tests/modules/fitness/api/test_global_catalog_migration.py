@@ -149,6 +149,9 @@ def test_upgrade_splits_built_in_from_own_and_downgrade_restores(
     assert not _has_column()
     _alembic(db, "upgrade", REVISION)
     first = _state(own_tenant)
+    # Later revisions back on before the API is used: the models expect the
+    # whole schema, not this revision's.
+    _alembic(db, "upgrade", "head")
 
     g = {k: v[0] for k, v in first["exercise"].items()}
     assert all(g[i] for i in lib.values())  # the seeded library

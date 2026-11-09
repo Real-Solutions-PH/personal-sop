@@ -15450,6 +15450,33 @@
         }
       }
     },
+    "/api/v1/companion/allowance": {
+      "get": {
+        "tags": ["companion"],
+        "summary": "Get Allowance",
+        "description": "Today's Fern messages: the limit, how many are used and when the\ncount resets (the free allowance, or Plus's fair-use hard stops).",
+        "operationId": "companion-get_allowance",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AllowanceOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/api/v1/companion/ask": {
       "post": {
         "tags": ["companion"],
@@ -20160,6 +20187,45 @@
         "type": "object",
         "required": ["kind", "tone", "text"],
         "title": "AdvicePublic"
+      },
+      "AllowanceOut": {
+        "properties": {
+          "applies": { "type": "boolean", "title": "Applies" },
+          "plan": {
+            "type": "string",
+            "enum": ["free", "plus"],
+            "title": "Plan"
+          },
+          "limit": { "type": "integer", "title": "Limit" },
+          "used": { "type": "integer", "title": "Used" },
+          "remaining": { "type": "integer", "title": "Remaining" },
+          "resets_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Resets At"
+          },
+          "month_stopped": { "type": "boolean", "title": "Month Stopped" },
+          "month_resets_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Month Resets At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applies",
+          "plan",
+          "limit",
+          "used",
+          "remaining",
+          "resets_at",
+          "month_stopped",
+          "month_resets_at"
+        ],
+        "title": "AllowanceOut",
+        "description": "Where today's Fern messages stand. ``applies`` is false when a new\nmessage would not count (the person's own provider key, or the AI off\nand the router answering); the other figures are then still today's."
       },
       "AnswerIn": {
         "properties": {
@@ -28841,6 +28907,10 @@
           },
           "timezone": { "type": "string", "title": "Timezone" },
           "currency": { "type": "string", "title": "Currency" },
+          "storefront_country": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Storefront Country"
+          },
           "day_start_hour": { "type": "integer", "title": "Day Start Hour" },
           "evening_start": { "type": "string", "title": "Evening Start" },
           "target_threshold": { "type": "number", "title": "Target Threshold" },
@@ -29078,6 +29148,18 @@
               { "type": "null" }
             ],
             "title": "Target Threshold"
+          },
+          "storefront_country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2,
+                "pattern": "^[A-Za-z]{2}$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Storefront Country"
           },
           "appearance": {
             "anyOf": [
