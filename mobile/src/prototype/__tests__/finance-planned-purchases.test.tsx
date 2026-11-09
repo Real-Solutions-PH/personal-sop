@@ -81,7 +81,6 @@ jest.mock("@react-native-community/datetimepicker", () => {
 })
 jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 
-
 const A =
   require("@domain/finance/actions") as typeof import("@domain/finance/actions")
 const { Projection, purchaseDay } =
@@ -113,7 +112,7 @@ beforeEach(() => {
     removeItem: () => {},
   })
   resetAll()
-  Object.keys(mockParams).forEach((k) => delete mockParams[k])
+  for (const k of Object.keys(mockParams)) delete mockParams[k]
 })
 
 const plannedBase = (
