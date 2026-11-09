@@ -109,26 +109,32 @@ export function ProjectedExpenses() {
                     </Line>
                     <Copy size={12} muted>
                       {C.scheduleLabel(p)}
-                      {next ? ` · next ${C.dayLabel(next)}` : ""}
+                      {next && p.schedule.kind !== "once"
+                        ? ` · next ${C.dayLabel(next)}`
+                        : ""}
                     </Copy>
                     <Copy size={12} muted>
                       {plannedWhere(p, s.accounts, s.categories)}
                     </Copy>
                   </View>
-                  <Copy
-                    weight="semibold"
-                    style={{ color: isOn ? t.bad : t.muted }}
-                  >
-                    −{money(p.amount)}
-                  </Copy>
                 </Line>
               </Tap>
-              <Switch
-                accent="fin"
-                label={`Count ${p.name} in the projection`}
-                value={isOn}
-                onChange={(v) => setCounted(p, v)}
-              />
+              {/* Amount over its switch: the name and schedule keep the
+                  middle column's full width. */}
+              <View style={{ alignItems: "flex-end", gap: 6 }}>
+                <Copy
+                  weight="semibold"
+                  style={{ color: isOn ? t.bad : t.muted }}
+                >
+                  −{money(p.amount)}
+                </Copy>
+                <Switch
+                  accent="fin"
+                  label={`Count ${p.name} in the projection`}
+                  value={isOn}
+                  onChange={(v) => setCounted(p, v)}
+                />
+              </View>
             </Line>
           )
         })}
