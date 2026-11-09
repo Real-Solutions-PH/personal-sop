@@ -767,6 +767,25 @@ export interface ProjMonth {
   net: number
   end: number
   endBase: number
+  /** The balance with none of the planned money out (bills, planned
+   * purchases, transfers leaving the counted accounts) and no what-if:
+   * scheduled income, less everyday spending when that is included. */
+  endNoPlanned: number
+  /** The planned occurrences counted this month, by day. */
+  items: ProjItem[]
+  /** Records dated inside this month but after today (a bill logged ahead
+   * of its due day). Already in today's balance, so they move nothing. */
+  logged: FinRecord[]
+}
+/** One planned occurrence a projection counts. */
+export interface ProjItem {
+  item: PlannedItem
+  /** The day it lands (a snoozed occurrence on its new day). */
+  day: string
+  /** The occurrence's original day, which identifies it. */
+  orig: string
+  /** What it does to the counted accounts: + in, − out. */
+  amount: number
 }
 export interface Projection {
   start: number
@@ -878,6 +897,7 @@ export function project(
   const paid = paidIndex(s)
   let end = start
   let endBase = start
+  let endNoPlanned = start
   const months: ProjMonth[] = []
   let hasIncome = false
   for (let i = 0; i < opts.horizon; i++) {
@@ -886,21 +906,52 @@ export function project(
     const from = i === 0 ? addDays(t, 1) : mf
     let inflow = 0
     let plannedOut = 0
+    const counted: ProjItem[] = []
     for (const p of items) {
       for (const o of occurrences(p, from, mt)) {
         if (paid.has(`${p.id}|${o}`) || p.skipped.includes(o)) continue
+        let effect = 0
         if (p.type === "income") {
           inflow += p.amount
+          effect = p.amount
           hasIncome = true
-        } else if (p.type === "expense") plannedOut += p.amount
-        else {
+        } else if (p.type === "expense") {
+          plannedOut += p.amount
+          effect = -p.amount
+        } else {
           const fromLiquid = liquidIds.has(p.accountId)
           const toLiquid = !!p.toAccountId && liquidIds.has(p.toAccountId)
-          if (fromLiquid && !toLiquid) plannedOut += p.amount
-          if (!fromLiquid && toLiquid) inflow += p.amount
+          if (fromLiquid && !toLiquid) {
+            plannedOut += p.amount
+            effect = -p.amount
+          }
+          if (!fromLiquid && toLiquid) {
+            inflow += p.amount
+            effect = p.amount
+          }
         }
+        if (effect)
+          counted.push({
+            item: p,
+            day: p.snoozed[o] ?? o,
+            orig: o,
+            amount: effect,
+          })
       }
     }
+    counted.sort((a, b) => a.day.localeCompare(b.day) || a.amount - b.amount)
+    const logged = s.records
+      .filter((r) => {
+        const d = recDay(r)
+        return (
+          d > t &&
+          d >= mf &&
+          d <= mt &&
+          (liquidIds.has(r.accountId) ||
+            (!!r.toAccountId && liquidIds.has(r.toAccountId)))
+        )
+      })
+      .sort((a, b) => recDay(a).localeCompare(recDay(b)))
     const share =
       i === 0 ? Math.max(0, diffDays(mt, t)) / (diffDays(mt, mf) + 1) : 1
     const unplanned = opts.includeUnplanned ? avgU * share : 0
@@ -916,6 +967,7 @@ export function project(
     const netBase = inflow - plannedOut - unplanned
     endBase += netBase
     end += netBase - whatIf
+    endNoPlanned += inflow - unplanned
     months.push({
       key: mk,
       inflow,
@@ -925,6 +977,9 @@ export function project(
       net: netBase - whatIf,
       end,
       endBase,
+      endNoPlanned,
+      items: counted,
+      logged,
     })
   }
   const lowOf = (sel: (m: ProjMonth) => number) =>
