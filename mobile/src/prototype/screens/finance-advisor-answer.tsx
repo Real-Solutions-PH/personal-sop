@@ -357,10 +357,10 @@ function Answer({
                   kind: "planned",
                   prefill: {
                     name: "Phone — 0% installment",
-                    type: "transfer",
+                    type: "expense",
                     amount: monthly,
                     accountId: "bpi",
-                    toAccountId: "bpicc",
+                    categoryId: "shopping",
                     isInstallment: true,
                     schedule: { kind: "monthly", day: 8 },
                     end: { kind: "count", n },
