@@ -95,7 +95,7 @@ def _exercise_ref(ctx: Ctx, data: dict[str, Any]) -> None:
 def _upsert_template_item(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     data = _data(p)
     if data.get("template_id") is not None:
-        # Routines are shared: only their author (or an admin) adds slots.
+        # Only the owner adds slots, never to a built-in routine.
         owned_repo.require_writable(
             ctx, WorkoutTemplate, data["template_id"], what="template"
         )

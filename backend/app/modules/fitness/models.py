@@ -51,7 +51,7 @@ MEAL_STATUSES = ("pending_estimate", "estimated", "confirmed")
 
 class Exercise(OwnedRow, table=True):
     __tablename__ = "exercise"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
     __table_args__ = (
         enum_check("equipment", EQUIPMENT, name="ck_exercise_equipment"),
         enum_check("muscle", MUSCLES, name="ck_exercise_muscle"),
@@ -87,19 +87,27 @@ class Exercise(OwnedRow, table=True):
     merged_into_id: uuid.UUID | None = Field(
         default=None, foreign_key="exercise.id", ondelete="SET NULL", index=True
     )
+    # Built in: every member of the tenant reads it; nobody edits it.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
 
 
 class WorkoutTemplate(OwnedRow, table=True):
     __tablename__ = "workout_template"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
 
     name: str = Field(max_length=80)
     sort_order: int = 0
+    # Built in: every member of the tenant reads it; nobody edits it.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
 
 
 class TemplateItem(OwnedRow, table=True):
     __tablename__ = "template_item"
-    shared_catalog: ClassVar[bool] = True  # app-wide (catalog.py)
+    global_catalog: ClassVar[bool] = True  # built-in + own (catalog.py)
     __table_args__ = (
         UniqueConstraint("template_id", "position", name="uq_template_item_pos"),
         CheckConstraint("sets BETWEEN 1 AND 20", name="ck_template_item_sets"),
@@ -117,6 +125,10 @@ class TemplateItem(OwnedRow, table=True):
     sets: int = 3
     # A timed exercise's goal, in seconds (e.g. 1200: walk 20 minutes).
     target_sec: int | None = None
+    # Always its routine's: a built-in routine's slots are built in.
+    is_global: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
 
 
 class Workout(OwnedRow, table=True):
