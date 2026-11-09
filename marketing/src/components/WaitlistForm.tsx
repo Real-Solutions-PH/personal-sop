@@ -1,21 +1,42 @@
 "use client"
 
-import { ArrowRight, CircleAlert, CircleCheck, Info, Lock } from "lucide-react"
-import { type FormEvent, useState } from "react"
-import { CTA, SITE, WAITLIST } from "@/config/site"
+import {
+  ArrowRight,
+  Check,
+  CircleAlert,
+  CircleCheck,
+  Info,
+  Lock,
+} from "lucide-react"
+import { type FormEvent, useEffect, useState } from "react"
+import { BROWSER_VERSION, CTA, SITE, WAITLIST } from "@/config/site"
 
 type State =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "done"; email: string }
+  | { kind: "done"; email: string; browser: boolean }
   | { kind: "error"; message: string }
   | { kind: "stub" }
 
 // The waitlist form. There is no backend yet (WAITLIST.endpoint is null), so
 // submitting says exactly that and offers email instead; it never shows a
-// success it did not earn. Once an endpoint is set, it POSTs {"email"}.
+// success it did not earn. Once an endpoint is set, it POSTs
+// {"email", "browserVersion"}; browserVersion is the demand signal for the
+// unbuilt browser version.
 export function WaitlistForm() {
   const [state, setState] = useState<State>({ kind: "idle" })
+  const [browser, setBrowser] = useState(false)
+
+  // The "join that list" link under every primary button lands on
+  // #browser-list and arrives with the box already ticked.
+  useEffect(() => {
+    const sync = () => {
+      if (window.location.hash === "#browser-list") setBrowser(true)
+    }
+    sync()
+    window.addEventListener("hashchange", sync)
+    return () => window.removeEventListener("hashchange", sync)
+  }, [])
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -38,10 +59,10 @@ export function WaitlistForm() {
       const res = await fetch(WAITLIST.endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, browserVersion: browser }),
       })
       if (!res.ok) throw new Error(String(res.status))
-      setState({ kind: "done", email })
+      setState({ kind: "done", email, browser })
     } catch {
       setState({
         kind: "error",
@@ -75,10 +96,27 @@ export function WaitlistForm() {
           <ArrowRight aria-hidden />
         </button>
       </div>
+      {BROWSER_VERSION.listed && (
+        <label className="iv-check browser-check" id="browser-list">
+          <input
+            className="sr-only"
+            type="checkbox"
+            name="browserVersion"
+            checked={browser}
+            onChange={(e) => setBrowser(e.target.checked)}
+          />
+          <span className="box" aria-hidden="true">
+            {browser && <Check />}
+          </span>
+          Also tell me about a browser version for any computer. It isn't built
+          yet.
+        </label>
+      )}
       <div id="waitlist-msg" aria-live="polite">
         {state.kind === "done" && (
           <p className="form-msg" data-tone="good">
-            <CircleCheck aria-hidden /> You're on the list as {state.email}. One
+            <CircleCheck aria-hidden /> You're on the list as {state.email}
+            {state.browser ? ", for the app and the browser version" : ""}. One
             email when your invite is ready, nothing else.{" "}
             <a href="/research/">Got 10 minutes? Help shape Unfurl.</a>
           </p>

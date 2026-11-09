@@ -82,8 +82,9 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
 - The share cards are the app's real cards on its Photo ground, over three photos generated with Figma AI for the site (2026-11-09); no real person is shown.
 
 - The hero film starts muted with captions off (owner, 2026-11-09); a sound button turns its music on, and it mutes itself again once the film leaves the screen. Fern sits beside the hero's waitlist button, leaning toward it (decorative).
+- A browser version is listed before it is built, to measure demand (owner, 2026-11-09, overriding the interview kit's wait-for-interviews threshold): every primary button carries "Rather use it in a browser? Join that list", which lands on a waitlist checkbox that says it isn't built yet; the form sends `browserVersion` with the email. `BROWSER_VERSION.listed` in `marketing/src/config/site.ts` takes it down. The interview form asks the kit's Z1 (phone or computer) and Z4 (browser list) too.
 
 **Follow-ups:**
 - Pick the production domain and add the Cloudflare Pages project (Kai).
-- Connect the waitlist form to a real endpoint, or remove it.
+- Connect the waitlist form to a real endpoint, or remove it. Until then no browser-version sign-up is counted, so the demand measurement has not started.
 - Replace the placeholder legal pages with reviewed text before launch.

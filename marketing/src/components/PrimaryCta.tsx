@@ -1,6 +1,6 @@
-import { ArrowRight, CircleCheck } from "lucide-react"
+import { ArrowRight, CircleCheck, Monitor } from "lucide-react"
 import type { ReactNode } from "react"
-import { CTA } from "@/config/site"
+import { BROWSER_VERSION, CTA } from "@/config/site"
 
 // The one primary call to action, repeated after each proof section. Every
 // copy goes to the same place with the same words, so the page asks for one
@@ -34,6 +34,12 @@ export function PrimaryCta({
       <p className="reassure">
         <CircleCheck aria-hidden /> {CTA.reassurance}
       </p>
+      {BROWSER_VERSION.listed && (
+        <p className="browser-ask">
+          <Monitor aria-hidden />
+          <a href="#browser-list">{BROWSER_VERSION.linkLabel}</a>
+        </p>
+      )}
     </div>
   )
 }

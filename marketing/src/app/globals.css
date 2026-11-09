@@ -1097,6 +1097,31 @@ section {
   font-size: 14px;
   font-weight: 500;
 }
+/* The browser-version list: a quiet second ask under the primary button,
+   and its matching box in the waitlist form. */
+.browser-ask {
+  margin-top: 6px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.browser-ask svg {
+  width: 16px;
+  height: 16px;
+  color: var(--muted-foreground);
+  flex: none;
+}
+.browser-ask a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.waitlist .browser-check {
+  font-size: 14px;
+  font-weight: 400;
+  scroll-margin-top: 50vh;
+}
 .field-row {
   display: flex;
   flex-wrap: wrap;

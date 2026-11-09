@@ -44,6 +44,16 @@ export const WAITLIST = {
   endpoint: null as string | null,
 } as const
 
+// A listed-but-unbuilt browser version, put up to measure demand before
+// building it (interview kit 2026-11-09, section 4; Kai asked for it on
+// 2026-11-09). Every primary button carries a "join that list" link, and the
+// waitlist form has a matching checkbox; the signal is how many sign-ups tick
+// it. Set listed to false to take it down; the copy always says it isn't built.
+export const BROWSER_VERSION = {
+  listed: true as boolean,
+  linkLabel: "Rather use it in a browser? Join that list",
+} as const
+
 // Social proof. Null means "no real number yet": the section shows a true
 // sentence instead of a count. Fill these only with measured figures.
 export const PROOF = {
