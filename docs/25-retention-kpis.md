@@ -42,7 +42,7 @@ Not a KPI on purpose: streak length. A streak punishes the gap that KPI 5 is bui
 
 The record tables, `companion_message`, `ai_usage` and `user_profile` already answer KPIs 1–9 and 11. Two numbers had no source:
 
-- **`usage_event`** (`backend/app/modules/usage/`): one row per `app_open`, `app_close` or `share_card`, owned by the person and tenant-isolated like every record. A share carries the card's fixed key, never typed text. `POST /usage/events` takes batches of up to 50 for the signed-in person.
+- **`usage_event`** (`backend/app/modules/usage/`): one row per `app_open`, `app_close` or `share_card`, owned by the person and tenant-isolated like every record. A share carries the card's fixed key, never typed text. `POST /usage/events` takes batches of up to 50 for the signed-in person. Since 2026-11-09 it also holds the Unfurl Plus moments ([ADR-0037](adr/0037-revenuecat-for-unfurl-plus.md)): the phone sends `paywall_shown`, `purchase_started` and `restored`, and the server writes `purchased`, `cancelled` and `refunded` from RevenueCat; none of them counts as an app session.
 - **Mobile** (`mobile/src/prototype/usage.ts`): a queue like the onboarding funnel's. The launch and each return to the foreground log an open; leaving for the background logs a close and sends at once. The share sheet logs a `share_card`. Signed-in, live mode only. Each queued event is tagged on the phone with the account it was logged under, and a queue left from another account is dropped, never sent.
 
 No screen names or tap positions are recorded. Screen flows and heatmaps are the analytics SDK question below.

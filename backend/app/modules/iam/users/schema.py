@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
@@ -31,6 +32,13 @@ class UserPublic(UserBase):
     id: uuid.UUID
     tenant_id: uuid.UUID
     created_at: datetime | None = None
+
+
+class UserMe(UserPublic):
+    """The signed-in account, with its plan as the server decides it."""
+
+    plan: Literal["free", "plus"] = "free"
+    plus_until: datetime | None = None
 
 
 class UsersPublic(SQLModel):

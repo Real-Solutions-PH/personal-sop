@@ -16,6 +16,7 @@ from app.modules.ai_providers.models import (  # noqa: F401
     AIUsage,
 )
 from app.modules.audit.models import AuditLog  # noqa: F401
+from app.modules.billing.models import Entitlement  # noqa: F401
 from app.modules.capture.models import (  # noqa: F401
     AISettings,
     Capture,
@@ -278,4 +279,5 @@ __all__ = [
     "WeatherCache",
     "SyncOpReceipt",
     "UsageEvent",
+    "Entitlement",
 ]

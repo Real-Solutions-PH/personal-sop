@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.core.config import settings
 from app.modules.ai_providers.main import router as ai_providers_router
 from app.modules.audit.main import router as audit_router
+from app.modules.billing.main import router as billing_router
 from app.modules.capture.main import router as capture_router
 from app.modules.companion.main import router as companion_router
 from app.modules.dashboard.main import router as dashboard_router
@@ -49,6 +50,7 @@ v1_router.include_router(companion_router)
 v1_router.include_router(social_router)
 v1_router.include_router(weather_router)
 v1_router.include_router(usage_router)
+v1_router.include_router(billing_router)
 v1_router.include_router(media_router)
 v1_router.include_router(sync_router)
 v1_router.include_router(realtime_router)

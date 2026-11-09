@@ -3,10 +3,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
+from app.modules.billing import public as billing
 from app.modules.iam.deps import CurrentUser, require_permission
 from app.modules.iam.users import services as user_service
 from app.modules.iam.users.schema import (
     UserCreate,
+    UserMe,
     UserPublic,
     UsersPublic,
     UserUpdate,
@@ -60,9 +62,16 @@ def update_user_me(
     )
 
 
-@router.get("/me", response_model=UserPublic)
-def read_user_me(current_user: CurrentUser) -> Any:
-    return current_user
+@router.get("/me", response_model=UserMe)
+def read_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
+    plan = billing.view(session, current_user.id)
+    return UserMe.model_validate(
+        {
+            **UserPublic.model_validate(current_user).model_dump(),
+            "plan": plan.plan,
+            "plus_until": plan.plus_until,
+        }
+    )
 
 
 @router.get("/me/export")

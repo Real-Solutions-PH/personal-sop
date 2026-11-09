@@ -48,6 +48,17 @@ The KPIs in [25-retention-kpis.md](25-retention-kpis.md) come from `scripts/rete
 2. Read the `KPI` line from the task's log stream (`api/api/<task id>` in the API log group).
 3. Before the image that contains the script is deployed, the same file can be passed inline: `["python","-c","<the file, gzipped and base64, decoded and exec'd>"]` (about 7 KB, under the 8 KB override limit).
 
+## Unfurl Plus (RevenueCat)
+
+How the paid plan works: [ADR-0037](adr/0037-revenuecat-for-unfurl-plus.md). The server's `entitlement` table is the only answer to "is this account Plus"; the app shows it.
+
+- **Turn on:** create the RevenueCat project, entitlement `plus`, offering and webhook. Set `REVENUECAT_WEBHOOK_AUTH` and `REVENUECAT_SECRET_API_KEY` on the API (`infra/lib/backend-env.ts` says how), and `EXPO_PUBLIC_REVENUECAT_IOS_KEY` in the app's EAS environment. The app needs a native build (the purchase SDK is a native module), not an over-the-air update.
+- **Test locally:** in Xcode, Product → Scheme → Edit Scheme → Run → Options → StoreKit Configuration → `mobile/storekit/UnfurlPlus.storekit`. Purchases then run against Xcode's local store; RevenueCat does not see them, so the server stays free. For an end-to-end check use a sandbox Apple ID on a TestFlight or device build: the webhook turns the plan to Plus within seconds.
+- **Check an account:** `select plan, plus_until, will_renew, environment from entitlement where owner_id = '<user id>'`. Plus is in force while `plan = 'plus'` and `plus_until` is empty or ahead.
+- **A webhook was missed:** nothing to do. The app asks `POST /api/v1/billing/refresh` on every start, and the server re-reads RevenueCat.
+- **Refunds:** Apple decides; RevenueCat sends a `CANCELLATION` with `cancel_reason` `CUSTOMER_SUPPORT`, and the plan is free at once.
+- **App Store launch:** set `REVENUECAT_ALLOW_SANDBOX=false` so TestFlight sandbox purchases stop granting Plus.
+
 ## Error monitoring & uptime
 
 ### GlitchTip (error monitoring, Sentry-SDK compatible)
