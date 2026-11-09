@@ -578,11 +578,23 @@ export function logWorkoutFromChat(input: {
   for (const cb of finishedListeners) cb(w)
   return w
 }
+/** A built-in routine is never written: not online, not offline. */
+const builtInTemplate = (id: string | undefined) =>
+  id
+    ? fitStore.get().templates.find((x) => x.id === id && x.builtIn)
+    : undefined
+/** A built-in exercise is never written either. */
+const builtInExercise = (id: string | undefined) =>
+  id
+    ? fitStore.get().exercises.find((x) => x.id === id && x.builtIn)
+    : undefined
 export function upsertTemplate(
   t: Partial<WorkoutTemplate> & {
     name: string
   },
 ): WorkoutTemplate {
+  const locked = builtInTemplate(t.id)
+  if (locked) return locked
   const full: WorkoutTemplate = {
     id: t.id ?? uid(),
     name: t.name,
@@ -610,7 +622,18 @@ export function saveAsTemplate(
     })),
   })
 }
+/** A routine of the person's own with the same slots as ``id`` (a built-in
+ * one, typically, to customise); lands after their other routines. */
+export function copyTemplate(id: string): WorkoutTemplate | undefined {
+  const src = fitStore.get().templates.find((x) => x.id === id)
+  if (!src) return
+  return upsertTemplate({
+    name: `${src.name.slice(0, 73)} (copy)`,
+    items: src.items.map((it) => ({ ...it })),
+  })
+}
 export function deleteTemplate(id: string): WorkoutTemplate | undefined {
+  if (builtInTemplate(id)) return
   const t = fitStore.get().templates.find((x) => x.id === id)
   fitStore.set((s) => ({
     ...s,
@@ -626,6 +649,7 @@ export function upsertExercise(
   const prior = e.id
     ? fitStore.get().exercises.find((x) => x.id === e.id)
     : undefined
+  if (prior?.builtIn) return prior
   const full: Exercise = {
     id: e.id ?? uid(),
     name: e.name.trim(),
@@ -666,6 +690,7 @@ export function installStarter(owner: string): {
   return { exercises: exercises.length, templates: templates.length }
 }
 export function setExerciseArchived(id: string, archived: boolean) {
+  if (builtInExercise(id)) return
   fitStore.set((s) => ({
     ...s,
     exercises: s.exercises.map((x) =>
@@ -724,6 +749,8 @@ export function mergeExercises(
     return { ok: false, reason: "That exercise is no longer here" }
   if (source.id === target.id)
     return { ok: false, reason: "Pick a different exercise to merge into" }
+  if (source.builtIn)
+    return { ok: false, reason: "Built-in exercises can't be merged away" }
   if (source.mergedInto)
     return { ok: false, reason: "That exercise was already merged" }
   if (target.mergedInto)
@@ -731,10 +758,10 @@ export function mergeExercises(
   if (source.loadType !== target.loadType)
     return { ok: false, reason: "Only exercises of the same type can merge" }
   syncHooks.flush()
-  const merged: Exercise = {
-    ...target,
-    aliases: mergedAliases(target, source),
-  }
+  // A built-in target is never written: it gains no alias (as on the server).
+  const merged: Exercise = target.builtIn
+    ? target
+    : { ...target, aliases: mergedAliases(target, source) }
   const moved: string[] = [],
     slots: string[] = []
   fitStore.set((s) => ({
@@ -752,7 +779,7 @@ export function mergeExercises(
         : w,
     ),
     templates: s.templates.map((t) =>
-      t.items.some((i) => i.exerciseId === sourceId)
+      !t.builtIn && t.items.some((i) => i.exerciseId === sourceId)
         ? {
             ...t,
             items: t.items.map((i, pos) => {

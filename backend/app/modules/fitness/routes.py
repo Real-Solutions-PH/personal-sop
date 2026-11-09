@@ -366,6 +366,18 @@ def put_template(ctx: CtxDep, template_id: uuid.UUID, body: S.TemplateUpsert) ->
     return views.template_out(ctx, t)
 
 
+@router.post(
+    "/templates/{template_id}/copy", response_model=S.TemplateOut, dependencies=WRITE
+)
+def copy_template(ctx: CtxDep, template_id: uuid.UUID, body: S.TemplateCopy) -> Any:
+    """A routine of your own from any you can see (a built-in one to
+    customise)."""
+    t = services.copy_template(
+        ctx=ctx, template_id=template_id, name=body.name, new_id=body.id
+    )
+    return views.template_out(ctx, t)
+
+
 @router.delete("/templates/{template_id}", dependencies=WRITE)
 def delete_template(ctx: CtxDep, template_id: uuid.UUID) -> Message:
     services.delete_template(ctx=ctx, template_id=template_id)

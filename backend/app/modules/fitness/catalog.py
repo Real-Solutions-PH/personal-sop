@@ -1,11 +1,14 @@
-"""The shared catalog: exercises, foods and workout routines are app-wide.
+"""The catalog: exercises and workout routines, built in and your own.
 
-Every member of a tenant reads and uses every catalog row; ``owner_id`` on a
-catalog row is its author. Only the author or an admin (superuser) may edit,
-merge or delete it (:func:`app.shared.owned_repo.can_write`), so one member
-can never rewrite the numbers another member logs against.
+Exercises and routines (with their slots) are a global catalog
+(``global_catalog``): a row with ``is_global`` is built in, read and used by
+every member of the tenant and edited, merged away or deleted by nobody
+through the API; every other row is its owner's alone, invisible to the
+rest (:func:`app.shared.owned_repo.scope` / ``can_write``). A member copies a
+built-in routine to customise it. Foods stay one shared catalog
+(``shared_catalog``): every member reads them, the author or an admin edits.
 
-Because the catalog is shared, a create must reuse what exists. Names are
+A create must still reuse what the caller can see. Names are
 compared by :func:`exercise_key`: folded words, plural and spelling variants
 collapsed, word order ignored, and a few machine-only lifts collapsed to one
 name ("Pec deck", "Pec deck machine", "Pec deck fly", "Butterfly" are one

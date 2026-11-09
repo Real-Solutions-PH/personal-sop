@@ -29,7 +29,7 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, DateField, Empty, Screen, Sheet, shareText } from "../ui"
 import { useMoney } from "./finance"
-import { MonthlyFlowBars } from "./finance-monthly-flow"
+import { balanceColor, MonthlyFlowBars } from "./finance-monthly-flow"
 import { RecurringNet } from "./finance-monthly-net"
 import { FinPill } from "./finance-planned"
 import { FinChip } from "./finance-projection"
@@ -468,9 +468,29 @@ export function Reports({ kind }: { kind?: string }) {
                       : "—"}
                   </Copy>
                 </Line>
-                <Copy size={12} muted style={{ marginTop: 2 }}>
-                  In {money(m.income)} · Out {money(m.spend)}
-                </Copy>
+                <Line
+                  style={{
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    gap: 12,
+                    marginTop: 2,
+                  }}
+                >
+                  <Copy size={12} muted style={{ flex: 1 }}>
+                    In {money(m.income)} · Out {money(m.spend)}
+                  </Copy>
+                  <Copy
+                    size={12}
+                    weight="medium"
+                    style={{
+                      color: balanceColor(t, m.balance, s.settings.safetyFloor),
+                    }}
+                  >
+                    {m.expected ? "Expected " : "Ended "}
+                    {m.balance < 0 ? "−" : ""}
+                    {money(Math.abs(m.balance))}
+                  </Copy>
+                </Line>
               </View>
             ))}
           </Frame>

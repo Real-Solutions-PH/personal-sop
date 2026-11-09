@@ -72,6 +72,7 @@ import {
   type Metric,
   removeTracker,
   type StepItem,
+  stepText,
 } from "./store"
 
 const accentOf: Record<Metric, Accent> = {
@@ -1320,7 +1321,7 @@ function StepsBlock({ items, live }: { items: StepItem[]; live?: boolean }) {
   const rows = items.map((s) => (
     <View key={s.id}>
       <View
-        accessibilityLabel={s.running ? `${s.label}…` : s.summary || s.label}
+        accessibilityLabel={stepText(s)}
         style={{
           flexDirection: "row",
           alignItems: "center",
@@ -1348,7 +1349,7 @@ function StepsBlock({ items, live }: { items: StepItem[]; live?: boolean }) {
             lineHeight: 18,
           }}
         >
-          {s.running ? `${s.label}…` : s.summary || s.label}
+          {stepText(s)}
         </Text>
         {s.card_id && !s.running ? (
           <StepCard id={s.card_id} state={s.state} captureId={s.capture_id} />

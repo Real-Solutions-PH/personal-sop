@@ -16,7 +16,13 @@ from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from langchain_core.tools import BaseTool, StructuredTool
-from pydantic import AfterValidator, BaseModel, Field, WithJsonSchema
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    Field,
+    WithJsonSchema,
+)
 
 from app.modules.capture import ports
 from app.modules.capture.parse import RecordDraft, meal_label
@@ -76,6 +82,20 @@ def _fx() -> Any:
 
 # Asked for on every estimate (the daily goals and limits count them); a
 # meal sent without them is still saved, with a warning on its card.
+ASSUMPTION_MAX = 120
+
+
+def _clip_assumption(v: object) -> object:
+    """An assumption is display text: past its limit it is cut, never
+    refused. Seen live (2026-11-06 to 11-08): four meal logs and an edit
+    were refused as "invalid arguments" for a 135-character assumption, and
+    the reply ran out of steps retrying them."""
+    return v[:ASSUMPTION_MAX].rstrip() if isinstance(v, str) else v
+
+
+Assumption = Annotated[
+    str, BeforeValidator(_clip_assumption), Field(max_length=ASSUMPTION_MAX)
+]
 FIBER_SAYS = "Grams of total fiber; estimate it, 0 when there is none."
 SAT_FAT_SAYS = "Grams of saturated fat; estimate it, 0 when there is none."
 FIBER_SOLUBLE_SAYS = (
@@ -274,7 +294,7 @@ class ItemArgs(BaseModel):
         description="Edible grams this amount weighs (no bone or shell). "
         "Required for estimates.",
     )
-    assumption: Annotated[str, Field(max_length=120)] | None = None
+    assumption: Assumption | None = None
     alcohol: Annotated[float, Field(ge=0, le=500)] | None = None
 
 
@@ -458,7 +478,22 @@ def removal_target(
     ](name, run)
     if isinstance(hit, dict):
         return hit
+    if (refused := _built_in(hit)) is not None:
+        return refused
     return [str(hit.id)], hit.name
+
+
+def _built_in(row: Any) -> dict[str, Any] | None:
+    """The refusal for a built-in exercise or routine: every member's, and
+    nobody's to change (``owned_repo.guard_write`` refuses it anyway)."""
+    if not getattr(row, "is_global", False):
+        return None
+    return {
+        "error": "built_in",
+        "name": _name(row),
+        "instead": "it is built in and can't be changed; offer to make one of "
+        "their own (a routine can be copied in the app)",
+    }
 
 
 def _in_workout(pairs: list[tuple[Any, str]], name: str) -> Any:
@@ -597,6 +632,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         ex = find_exercise(a.exercise, run)
         if isinstance(ex, dict):
             return ex
+        if (refused := _built_in(ex)) is not None:
+            return refused
         ch = _exercise_changes(a)
         if a.new_name and a.new_name.strip() != ex.name:
             taken = [
@@ -632,6 +669,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         t = find_template(a.template, run)
         if isinstance(t, dict):
             return t
+        if (refused := _built_in(t)) is not None:
+            return refused
         now = fx.template_public(ctx, t)["exercises"]
 
         def slot(s: SlotArgs) -> dict[str, Any]:

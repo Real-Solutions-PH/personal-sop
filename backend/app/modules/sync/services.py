@@ -19,6 +19,8 @@ first result verbatim. Policy:
 
 Pull: every registered entity's rows past ``cursor`` (tombstones included),
 merged by ``version``, at most ``limit`` with ``truncated`` set when more wait.
+A row that left the caller's view (``SyncScopeExit``: another member's catalog
+row that turned private) ships as a deletion.
 """
 
 import uuid
@@ -32,7 +34,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, select
 
 from app.modules.sync import written
-from app.modules.sync.models import SyncOpReceipt
+from app.modules.sync.models import SyncOpReceipt, SyncScopeExit
 from app.modules.sync.registry import Entity, registry
 from app.modules.sync.schema import (
     SyncChange,
@@ -225,7 +227,20 @@ def max_version(ctx: Ctx) -> int:
         ).one()
         if v is not None and int(v) > best:
             best = int(v)
+    v = ctx.session.exec(
+        select(func.max(SyncScopeExit.version)).where(*_exits_for(ctx))
+    ).one()
+    if v is not None and int(v) > best:
+        best = int(v)
     return best
+
+
+def _exits_for(ctx: Ctx) -> list[Any]:
+    """Rows that left the caller's view: another member's, in the tenant."""
+    return [
+        SyncScopeExit.tenant_id == ctx.tenant_id,
+        SyncScopeExit.owner_id != ctx.user_id,
+    ]
 
 
 def _settled_before(ctx: Ctx) -> int:
@@ -283,19 +298,42 @@ def pull(ctx: Ctx, cursor: int, limit: int) -> SyncPull:
             ).first()
             is not None
         )
-    batch.sort(key=lambda item: item[0])
-    truncated = len(batch) > limit
-    page = batch[:limit]
-    changes = [
-        SyncChange(
-            entity=entity.name,
-            id=row.id,
-            version=version,
-            deleted=row.deleted_at is not None,
-            row=None if row.deleted_at is not None else serialize(entity, row),
-        )
-        for version, entity, row in page
+    # Rows that left this member's view ship as deletions (id only).
+    exits = ctx.session.exec(
+        select(SyncScopeExit)
+        .where(*_exits_for(ctx), col(SyncScopeExit.version) > cursor)
+        .order_by(col(SyncScopeExit.version))
+        .limit(limit + 1)
+    ).all()
+    merged: list[tuple[int, Entity | SyncScopeExit, OwnedRow | None]] = [
+        *batch,
+        *((x.version, x, None) for x in exits),
     ]
+    merged.sort(key=lambda item: item[0])
+    truncated = len(merged) > limit
+    page = merged[:limit]
+    changes: list[SyncChange] = []
+    for version, what, row in page:
+        if isinstance(what, SyncScopeExit):
+            changes.append(
+                SyncChange(
+                    entity=what.entity,
+                    id=what.row_id,
+                    version=version,
+                    deleted=True,
+                    row=None,
+                )
+            )
+        elif row is not None:
+            changes.append(
+                SyncChange(
+                    entity=what.name,
+                    id=row.id,
+                    version=version,
+                    deleted=row.deleted_at is not None,
+                    row=None if row.deleted_at is not None else serialize(what, row),
+                )
+            )
     next_cursor = page[-1][0] if page else cursor
     return SyncPull(changes=changes, cursor=next_cursor, truncated=truncated, held=held)
 

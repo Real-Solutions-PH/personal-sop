@@ -83,7 +83,8 @@ def test_merge_moves_history_and_templates(client: TestClient, db: Session) -> N
     survivor = ok(_merge(client, h, source, target))
 
     assert survivor["id"] == target
-    assert survivor["aliases"] == ["Bench press"]
+    # A built-in target is never written: it gains no alias.
+    assert survivor["aliases"] == [] and survivor["is_global"] is True
     assert moved_we <= _refs(WorkoutExercise, target)
     assert moved_ti <= _refs(TemplateItem, target)
     assert not _refs(WorkoutExercise, source) and not _refs(TemplateItem, source)
@@ -101,15 +102,20 @@ def test_merge_refusals(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
     ids = exercise_ids(client, h)
     bench = ids["Barbell Bench Press"]
-    err(_merge(client, h, bench, ids["Plank"]), 422, "merge_load_type_mismatch")
-    err(_merge(client, h, bench, bench), 422, "merge_same_exercise")
     a = _create(client, h, "Bench A")
+    hold = _create(client, h, "Hold", load_type="time")
+    err(_merge(client, h, a, hold), 422, "merge_load_type_mismatch")
+    err(_merge(client, h, a, a), 422, "merge_same_exercise")
+    # A built-in never merges away.
+    err(_merge(client, h, bench, a), 403, "catalog_read_only")
     ok(_merge(client, h, a, bench))
     err(_merge(client, h, a, ids["Overhead Press"]), 422, "exercise_already_merged")
-    err(_merge(client, h, bench, a), 422, "merge_cycle")
+    c, d = _create(client, h, "Bench C"), _create(client, h, "Bench D")
+    ok(_merge(client, h, c, d))
+    err(_merge(client, h, d, c), 422, "merge_cycle")
 
 
-def test_only_the_author_merges_a_shared_exercise_away(
+def test_another_members_exercise_is_neither_source_nor_target(
     client: TestClient, db: Session
 ) -> None:
     _, ha = signed_in(db)
@@ -118,24 +124,23 @@ def test_only_the_author_merges_a_shared_exercise_away(
     mine_source = _create(client, hb, f"Mine {uuid.uuid4().hex[:6]}")
     before = _row(theirs)
 
-    # Merging someone else's exercise away is theirs (or an admin's) to do.
-    err(_merge(client, hb, theirs, mine_source), 403, "catalog_read_only")
+    # Another member's own exercise is not there for me at all.
+    err(_merge(client, hb, theirs, mine_source), 404, "exercise_not_found")
+    err(_merge(client, hb, mine_source, theirs), 404, "exercise_not_found")
     after = _row(theirs)
     assert (after.archived, after.merged_into_id, after.version) == (
         before.archived,
         before.merged_into_id,
         before.version,
     )
-    # Folding my own duplicate into theirs is fine: theirs gains an alias.
-    ok(_merge(client, hb, mine_source, theirs))
-    assert _row(mine_source).merged_into_id == uuid.UUID(theirs)
+    assert _row(mine_source).merged_into_id is None
 
 
-def test_a_merge_moves_every_members_history(client: TestClient, db: Session) -> None:
+def test_a_merge_moves_only_my_history(client: TestClient, db: Session) -> None:
     ua, ha = signed_in(db)
     ub, _ = signed_in(db)
+    bench = exercise_ids(client, ha)["Barbell Bench Press"]
     source = _create(client, ha, f"Pec deck v{uuid.uuid4().hex[:6]}")
-    target = _create(client, ha, f"Pec deck w{uuid.uuid4().hex[:6]}")
     wa = finished_workout(
         ua,
         started_at=utcnow() - timedelta(days=2),
@@ -144,15 +149,20 @@ def test_a_merge_moves_every_members_history(client: TestClient, db: Session) ->
     wb = finished_workout(
         ub,
         started_at=utcnow() - timedelta(days=1),
-        lifts=[(uuid.UUID(source), [(8, 45)])],
+        lifts=[(uuid.UUID(bench), [(8, 45)])],
     )
-    ok(_merge(client, ha, source, target))
+    before = _row(bench)
+    ok(_merge(client, ha, source, bench))
     with Session(engine) as s:
         moved = s.exec(
             select(WorkoutExercise).where(col(WorkoutExercise.workout_id).in_([wa, wb]))
         ).all()
-    assert {str(we.exercise_id) for we in moved} == {target}
-    assert len(moved) == 2
+    assert {(we.owner_id, str(we.exercise_id)) for we in moved} == {
+        (ua.id, bench),
+        (ub.id, bench),
+    }
+    after = _row(bench)
+    assert (after.aliases, after.version) == (before.aliases, before.version)
 
 
 def test_sync_action_is_idempotent(client: TestClient, db: Session) -> None:
@@ -166,14 +176,14 @@ def test_sync_action_is_idempotent(client: TestClient, db: Session) -> None:
     second = push(client, h, {**action, "op_id": str(uuid.uuid4())})[0]
 
     assert first["status"] == "applied" and second["status"] == "applied"
-    assert first["result"]["exercise"]["aliases"] == ["Flat bench"]
+    assert first["result"]["exercise"]["aliases"] == []  # built-in: untouched
     assert second["result"]["exercise"] == first["result"]["exercise"]
     assert _row(target).version == version
 
 
 def test_chain_is_flattened(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
-    b = exercise_ids(client, h)["Barbell Bench Press"]
+    b = _create(client, h, "Bench B")
     a = _create(client, h, "Bench A")
     c = _create(client, h, "Bench C")
     ok(_merge(client, h, c, a))

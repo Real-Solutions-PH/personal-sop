@@ -8,6 +8,10 @@ A ``shared_catalog`` table is read tenant-wide instead, and every write path
 here (upsert, soft delete, restore, :func:`require_writable`) refuses a row
 whose author is someone else unless the caller is an admin.
 
+A ``global_catalog`` table is read as the caller's own rows plus the
+tenant's global (built-in) rows, and every write path refuses a global row
+for everyone, admins included: built-ins change only through migrations.
+
 Upserts are idempotent on the client-minted id, and a write that hits a
 natural-key unique constraint whose holder is a tombstone REVIVES that row
 instead of failing (e.g. re-logging a habit on a day whose log was undone).
@@ -17,7 +21,7 @@ import uuid
 from collections.abc import Iterable, Sequence
 from typing import Any, TypeVar
 
-from sqlalchemy import ColumnElement
+from sqlalchemy import ColumnElement, or_
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import col, func, select
 
@@ -29,27 +33,58 @@ M = TypeVar("M", bound=OwnedRow)
 
 # Fields a client may never write through a generic upsert.
 PROTECTED = frozenset(
-    {"id", "owner_id", "tenant_id", "created_at", "updated_at", "version", "deleted_at"}
+    {
+        "id",
+        "owner_id",
+        "tenant_id",
+        "created_at",
+        "updated_at",
+        "version",
+        "deleted_at",
+        "is_global",
+    }
 )
 
 
 def scope(ctx: Ctx, model: type[M]) -> list[ColumnElement[bool]]:
-    """Who sees a row: its owner, or the whole tenant for a shared catalog."""
+    """Who sees a row: its owner, or the whole tenant for a shared catalog;
+    in a global catalog, its owner or (a built-in row) the whole tenant."""
     tenant = model.tenant_id == ctx.tenant_id
     if model.shared_catalog:
         return [tenant]  # type: ignore[list-item]
+    if model.global_catalog:
+        return [
+            tenant,  # type: ignore[list-item]
+            or_(
+                col(model.owner_id) == ctx.user_id,
+                col(model.is_global).is_(True),  # type: ignore[attr-defined]
+            ),
+        ]
     return [model.owner_id == ctx.user_id, tenant]  # type: ignore[list-item]
 
 
+def is_global(row: OwnedRow) -> bool:
+    """A built-in row of a global catalog (read-only for everyone)."""
+    return type(row).global_catalog and bool(getattr(row, "is_global", False))
+
+
 def can_write(ctx: Ctx, row: OwnedRow) -> bool:
-    """Whether the caller may change this row: always their own; another
-    member's shared catalog row only as an admin."""
+    """Whether the caller may change this row: always their own unless it is
+    built in; another member's shared catalog row only as an admin."""
+    if is_global(row):
+        return False
     return row.owner_id == ctx.user_id or (
         type(row).shared_catalog and bool(ctx.user.is_superuser)
     )
 
 
 def guard_write(ctx: Ctx, row: OwnedRow) -> None:
+    if is_global(row):
+        raise domain_error(
+            403,
+            "catalog_read_only",
+            "This one is built in and can't be changed; copy it to make your own",
+        )
     if not can_write(ctx, row):
         raise domain_error(
             403,

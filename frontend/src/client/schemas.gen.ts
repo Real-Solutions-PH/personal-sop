@@ -4464,6 +4464,11 @@ export const ExerciseDetailSchema = {
             ],
             title: 'Merged Into Id'
         },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
+        },
         last_done_at: {
             anyOf: [
                 {
@@ -4629,6 +4634,11 @@ export const ExercisePublicSchema = {
                 }
             ],
             title: 'Merged Into Id'
+        },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
         }
     },
     type: 'object',
@@ -4797,6 +4807,11 @@ export const ExerciseWithStatsSchema = {
                 }
             ],
             title: 'Merged Into Id'
+        },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
         },
         last_done_at: {
             anyOf: [
@@ -21019,6 +21034,38 @@ export const TasksPublicSchema = {
     title: 'TasksPublic'
 } as const;
 
+export const TemplateCopySchema = {
+    properties: {
+        name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80,
+                    minLength: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Name'
+        },
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        }
+    },
+    type: 'object',
+    title: 'TemplateCopy'
+} as const;
+
 export const TemplateItemOutSchema = {
     properties: {
         exercise_id: {
@@ -21083,6 +21130,11 @@ export const TemplateOutSchema = {
         sort_order: {
             type: 'integer',
             title: 'Sort Order'
+        },
+        is_global: {
+            type: 'boolean',
+            title: 'Is Global',
+            default: false
         },
         items: {
             items: {

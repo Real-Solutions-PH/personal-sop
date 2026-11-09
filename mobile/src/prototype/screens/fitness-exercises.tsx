@@ -55,6 +55,15 @@ const LOAD_LABEL: Record<Exercise["loadType"], string> = {
   time: "timed",
 }
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`
+/** The quiet marker on a built-in exercise or routine: every member's,
+ * read-only, so it shows no edit controls. */
+export function BuiltInMark() {
+  return (
+    <Copy size={12} muted>
+      Built-in
+    </Copy>
+  )
+}
 /** Ask, then fold ``source`` into ``target``; lands on the survivor. */
 function confirmMerge(source: Exercise, target: Exercise) {
   const s = fitStore.get(),
@@ -152,13 +161,16 @@ export function Exercises({ id }: { id?: string }) {
     <Screen
       title={ex?.name ?? (id ? "Exercise" : "Exercises")}
       actions={
-        <IconTap
-          size={40}
-          icon={ex ? Pencil : Plus}
-          label={ex ? "Edit exercise" : "New exercise"}
-          color={t.text}
-          onPress={() => setEdit(true)}
-        />
+        // A built-in exercise is read-only: nothing to edit.
+        ex?.builtIn ? undefined : (
+          <IconTap
+            size={40}
+            icon={ex ? Pencil : Plus}
+            label={ex ? "Edit exercise" : "New exercise"}
+            color={t.text}
+            onPress={() => setEdit(true)}
+          />
+        )
       }
     >
       {id && !ex ? (
@@ -317,6 +329,7 @@ export function Exercises({ id }: { id?: string }) {
                         </Copy>
                       </View>
                       {e.archived && pill("Archived")}
+                      {e.builtIn && <BuiltInMark />}
                       <ChevronRight size={16} color={t.muted} />
                     </Line>
                   </Tap>
@@ -344,6 +357,11 @@ export function Exercises({ id }: { id?: string }) {
           <Copy size={14} muted style={{ textTransform: "capitalize" }}>
             {muscleLabel(ex.muscle)} · {ex.equipment} · {spec(ex)}
           </Copy>
+          {ex.builtIn && (
+            <View style={{ marginTop: -8 }}>
+              <BuiltInMark />
+            </View>
+          )}
           {!!ex.aliases?.length && (
             <Copy size={14} muted style={{ marginTop: -8 }}>
               Also called: {ex.aliases.join(", ")}
@@ -591,7 +609,7 @@ export function Exercises({ id }: { id?: string }) {
               </Frame>
             </>
           )}
-          {!ex.mergedInto && (
+          {!ex.mergedInto && !ex.builtIn && (
             <Tap
               onPress={() => {
                 setMergeQuery("")
@@ -607,19 +625,21 @@ export function Exercises({ id }: { id?: string }) {
               </Line>
             </Tap>
           )}
-          <Tap
-            onPress={() => {
-              A.setExerciseArchived(ex.id, !ex.archived)
-            }}
-            style={{ paddingVertical: 16, alignItems: "center" }}
-          >
-            <Line style={{ gap: 8 }}>
-              <Archive size={16} color={t.muted} />
-              <Copy size={14} muted>
-                {ex.archived ? "Unarchive" : "Archive exercise"}
-              </Copy>
-            </Line>
-          </Tap>
+          {!ex.builtIn && (
+            <Tap
+              onPress={() => {
+                A.setExerciseArchived(ex.id, !ex.archived)
+              }}
+              style={{ paddingVertical: 16, alignItems: "center" }}
+            >
+              <Line style={{ gap: 8 }}>
+                <Archive size={16} color={t.muted} />
+                <Copy size={14} muted>
+                  {ex.archived ? "Unarchive" : "Archive exercise"}
+                </Copy>
+              </Line>
+            </Tap>
+          )}
         </>
       )}
       {ex && (

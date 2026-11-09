@@ -14,7 +14,7 @@ import {
   today,
 } from "./calc"
 import type { FinState } from "./data"
-import { type DateRange, rangeLabel } from "./forecast"
+import { balancesAtEnd, type DateRange, rangeLabel } from "./forecast"
 export type Period = "this" | "last" | "3m" | DateRange
 export const isCustom = (p: Period): p is DateRange => typeof p === "object"
 export function periodRange(
@@ -146,10 +146,21 @@ function build(
     daily.push(cum)
   }
   const sd = s.settings.monthStartDay
-  const months = monthKeys.map((key) => {
+  const ends = monthKeys.map((key) => monthRange(key, sd)[1])
+  const atEnd = balancesAtEnd(s, ends)
+  const now = today()
+  const months = monthKeys.map((key, i) => {
     const [f, t] = monthRange(key, sd)
     const fl = flowIn(s, f, t)
-    return { key, income: fl.income, spend: fl.spend }
+    return {
+      key,
+      income: fl.income,
+      spend: fl.spend,
+      /** Money on hand at the month's last day: actual for a month that
+       * has ended, expected for the current one. */
+      balance: atEnd[i],
+      expected: ends[i] >= now,
+    }
   })
   const budgets = s.budgets
     .filter((b) => !b.archived)
