@@ -72,8 +72,12 @@ export const viewport: Viewport = {
 }
 
 // Marks the document as script-capable before first paint, so reveal-on-scroll
-// styles apply only when the script that reveals them can run.
-const jsFlag = "document.documentElement.classList.add('js')"
+// styles apply only when the script that reveals them can run. `motion-ok`
+// is set in the same breath when the person has not asked for reduced
+// motion, so the scroll story takes its pinned layout before first paint and
+// nothing shifts when the animation library arrives after load.
+const jsFlag =
+  "var d=document.documentElement;d.classList.add('js');if(!matchMedia('(prefers-reduced-motion: reduce)').matches)d.classList.add('motion-ok')"
 
 export default function RootLayout({
   children,

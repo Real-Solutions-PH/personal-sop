@@ -1,5 +1,6 @@
-import { ArrowRight, CircleCheck } from "lucide-react"
-import { CTA } from "@/config/site"
+import { ArrowRight, CircleCheck, Monitor } from "lucide-react"
+import type { ReactNode } from "react"
+import { BROWSER_VERSION, CTA } from "@/config/site"
 
 // The one primary call to action, repeated after each proof section. Every
 // copy goes to the same place with the same words, so the page asks for one
@@ -7,9 +8,12 @@ import { CTA } from "@/config/site"
 export function PrimaryCta({
   id,
   secondary,
+  aside,
 }: {
   id?: string
   secondary?: { label: string; href: string }
+  /** Drawn beside the button, e.g. Fern looking at it. */
+  aside?: ReactNode
 }) {
   const href = CTA.appStoreUrl ?? CTA.primaryHref
   const label = CTA.appStoreUrl ? "Download on the App Store" : CTA.primaryLabel
@@ -20,6 +24,7 @@ export function PrimaryCta({
           {label}
           <ArrowRight aria-hidden />
         </a>
+        {aside}
         {secondary && (
           <a className="btn btn-outline" href={secondary.href}>
             {secondary.label}
@@ -29,6 +34,12 @@ export function PrimaryCta({
       <p className="reassure">
         <CircleCheck aria-hidden /> {CTA.reassurance}
       </p>
+      {BROWSER_VERSION.listed && (
+        <p className="browser-ask">
+          <Monitor aria-hidden />
+          <a href="#browser-list">{BROWSER_VERSION.linkLabel}</a>
+        </p>
+      )}
     </div>
   )
 }

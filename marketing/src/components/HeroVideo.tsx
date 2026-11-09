@@ -1,6 +1,13 @@
 "use client"
 
-import { Captions, CaptionsOff, Pause, Play } from "lucide-react"
+import {
+  Captions,
+  CaptionsOff,
+  Pause,
+  Play,
+  Volume2,
+  VolumeX,
+} from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 
 // The 17-second "Say it. It's tracked." film, built from design-system
@@ -8,12 +15,14 @@ import { useEffect, useRef, useState } from "react"
 // The poster paints first; the video file is not requested until the page
 // has loaded and the phone is on screen, so it never competes with the
 // first view. Autoplays muted and loops, unless the person asked for reduced
-// motion, in which case it waits for Play.
+// motion, in which case it waits for Play. Sound and captions start off; each
+// has its own button.
 export function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null)
   const [src, setSrc] = useState(false)
   const [playing, setPlaying] = useState(false)
-  const [captions, setCaptions] = useState(true)
+  const [captions, setCaptions] = useState(false)
+  const [sound, setSound] = useState(false)
   // The poster is a real image (the page's largest paint) and stays on top
   // until the film has a frame to show.
   const [frame, setFrame] = useState(false)
@@ -54,12 +63,42 @@ export function HeroVideo() {
     if (el.autoplay) el.play().catch(() => setPlaying(false))
   }, [src])
 
+  // Sound never plays from a film the visitor can't see: once it scrolls
+  // out of view it mutes, and the button says so.
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !sound) return
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) {
+        el.muted = true
+        setSound(false)
+      }
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [sound])
+
   useEffect(() => {
     const el = ref.current
     if (!el) return
     const track = el.textTracks[0]
     if (track) track.mode = captions ? "showing" : "hidden"
   }, [captions])
+
+  // Sound is the person's choice: turning it on also starts the film.
+  const toggleSound = () => {
+    const el = ref.current
+    if (!el) return
+    const on = !sound
+    el.muted = !on
+    setSound(on)
+    if (on) {
+      if (!src) {
+        el.autoplay = true
+        setSrc(true)
+      } else if (el.paused) el.play().catch(() => setPlaying(false))
+    }
+  }
 
   const toggle = () => {
     const el = ref.current
@@ -100,7 +139,6 @@ export function HeroVideo() {
             src="/media/say-it-tracked.en.vtt"
             srcLang="en"
             label="English"
-            default
           />
         </video>
         {/* biome-ignore lint/performance/noImgElement: static export, no image optimiser */}
@@ -123,20 +161,32 @@ export function HeroVideo() {
             {playing ? <Pause aria-hidden /> : <Play aria-hidden />}
             {playing ? "Pause" : "Play"}
           </button>
-          <button
-            type="button"
-            className="vbtn"
-            onClick={() => setCaptions((c) => !c)}
-            aria-pressed={captions}
-            aria-label="Captions"
-          >
-            {captions ? <Captions aria-hidden /> : <CaptionsOff aria-hidden />}
-          </button>
+          <span className="vbtn-group">
+            <button
+              type="button"
+              className="vbtn"
+              onClick={toggleSound}
+              aria-pressed={sound}
+              aria-label={sound ? "Turn sound off" : "Turn sound on"}
+            >
+              {sound ? <Volume2 aria-hidden /> : <VolumeX aria-hidden />}
+            </button>
+            <button
+              type="button"
+              className="vbtn"
+              onClick={() => setCaptions((c) => !c)}
+              aria-pressed={captions}
+              aria-label="Captions"
+            >
+              {captions ? (
+                <Captions aria-hidden />
+              ) : (
+                <CaptionsOff aria-hidden />
+              )}
+            </button>
+          </span>
         </div>
       </div>
-      <figcaption className="video-caption">
-        17 seconds · sound off · captions on
-      </figcaption>
     </figure>
   )
 }

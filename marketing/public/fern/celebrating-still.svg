@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" class="fern av still" width="200" height="200" viewBox="0 0 64 64" role="img" aria-label="Fern, celebrating" style="overflow:visible;flex:none"><style>/* Fern's keyframes and mood colours, from the Unfurl card library. */
+<svg xmlns="http://www.w3.org/2000/svg" class="fern av still" width="200" height="200" viewBox="-12 -10 88 88" role="img" aria-label="Fern, celebrating" style="overflow:visible;flex:none"><style>/* Fern's keyframes and mood colours, from the Unfurl card library. */
 @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
 @keyframes breatheFast{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
 @keyframes sway{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}

@@ -91,7 +91,7 @@ export const FAIR_USE =
 // (Philippines: ₱249 a month or ₱1,490 a year); the global site does not
 // list them.
 export const REGIONAL_NOTE =
-  "Prices in US dollars; your local price shows in the App Store. In some countries the free Fern allowance is 10 messages a day in week one, then 3."
+  "Prices in US dollars; your local price shows in the App Store or Google Play. In some countries the free Fern allowance is 10 messages a day in week one, then 3."
 
 // Student discount from the brand doc: 50% off the yearly plan.
 export const STUDENT_NOTE =
