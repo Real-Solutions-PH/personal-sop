@@ -1832,7 +1832,7 @@ def _tombstone(ctx: Ctx, models: tuple[type[Any], ...]) -> int:
     n = 0
     for model in models:
         # Catalogs are never bulk-removed (tenant-wide, or built in).
-        assert not (model.shared_catalog or model.global_catalog), model
+        assert not model.global_catalog, model
         for row in owned_repo.list_rows(ctx, model):
             row.deleted_at = ctx.now
             ctx.session.add(row)

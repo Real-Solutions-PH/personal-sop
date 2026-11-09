@@ -442,7 +442,10 @@ def _resolve(ctx: Ctx) -> ai.ResolvedModel | None:
 def allowance_applies(ctx: Ctx) -> bool:
     """Whether a new message would be answered on the server's key, and so
     count against the allowance (not on the person's own key, and not when
-    the AI is off or capped and the router answers)."""
+    the AI is off or capped and the router answers). Never while the
+    allowance is switched off (``FERN_ALLOWANCE_ENFORCED``)."""
+    if not settings.FERN_ALLOWANCE_ENFORCED:
+        return False
     resolved = _resolve(ctx)
     return resolved is not None and resolved.source == "server"
 

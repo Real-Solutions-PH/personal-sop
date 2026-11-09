@@ -40,3 +40,7 @@ None.
 
 **Follow-ups:**
 - When the billing module lands, `plan_of` reads `billing.public.plan_of`, and the phone sets `storefront_country` from the purchases SDK's storefront (alpha-2).
+
+## Amendment 2026-11-09: switched off while testing
+
+While the app is in testing, `FERN_ALLOWANCE_ENFORCED` (default `false`) switches enforcement off: no Fern message is refused, `/companion/allowance` reports `applies: false` so the app shows no "messages left" note, and turns are still counted in `fern_turn`. Setting it to `true` restores the limits above unchanged.

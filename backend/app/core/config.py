@@ -335,6 +335,11 @@ class Settings(BaseSettings):
     # Free: messages a day during the account's first FERN_FREE_WEEK_ONE_DAYS
     # business days, then the lower number; low-price countries (price tier
     # FERN_LOW_PRICE_TIER and up) get their own pair.
+    # Off while the app is in testing (2026-11-09): no Fern message is
+    # refused and the app shows no "messages left" note; turns are still
+    # counted, so usage builds up. Set True (env FERN_ALLOWANCE_ENFORCED)
+    # to enforce the numbers below again.
+    FERN_ALLOWANCE_ENFORCED: bool = False
     FERN_FREE_WEEK_ONE_DAYS: int = 7
     FERN_FREE_DAILY_WEEK_ONE: int = 15
     FERN_FREE_DAILY: int = 5

@@ -1,12 +1,14 @@
-// One food in the shared library: its photo, name, basis, state, the eight
-// nutrients, other names and notes. Its author (or an admin) edits it here
-// and Save sends only what changed; everyone else reads it. Every save and
-// photo change reports how it went.
+// One food in the library: its photo, name, basis, state, the eight
+// nutrients, other names and notes. A member edits their own food here and
+// Save sends only what changed. A built-in food (a public database's) is
+// every member's and reads only, with "Copy to my foods" to make an own one
+// to change. Every save, photo change and copy reports how it went.
 import { Image } from "expo-image"
 import {
   BadgeCheck,
   BookOpen,
   CloudOff,
+  CopyPlus,
   ExternalLink,
 } from "lucide-react-native"
 import { useState } from "react"
@@ -19,14 +21,17 @@ import {
   foodEditError,
   type LibraryFood,
   sourceCredit,
+  useCopyFood,
   useFood,
   useFoodEdits,
   verifiedLabel,
 } from "@/live/nutrition-foods"
 import { pickPhoto } from "../media"
 import { Copy, Frame, Line, SectionHeading, Tap } from "../native-kit"
+import { replace } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, Empty, Field, PinnedFooter, Screen } from "../ui"
+import { BuiltInMark } from "./fitness-exercises"
 
 /** A number with thousands separators, one decimal at most. */
 export const fmt = (v: number) =>
@@ -483,11 +488,14 @@ function FoodBody({ food }: { food: LibraryFood }) {
           </Copy>
         ))}
       {liveMode && !editable && (
-        <Copy size={12} muted style={{ textAlign: "center" }}>
-          {credit
-            ? "Imported for everyone — only an admin can edit it."
-            : "Added by another member — only they can edit it."}
-        </Copy>
+        <View style={{ alignItems: "center", gap: 2 }}>
+          {food.is_global && <BuiltInMark />}
+          <Copy size={12} muted style={{ textAlign: "center" }}>
+            {food.is_global
+              ? "Built in for everyone, so it can't be changed. Copy it to make your own."
+              : "Only the member who saved this food can edit it."}
+          </Copy>
+        </View>
       )}
       {editable ? (
         <>
@@ -578,9 +586,52 @@ function FoodBody({ food }: { food: LibraryFood }) {
           </PinnedFooter>
         </>
       ) : (
-        <ReadOnly food={food} outcome={outcome?.text} />
+        <>
+          <ReadOnly food={food} outcome={outcome?.text} />
+          {liveMode && food.is_global && <CopyToMine food={food} />}
+        </>
       )}
     </>
+  )
+}
+
+/** A built-in food's way to change it: copy it into the member's own foods
+ * and open the copy, ready to edit. A failure says why, on screen and in a
+ * toast. */
+function CopyToMine({ food }: { food: LibraryFood }) {
+  const t = useTheme(),
+    copy = useCopyFood(),
+    [error, setError] = useState<string | null>(null)
+  return (
+    <View style={{ marginTop: 12, gap: 8 }}>
+      <Button
+        tone="quiet"
+        icon={CopyPlus}
+        disabled={copy.isPending}
+        onPress={() => {
+          setError(null)
+          copy.mutate(food.id, {
+            onSuccess: (mine) =>
+              replace(`/nutrition/foods/${encodeURIComponent(mine.id)}`),
+            onError: (e) => {
+              const text =
+                e instanceof ApiError && e.status !== 404
+                  ? "Couldn't copy this food. Please try again."
+                  : foodEditError(e)
+              setError(text)
+              toast.error(text)
+            },
+          })
+        }}
+      >
+        {copy.isPending ? "Copying…" : "Copy to my foods"}
+      </Button>
+      {error && (
+        <Copy size={12} style={{ color: t.bad, textAlign: "center" }}>
+          {error}
+        </Copy>
+      )}
+    </View>
   )
 }
 

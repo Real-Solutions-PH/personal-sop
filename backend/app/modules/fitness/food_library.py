@@ -1,6 +1,8 @@
-"""The shared food library (``FoodItem``): saving a food's nutrition,
-finding it again by name, and scaling it to the amount eaten. Every member
-reads every food; its author or an admin edits it (``catalog.py``).
+"""The food library (``FoodItem``): saving a food's nutrition, finding it
+again by name, and scaling it to the amount eaten. Built-in foods (a bulk
+import of a public database made them, ``is_global``) are every member's
+and read-only; every other food is its owner's alone (``catalog.py``). A
+member copies a built-in food to make it their own.
 
 Meal logging checks the library first, so a food read once from its label
 gives the same numbers every time; only foods it has never seen fall back to
@@ -268,9 +270,11 @@ def same_food(name: str, rows: list[FoodItem]) -> FoodItem | None:
 
 def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
     """Add a food, or update the one it already is (``same_food``, or the
-    same import source). Returns the row and whether it was new. A food
-    another member added is reused as it is: only its author or an admin
-    changes its numbers. Flushes only."""
+    same import source). Returns the row and whether it was new. A built-in
+    food is never changed: a draft that only re-states it reuses it, and one
+    with the caller's own numbers for it (a label, what they said) becomes
+    the caller's own food of that name, which then ranks first. Flushes
+    only."""
     key = fold(d.name)
     if not key:
         raise ValueError("a food needs a name")
@@ -294,7 +298,9 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
     ):
         row = None
     if row is not None and not owned_repo.can_write(ctx, row):
-        return row, False
+        if (d.external_ref or "").startswith(BULK_PREFIXES) or _restates(row, d):
+            return row, False
+        row, by_ref = None, []
     aliases = sorted({fold(a) for a in d.aliases if fold(a) and fold(a) != key})
     values: dict[str, Any] = {
         "name": d.name.strip()[:160],
@@ -333,6 +339,18 @@ def save_food(ctx: Ctx, d: FoodDraft) -> tuple[FoodItem, bool]:
     ctx.session.add(row)
     ctx.session.flush()
     return row, False
+
+
+def _restates(row: FoodItem, d: FoodDraft) -> bool:
+    """Whether the draft says what ``row`` already says: the same basis and
+    the same calories and macros (within rounding, or 2%)."""
+    if d.basis != row.basis:
+        return False
+    for n in ("kcal", "protein", "carbs", "fat"):
+        mine, theirs = float(getattr(d, n) or 0), float(getattr(row, n) or 0)
+        if abs(mine - theirs) > max(0.5, abs(theirs) * 0.02):
+            return False
+    return True
 
 
 def find_food(
@@ -671,19 +689,25 @@ def apply_library(
 
 def food_public(f: FoodItem) -> dict[str, Any]:
     """A library food as a tool or screen shows it."""
-    return {
-        "id": str(f.id),
-        "name": f.name,
-        "basis": {"100g": "per 100 g", "piece": "per piece", "serving": "per serving"}[
-            f.basis
-        ],
-        "unit_grams": f.unit_grams,
-        "state": f.state,
-        **{n: getattr(f, n) for n in NUTRIENTS if getattr(f, n) is not None},
-        "aliases": f.aliases or [],
-        "source": f.source,
-        "verified": f.verified,
-    } | ({"from": SOURCE_LABEL[f.source]} if is_bulk(f) else {})
+    return (
+        {
+            "id": str(f.id),
+            "name": f.name,
+            "basis": {
+                "100g": "per 100 g",
+                "piece": "per piece",
+                "serving": "per serving",
+            }[f.basis],
+            "unit_grams": f.unit_grams,
+            "state": f.state,
+            **{n: getattr(f, n) for n in NUTRIENTS if getattr(f, n) is not None},
+            "aliases": f.aliases or [],
+            "source": f.source,
+            "verified": f.verified,
+        }
+        | ({"from": SOURCE_LABEL[f.source]} if is_bulk(f) else {})
+        | ({"built_in": True} if f.is_global else {})
+    )
 
 
 # What a person can change on a saved food.
@@ -701,9 +725,10 @@ EDITABLE = (
 
 def update_food(ctx: Ctx, food_id: uuid.UUID, changes: dict[str, Any]) -> FoodItem:
     """Change a saved food's name, basis, aliases, notes, photo or numbers;
-    a new name becomes its new key. Only its author or an admin may (403
-    ``catalog_read_only``); a name another live food has is refused (409
-    ``food_name_taken``). Flushes only."""
+    a new name becomes its new key. Only the caller's own foods change (a
+    built-in one is refused, 403 ``catalog_read_only``); a name another of
+    the caller's own live foods has is refused (409 ``food_name_taken``); a
+    built-in food's name is free to use. Flushes only."""
     row = owned_repo.require_writable(ctx, FoodItem, food_id, what="food")
     data = {k: v for k, v in changes.items() if k in EDITABLE}
     if "name" in data:
@@ -715,6 +740,8 @@ def update_food(ctx: Ctx, food_id: uuid.UUID, changes: dict[str, Any]) -> FoodIt
             FoodItem,
             col(FoodItem.key) == key[:160],
             col(FoodItem.id) != row.id,
+            col(FoodItem.owner_id) == ctx.user_id,
+            col(FoodItem.is_global).is_(False),
             limit=1,
         ):
             raise conflict("food_name_taken", "Another food already has that name")
@@ -739,7 +766,60 @@ def delete_food(ctx: Ctx, food_id: uuid.UUID) -> None:
 def restore_food(ctx: Ctx, food_id: uuid.UUID) -> None:
     owned_repo.restore(
         ctx,
-        owned_repo.require(ctx, FoodItem, food_id, what="food", include_deleted=True),
+        owned_repo.require_writable(
+            ctx, FoodItem, food_id, what="food", include_deleted=True
+        ),
+    )
+
+
+def _free_name(ctx: Ctx, name: str) -> str:
+    """``name``, or "``name`` (copy)", "(copy 2)", ...: the first one none
+    of the caller's own live foods has."""
+    base = name.strip()
+    names = [base[:160], f"{base[:150]} (copy)"]
+    names += [f"{base[:148]} (copy {n})" for n in range(2, 100)]
+    for candidate in names:
+        if not owned_repo.list_rows(
+            ctx,
+            FoodItem,
+            col(FoodItem.key) == fold(candidate)[:160],
+            col(FoodItem.owner_id) == ctx.user_id,
+            col(FoodItem.is_global).is_(False),
+            limit=1,
+        ):
+            return candidate
+    raise conflict("food_name_taken", "You already have too many copies of that food")
+
+
+# Copied onto the caller's own food; ``external_ref`` is not (a copy is the
+# caller's, never a database row an import would rewrite).
+_COPIED = (
+    "basis",
+    "unit_grams",
+    "state",
+    "aliases",
+    *NUTRIENTS,
+    "source",
+    "source_url",
+    "barcode",
+    "notes",
+    "photo_media_id",
+    "verified",
+)
+
+
+def copy_food(ctx: Ctx, food_id: uuid.UUID) -> FoodItem:
+    """A food of the caller's own with the numbers of any food they can see
+    (a built-in one, typically, to customise). It keeps the name when none
+    of the caller's own foods has it, else gains " (copy)" (then
+    " (copy 2)", ...). Flushes only."""
+    src = owned_repo.require(ctx, FoodItem, food_id, what="food")
+    name = _free_name(ctx, src.name)
+    values = {k: getattr(src, k) for k in _COPIED}
+    # A renamed copy drops the aliases, so "rice" still finds one food.
+    values["aliases"] = list(src.aliases or []) if name == src.name.strip() else []
+    return owned_repo.insert(
+        ctx, FoodItem, values | {"name": name, "key": fold(name)[:160]}
     )
 
 

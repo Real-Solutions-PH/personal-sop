@@ -5,6 +5,7 @@ import { uid } from "../lib/store"
 import {
   addDays,
   balanceOf,
+  companionOf,
   recDay,
   reconcile,
   statementClosing,
@@ -434,10 +435,30 @@ export function addPlanned(
   return p
 }
 export function updatePlanned(id: string, patch: Partial<PlannedItem>) {
-  set((s) => ({
-    ...s,
-    planned: s.planned.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-  }))
+  set((s) => {
+    const p = s.planned.find((x) => x.id === id)
+    // A draft installment purchase is two items, the plan and its
+    // downpayment: making one real (or a draft again) moves both, or the
+    // downpayment stays a draft and the first month never sees it.
+    const mate =
+      p && patch.isWhatIf !== undefined && patch.isWhatIf !== p.isWhatIf
+        ? companionOf(s, p)
+        : undefined
+    const matePatch: Partial<PlannedItem> = {
+      isWhatIf: patch.isWhatIf,
+      inProjection: patch.inProjection ?? !patch.isWhatIf,
+    }
+    return {
+      ...s,
+      planned: s.planned.map((x) =>
+        x.id === id
+          ? { ...x, ...patch }
+          : x.id === mate?.id
+            ? { ...x, ...matePatch }
+            : x,
+      ),
+    }
+  })
 }
 /** Removes a planned item, paid history or not: the sync engine tombstones
  * it on every device, and the records it settled keep their ``plannedId``.

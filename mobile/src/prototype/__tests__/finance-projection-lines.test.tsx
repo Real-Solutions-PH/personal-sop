@@ -7,7 +7,12 @@ import { balancesAtEnd, forecast } from "@domain/finance/forecast"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
@@ -367,16 +372,15 @@ describe("Projection screen", () => {
   it("lists the current month's projected items and opens one on tap", () => {
     seed()
     render(<Projection />, { wrapper })
-    // The current month starts open; next month opens on tap.
+    // The current month starts open; next month opens on tap. (The
+    // Projected expenses list names it too, so look among month rows.)
     expect(
-      screen.queryByText(
-        "A new laptop for work with a very long name that must wrap",
-      ),
+      screen.queryByLabelText(/^A new laptop.*Open the planned item$/),
     ).toBeNull()
     fireEvent.press(screen.getAllByLabelText(/Show what is projected/)[0])
-    const laptop = screen.getByText(
-      "A new laptop for work with a very long name that must wrap",
-    )
+    const laptop = within(
+      screen.getByLabelText(/^A new laptop.*Open the planned item$/),
+    ).getByText("A new laptop for work with a very long name that must wrap")
     // Titles wrap: never clipped to a line.
     expect(laptop.props.numberOfLines).toBeUndefined()
     expect(screen.getAllByText("−₱45,000").length).toBeGreaterThan(0)

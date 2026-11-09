@@ -1,9 +1,15 @@
 // One food's page in live mode: it loads with GET /nutrition/foods/{id},
-// a food someone else added reads only, and its author's Save sends a
-// PATCH with just the fields that changed, reporting the outcome either way.
+// a built-in food reads only (marked, with "Copy to my foods"), and a
+// member's own food's Save sends a PATCH with just the fields that changed,
+// reporting the outcome either way.
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 
@@ -115,17 +121,56 @@ test("loads the food and shows its numbers with separators", async () => {
   )
 })
 
-test("a food another member added reads only, and says why", async () => {
-  mockRequest.mockResolvedValue({ ...food, can_edit: false })
+const builtInNote =
+  "Built in for everyone, so it can't be changed. Copy it to make your own."
+
+test("a built-in food reads only, marked, with no edit controls", async () => {
+  mockRequest.mockResolvedValue({ ...food, can_edit: false, is_global: true })
   show()
-  expect(
-    await screen.findByText("Added by another member — only they can edit it."),
-  ).toBeTruthy()
+  expect(await screen.findByText(builtInNote)).toBeTruthy()
+  expect(screen.getByText("Built-in")).toBeTruthy()
   expect(screen.getByText("1,200 kcal")).toBeTruthy()
   expect(screen.getByText("1,500 mg")).toBeTruthy()
   expect(screen.queryByText("Save changes")).toBeNull()
   expect(screen.queryByDisplayValue("Skyr, vanilla")).toBeNull()
   expect(screen.queryByLabelText("Add food photo")).toBeNull()
+  expect(screen.getByText("Copy to my foods")).toBeTruthy()
+})
+
+test("Copy to my foods copies it and opens the own copy", async () => {
+  const { router } = require("expo-router")
+  mockRequest.mockImplementation(async (method: string) =>
+    method === "POST"
+      ? { ...food, id: "f2", can_edit: true, is_global: false }
+      : { ...food, can_edit: false, is_global: true },
+  )
+  show()
+  fireEvent.press(await screen.findByText("Copy to my foods"))
+  await waitFor(() =>
+    expect(router.replace).toHaveBeenCalledWith("/nutrition/foods/f2"),
+  )
+  expect(mockRequest).toHaveBeenCalledWith("POST", "/nutrition/foods/f1/copy")
+  expect(toast.error).not.toHaveBeenCalled()
+})
+
+test("a failed copy says so", async () => {
+  mockRequest.mockImplementation(async (method: string) => {
+    if (method === "POST") throw new ApiError(500, "boom", "Boom")
+    return { ...food, can_edit: false, is_global: true }
+  })
+  show()
+  fireEvent.press(await screen.findByText("Copy to my foods"))
+  const why = "Couldn't copy this food. Please try again."
+  expect(await screen.findByText(why)).toBeTruthy()
+  expect(toast.error).toHaveBeenCalledWith(why)
+})
+
+test("an own food has no built-in mark and no copy button", async () => {
+  mockRequest.mockResolvedValue(food)
+  show()
+  await screen.findByDisplayValue("Skyr, vanilla")
+  expect(screen.queryByText("Built-in")).toBeNull()
+  expect(screen.queryByText("Copy to my foods")).toBeNull()
 })
 
 test("an Open Food Facts product credits it and links its page", async () => {
@@ -138,13 +183,12 @@ test("an Open Food Facts product credits it and links its page", async () => {
     verified: false,
     source_url: url,
     can_edit: false,
+    is_global: true,
   })
   show()
   const credit = "From Open Food Facts, under the Open Database License (ODbL)"
   expect(await screen.findByText(credit)).toBeTruthy()
-  expect(
-    screen.getByText("Imported for everyone — only an admin can edit it."),
-  ).toBeTruthy()
+  expect(screen.getByText(builtInNote)).toBeTruthy()
   fireEvent.press(screen.getByLabelText(`${credit}. Opens openfoodfacts.org`))
   expect(open).toHaveBeenCalledWith(url)
 })
