@@ -17,6 +17,7 @@ import {
   render,
   renderHook,
   screen,
+  within,
 } from "@testing-library/react-native"
 import { router } from "expo-router"
 import { SafeAreaProvider } from "react-native-safe-area-context"
@@ -338,7 +339,8 @@ test("every ring and limit opens its breakdown for the page's day and period", (
   expect(router.push).toHaveBeenLastCalledWith(
     `/nutrition/nutrient/sodium?day=${dayKey()}&range=1`,
   )
-  fireEvent.press(screen.getByLabelText(/^Fiber: /))
+  // The ring, not the calories chart's fiber row ("Fiber: avg …").
+  fireEvent.press(screen.getByLabelText(/^Fiber: (?!avg)/))
   expect(router.push).toHaveBeenLastCalledWith(
     `/nutrition/nutrient/fiber?day=${dayKey()}&range=1`,
   )
@@ -382,12 +384,12 @@ test("each macro's target is a dashed line on the calories chart", () => {
   render(<NutritionHome range="7" />, { wrapper })
   expect(
     screen.getByLabelText(
-      /^Calories by macro, 7 days to .*; targets protein 140 g, carbs 220 g, fat 60 g$/,
+      /^Calories by macro, 7 days to .*; targets protein 140 g, carbs 220 g, fat 60 g, fiber 25 g$/,
     ),
   ).toBeTruthy()
   // Stacked as the bars are: protein 560 kcal, then carbs to 1,440, then
   // fat to 1,980 (2,000 kcal target, within 5%).
-  for (const key of ["protein", "carbs", "fat"])
+  for (const key of ["protein", "fiber", "carbs", "fat"])
     expect(screen.getByTestId(`macro-target-${key}`)).toBeTruthy()
   // Each macro's grams against its target sit under the chart.
   expect(screen.getByText("avg 105 / 140 g")).toBeTruthy()
@@ -566,4 +568,98 @@ test("steppers group thousands and still read what was typed", () => {
   expect(parseAmount("12,000,5")).toBe(12000.5)
   expect(parseAmount("2,5")).toBe(2.5)
   expect(parseAmount("72.5")).toBe(72.5)
+})
+
+test("fiber is a segment of the calories bars with its own target line and row", () => {
+  const withDetail = (id: string, day: string, fiber: number) => {
+    const m = meal(id, day, 2000, 140)
+    return {
+      ...m,
+      items: m.items.map((i) => ({
+        ...i,
+        fiber,
+        satFat: 30,
+        sugar: 40,
+        sodium: 2500,
+      })),
+    }
+  }
+  fitStore.set((s) => ({
+    ...s,
+    targets: [{ ...target, fiberGoal: 30, satFatMax: 20, sodiumMax: 2300 }],
+    meals: [
+      withDetail("a", dayOffset(-1), 32),
+      withDetail("b", dayOffset(-2), 20),
+    ],
+  }))
+  render(<NutritionHome range="7" />, { wrapper })
+  // Fiber's target sits inside carbs on the stacked bars:
+  // (140 g protein + 30 g fiber) × 4 kcal.
+  const fiberLine = screen.getByTestId("macro-target-fiber")
+  const protLine = screen.getByTestId("macro-target-protein")
+  const carbLine = screen.getByTestId("macro-target-carbs")
+  const bottom = (el: { props: Record<string, unknown> }) =>
+    (
+      [el.props.style].flat(Number.POSITIVE_INFINITY) as {
+        bottom?: number
+      }[]
+    ).reduce((a, x) => x?.bottom ?? a, 0)
+  expect(bottom(fiberLine)).toBeGreaterThan(bottom(protLine))
+  expect(bottom(fiberLine)).toBeLessThan(bottom(carbLine))
+  // The rule's own stroke offsets it a pixel, hence one decimal.
+  expect(bottom(fiberLine) / bottom(protLine)).toBeCloseTo(170 / 140, 1)
+  // Its row: the daily average against the goal, and the days it was hit.
+  fireEvent.press(
+    within(screen.getByTestId("macro-rows")).getByLabelText(
+      /^Fiber: avg 26 \/ 30 g · hit on 1 of 2 days\./,
+    ),
+  )
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/fiber?day=${dayKey()}&range=7`,
+  )
+})
+
+test("sat fat, sugar and sodium are 7-day records under the chart, not bars", () => {
+  const m = meal("a", dayOffset(-1), 2000, 140)
+  fitStore.set((s) => ({
+    ...s,
+    targets: [{ ...target, satFatMax: 20, sugarMax: 50, sodiumMax: 2300 }],
+    meals: [
+      {
+        ...m,
+        items: m.items.map((i) => ({
+          ...i,
+          satFat: 30,
+          sugar: 40,
+          sodium: 1500,
+        })),
+      },
+    ],
+  }))
+  render(<NutritionHome range="7" />, { wrapper })
+  const limits = screen.getByTestId("macro-limits")
+  expect(
+    within(limits).getByText("Limits, a day on average over 7 days"),
+  ).toBeTruthy()
+  // Each against its limit, with the days it stayed under.
+  expect(
+    within(limits).getByLabelText(
+      /^Sat fat: avg 30 \/ 20 max g · under on 0 of 1 days\./,
+    ),
+  ).toBeTruthy()
+  expect(
+    within(limits).getByLabelText(
+      /^Sugar: avg 40 \/ 50 max g · under on 1 of 1 days\./,
+    ),
+  ).toBeTruthy()
+  fireEvent.press(
+    within(limits).getByLabelText(
+      /^Sodium: avg 1,500 \/ 2,300 max mg · under on 1 of 1 days\./,
+    ),
+  )
+  expect(router.push).toHaveBeenLastCalledWith(
+    `/nutrition/nutrient/sodium?day=${dayKey()}&range=7`,
+  )
+  // Not drawn: no target line for a limit.
+  expect(screen.queryByTestId("macro-target-sodium")).toBeNull()
 })

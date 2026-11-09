@@ -5,7 +5,7 @@
 // at a time, up to a year ahead, where every bar is what is scheduled.
 import * as N from "@domain/finance/calc"
 import type { FinState } from "@domain/finance/data"
-import { scheduledBetween } from "@domain/finance/forecast"
+import { balancesAtEnd, scheduledBetween } from "@domain/finance/forecast"
 import { ChevronLeft, ChevronRight } from "lucide-react-native"
 import { useMemo, useState } from "react"
 import { View } from "react-native"
@@ -26,6 +26,9 @@ export interface MonthFlow {
   aheadOut: number
   current: boolean
   future: boolean
+  /** Money on hand at the month's last day, in the accounts the Projection
+   * counts: actual once the month has ended, expected before. */
+  balance: number
 }
 
 /** How far ahead the chart steps. */
@@ -42,10 +45,16 @@ export function monthlyFlow(
   end = 0,
 ): MonthFlow[] {
   const sd = s.settings.monthStartDay,
-    now = N.monthOf(today, sd)
-  return Array.from({ length: n }, (_, i) => {
-    const key = N.addMonths(now, end + i - (n - 1)),
-      [from, to] = N.monthRange(key, sd),
+    now = N.monthOf(today, sd),
+    keys = Array.from({ length: n }, (_, i) =>
+      N.addMonths(now, end + i - (n - 1)),
+    ),
+    atEnd = balancesAtEnd(
+      s,
+      keys.map((k) => N.monthRange(k, sd)[1]),
+    )
+  return keys.map((key, i) => {
+    const [from, to] = N.monthRange(key, sd),
       current = key === now,
       future = key > now,
       // A future month can hold records too (a bill paid ahead and dated on
@@ -65,11 +74,20 @@ export function monthlyFlow(
       aheadOut: ahead.spend,
       current,
       future,
+      balance: atEnd[i],
     }
   })
 }
 
 const H = 140
+
+/** A balance's colour: overdrawn is bad, under the minimum balance a
+ * warning, otherwise plain text (money on hand is not a gain). */
+export const balanceColor = (
+  t: { bad: string; warn: string; text: string },
+  v: number,
+  floor: number,
+) => (v < 0 ? t.bad : v < floor ? t.warn : t.text)
 
 /** One bar: done solid at the base, still scheduled dashed above it. */
 function Bar({
@@ -296,6 +314,34 @@ export function MonthlyFlowBars({ s }: { s: FinState }) {
           >
             {net > 0 ? "+" : net < 0 ? "−" : ""}
             {money(Math.abs(net))}
+          </Copy>
+        </Line>
+        {/* Where the month leaves the money on hand: what the Projection
+            counts, actual once the month is over. */}
+        <Line
+          testID="monthly-flow-balance"
+          style={{
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            paddingTop: 8,
+            borderTopWidth: 1,
+            borderColor: t.line,
+          }}
+        >
+          <Copy size={14} muted style={{ flex: 1 }}>
+            {m.future || m.current
+              ? "Expected balance at month end"
+              : "Balance at month end"}
+          </Copy>
+          <Copy
+            size={18}
+            weight="semibold"
+            style={{
+              color: balanceColor(t, m.balance, s.settings.safetyFloor),
+            }}
+          >
+            {m.balance < 0 ? "−" : ""}
+            {money(Math.abs(m.balance))}
           </Copy>
         </Line>
       </View>

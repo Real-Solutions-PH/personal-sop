@@ -16,6 +16,7 @@ import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
 import { toast } from "sonner-native"
 import { FinanceLineChart } from "../chart"
+import { ChartLegend } from "../finance-charts"
 import { Stepper } from "../fitness-controls"
 import { MoneyInput } from "../money-input"
 import {
@@ -34,8 +35,11 @@ import { radius, useTheme } from "../theme"
 import { Button, DateField, Empty, Field, Screen } from "../ui"
 import { useMoney } from "./finance"
 import { OutlookRow } from "./finance-outlook"
+import { ProjectedItems } from "./finance-projected-items"
 
 const INSTALLMENT_TERMS = [3, 6, 12, 24]
+/** The second line's name: the balance with none of the planned money out. */
+export const NO_PLANNED = "No projected expenses"
 const MAX_TERM = 60
 export const clampTerm = (months: number) =>
   Math.min(MAX_TERM, Math.max(2, Math.round(months)))
@@ -118,6 +122,9 @@ export function Projection() {
     [picked, setAcct] = useState<string>(),
     [excluded, setExcluded] = useState<string[]>([]),
     [assump, setAssump] = useState(false),
+    // The months whose projected items are listed; the current one opens
+    // first, so the list is one look away.
+    [openMonths, setOpenMonths] = useState<string[]>(() => [cur]),
     // The minimum balance as typed ("2500." mid-entry), saved as it parses.
     [floorDraft, setFloorDraft] = useState<string>(),
     // A picked From–To range: screen state and link params only, never a
@@ -192,6 +199,28 @@ export function Projection() {
         {v < 0 ? "Overdrawn" : `Below your ${money(floor)} minimum`}
       </Copy>
     ) : null
+  /** The readout's second value: the balance with no projected expenses,
+   * and what the planned spending takes off it by then. */
+  const noPlannedLine = (bare: number, base: number) => (
+    <>
+      <Copy size={12} weight="medium" style={{ color: t.tsk }}>
+        {money(bare)}{" "}
+        <Copy size={11} muted>
+          {NO_PLANNED.toLowerCase()}
+        </Copy>
+      </Copy>
+      {bare !== base && (
+        <Copy
+          size={11}
+          weight="semibold"
+          style={{ color: base < bare ? t.bad : t.good }}
+        >
+          Planned spending {base < bare ? "−" : "+"}
+          {money(Math.abs(bare - base))}
+        </Copy>
+      )}
+    </>
+  )
   const pick = (next: DateRange) => {
     const bad = aheadRangeError(next)
     if (bad) toast.error(bad)
@@ -454,6 +483,7 @@ export function Projection() {
                         <Copy size={14} weight="semibold">
                           {money(shown[i].balance)}
                         </Copy>
+                        {noPlannedLine(shown[i].noPlanned, shown[i].balance)}
                         {under(shown[i].balance)}
                       </>
                     ))}
@@ -467,6 +497,11 @@ export function Projection() {
                         values: shown.map((x) => x.balance),
                         color: t.fin,
                         area: true,
+                      },
+                      {
+                        values: shown.map((x) => x.noPlanned),
+                        color: t.tsk,
+                        dashed: true,
                       },
                     ]}
                   />
@@ -542,6 +577,7 @@ export function Projection() {
                 const m = i > 0 ? proj.months[i - 1] : null
                 const base = m ? m.endBase : proj.start
                 const withIt = m ? m.end : proj.start
+                const bare = m ? m.endNoPlanned : proj.start
                 return (
                   <>
                     <Copy size={11} muted>
@@ -577,6 +613,7 @@ export function Projection() {
                         {money(base)}
                       </Copy>
                     )}
+                    {noPlannedLine(bare, base)}
                     {under(whatIf ? withIt : base)}
                   </>
                 )
@@ -597,21 +634,35 @@ export function Projection() {
                       },
                     ]
                   : []),
+                // Drawn last, over the baseline: the gap between them is
+                // what the planned spending costs.
+                {
+                  values: [
+                    proj.start,
+                    ...proj.months.map((m) => m.endNoPlanned),
+                  ],
+                  color: t.tsk,
+                  dashed: true,
+                },
               ]}
             />
-            <Line style={{ gap: 16, paddingHorizontal: 4 }}>
-              <Copy size={12} muted>
-                ━ Baseline
-              </Copy>
-              {whatIf && (
-                <Copy size={12} muted>
-                  ━ With {name || "purchase"}
-                </Copy>
-              )}
-              <Copy size={12} muted>
-                ┄ Minimum balance
-              </Copy>
-            </Line>
+            <View style={{ paddingHorizontal: 4 }}>
+              <ChartLegend
+                items={[
+                  { label: "Baseline", color: whatIf ? t.muted : t.fin },
+                  ...(whatIf
+                    ? [
+                        {
+                          label: `With ${name || "purchase"}`,
+                          color: verdict === "ok" ? t.fin : color,
+                        },
+                      ]
+                    : []),
+                  { label: NO_PLANNED, color: t.tsk, dashed: true },
+                  { label: "Minimum balance", color: t.warn, dashed: true },
+                ]}
+              />
+            </View>
           </Frame>
         )}
         <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
@@ -987,6 +1038,9 @@ export function Projection() {
         ) : (
           <View style={{ marginTop: -12 }}>
             <SectionHeading>Left over each month</SectionHeading>
+            <Copy size={12} muted style={{ marginTop: -4, marginBottom: 8 }}>
+              Tap a month for everything projected in it
+            </Copy>
             {/* One row per month: the balance it ends on, then what came in,
               went out and was left over, each in full. Five columns of full
               amounts do not fit a phone, so the breakdown wraps at its dots
@@ -996,7 +1050,6 @@ export function Projection() {
                 <View
                   key={m.key}
                   style={{
-                    paddingVertical: 10,
                     marginHorizontal: -16,
                     paddingHorizontal: 16,
                     borderTopWidth: i ? 1 : 0,
@@ -1004,38 +1057,74 @@ export function Projection() {
                     backgroundColor: m.whatIf > 0 ? `${t.fin}0d` : undefined,
                   }}
                 >
-                  <Line
-                    style={{
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: 12,
-                    }}
+                  <Tap
+                    label={`${C.monthLabel(m.key, true)}: ends on ${money(m.end)}. ${openMonths.includes(m.key) ? "Hide" : "Show"} what is projected`}
+                    selected={openMonths.includes(m.key)}
+                    onPress={() =>
+                      setOpenMonths(
+                        openMonths.includes(m.key)
+                          ? openMonths.filter((k) => k !== m.key)
+                          : [...openMonths, m.key],
+                      )
+                    }
+                    style={{ paddingVertical: 10 }}
                   >
-                    <Copy size={14} weight="medium" style={{ flex: 1 }}>
-                      {C.monthLabel(m.key)}
-                      {i === 0 ? " (rest)" : ""}
-                      {m.whatIf > 0 ? " •" : ""}
-                    </Copy>
-                    <Copy
-                      size={14}
-                      weight="semibold"
+                    <Line
                       style={{
-                        color:
-                          m.end < floor ? (m.end < 0 ? t.bad : t.warn) : t.text,
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        gap: 12,
                       }}
                     >
-                      {money(m.end)}
+                      <Copy size={14} weight="medium" style={{ flex: 1 }}>
+                        {C.monthLabel(m.key)}
+                        {i === 0 ? " (rest)" : ""}
+                        {m.whatIf > 0 ? " •" : ""}
+                      </Copy>
+                      <Copy
+                        size={14}
+                        weight="semibold"
+                        style={{
+                          color:
+                            m.end < floor
+                              ? m.end < 0
+                                ? t.bad
+                                : t.warn
+                              : t.text,
+                        }}
+                      >
+                        {money(m.end)}
+                      </Copy>
+                      <ChevronDown
+                        size={16}
+                        color={t.muted}
+                        style={{
+                          transform: [
+                            {
+                              rotate: openMonths.includes(m.key)
+                                ? "180deg"
+                                : "0deg",
+                            },
+                          ],
+                        }}
+                      />
+                    </Line>
+                    <Copy size={12} muted style={{ marginTop: 2 }}>
+                      In{" "}
+                      <Text style={{ color: t.good }}>{money(m.inflow)}</Text>
+                      {" · "}Out {money(m.planned + m.unplanned + m.whatIf)}
+                      {" · "}Net{" "}
+                      <Text style={{ color: m.net < 0 ? t.bad : t.good }}>
+                        {m.net >= 0 ? "+" : "−"}
+                        {money(Math.abs(m.net))}
+                      </Text>
                     </Copy>
-                  </Line>
-                  <Copy size={12} muted style={{ marginTop: 2 }}>
-                    In <Text style={{ color: t.good }}>{money(m.inflow)}</Text>
-                    {" · "}Out {money(m.planned + m.unplanned + m.whatIf)}
-                    {" · "}Net{" "}
-                    <Text style={{ color: m.net < 0 ? t.bad : t.good }}>
-                      {m.net >= 0 ? "+" : "−"}
-                      {money(Math.abs(m.net))}
-                    </Text>
-                  </Copy>
+                  </Tap>
+                  {openMonths.includes(m.key) && (
+                    <View style={{ paddingBottom: 8 }}>
+                      <ProjectedItems month={m} />
+                    </View>
+                  )}
                 </View>
               ))}
             </Frame>
