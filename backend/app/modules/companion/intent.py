@@ -63,10 +63,14 @@ _QUESTION_IN = re.compile(
     r"enough|vs\.?|versus|compared?)\b",
     re.I,
 )
-# Asking for grams per food: the portion planner's job.
+# Asking for grams per food: the portion planner's job. "grams of" counts
+# only with no amount before it: "add … the hundred grams of peaches that I
+# have eaten" (2026-11-07) was read as a portions question, so a reply
+# claiming an edit nothing made went out unchecked.
 _PORTIONS = re.compile(
     r"\b(?:portion(?:s|ing)?|how (?:much|many) (?:grams?|g|cups?)|"
-    r"grams? (?:of|for)|serving sizes?|how much (?:should|can|do) i eat)\b",
+    r"(?<!\d )(?<!\d)(?<!hundred )(?<!thousand )grams? (?:of|for)|"
+    r"serving sizes?|how much (?:should|can|do) i eat)\b",
     re.I,
 )
 _LOG = re.compile(

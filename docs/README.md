@@ -45,6 +45,8 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/0033-recurring-transactions-generated-by-the-job.md](adr/0033-recurring-transactions-generated-by-the-job.md) | Recurring transactions are created by the scheduled auto-log job: interval rules (every N days/weeks/months/years), month-end clamping, one record per occurrence, 60-day catch-up (2026-11-04) | Architecture |
 | [adr/0034-fern-eval-private-store-with-consent.md](adr/0034-fern-eval-private-store-with-consent.md) | Fern eval: other people's chats only with their opt-in ("Help improve Fern"), in a private repository; the public dataset stays Kai-only (2026-11-04) | Testing |
 | [adr/0035-product-analytics-sdk-deferred.md](adr/0035-product-analytics-sdk-deferred.md) | Proposed: no product analytics SDK yet; retention read from our own tables plus `usage_event`; PostHog with full masking when it is time (2026-11-08) | Architecture |
+| [adr/0036-marketing-site-static-workspace.md](adr/0036-marketing-site-static-workspace.md) | Proposed: the public marketing site is a static Next.js export in its own `marketing/` workspace, not a route group in `frontend/` (2026-11-08) | Architecture |
+| [adr/0038-fern-allowance-and-plus-fair-use.md](adr/0038-fern-allowance-and-plus-fair-use.md) | Fern allowance and Plus fair use: one `fern_turn` row per message on the server key, light model and every limit in settings (2026-11-09) | Architecture |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans

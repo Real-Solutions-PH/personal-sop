@@ -46,6 +46,13 @@ jobs:
         working-directory: e2e
       - run: bunx tsc --noEmit
         working-directory: e2e
+      # marketing/ (the static public site) is a workspace member too
+      - run: bunx biome ci ./
+        working-directory: marketing
+      - run: bunx tsc --noEmit
+        working-directory: marketing
+      - run: bun run build
+        working-directory: marketing
 
   lint-mobile:
     runs-on: ubuntu-latest

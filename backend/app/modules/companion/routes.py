@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
 
+from app.modules.ai_providers import public as ai
 from app.modules.companion import (
     feedback,
     gate,
@@ -20,6 +21,7 @@ from app.modules.companion import (
     turn,
 )
 from app.modules.companion.schema import (
+    AllowanceOut,
     AskIn,
     AskOut,
     CompanionState,
@@ -102,6 +104,23 @@ def speak(ctx: CtxDep, message_id: uuid.UUID) -> Response:
     )
 
 
+@router.get("/allowance", response_model=AllowanceOut, dependencies=READ)
+def get_allowance(ctx: CtxDep) -> Any:
+    """Today's Fern messages: the limit, how many are used and when the
+    count resets (the free allowance, or Plus's fair-use hard stops)."""
+    a = ai.allowance(ctx)
+    return AllowanceOut(
+        applies=services.allowance_applies(ctx),
+        plan=a.plan,
+        limit=a.limit,
+        used=a.used,
+        remaining=a.remaining,
+        resets_at=a.resets_at,
+        month_stopped=a.month_stopped,
+        month_resets_at=a.month_resets_at,
+    )
+
+
 @router.post("/ask", response_model=AskOut, dependencies=AI)
 def ask(ctx: CtxDep, data: AskIn) -> Any:
     """Ask the companion. A replayed message id returns the reply it already got."""
@@ -138,6 +157,9 @@ def ask_stream(
     The turn runs on its own (``runs``): dropping this stream never stops
     it, every frame carries an ``id`` to resume from, and sending the same
     question ``id`` again reads the reply already running."""
+    # A message past today's allowance is refused before the stream opens,
+    # as a 402 the app reads (``fern_daily_allowance_reached``).
+    services.check_allowance(ctx, data.id)
     run_id = str(data.id or uuid.uuid4())
     thread = str(data.thread_id or "latest")
     user = ctx.user
@@ -188,6 +210,16 @@ def ask_stream(
                 ctx.commit()
         except gate.Busy:
             stream.failed("busy", "Still answering your last message. Try again.")
+            return
+        except HTTPException as exc:
+            # The allowance ran out between the check above and the turn
+            # (another device): the app reads the code and shows the limit.
+            detail: dict[str, Any] = exc.detail if isinstance(exc.detail, dict) else {}
+            code = str(detail.get("code") or "")
+            if exc.status_code != 402 or not code.startswith("fern_"):
+                raise
+            ctx.session.rollback()
+            stream.failed(code, str(detail.get("message") or ""))
             return
         # What the turn recorded rides on the finished reply: a pull may hold
         # it back while this or another turn's transaction is still open.

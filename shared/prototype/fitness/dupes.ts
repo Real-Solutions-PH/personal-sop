@@ -59,9 +59,9 @@ function onlyAddsEquipment(short: Exercise, long: Exercise): boolean {
 }
 
 /** Likely duplicate pairs among live exercises of one load type, with the
- * one to keep: more finished sessions, then the starter one, then the
- * older (earlier in the library). Pairs the person dismissed are left
- * out. */
+ * one to keep: a built-in one, else more finished sessions, then the
+ * starter one, then the older (earlier in the library). Pairs the person
+ * dismissed, and pairs of two built-ins, are left out. */
 export function duplicateCandidates(
   s: FitnessState,
   dismissed: readonly string[] = dupesStore.get().dismissed,
@@ -98,7 +98,17 @@ export function duplicateCandidates(
       )
         reason = "name contains"
       if (!reason) continue
-      const [keep, merge] = before(b, a) ? [b, a] : [a, b]
+      // A built-in never merges away: two built-ins are no pair, and one
+      // is always the one kept.
+      if (a.builtIn && b.builtIn) continue
+      const [keep, merge] =
+        a.builtIn || b.builtIn
+          ? a.builtIn
+            ? [a, b]
+            : [b, a]
+          : before(b, a)
+            ? [b, a]
+            : [a, b]
       out.push({ keep, merge, reason })
     }
   return out

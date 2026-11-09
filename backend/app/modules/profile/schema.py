@@ -94,6 +94,7 @@ class ProfilePublic(BaseModel):
     since: date | None
     timezone: str
     currency: str
+    storefront_country: str | None = None
     day_start_hour: int
     evening_start: str
     target_threshold: float
@@ -138,6 +139,10 @@ class ProfileUpdate(BaseModel):
     day_start_hour: int | None = Field(default=None, ge=0, le=23)
     evening_start: str | None = None
     target_threshold: float | None = Field(default=None, gt=0, le=1)
+    # ISO 3166 alpha-2 of the App Store storefront (the price tier).
+    storefront_country: str | None = Field(
+        default=None, min_length=2, max_length=2, pattern="^[A-Za-z]{2}$"
+    )
     appearance: Appearance | None = None
     privacy_hidden: bool | None = None
     onboarded: bool | None = None
@@ -188,6 +193,11 @@ class ProfileUpdate(BaseModel):
     @classmethod
     def _currency(cls, v: str | None) -> str | None:
         return None if v is None else check_currency(v)
+
+    @field_validator("storefront_country")
+    @classmethod
+    def _storefront(cls, v: str | None) -> str | None:
+        return None if v is None else v.upper()
 
 
 class CompleteSignup(BaseModel):

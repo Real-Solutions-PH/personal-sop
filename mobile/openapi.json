@@ -6697,6 +6697,53 @@
         }
       }
     },
+    "/api/v1/fitness/templates/{template_id}/copy": {
+      "post": {
+        "tags": ["fitness"],
+        "summary": "Copy Template",
+        "description": "A routine of your own from any you can see (a built-in one to\ncustomise).",
+        "operationId": "fitness-copy_template",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "template_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Template Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TemplateCopy" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TemplateOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/fitness/templates/{template_id}/restore": {
       "post": {
         "tags": ["fitness"],
@@ -8180,7 +8227,7 @@
       "get": {
         "tags": ["nutrition"],
         "summary": "List Foods",
-        "description": "The shared food library. ``q`` narrows it to foods holding every word\ntyped (in the name or an alias, any order), the household's own and most\nrecently eaten first (``food_library.search_order``). ``origin`` keeps\nonly the foods the person made (``you``), Fern saved (``fern``) or a\npublic database supplied (``database``). With neither, it lists the\nhousehold's own foods and the database ones they have eaten, most used\nfirst; ``origin=database`` alone browses the databases, eaten ones\nfirst.",
+        "description": "The food library: built-in foods and your own. ``q`` narrows it to foods holding every word\ntyped (in the name or an alias, any order), the household's own and most\nrecently eaten first (``food_library.search_order``). ``origin`` keeps\nonly the foods the person made (``you``), Fern saved (``fern``) or a\npublic database supplied (``database``). With neither, it lists the\nhousehold's own foods and the database ones they have eaten, most used\nfirst; ``origin=database`` alone browses the databases, eaten ones\nfirst.",
         "operationId": "nutrition-list_foods",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -8288,7 +8335,7 @@
       "patch": {
         "tags": ["nutrition"],
         "summary": "Update Food",
-        "description": "Edit a food's name, numbers, notes or photo. Only its author or an\nadmin may (403 ``catalog_read_only``).",
+        "description": "Edit one of your own foods' name, numbers, notes or photo. A built-in\nfood is refused for everyone, admins included (403\n``catalog_read_only``); copy it instead.",
         "operationId": "nutrition-update_food",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -8327,11 +8374,46 @@
         }
       }
     },
+    "/api/v1/nutrition/foods/{food_id}/copy": {
+      "post": {
+        "tags": ["nutrition"],
+        "summary": "Copy Food",
+        "description": "A food of your own from any you can see (a built-in one, to\ncustomise). It keeps the name unless one of your own foods has it, then\ngains \" (copy)\" (\" (copy 2)\", ...).",
+        "operationId": "nutrition-copy_food",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "food_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Food Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/nutrition/foods/{food_id}/use": {
       "post": {
         "tags": ["nutrition"],
         "summary": "Count Food Use",
-        "description": "A food was picked from the library into a meal: count the use, which\norders the library (most used first).",
+        "description": "A food was picked from the library into a meal: count the use, which\norders the library (most used first). On a built-in food the count is\nevery member's together (a counter, not an edit).",
         "operationId": "nutrition-count_food_use",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -15403,6 +15485,33 @@
         }
       }
     },
+    "/api/v1/companion/allowance": {
+      "get": {
+        "tags": ["companion"],
+        "summary": "Get Allowance",
+        "description": "Today's Fern messages: the limit, how many are used and when the\ncount resets (the free allowance, or Plus's fair-use hard stops).",
+        "operationId": "companion-get_allowance",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AllowanceOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/api/v1/companion/ask": {
       "post": {
         "tags": ["companion"],
@@ -20114,6 +20223,45 @@
         "required": ["kind", "tone", "text"],
         "title": "AdvicePublic"
       },
+      "AllowanceOut": {
+        "properties": {
+          "applies": { "type": "boolean", "title": "Applies" },
+          "plan": {
+            "type": "string",
+            "enum": ["free", "plus"],
+            "title": "Plan"
+          },
+          "limit": { "type": "integer", "title": "Limit" },
+          "used": { "type": "integer", "title": "Used" },
+          "remaining": { "type": "integer", "title": "Remaining" },
+          "resets_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Resets At"
+          },
+          "month_stopped": { "type": "boolean", "title": "Month Stopped" },
+          "month_resets_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Month Resets At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "applies",
+          "plan",
+          "limit",
+          "used",
+          "remaining",
+          "resets_at",
+          "month_stopped",
+          "month_resets_at"
+        ],
+        "title": "AllowanceOut",
+        "description": "Where today's Fern messages stand. ``applies`` is false when a new\nmessage would not count (the person's own provider key, or the AI off\nand the router answering); the other figures are then still today's."
+      },
       "AnswerIn": {
         "properties": {
           "value": {
@@ -22201,6 +22349,11 @@
             ],
             "title": "Merged Into Id"
           },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
+          },
           "last_done_at": {
             "anyOf": [
               { "type": "string", "format": "date-time" },
@@ -22311,6 +22464,11 @@
               { "type": "null" }
             ],
             "title": "Merged Into Id"
+          },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
           }
         },
         "type": "object",
@@ -22463,6 +22621,11 @@
               { "type": "null" }
             ],
             "title": "Merged Into Id"
+          },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
           },
           "last_done_at": {
             "anyOf": [
@@ -23167,6 +23330,11 @@
             "title": "Can Edit",
             "default": false
           },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
+          },
           "origin": {
             "type": "string",
             "enum": ["you", "fern", "database"],
@@ -23198,7 +23366,7 @@
           "last_used_at"
         ],
         "title": "FoodOut",
-        "description": "One food of the shared library. Amounts are per ``basis`` (per 100 g,\nper piece or per serving); sodium is in milligrams, every other amount in\ngrams. ``can_edit``: the caller is its author or an admin."
+        "description": "One food of the library: a built-in one (``is_global``, every\nmember's, read-only) or the caller's own. Amounts are per ``basis`` (per\n100 g, per piece or per serving); sodium is in milligrams, every other\namount in grams. ``can_edit``: it is the caller's own (never a built-in\none; copy it instead)."
       },
       "FoodPatch": {
         "properties": {
@@ -28779,6 +28947,10 @@
           },
           "timezone": { "type": "string", "title": "Timezone" },
           "currency": { "type": "string", "title": "Currency" },
+          "storefront_country": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Storefront Country"
+          },
           "day_start_hour": { "type": "integer", "title": "Day Start Hour" },
           "evening_start": { "type": "string", "title": "Evening Start" },
           "target_threshold": { "type": "number", "title": "Target Threshold" },
@@ -29016,6 +29188,18 @@
               { "type": "null" }
             ],
             "title": "Target Threshold"
+          },
+          "storefront_country": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2,
+                "minLength": 2,
+                "pattern": "^[A-Za-z]{2}$"
+              },
+              { "type": "null" }
+            ],
+            "title": "Storefront Country"
           },
           "appearance": {
             "anyOf": [
@@ -33323,6 +33507,26 @@
         "required": ["data", "count"],
         "title": "TasksPublic"
       },
+      "TemplateCopy": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80, "minLength": 1 },
+              { "type": "null" }
+            ],
+            "title": "Name"
+          },
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "title": "TemplateCopy"
+      },
       "TemplateItemOut": {
         "properties": {
           "exercise_id": {
@@ -33367,6 +33571,11 @@
           },
           "name": { "type": "string", "title": "Name" },
           "sort_order": { "type": "integer", "title": "Sort Order" },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
+          },
           "items": {
             "items": { "$ref": "#/components/schemas/TemplateItemOut" },
             "type": "array",

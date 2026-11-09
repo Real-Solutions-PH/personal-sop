@@ -199,7 +199,40 @@ test("the chart names its four target lines", () => {
     expect(svg).toContain(`"${name}"`)
 })
 
+// Carbs and fiber targets sit close together (the fiber goal is carved out
+// of the carbs), so their names must be pushed at least a line apart.
+test.each([
+  "fern",
+  "photo",
+] as const)("line names never touch, on %s", (backdrop) => {
+  const look: CardLook = { format: "9:16", backdrop, photo: null }
+  const r = render(<StackCard width={300} look={look} data={stack(false, 7)} />)
+  const names = r
+    .UNSAFE_queryAllByProps({ textAnchor: "start" })
+    .filter((t) => t.props.fill && t.props.fill !== "none")
+    .filter((t) =>
+      ["Protein", "Carbs", "Fiber", "Fat"].includes(String(t.props.children)),
+    )
+  expect(names).toHaveLength(4)
+  const size = Number(names[0].props.fontSize)
+  const ys = names.map((t) => Number(t.props.y)).sort((a, b) => a - b)
+  for (let i = 1; i < ys.length; i++)
+    expect(ys[i] - ys[i - 1]).toBeGreaterThanOrEqual(size)
+  // The top name stays inside the chart.
+  expect(ys[0]).toBeGreaterThanOrEqual(size)
+})
+
 describe("data", () => {
+  test("the demo foods carry fiber, so the Fiber ring and bar have data", () => {
+    const { FOODS, itemFromFood } = require("@domain/fitness/data")
+    const withFiber = FOODS.filter(
+      (f: { fiber?: number }) => f.fiber !== undefined,
+    )
+    expect(withFiber).toHaveLength(FOODS.length)
+    const monggo = FOODS.find((f: { key: string }) => f.key === "monggo")
+    expect(itemFromFood(monggo, 2).fiber).toBe(14)
+  })
+
   const target = {
     id: "t",
     effectiveFrom: "2020-01-01",

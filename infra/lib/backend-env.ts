@@ -54,6 +54,22 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   FERN_HISTORY_MAX_TOKENS:
     "Code default (64k): Fern's chat history cap; raise only to spend more per reply.",
   FERN_RULE_VOTER_SALT: "Falls back to the credentials KEK.",
+  FERN_FREE_WEEK_ONE_DAYS:
+    "Code default (7): the pricing ruling's first week of the free Fern allowance.",
+  FERN_FREE_DAILY_WEEK_ONE: "Code default (15), the pricing ruling.",
+  FERN_FREE_DAILY: "Code default (5), the pricing ruling.",
+  FERN_FREE_DAILY_WEEK_ONE_LOW_PRICE: "Code default (10), the pricing ruling.",
+  FERN_FREE_DAILY_LOW_PRICE: "Code default (3), the pricing ruling.",
+  FERN_LOW_PRICE_TIER: "Code default (3): tier 3 is the low-price countries.",
+  FERN_PLUS_BUDGET_USD_TIER_1: "Code default (US$2.50), the pricing ruling.",
+  FERN_PLUS_BUDGET_USD_TIER_2: "Code default (US$1.50), the pricing ruling.",
+  FERN_PLUS_BUDGET_USD_TIER_3: "Code default (US$1.00), the pricing ruling.",
+  FERN_PLUS_DAILY_HARD_STOP: "Code default (60), the pricing ruling.",
+  FERN_PLUS_MONTHLY_HARD_STOP_USD: "Code default (US$5), the pricing ruling.",
+  FERN_LIGHT_MODELS:
+    "Code default (chat on DeepSeek V4 Flash 0731): Plus past its budget.",
+  PRICE_TIER_COUNTRIES:
+    "Code default: the pricing study's tiers 2 (BR, MX) and 3 (PH, IN, ID).",
   MEDIA_MAX_IMAGE_MB: "Code default.",
   MEDIA_MAX_VIDEO_MB: "Code default.",
   MEDIA_MAX_AUDIO_MB: "Code default.",

@@ -341,6 +341,51 @@ def test_projection_reports_review_and_look_backs(
     assert home["spent_this_month_minor"] == 50_000
 
 
+def test_installment_plan_needs_no_credit_card(client: TestClient, db: Session) -> None:
+    """An installment plan saves with no credit card at all: the monthly
+    payments are plain expenses from a cash or bank account, and the
+    projection takes them out."""
+    f = _fin(client, db)
+    cats = f.cats()
+    a = f.account("BPI", type="bank", opening=5_000_000)
+    assert all(x["type"] != "credit" for x in f.get("/accounts")["data"])
+    inst = f.post(
+        "/planned",
+        {
+            "name": "New laptop",
+            "type": "expense",
+            "amount_minor": 550_000,
+            "account_id": a,
+            "category_id": cats["shopping"],
+            "schedule": {"kind": "monthly", "day": 8},
+            "start": (TODAY + timedelta(days=1)).isoformat(),
+            "end_rule": {"kind": "count", "n": 6},
+            "is_installment": True,
+        },
+    )
+    assert inst["is_installment"] and inst["to_account_id"] is None
+    f.post(
+        "/planned",
+        {
+            "name": "Salary",
+            "type": "income",
+            "amount_minor": 2_750_000,
+            "account_id": a,
+            "category_id": cats["salary"],
+            "schedule": {"kind": "semimonthly", "days": [15, 30]},
+        },
+    )
+    months = f.get("/projection")["months"]
+    assert sum(m["planned_minor"] for m in months) == 6 * 550_000
+    # The advisor's "Add installment plan" prefill is card-free too.
+    ans = f.post("/advisor/answer", {"text": "0% installment for 30k?"})
+    plans = [x for x in ans["actions"] if x.get("label") == "Add installment plan"]
+    assert plans
+    for act in plans:
+        assert act["prefill"]["type"] == "expense"
+        assert "to_account_id" not in act["prefill"]
+
+
 def test_advisor_threads_and_answer(client: TestClient, db: Session) -> None:
     f = _fin(client, db)
     f.account("BPI", type="bank", opening=5_000_000)

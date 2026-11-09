@@ -13,6 +13,7 @@ import {
   ArrowUp,
   Check,
   ChevronRight,
+  CopyPlus,
   LayoutList,
   Minus,
   Play,
@@ -33,10 +34,11 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { go, replace } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
+import { BuiltInMark } from "./fitness-exercises"
 
 /** A timed exercise's goal in a template: 5-minute steps for cardio
  * (walk 20 minutes), 15 seconds otherwise (hold a plank 1:00). Stepping
@@ -127,9 +129,10 @@ export function Templates({ id }: { id?: string }) {
   const saved = useAutosave(
     { name, items },
     () => {
-      // Not after Delete: leaving flushes a waiting edit.
+      // Not after Delete: leaving flushes a waiting edit. Never a built-in.
       if (
         existing &&
+        !existing.builtIn &&
         fitStore.get().templates.some((x) => x.id === existing.id)
       )
         save()
@@ -180,6 +183,7 @@ export function Templates({ id }: { id?: string }) {
                       {last ? `last ${relDay(last.startedAt)}` : "never used"}
                     </Copy>
                   </View>
+                  {template.builtIn && <BuiltInMark />}
                   <ChevronRight size={16} color={t.muted} />
                 </Line>
               </Tap>
@@ -203,6 +207,69 @@ export function Templates({ id }: { id?: string }) {
     return (
       <Screen title="Template">
         <Empty title="Template not found" />
+      </Screen>
+    )
+  // A built-in routine is read-only: start it, or copy it to customise.
+  if (existing?.builtIn)
+    return (
+      <Screen title={existing.name}>
+        <View style={{ marginTop: -8 }}>
+          <BuiltInMark />
+        </View>
+        <View style={{ marginTop: -12 }}>
+          <SectionHeading>Exercises</SectionHeading>
+          <Frame>
+            {existing.items.map((item, i) => (
+              <Line
+                key={`${item.exerciseId}-${i}`}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 12,
+                  gap: 8,
+                  borderTopWidth: i ? 1 : 0,
+                  borderColor: border(t.line, 0.6),
+                }}
+              >
+                <Copy weight="medium" style={{ flex: 1, flexShrink: 1 }}>
+                  {exOf(item)?.name}
+                </Copy>
+                <Copy size={14} muted>
+                  {C.isTimed(exOf(item))
+                    ? item.targetSec
+                      ? C.fmtSpan(item.targetSec)
+                      : "No goal"
+                    : `${item.sets} sets`}
+                </Copy>
+              </Line>
+            ))}
+          </Frame>
+        </View>
+        <View style={{ marginTop: 12, gap: 8 }}>
+          <Button
+            icon={Play}
+            disabled={!existing.items.length}
+            onPress={() => {
+              const r = A.startWorkout({
+                from: "template",
+                templateId: existing.id,
+              })
+              if (r.ok) go("/fitness/workout")
+              else toast.error(r.reason)
+            }}
+          >
+            Start this template
+          </Button>
+          <Button
+            tone="quiet"
+            icon={CopyPlus}
+            onPress={() => {
+              const copy = A.copyTemplate(existing.id)
+              if (copy) replace(`/fitness/templates/${copy.id}`)
+            }}
+          >
+            Copy to my templates
+          </Button>
+        </View>
       </Screen>
     )
   return (
