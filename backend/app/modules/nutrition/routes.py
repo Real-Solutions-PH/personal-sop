@@ -55,7 +55,7 @@ def list_foods(
     q: Annotated[str | None, Query(max_length=80)] = None,
     origin: food_library.Origin | None = None,
 ) -> Any:
-    """The shared food library. ``q`` narrows it to foods holding every word
+    """The food library: built-in foods and your own. ``q`` narrows it to foods holding every word
     typed (in the name or an alias, any order), the household's own and most
     recently eaten first (``food_library.search_order``). ``origin`` keeps
     only the foods the person made (``you``), Fern saved (``fern``) or a
@@ -99,8 +99,9 @@ def read_food(ctx: CtxDep, food_id: uuid.UUID) -> Any:
 
 @router.patch("/foods/{food_id}", response_model=S.FoodOut, dependencies=WRITE)
 def update_food(ctx: CtxDep, food_id: uuid.UUID, body: S.FoodPatch) -> Any:
-    """Edit a food's name, numbers, notes or photo. Only its author or an
-    admin may (403 ``catalog_read_only``)."""
+    """Edit one of your own foods' name, numbers, notes or photo. A built-in
+    food is refused for everyone, admins included (403
+    ``catalog_read_only``); copy it instead."""
     try:
         row = food_library.update_food(
             ctx, food_id, body.model_dump(exclude_unset=True)
@@ -112,10 +113,22 @@ def update_food(ctx: CtxDep, food_id: uuid.UUID, body: S.FoodPatch) -> Any:
     return _out(ctx, [row])[0]
 
 
+@router.post("/foods/{food_id}/copy", response_model=S.FoodOut, dependencies=WRITE)
+def copy_food(ctx: CtxDep, food_id: uuid.UUID) -> Any:
+    """A food of your own from any you can see (a built-in one, to
+    customise). It keeps the name unless one of your own foods has it, then
+    gains " (copy)" (" (copy 2)", ...)."""
+    row = food_library.copy_food(ctx, food_id)
+    ctx.commit()
+    ctx.session.refresh(row)
+    return _out(ctx, [row])[0]
+
+
 @router.post("/foods/{food_id}/use", status_code=204, dependencies=WRITE)
 def count_food_use(ctx: CtxDep, food_id: uuid.UUID) -> Response:
     """A food was picked from the library into a meal: count the use, which
-    orders the library (most used first)."""
+    orders the library (most used first). On a built-in food the count is
+    every member's together (a counter, not an edit)."""
     row = owned_repo.require(ctx, FoodItem, food_id, what="food")
     row.use_count = (row.use_count or 0) + 1
     row.last_used_at = ctx.now
