@@ -1281,7 +1281,11 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
 
     def suggest(**kw: Any) -> dict[str, Any]:
         a = ChipsArgs(**kw)
-        return run.block({"t": "chips", "prompts": a.prompts})
+        return {
+            **run.block({"t": "chips", "prompts": a.prompts}),
+            "next": "The chips show under your reply. If you already wrote "
+            "the answer, write nothing more; never refer back to it.",
+        }
 
     def lookup(**kw: Any) -> dict[str, Any]:
         a = LookupArgs(**kw)
@@ -1758,6 +1762,68 @@ def shaped(text: str) -> tuple[str, list[dict[str, Any]]]:
 def plain_text(text: str) -> str:
     """The reply's text alone, as :func:`shaped` leaves it."""
     return shaped(text)[0]
+
+
+# A reply pointing back to an earlier message of its own. Only the last
+# model call's text is the reply, so "above" is text the person never saw
+# (Kai, 2026-11-09: "Answer's above: keep lifting, walk more." was the whole
+# reply). "Above target" and the like are figures, not pointers.
+_POINTS_BACK = re.compile(
+    r"\b(?:answer(?:'s|’s|\s+is)|(?:see|said|mentioned|covered|shown|listed|"
+    r"explained|wrote|gave|written)(?:\s+(?:it|that|this|you))?|as)\s+above\b",
+    re.I,
+)
+_POINTING_LEAD = re.compile(
+    r"^\s*(?:the\s+)?answer(?:'s|’s|\s+is)\s+above\s*[:,.;—–-]*\s*", re.I
+)
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+# The least text taken back as the answer a reply points to: shorter is the
+# one-line plan said before a tool call ("I'll check your workouts first").
+RESTORE_MIN_CHARS = 160
+# Added to every corrective pass's note: the pass's reply replaces the one
+# before it, which the person then never sees.
+REPLACES_NOTE = (
+    "\n\nThey see only the reply you write now, never the one above: write "
+    "it whole, and never point back to it."
+)
+
+
+def points_back(text: str) -> bool:
+    return bool(_POINTS_BACK.search(text))
+
+
+def _drop_pointing(text: str) -> str:
+    """``text`` without its pointer to an earlier message: a leading
+    "Answer's above:" goes and the rest of its sentence stays; any other
+    sentence that points back goes whole."""
+    text = _POINTING_LEAD.sub("", text, count=1)
+    text = text[:1].upper() + text[1:]
+    lines = [
+        " ".join(s for s in _SENTENCE_END.split(line) if not points_back(s))
+        for line in text.split("\n")
+    ]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
+
+def restore_pointed_back(answer: str, unshown: list[str]) -> str:
+    """``answer`` with the text it points back to put before it: the
+    latest unshown text (narration beside a tool call, a reply a pass
+    replaced) long enough to be an answer. The pointer itself goes, found
+    or not, so the reply never sends the person looking for nothing."""
+    rest = _drop_pointing(answer)
+    earlier = next(
+        (
+            t
+            for t in reversed([plain_text(u) for u in unshown])
+            if len(t) >= RESTORE_MIN_CHARS and not points_back(t)
+        ),
+        "",
+    )
+    if not earlier:
+        return rest or answer
+    if not rest or rest in earlier:
+        return earlier
+    return f"{earlier}\n\n{rest}"
 
 
 def _strip_marks(delta: str) -> str:
@@ -2903,24 +2969,30 @@ def _ask_ai(
             nudge += "\n\nWhat this reply already looked up (reuse it):\n" + (
                 _log_lines(stream.log, AGAIN_LOG_CHARS)
             )
+        # The pass's reply replaces this one: kept so a pass that points
+        # back to it ("answer's above") can get it back.
+        nudge += REPLACES_NOTE
+        stream.unshown.append(reply_so_far)
         stream.end_text()
-        return capture.run_agent(
-            ctx,
-            resolved,
-            system=system,
-            messages=[
-                *turn,
-                AIMessage(strip_internal(reply_so_far)),
-                HumanMessage(nudge),
-            ],
-            tools=core,
-            deferred=later,
-            on_text=lambda d: stream.text(_strip_marks(d)),
-            max_turns=MAX_STEPS,
-            max_tool_calls=MAX_TOOL_CALLS,
-            hooks=stream,
-            think_every=True,
-            **guards,
+        return stream.whole(
+            capture.run_agent(
+                ctx,
+                resolved,
+                system=system,
+                messages=[
+                    *turn,
+                    AIMessage(strip_internal(reply_so_far)),
+                    HumanMessage(nudge),
+                ],
+                tools=core,
+                deferred=later,
+                on_text=lambda d: stream.text(_strip_marks(d)),
+                max_turns=MAX_STEPS,
+                max_tool_calls=MAX_TOOL_CALLS,
+                hooks=stream,
+                think_every=True,
+                **guards,
+            )
         )
 
     reply = capture.run_agent(
@@ -2940,6 +3012,7 @@ def _ask_ai(
         think_every=True,
         **guards,
     )
+    reply = stream.whole(reply)
     answer, tables = shaped(reply)
     unbacked = unbacked_claim(
         text,
@@ -3007,6 +3080,14 @@ def _ask_ai(
                 reply, NUMBERS_NUDGE.format(bad=", ".join(map(numbers.fmt, bad)))
             )
             answer, tables = shaped(reply)
+            answer = numbers.drop_sentences_with(
+                answer, numbers.unmatched(answer, backed_by())
+            )
+        if points_back(answer):
+            # "Answer's above" with nothing above it: the answer it means
+            # was written beside a tool call or replaced by a pass. It comes
+            # back, held to the same figures check.
+            answer = restore_pointed_back(answer, stream.unshown)
             answer = numbers.drop_sentences_with(
                 answer, numbers.unmatched(answer, backed_by())
             )
