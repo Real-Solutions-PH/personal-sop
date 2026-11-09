@@ -6,6 +6,8 @@ import { fireEvent, render, screen } from "@testing-library/react-native"
 import { router } from "expo-router"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { clearToBlank } from "@/live/blank"
+import { setPurchases } from "@/live/purchases"
 import { planStore } from "../plan"
 import { Me } from "../screens/me"
 
@@ -70,7 +72,13 @@ beforeEach(() => {
   })
   resetAll()
   ;(router.push as jest.Mock).mockClear()
+  setPurchases({
+    offers: async () => [],
+    buy: async () => "cancelled",
+    restore: async () => false,
+  })
 })
+afterEach(() => setPurchases(undefined))
 
 test("a free account sees Free and the row opens the plan screen", () => {
   render(<Me />, { wrapper })
@@ -99,4 +107,39 @@ test("a Plus period that has ended shows Free", () => {
   })
   render(<Me />, { wrapper })
   expect(screen.getByText("You're on Free · see what Plus adds")).toBeTruthy()
+})
+
+test("a build that cannot buy hides the row from a free account", () => {
+  setPurchases(null)
+  render(<Me />, { wrapper })
+  expect(screen.queryByText("Unfurl Plus")).toBeNull()
+})
+
+test("a build that cannot buy still shows Plus to an account holding it", () => {
+  setPurchases(null)
+  planStore.set({
+    plan: "plus",
+    plusUntil: null,
+    willRenew: true,
+    productId: "plus_yearly",
+  })
+  render(<Me />, { wrapper })
+  expect(screen.getByText("Unfurl Plus")).toBeTruthy()
+})
+
+test("signing out leaves the next account free", () => {
+  planStore.set({
+    id: "e1",
+    plan: "plus",
+    plusUntil: null,
+    willRenew: true,
+    productId: "plus_yearly",
+  })
+  clearToBlank()
+  expect(planStore.get()).toEqual({
+    plan: "free",
+    plusUntil: null,
+    willRenew: false,
+    productId: null,
+  })
 })

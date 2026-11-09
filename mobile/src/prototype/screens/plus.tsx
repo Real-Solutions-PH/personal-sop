@@ -33,9 +33,10 @@ export const PRIVACY_URL = "https://unfurl.realsolutionsph.com/privacy"
 const MANAGE_URL = "https://apps.apple.com/account/subscriptions"
 
 // After a purchase the server hears from RevenueCat within seconds; it is
-// asked again every few seconds for up to a minute.
-const CONFIRM_TRIES = 20
-const CONFIRM_EVERY_MS = 3_000
+// asked again every few seconds for up to a minute (inside the server's
+// per-person limit of 10 refreshes a minute).
+const CONFIRM_TRIES = 10
+const CONFIRM_EVERY_MS = 6_000
 
 const FEATURES = [
   "Everything in Free, including export of all your data",
@@ -65,6 +66,8 @@ export function Plus() {
   const [confirming, setConfirming] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const alive = useRef(true)
+  // A second tap before the first re-render must not start a second buy.
+  const working = useRef(false)
 
   const loadOffers = useRef(async () => {
     const store = purchases()
@@ -86,7 +89,7 @@ export function Plus() {
 
   useEffect(() => {
     alive.current = true
-    logUsage({ kind: "paywall_shown" })
+    if (!plusInForce(planStore.get())) logUsage({ kind: "paywall_shown" })
     void refreshPlan()
     void loadOffers()
     return () => {
@@ -95,7 +98,7 @@ export function Plus() {
   }, [loadOffers])
 
   /** Asks the server until it reports Plus (or a minute passes). */
-  const confirm = async () => {
+  const confirm = async (after: "purchase" | "restore") => {
     setConfirming(true)
     for (let i = 0; i < CONFIRM_TRIES && alive.current; i++) {
       const got = await refreshPlan()
@@ -106,35 +109,48 @@ export function Plus() {
     setConfirming(false)
     if (!plusInForce(planStore.get()))
       setNote(
-        "Your purchase went through. Plus turns on as soon as the App Store confirms it, usually within a minute.",
+        after === "purchase"
+          ? "Your purchase went through. Plus turns on as soon as the App Store confirms it, usually within a minute."
+          : "The App Store found your purchase. Plus turns on as soon as it is confirmed; if it doesn't, try again in a minute.",
       )
   }
 
   const buy = async (id: ProductId) => {
     const store = purchases()
-    if (!store || busy) return
+    if (!store || working.current) return
+    working.current = true
     setNote(null)
     setBusy(id)
     logUsage({ kind: "purchase_started", detail: id })
     try {
       const result = await store.buy(id)
-      if (result === "bought") await confirm()
+      if (result === "bought") await confirm("purchase")
+      else if (result === "pending")
+        setNote(
+          "Your purchase is waiting for approval. Plus turns on once it's approved.",
+        )
     } catch {
-      toast.error("The purchase didn't go through. You weren't charged.")
+      toast.error(
+        "The purchase didn't finish. If you were charged, Plus turns on shortly, or tap Restore purchases.",
+      )
+      // The store may still finish it: ask the server once.
+      void refreshPlan()
     } finally {
+      working.current = false
       if (alive.current) setBusy(null)
     }
   }
 
   const restore = async () => {
     const store = purchases()
-    if (!store || busy) return
+    if (!store || working.current) return
+    working.current = true
     setNote(null)
     setBusy("restore")
     try {
       if (await store.restore()) {
         logUsage({ kind: "restored" })
-        await confirm()
+        await confirm("restore")
       } else {
         await refreshPlan()
         if (alive.current && !plusInForce(planStore.get()))
@@ -143,6 +159,7 @@ export function Plus() {
     } catch {
       toast.error("Couldn't restore purchases. Try again.")
     } finally {
+      working.current = false
       if (alive.current) setBusy(null)
     }
   }
@@ -240,8 +257,7 @@ export function Plus() {
           <Line>
             <Store size={18} color={t.muted} />
             <Copy size={14} muted style={{ flex: 1 }}>
-              Purchases aren't available in this version of the app. Get Unfurl
-              from the App Store to subscribe.
+              Purchases aren't available in this version of the app yet.
             </Copy>
           </Line>
         </Frame>

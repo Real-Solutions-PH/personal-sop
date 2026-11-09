@@ -45,6 +45,7 @@ import {
 import { Platform, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
+import { purchases } from "@/live/purchases"
 import { AppLauncher } from "../app-launcher"
 import { memoryCount } from "../companion/memory-labels"
 import { companionStore } from "../companion/store"
@@ -87,6 +88,7 @@ export function Me() {
     shown = extrasStore.use((s) => s),
     plan = planStore.use((s) => s)
   const planDetail = planLine(plan)
+  const canBuy = purchases() !== null
   // Turning it on asks first, in plain words; turning it off is immediate
   // (the next refresh of the test set drops this person's chats).
   const setFernEval = () =>
@@ -459,13 +461,16 @@ export function Me() {
         </Frame>
         <SectionHeading>App</SectionHeading>
         <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
-          <LinkRow
-            title="Unfurl Plus"
-            detail={planDetail}
-            icon={Gem}
-            accent="primary"
-            href="/me/plan"
-          />
+          {/* Hidden while this build cannot buy, unless Plus is held. */}
+          {(canBuy || plusInForce(plan)) && (
+            <LinkRow
+              title="Unfurl Plus"
+              detail={planDetail}
+              icon={Gem}
+              accent="primary"
+              href="/me/plan"
+            />
+          )}
           <LinkRow
             title="Account & security"
             detail="Email, password, export, delete account"

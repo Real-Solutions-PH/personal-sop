@@ -25,9 +25,11 @@ export interface Offer {
 
 export interface PurchasesApi {
   offers(): Promise<Offer[]>
-  /** "cancelled": the person closed the App Store sheet. Throws on a
-   * failure the person should hear about. */
-  buy(id: ProductId): Promise<"bought" | "cancelled">
+  /** "cancelled": the person closed the App Store sheet. "pending": the
+   * payment waits on someone else (Ask to Buy, a deferred payment). Throws
+   * on a failure, which may still have charged (the store can finish a
+   * transaction after the app hears an error). */
+  buy(id: ProductId): Promise<"bought" | "cancelled" | "pending">
   /** Whether the store holds a Plus purchase for this account. */
   restore(): Promise<boolean>
 }
@@ -36,6 +38,8 @@ const KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? ""
 
 type RC = typeof import("react-native-purchases").default
 let rc: RC | null = null
+/** RevenueCat is configured once per launch; later accounts log in. */
+let configured = false
 let configuredFor: string | null = null
 
 function native(): RC | null {
@@ -57,11 +61,13 @@ export async function configurePurchases(userId: string): Promise<void> {
   const p = native()
   if (!p || configuredFor === userId) return
   try {
-    if (configuredFor === null) p.configure({ apiKey: KEY, appUserID: userId })
-    else await p.logIn(userId)
+    if (!configured) {
+      p.configure({ apiKey: KEY, appUserID: userId })
+      configured = true
+    } else await p.logIn(userId)
     configuredFor = userId
   } catch {
-    // The store is unreachable: the paywall retries when it opens.
+    // The store is unreachable: the next launch or sign-in tries again.
   }
 }
 
@@ -75,11 +81,19 @@ export async function signOutPurchases(): Promise<void> {
   configuredFor = null
 }
 
+// RevenueCat's PURCHASES_ERROR_CODE values.
+const CANCELLED_CODE = "1"
+const PENDING_CODE = "20"
+
+const code = (e: unknown) =>
+  typeof e === "object" && e !== null
+    ? String((e as { code?: unknown }).code ?? "")
+    : ""
 const cancelled = (e: unknown) =>
   typeof e === "object" &&
   e !== null &&
   ((e as { userCancelled?: boolean }).userCancelled === true ||
-    (e as { code?: string }).code === "1")
+    code(e) === CANCELLED_CODE)
 
 function revenueCat(p: RC): PurchasesApi {
   const packages = async () => {
@@ -107,6 +121,7 @@ function revenueCat(p: RC): PurchasesApi {
         return "bought"
       } catch (e) {
         if (cancelled(e)) return "cancelled"
+        if (code(e) === PENDING_CODE) return "pending"
         throw e
       }
     },

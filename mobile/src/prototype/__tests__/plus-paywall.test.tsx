@@ -182,8 +182,10 @@ test("a failed purchase says so and keeps the offers", async () => {
   show()
   fireEvent.press(await screen.findByTestId("offer-plus_yearly"))
   await waitFor(() => expect(toast.error).toHaveBeenCalled())
+  // No claim that nothing was charged: the store can finish it later.
+  expect((toast.error as jest.Mock).mock.calls[0][0]).not.toMatch(/charged\./)
   expect((toast.error as jest.Mock).mock.calls[0][0]).toMatch(
-    /purchase didn.t go through/i,
+    /purchase didn.t finish/i,
   )
   expect(api.buy).toHaveBeenCalledWith("plus_yearly")
   expect(screen.getByTestId("offer-plus_monthly")).toBeTruthy()
@@ -192,14 +194,56 @@ test("a failed purchase says so and keeps the offers", async () => {
 })
 
 test("calling the purchase off shows nothing and changes nothing", async () => {
-  setPurchases(fake({ buy: jest.fn(async () => "cancelled" as const) }))
+  let settle: (v: "cancelled") => void = () => {}
+  const buy = jest.fn(
+    () =>
+      new Promise<"cancelled">((r) => {
+        settle = r
+      }),
+  )
+  const refresher = jest.fn(async () => ({ plan: "free", plus_until: null }))
+  setPlanRefresher(refresher)
+  setPurchases(fake({ buy }))
   show()
   fireEvent.press(await screen.findByTestId("offer-plus_monthly"))
-  await waitFor(() => {
-    expect(screen.getByTestId("offer-plus_monthly")).toBeTruthy()
-  })
+  expect(buy).toHaveBeenCalledWith("plus_monthly")
+  const asked = refresher.mock.calls.length
+  await act(async () => settle("cancelled"))
+  expect(toast.error).not.toHaveBeenCalled()
+  expect(screen.queryByTestId("plus-confirming")).toBeNull()
+  // Nothing was bought, so the server is not asked again.
+  expect(refresher.mock.calls.length).toBe(asked)
+  expect(planStore.get().plan).toBe("free")
+})
+
+test("a purchase waiting on approval says so", async () => {
+  setPurchases(fake({ buy: jest.fn(async () => "pending" as const) }))
+  show()
+  fireEvent.press(await screen.findByTestId("offer-plus_yearly"))
+  expect(await screen.findByText(/waiting for approval/i)).toBeTruthy()
   expect(toast.error).not.toHaveBeenCalled()
   expect(planStore.get().plan).toBe("free")
+})
+
+test("a quick second tap does not start a second purchase", async () => {
+  let settle: (v: "cancelled") => void = () => {}
+  const buy = jest.fn(
+    () =>
+      new Promise<"cancelled">((r) => {
+        settle = r
+      }),
+  )
+  setPurchases(fake({ buy }))
+  show()
+  const yearly = await screen.findByTestId("offer-plus_yearly")
+  const monthly = screen.getByTestId("offer-plus_monthly")
+  // Both taps land before the screen re-renders as busy.
+  act(() => {
+    fireEvent.press(yearly)
+    fireEvent.press(monthly)
+  })
+  expect(buy).toHaveBeenCalledTimes(1)
+  await act(async () => settle("cancelled"))
 })
 
 test("a purchase shows Plus once the server confirms it", async () => {
@@ -286,5 +330,7 @@ test("an account already on Plus sees its plan, not the offers", async () => {
   show()
   expect(await screen.findByTestId("plus-active")).toBeTruthy()
   expect(screen.getByText(/Renews/)).toBeTruthy()
+  // Seeing your own plan is not a paywall view.
+  expect(kinds()).not.toContain("paywall_shown")
   expect(screen.queryByTestId("offer-plus_yearly")).toBeNull()
 })
