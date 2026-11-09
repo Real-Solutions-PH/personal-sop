@@ -246,10 +246,11 @@ def apply_event(session: Session, body: Any) -> str:
     if kind == "BILLING_ISSUE":
         row.plus_until = grace
     elif refund and other_product:
-        # A refund of a product the account no longer holds (the monthly
-        # left behind by an upgrade): the plan held stands.
+        # A refund of a product other than the one on record: the monthly
+        # left behind by an upgrade, or a yearly refunded with a downgrade
+        # already scheduled. RevenueCat says which; unread, the plan stands.
         session.commit()
-        return "ignored"
+        return "applied" if _refresh_user(session, user, utcnow()) else "ignored"
     elif kind in GRANTS:
         row.plan = "plus"
         row.plus_until = expires

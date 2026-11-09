@@ -454,3 +454,49 @@ def test_a_sandbox_transfer_is_ignored_when_sandbox_is_off(
     monkeypatch.setattr(settings, "REVENUECAT_ALLOW_SANDBOX", False)
     assert _send(client, _transfer(src, dst)).json() == {"result": "ignored"}
     assert _plan(db, src) == "plus"
+
+
+def test_a_refund_after_a_scheduled_downgrade_asks_revenuecat(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A yearly with a downgrade to monthly scheduled, then the yearly is
+    refunded: the product held on record is already monthly, so the server
+    asks RevenueCat rather than guess."""
+    user = create_random_user(db)
+    _send(
+        client,
+        _event(
+            user,
+            "INITIAL_PURCHASE",
+            product_id="plus_yearly",
+            event_timestamp_ms=_ms(NOW - timedelta(days=3)),
+        ),
+    )
+    _send(
+        client,
+        _event(
+            user,
+            "PRODUCT_CHANGE",
+            product_id="plus_yearly",
+            new_product_id="plus_monthly",
+            event_timestamp_ms=_ms(NOW - timedelta(days=2)),
+        ),
+    )
+    refunded = _active()
+    refunded["subscriber"]["subscriptions"]["plus_yearly"]["refunded_at"] = (
+        NOW - timedelta(days=1)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    _rc_answers(monkeypatch, {str(user.id): refunded})
+    _send(
+        client,
+        _event(
+            user,
+            "CANCELLATION",
+            product_id="plus_yearly",
+            cancel_reason="CUSTOMER_SUPPORT",
+            event_timestamp_ms=_ms(NOW - timedelta(days=1)),
+        ),
+    )
+    assert _plan(db, user) == "free"
+    row = _row(db, user)
+    assert row is not None and row.plan == "free"
