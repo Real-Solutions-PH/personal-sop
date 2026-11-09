@@ -36,6 +36,9 @@
 //     fitness.answer_follow_up with the option the device recorded in the
 //     rice item's assumption. The rescaled items still follow as field
 //     writes, with the same values the action computes;
+//   - built-in exercises and routines (`is_global` -> `builtIn`) are
+//     every member's and read-only: the actions never change one, so no
+//     write for one is ever diffed (a routine's sort_order is left out);
 //   - an exercise merged into another: fitness.merge_exercises. The server
 //     moves the references, so the device adopts its own repoint instead of
 //     pushing it, and a refused merge pulls everything again
@@ -181,6 +184,7 @@ export function exerciseMapper(): Mapper<S, Exercise> {
         ? { aliases: row.aliases.map(String) }
         : {}),
       ...(row.merged_into_id ? { mergedInto: str(row.merged_into_id) } : {}),
+      ...(row.is_global === true ? { builtIn: true } : {}),
     }),
     merge: (s, ups, dels) =>
       ups.length || dels.length
@@ -225,10 +229,15 @@ export function templateMapper(
     store: fitStore,
     list: (s) => s.templates,
     id: (t) => t.id,
-    toServer: (t, s) => ({
-      name: t.name,
-      sort_order: s.templates.findIndex((x) => x.id === t.id),
-    }),
+    // A built-in routine's place is the server's: deleting one of the
+    // person's own routines above it must not send a write it would refuse.
+    toServer: (t, s) =>
+      t.builtIn
+        ? { name: t.name }
+        : {
+            name: t.name,
+            sort_order: s.templates.findIndex((x) => x.id === t.id),
+          },
     fromServer: (row, s) => {
       const id = str(row.id)
       const cur = s.templates.find((t) => t.id === id)
@@ -237,6 +246,7 @@ export function templateMapper(
         name: str(row.name),
         items: cur?.items ?? [],
         sortOrder: Number(row.sort_order ?? 0),
+        ...(row.is_global === true ? { builtIn: true } : {}),
       } as SortedTemplate
     },
     merge: (s, ups, dels) => {
