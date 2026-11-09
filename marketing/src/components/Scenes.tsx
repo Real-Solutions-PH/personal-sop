@@ -476,9 +476,8 @@ export function ShareScene() {
   )
 }
 
-// Every area as a real app screen: tiles of screenshots. Laptops and tablets
-// see them as a grid in one screen; phones, where ten screens cannot fit, see
-// two rows that slide sideways as you scroll down.
+// Every area as a real app screen: one row of screenshots, wider than the
+// window, that slides sideways as you scroll down.
 export function FeatureGallery({
   features,
 }: {
@@ -505,7 +504,7 @@ export function FeatureGallery({
       id="features"
       className="scene gallery"
       aria-labelledby="features-title"
-      style={{ ["--beats" as string]: 2 }}
+      style={{ ["--beats" as string]: 3 }}
     >
       <div className="sc-track">
         <div className="sc-stage wrap gl-stage">

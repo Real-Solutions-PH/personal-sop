@@ -195,7 +195,16 @@ export default function Home() {
                 place, in one app instead of five.
               </p>
               <div className="hero-cta">
-                <PrimaryCta id="hero-cta" />
+                <PrimaryCta
+                  id="hero-cta"
+                  aside={
+                    // Fern leans in toward the button and bobs, as if
+                    // pointing the way. Decorative.
+                    <span className="hero-fern" aria-hidden="true">
+                      <Fern mood="listening" size={88} eager />
+                    </span>
+                  }
+                />
               </div>
             </div>
             <div className="hero-visual">

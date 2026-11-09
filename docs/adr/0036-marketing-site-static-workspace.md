@@ -78,8 +78,10 @@ Kai asked for a page that makes visitors stop and keep scrolling. The site there
 - The problem beats recall the kinds of app people quit (a food log and a budget app's long forms, a streak app's paid restore, a photo calorie scanner, guilt-tripping reminders) without naming any: no competitor name, logo, mascot or brand colour, and wording paraphrased (owner, 2026-11-09). Naming a rival stays a separate decision (claims ledger R-007).
 - The how-it-works story has a fifth beat, Ask Fern: a question about the week answered from the very records the sentence filed (the run against past 5k times, the groceries against the food budget).
 - The companion scene (Fern's five moods) is removed: it told the visitor nothing they could use (owner, 2026-11-09); Fern's answers live in the story's fifth beat and the grace day in its own section.
-- The features grid is a gallery of real app screens, one per area, captured from the demo build (`mobile/src/prototype`) with the currency set to US dollars and the Philippine demo names swapped for neutral ones before capture. Recapture when those screens change.
+- The features section is one row of real app screens, one per area, running edge to edge and slid sideways by scroll at every width, captured from the demo build (`mobile/src/prototype`) with the currency set to US dollars and the Philippine demo names swapped for neutral ones before capture. Recapture when those screens change.
 - The share cards are the app's real cards on its Photo ground, over three photos generated with Figma AI for the site (2026-11-09); no real person is shown.
+
+- The hero film starts muted with captions off (owner, 2026-11-09); a sound button turns its music on, and it mutes itself again once the film leaves the screen. Fern sits beside the hero's waitlist button, leaning toward it (decorative).
 
 **Follow-ups:**
 - Pick the production domain and add the Cloudflare Pages project (Kai).

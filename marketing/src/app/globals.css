@@ -2461,72 +2461,112 @@ section {
   color: var(--good);
 }
 
-/* Feature gallery: real app screens as tiles. */
+/* Feature gallery: real app screens as tiles in one row that runs edge to
+   edge, wider than the window; scrolling down slides it sideways. Each
+   screen is sized by the window's height so the row fits one screen. */
+.gallery .sc-stage {
+  max-width: none;
+  padding-inline: 0;
+}
 .gl-stage {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   text-align: center;
 }
+.gl-stage .h2 {
+  padding-inline: var(--gutter);
+}
 .gl-strip {
   list-style: none;
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(5, auto);
-  justify-content: center;
-  gap: 20px 16px;
+  padding: 0 max(var(--gutter), (100vw - var(--max)) / 2);
+  display: flex;
+  gap: clamp(16px, 2vw, 28px);
+  justify-self: start;
+  width: 100%;
   text-align: left;
 }
 .gl-tile {
+  flex: none;
   display: grid;
-  gap: 6px;
-  width: calc(min(320px, (100svh - 310px) / 2) * 480 / 1039);
+  gap: 10px;
+  width: calc(min(560px, 100svh - 280px) * 480 / 1039);
 }
 .gl-tile img {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 14px;
+  border-radius: 20px;
   border: 1px solid var(--border);
   box-shadow: var(--shadow-float);
 }
 .gl-name {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 14px;
+  gap: 8px;
+  font-size: 16px;
   font-weight: 600;
 }
 .gl-name svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   color: var(--k);
 }
-/* Wide screens: a still grid, no pinning. */
-@media (min-width: 900px) {
-  .motion-ok .gallery .sc-track {
-    height: auto;
+/* Without motion the row scrolls sideways by itself. */
+:root:not(.motion-ok) .gl-strip {
+  overflow-x: auto;
+}
+
+/* Hero: sound and captions sit together at the film's bottom right. */
+.vbtn-group {
+  display: inline-flex;
+  gap: 8px;
+}
+
+/* Hero: Fern beside the waitlist button, leaning toward it. */
+.cta-row {
+  position: relative;
+}
+.hero-fern {
+  position: absolute;
+  width: 88px;
+  left: calc(100% + 4px);
+  top: 50%;
+  translate: 0 -58%;
+  rotate: -14deg;
+  pointer-events: none;
+}
+.hero-cta .cta-row {
+  width: max-content;
+  margin-inline: auto;
+}
+.hero-fern .fern-img {
+  width: 88px;
+  max-width: none;
+  height: 88px;
+  animation: hero-fern-nudge 2.4s ease-in-out infinite;
+}
+@keyframes hero-fern-nudge {
+  0%,
+  100% {
+    transform: translateX(0);
   }
-  .motion-ok .gallery .sc-stage {
-    position: static;
-    height: auto;
-    padding-block: 72px;
+  50% {
+    transform: translateX(-6px);
   }
 }
-/* Narrow screens: two rows of tiles, wider than the screen, slid by scroll. */
-@media (max-width: 899px) {
-  .gl-strip {
-    grid-template-columns: none;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(2, auto);
-    justify-content: start;
-    justify-self: start;
-    width: 100%;
+@media (prefers-reduced-motion: reduce) {
+  .hero-fern .fern-img {
+    animation: none;
   }
-  .gl-tile {
-    width: calc(min(300px, (100svh - 300px) / 2) * 480 / 1039);
+}
+@media (max-width: 599px) {
+  .hero-fern,
+  .hero-fern .fern-img {
+    width: 60px;
+    height: 60px;
   }
-  .motion-ok .gallery .gl-strip {
-    overflow: visible;
+  .hero-fern {
+    left: calc(100% + 2px);
   }
 }

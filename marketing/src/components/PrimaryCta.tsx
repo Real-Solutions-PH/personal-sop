@@ -1,4 +1,5 @@
 import { ArrowRight, CircleCheck } from "lucide-react"
+import type { ReactNode } from "react"
 import { CTA } from "@/config/site"
 
 // The one primary call to action, repeated after each proof section. Every
@@ -7,9 +8,12 @@ import { CTA } from "@/config/site"
 export function PrimaryCta({
   id,
   secondary,
+  aside,
 }: {
   id?: string
   secondary?: { label: string; href: string }
+  /** Drawn beside the button, e.g. Fern looking at it. */
+  aside?: ReactNode
 }) {
   const href = CTA.appStoreUrl ?? CTA.primaryHref
   const label = CTA.appStoreUrl ? "Download on the App Store" : CTA.primaryLabel
@@ -20,6 +24,7 @@ export function PrimaryCta({
           {label}
           <ArrowRight aria-hidden />
         </a>
+        {aside}
         {secondary && (
           <a className="btn btn-outline" href={secondary.href}>
             {secondary.label}
