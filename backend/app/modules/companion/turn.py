@@ -146,6 +146,58 @@ RUNNING: dict[str, str] = {
 
 NOTHING_WAITING = "Nothing was waiting"
 
+# Tools that only add to the reply (chips under it) and hand the model
+# nothing new to read: a model call that calls only these is answering, so
+# its text stays (``TurnStream.model_finished``).
+ANSWER_TOOLS = frozenset({"suggest"})
+
+
+def _content(message: BaseMessage) -> str:
+    c = message.content
+    if isinstance(c, str):
+        return c
+    return "".join(p.get("text", "") if isinstance(p, dict) else str(p) for p in c)
+
+
+# What a step says when no sentence is written for its tool (``RUNNING``
+# while it runs; ``DONE`` or ``outcome``'s own once it finished). Fails
+# closed: a raw tool name never reaches the person (Kai, 2026-11-09: a
+# finished step read "todo").
+GENERIC_RUNNING = "Working on it"
+GENERIC_DONE = "Finished a step"
+DONE: dict[str, str] = {
+    "todo": "Planned the steps",
+    "ask_choice": "Asked you to choose",
+    "load_tools": "Got the right tools",
+    "portion_plan": "Worked out portions",
+    "compare_periods": "Compared periods",
+    "find_tasks": "Found the task",
+    "redo_undone": "Saved it again",
+    "edit_transaction": "Changed transactions",
+    "edit_scheduled": "Changed scheduled payments",
+    "edit_account": "Changed an account",
+    "edit_budget": "Changed a budget",
+    "edit_task": "Changed a task",
+    "create_exercise": "Added an exercise",
+    "edit_exercise": "Changed an exercise",
+    "edit_workout_template": "Changed a workout template",
+    "start_workout": "Started a workout",
+    "edit_workout": "Changed a workout",
+    "edit_meal": "Changed a meal",
+    "copy_meal": "Logged that meal again",
+    "edit_weigh_in": "Changed a weigh-in",
+    "set_macro_target": "Changed your macro target",
+    "fitness_settings": "Changed fitness settings",
+    "edit_food": "Changed a saved food",
+    "remove_item": "Removed it",
+    "save_food": "Saved to your food library",
+}
+
+
+def running_label(name: str) -> str:
+    """What a step says while its tool runs; never the tool's own name."""
+    return RUNNING.get(name, GENERIC_RUNNING)
+
 
 def _weigh(args: dict[str, Any]) -> str:
     kg, fat = args.get("kg"), args.get("body_fat_pct")
@@ -396,7 +448,7 @@ def outcome(ctx: Ctx, name: str, args: dict[str, Any], result: Any) -> tuple[boo
             f"{'' if args.get('photos') == 1 else 's'}"
         ),
     }
-    return True, f"{simple.get(name, name.replace('_', ' '))}{wait}"
+    return True, f"{simple.get(name) or DONE.get(name, GENERIC_DONE)}{wait}"
 
 
 def kept_steps(steps: list["Step"]) -> list["Step"]:
@@ -530,6 +582,14 @@ class TurnStream(capture.LoopHooks):
     # stored with the reply (``CompanionMessage.tool_log``) so a later turn
     # ("continue") knows what this one already looked up and wrote.
     log: list[dict[str, Any]] = field(default_factory=list)
+    # Text of model calls that also called only ``ANSWER_TOOLS``: part of
+    # the answer, joined before the final call's text (``whole``).
+    _kept: list[str] = field(default_factory=list)
+    # Every text the reply wrote but does not show, oldest first: narration
+    # before a tool call, and a reply a corrective pass replaced. A final
+    # reply that points back to it ("answer's above") gets it back
+    # (``services.restore_pointed_back``).
+    unshown: list[str] = field(default_factory=list)
 
     # ---------------------------------------------------------- run
 
@@ -687,7 +747,18 @@ class TurnStream(capture.LoopHooks):
         # check your macros…"), not answering: the app drops that text, so
         # only the answer stays (it still streams as it is written).
         self.end_reasoning()
-        planning = bool(getattr(message, "tool_calls", None))
+        calls = getattr(message, "tool_calls", None) or []
+        # Text beside only ``suggest`` is the answer with its chips, not a
+        # plan (Kai, 2026-11-09: an answer written beside ``suggest`` was
+        # dropped and the last call said "Answer's above").
+        answering = bool(calls) and all(c.get("name") in ANSWER_TOOLS for c in calls)
+        planning = bool(calls) and not answering
+        said_text = _content(message)
+        if said_text.strip():
+            if answering:
+                self._kept.append(said_text)
+            elif planning:
+                self.unshown.append(said_text)
         if planning:
             self._held = self._screened = ""  # held back, so never shown
         said = self._text_id
@@ -705,9 +776,7 @@ class TurnStream(capture.LoopHooks):
         if name in ONCE_A_TURN and any(s.name == name for s in self.steps):
             self._quiet.add(call_id)
             return
-        self.steps.append(
-            Step(call_id=call_id, name=name, label=RUNNING.get(name, name))
-        )
+        self.steps.append(Step(call_id=call_id, name=name, label=running_label(name)))
         self.sink(StepStartedEvent(step_name=f"tool:{name}"))
         self.sink(ToolCallStartEvent(tool_call_id=call_id, tool_call_name=name))
         self.sink(
@@ -779,6 +848,13 @@ class TurnStream(capture.LoopHooks):
             self.custom("capture.text", data)
             return
         self.custom(event, data)
+
+    def whole(self, final: str) -> str:
+        """One loop run's reply: the answer written beside ``suggest``
+        (``_kept``), then the last call's text. Clears what it joined, so
+        each run (a corrective pass too) is joined on its own."""
+        parts, self._kept = [*self._kept, final], []
+        return "\n\n".join(p.strip() for p in parts if p.strip())
 
     def steps_block(self) -> dict[str, Any] | None:
         if not self.steps:
