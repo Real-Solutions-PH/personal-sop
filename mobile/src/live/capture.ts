@@ -50,6 +50,7 @@ import { toast } from "@domain/capture/toast"
 import { derivedId, isUuid, newId } from "@domain/lib/ids"
 import { onConnectivityChange } from "@domain/lib/platform"
 import { fetch as expoFetch } from "expo/fetch"
+import { noteRefusal } from "@/prototype/companion/allowance"
 import {
   type AskBackend,
   answering,
@@ -218,6 +219,27 @@ async function readSse(
     feed(decoder.decode(chunk.value, { stream: true }))
   }
   feed(`${decoder.decode()}\n\n`)
+}
+
+/** The whole error envelope of a refused request, if it is one. */
+async function errorBody(
+  res: Response,
+): Promise<{ code: string; message: string; details: unknown } | undefined> {
+  try {
+    const env = JSON.parse(await res.text()) as {
+      code?: unknown
+      message?: unknown
+      details?: unknown
+    }
+    if (typeof env.code !== "string") return undefined
+    return {
+      code: env.code,
+      message: typeof env.message === "string" ? env.message : "",
+      details: env.details,
+    }
+  } catch {
+    return undefined
+  }
 }
 
 /** Error envelope of a refused request (``{code, message}``), if any. */
@@ -1277,6 +1299,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         case "RUN_ERROR":
           v.ended = true
           v.failed = true
+          // The allowance ran out while the message was on its way.
+          if (typeof d.code === "string") noteRefusal(d.code, undefined)
           stopThinking()
           return
         default:
@@ -1460,6 +1484,17 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         }
         if (!res.ok) {
           fail()
+          const refused = res.status === 402 ? await errorBody(res) : undefined
+          if (refused && noteRefusal(refused.code, refused.details)) {
+            // Today's (or this month's) messages are used up: the chat
+            // says when they come back, above the composer.
+            toast.error(
+              refused.code === "fern_monthly_limit_reached"
+                ? `${companionName()} has reached this month's fair-use limit.`
+                : `That's all of today's messages with ${companionName()}.`,
+            )
+            return
+          }
           toast.error(
             `${companionName()} couldn't answer that. Tap Retry to ask again.`,
           )

@@ -80,3 +80,21 @@ class AIUsage(OwnedRow, table=True):
     output_tokens: int = 0
     cost_minor: int = 0
     ok: bool = True
+
+
+class FernTurn(OwnedRow, table=True):
+    """One row per Fern chat message answered on the server's key: what the
+    daily allowance and the Plus fair-use limit count (ai_providers.
+    allowance). Keyed by the question's id, so a resent or retried message
+    is counted once; kept when the person deletes the chat."""
+
+    __tablename__ = "fern_turn"
+    __table_args__ = (
+        UniqueConstraint("owner_id", "message_id", name="uq_fern_turn_message"),
+        enum_check("plan", ("free", "plus"), name="ck_fern_turn_plan"),
+    )
+
+    at: datetime = Field(sa_type=tstz(), index=True)  # type: ignore
+    message_id: uuid.UUID
+    plan: str = Field(sa_type=String(5))  # type: ignore
+    light: bool = False
