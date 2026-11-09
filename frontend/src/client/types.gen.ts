@@ -1304,6 +1304,7 @@ export type ExerciseDetail = {
     track?: ('speed' | 'weight' | null);
     aliases?: Array<(string)>;
     merged_into_id?: (string | null);
+    is_global?: boolean;
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -1336,6 +1337,7 @@ export type ExercisePublic = {
     track?: ('speed' | 'weight' | null);
     aliases?: Array<(string)>;
     merged_into_id?: (string | null);
+    is_global?: boolean;
 };
 
 export type ExercisesOut = {
@@ -1377,6 +1379,7 @@ export type ExerciseWithStats = {
     track?: ('speed' | 'weight' | null);
     aliases?: Array<(string)>;
     merged_into_id?: (string | null);
+    is_global?: boolean;
     last_done_at: (string | null);
     best_e1rm: (number | null);
     suggestion: SuggestionOut;
@@ -4370,6 +4373,11 @@ export type TaskUpdate = {
     nag_every_min?: (number | null);
 };
 
+export type TemplateCopy = {
+    name?: (string | null);
+    id?: (string | null);
+};
+
 export type TemplateItemOut = {
     exercise_id: string;
     exercise_name: string;
@@ -4387,6 +4395,7 @@ export type TemplateOut = {
     updated_at: string;
     name: string;
     sort_order: number;
+    is_global?: boolean;
     items: Array<TemplateItemOut>;
     last_used_at: (string | null);
 };
@@ -6130,6 +6139,13 @@ export type FitnessDeleteTemplateData = {
 };
 
 export type FitnessDeleteTemplateResponse = (Message);
+
+export type FitnessCopyTemplateData = {
+    requestBody: TemplateCopy;
+    templateId: string;
+};
+
+export type FitnessCopyTemplateResponse = (TemplateOut);
 
 export type FitnessRestoreTemplateData = {
     templateId: string;
