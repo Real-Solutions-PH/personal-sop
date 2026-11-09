@@ -89,6 +89,14 @@ test("every feature starts shown", () => {
   ).toMatchObject({ checked: true })
 })
 
+test("the features list has no sort grips; Edit Home is where order is set", () => {
+  render(<Settings />, { wrapper })
+  expect(screen.queryAllByLabelText(/^Reorder /)).toHaveLength(0)
+  expect(screen.queryByText(/Drag a section by its grip/)).toBeNull()
+  expect(screen.getByText("Edit Home")).toBeTruthy()
+  expect(screen.getByRole("switch", { name: "Habits" })).toBeTruthy()
+})
+
 test("Journal switches off on its own and leaves the launcher and Me", () => {
   const settings = render(<Settings />, { wrapper })
   fireEvent.press(screen.getByRole("switch", { name: "Journal" }))
