@@ -91,6 +91,9 @@ function effectOn(p: PlannedItem, ids: Set<string>): number {
 export interface ForecastDay {
   day: string
   balance: number
+  /** The balance with no planned money out: scheduled income only, less
+   * everyday spending when that is included. */
+  noPlanned: number
   income: number
   bills: number
   everyday: number
@@ -171,6 +174,7 @@ export function forecast(
   const perDay = opts.includeUnplanned ? (avgUnplanned(s) * 12) / 365 : 0
   const days: ForecastDay[] = []
   let run = start
+  let runNoPlanned = start
   let atFrom = start
   let income = 0
   let bills = 0
@@ -180,9 +184,11 @@ export function forecast(
     const m = moves.get(k) ?? { income: 0, bills: 0 }
     const e = k > t ? perDay : 0
     run += m.income - m.bills - e
+    runNoPlanned += m.income - e
     days.push({
       day: k,
       balance: run,
+      noPlanned: runNoPlanned,
       income: m.income,
       bills: m.bills,
       everyday: e,
@@ -213,6 +219,39 @@ export function forecast(
     }),
     hasIncome,
   }
+}
+
+/**
+ * Money on hand in the accounts the projection counts at the end of each of
+ * ``days``: what the records say for a day before today, and what
+ * ``forecast()`` expects from today on, on the Projection's own settings
+ * (everyday spending in or out, the planned items it leaves out). One
+ * forecast covers every future day asked for.
+ */
+export function balancesAtEnd(s: FinState, days: string[]): number[] {
+  const t = today()
+  const ids = new Set(
+    s.accounts.filter((a) => a.inProjection && !a.archived).map((a) => a.id),
+  )
+  const ahead = days.filter((d) => d >= t)
+  const last = ahead.reduce((a, d) => (d > a ? d : a), t)
+  const f = ahead.length
+    ? forecast(s, t, last, {
+        includeUnplanned: s.settings.includeUnplanned,
+        excludedPlanned: s.settings.projExcludedPlanned,
+      })
+    : null
+  const byDay = new Map(f?.days.map((d) => [d.day, d.balance]))
+  return days.map((d) => {
+    if (d >= t) return byDay.get(d) ?? f?.atTo ?? 0
+    let v = 0
+    for (const a of s.accounts) {
+      if (!ids.has(a.id)) continue
+      v += a.opening
+      for (const r of s.records) if (recDay(r) <= d) v += signedFor(r, a.id)
+    }
+    return v
+  })
 }
 
 export interface ExpectedTrend {

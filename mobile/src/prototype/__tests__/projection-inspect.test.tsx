@@ -86,7 +86,8 @@ it("reads a point off the chart: the date, both lines and their difference", () 
   // On to the last month: the planned ₱36,000 purchase is in by then.
   act("increment", 40)
   expect(screen.getByText(/^By [A-Z][a-z]+ \d{4}$/)).toBeTruthy()
-  expect(screen.getByText("With New laptop")).toBeTruthy()
+  // The readout, and the legend's entry for the purchase line.
+  expect(screen.getAllByText("With New laptop")).toHaveLength(2)
   expect(screen.getByText("baseline")).toBeTruthy()
   // ₱36,000 less than without it (whole pesos print without cents); the
   // purchase's own row says it too, so the readout adds one more.

@@ -45,8 +45,11 @@ import {
 import { go } from "../navigation"
 import type { NutrientKey } from "../nutrient-insights"
 import {
+  amountOn,
   amt,
   daysEnding,
+  goalFor,
+  NUTRIENT_INFO,
   nutrientDays,
   type Period,
   periodMacros,
@@ -903,6 +906,18 @@ const MACROS = [
   { key: "carbs", label: "Carbs", kcal: 4, accent: "tsk" },
   { key: "fat", label: "Fat", kcal: 9, accent: "life" },
 ] as const
+/** The stacked bar's segments, bottom up. Fiber is part of carbs (food
+ * labels count it in total carbohydrate), so its segment is carved out of
+ * carbs at 4 kcal a gram: a day's bar is still its true calories. */
+const SEGMENTS = [
+  { key: "protein", accent: "fit" },
+  { key: "fiber", accent: "hab" },
+  { key: "carbs", accent: "tsk" },
+  { key: "fat", accent: "life" },
+] as const
+/** The records under the chart that are not drawn on it: limits, as a
+ * daily average over the period. */
+const LIMIT_ROWS = ["satFat", "sugar", "sodium"] as const
 const CHART = 120
 const pct = (v: number) => `${Math.round(v * 100)}%`
 
@@ -925,10 +940,18 @@ function CaloriesByMacro({
     days = daysEnding(day, n).map((d) => ({
       day: d,
       totals: C.dayTotals(s, d).totals,
+      fiber: amountOn(s, d, "fiber") ?? 0,
     })),
     logged = days.some((d) => d.totals.kcal > 0),
     target = C.budgetFor(s, day),
     rows = MACROS.map((m) => ({ ...m, r: nutrientDays(s, m.key, day, n) })),
+    fiberRow = nutrientDays(s, "fiber", day, n),
+    fiberGoal = goalFor(target, "fiber"),
+    limitRows = LIMIT_ROWS.map((key) => ({
+      key,
+      ...NUTRIENT_INFO[key],
+      r: nutrientDays(s, key, day, n),
+    })),
     splitTotal = rows.reduce((a, m) => a + (m.r.value ?? 0) * m.kcal, 0),
     targetTotal = target
       ? MACROS.reduce((a, m) => a + target[m.key] * m.kcal, 0)
@@ -949,13 +972,27 @@ function CaloriesByMacro({
       target &&
       targetTotal > 0 &&
       Math.abs(targetTotal - target.kcal) <= target.kcal * 0.05
-        ? MACROS.map((m, i) => ({
-            ...m,
-            at: MACROS.slice(0, i + 1).reduce(
-              (a, x) => a + target[x.key] * x.kcal,
-              0,
-            ),
-          }))
+        ? [
+            ...MACROS.map((m, i) => ({
+              key: m.key,
+              accent: m.accent,
+              at: MACROS.slice(0, i + 1).reduce(
+                (a, x) => a + target[x.key] * x.kcal,
+                0,
+              ),
+            })),
+            // Fiber's goal sits just above protein's, inside carbs.
+            ...(fiberGoal
+              ? [
+                  {
+                    key: "fiber" as const,
+                    accent: "hab" as const,
+                    at:
+                      (target.protein + Math.min(fiberGoal, target.carbs)) * 4,
+                  },
+                ]
+              : []),
+          ]
         : []
   return (
     <LockedPreview
@@ -977,7 +1014,7 @@ function CaloriesByMacro({
           <Copy size={12} muted>
             {`${period === "1" ? "The 7 days to this day" : `${n} days`} · ${
               target
-                ? `dashed lines are each macro's target, stacked to ${num(target.kcal)} kcal`
+                ? `dashed lines are each macro's target, stacked to ${num(target.kcal)} kcal; fiber sits inside carbs`
                 : "each bar a day"
             }`}
           </Copy>
@@ -985,14 +1022,20 @@ function CaloriesByMacro({
         <View
           accessible
           accessibilityRole="image"
-          accessibilityLabel={`Calories by macro, ${n} days to ${C.fmtDay(day)}${target ? `; targets ${MACROS.map((m) => `${m.label.toLowerCase()} ${num(target[m.key])} g`).join(", ")}` : ""}`}
+          accessibilityLabel={`Calories by macro, ${n} days to ${C.fmtDay(day)}${target ? `; targets ${MACROS.map((m) => `${m.label.toLowerCase()} ${num(target[m.key])} g`).join(", ")}${fiberGoal ? `, fiber ${num(fiberGoal)} g` : ""}` : ""}`}
           style={{ height: CHART, justifyContent: "flex-end" }}
         >
           <Line style={{ alignItems: "flex-end", gap: n > 14 ? 2 : 4 }}>
             {days.map((d) => {
-              const parts = MACROS.map((m) => ({
+              const fib = Math.min(d.fiber, d.totals.carbs) * 4
+              const parts = SEGMENTS.map((m) => ({
                 ...m,
-                kcal: d.totals[m.key] * m.kcal,
+                kcal:
+                  m.key === "fiber"
+                    ? fib
+                    : m.key === "carbs"
+                      ? d.totals.carbs * 4 - fib
+                      : d.totals[m.key] * (m.key === "fat" ? 9 : 4),
               }))
               const total = parts.reduce((a, p) => a + p.kcal, 0)
               return (
@@ -1075,81 +1118,173 @@ function CaloriesByMacro({
             </Copy>
           ))}
         </Line>
-        {/* One row per macro: its share of the calories, then its grams a
-            day against its target. Each opens that macro's breakdown. */}
-        <View>
-          {rows.map((m) => {
-            const goal = target?.[m.key] ?? 0
-            const avg = `avg ${m.r.value === null ? "—" : num(m.r.value)}${goal ? ` / ${num(goal)}` : ""} g`
-            const days =
-              goal && m.r.judged
-                ? `${m.key === "protein" ? "hit" : "within 10%"} on ${num(m.r.hit)} of ${num(m.r.judged)} days`
-                : null
-            const line = days ? `${avg} · ${days}` : avg
+        {/* One row per macro, then fiber: its share of the calories, then
+            its grams a day against its target. Each opens its breakdown. */}
+        <View testID="macro-rows">
+          {[
+            ...rows.map((m) => ({
+              key: m.key as NutrientKey,
+              label: m.label,
+              color: t[m.accent],
+              r: m.r,
+              goal: target?.[m.key] ?? 0,
+              unit: "g",
+              share: splitTotal
+                ? pct(((m.r.value ?? 0) * m.kcal) / splitTotal)
+                : "—",
+              verb: m.key === "protein" ? "hit" : "within 10%",
+            })),
+            {
+              key: "fiber" as NutrientKey,
+              label: "Fiber",
+              color: t.hab,
+              r: fiberRow,
+              goal: fiberGoal ?? 0,
+              unit: "g",
+              share: "in carbs",
+              verb: "hit",
+            },
+          ].map((m) => (
+            <NutrientRow
+              key={m.key}
+              swatch={m.color}
+              label={m.label}
+              aside={m.share}
+              avg={`avg ${m.r.value === null ? "—" : num(m.r.value)}${m.goal ? ` / ${num(m.goal)}` : ""} ${m.unit}`}
+              days={
+                m.goal && m.r.judged
+                  ? `${m.verb} on ${num(m.r.hit)} of ${num(m.r.judged)} days`
+                  : null
+              }
+              rate={m.r.judged ? m.r.hit / m.r.judged : 0}
+              onPress={() => openNutrient(m.key, day, period)}
+            />
+          ))}
+        </View>
+        {/* Limits are records, not bars: a day's average over the period
+            against the limit, and how many days stayed under it. */}
+        <View
+          testID="macro-limits"
+          style={{ paddingTop: 8, borderTopWidth: 1, borderColor: t.line }}
+        >
+          <Copy size={12} muted style={{ paddingBottom: 2 }}>
+            {n === 1
+              ? "Limits, this day"
+              : `Limits, a day on average over ${n} days`}
+          </Copy>
+          {limitRows.map((m) => {
+            const goal = m.r.goal
+            const v = m.r.value
             return (
-              <Tap
+              <NutrientRow
                 key={m.key}
-                label={`${m.label}: ${line}. Open the ${m.label.toLowerCase()} breakdown`}
+                label={m.label}
+                avg={`avg ${v === null ? "—" : amt(v)}${goal ? ` / ${amt(goal)} max` : ""} ${m.unit}`}
+                avgColor={
+                  v !== null && goal ? (v > goal ? t.bad : t.text) : undefined
+                }
+                days={
+                  goal && m.r.judged
+                    ? `under on ${num(m.r.hit)} of ${num(m.r.judged)} days`
+                    : v === null
+                      ? "Not on the foods logged"
+                      : null
+                }
+                rate={m.r.judged ? m.r.hit / m.r.judged : 0}
+                neutral={!m.r.judged}
                 onPress={() => openNutrient(m.key, day, period)}
-                style={{ paddingVertical: 6 }}
-              >
-                {/* Every row the same two lines: the macro, its share and
-                    its grams a day; then how many days landed. */}
-                <Line style={{ gap: 8, alignItems: "flex-start" }}>
-                  <View
-                    style={{
-                      width: 10,
-                      height: 10,
-                      marginTop: 3,
-                      borderRadius: 3,
-                      backgroundColor: t[m.accent],
-                    }}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Line style={{ justifyContent: "space-between", gap: 8 }}>
-                      <Copy size={13} weight="medium">
-                        {m.label}
-                        <Text style={{ color: t.muted, fontWeight: "400" }}>
-                          {`  ${
-                            splitTotal
-                              ? pct(((m.r.value ?? 0) * m.kcal) / splitTotal)
-                              : "—"
-                          }`}
-                        </Text>
-                      </Copy>
-                      <Copy size={13} style={{ fontVariant: ["tabular-nums"] }}>
-                        {avg}
-                      </Copy>
-                    </Line>
-                    {days && (
-                      <Copy
-                        size={12}
-                        style={{
-                          textAlign: "right",
-                          color:
-                            m.r.hit / m.r.judged >= 0.8
-                              ? t.good
-                              : m.r.hit / m.r.judged >= 0.5
-                                ? t.warn
-                                : t.bad,
-                        }}
-                      >
-                        {days}
-                      </Copy>
-                    )}
-                  </View>
-                  <ChevronRight
-                    size={14}
-                    color={t.muted}
-                    style={{ marginTop: 2 }}
-                  />
-                </Line>
-              </Tap>
+              />
             )
           })}
         </View>
       </Frame>
     </LockedPreview>
+  )
+}
+
+/** A row under the macro chart: a swatch when the nutrient is drawn, its
+ * label and share, its daily amount against the goal or limit, then how
+ * many days landed. Opens the nutrient's breakdown. */
+function NutrientRow({
+  swatch,
+  label,
+  aside,
+  avg,
+  avgColor,
+  days,
+  rate,
+  neutral = false,
+  onPress,
+}: {
+  swatch?: string
+  label: string
+  aside?: string
+  avg: string
+  avgColor?: string
+  days: string | null
+  rate: number
+  neutral?: boolean
+  onPress: () => void
+}) {
+  const t = useTheme(),
+    line = days ? `${avg} · ${days}` : avg
+  return (
+    <Tap
+      label={`${label}: ${line}. Open the ${label.toLowerCase()} breakdown`}
+      onPress={onPress}
+      style={{ paddingVertical: 6 }}
+    >
+      <Line style={{ gap: 8, alignItems: "flex-start" }}>
+        <View
+          style={{
+            width: 10,
+            height: 10,
+            marginTop: 3,
+            borderRadius: 3,
+            backgroundColor: swatch ?? "transparent",
+          }}
+        />
+        <View style={{ flex: 1 }}>
+          <Line style={{ justifyContent: "space-between", gap: 8 }}>
+            <Copy size={13} weight="medium">
+              {label}
+              {aside ? (
+                <Text style={{ color: t.muted, fontWeight: "400" }}>
+                  {`  ${aside}`}
+                </Text>
+              ) : null}
+            </Copy>
+            <Copy
+              size={13}
+              style={{
+                fontVariant: ["tabular-nums"],
+                ...(avgColor && { color: avgColor }),
+              }}
+            >
+              {avg}
+            </Copy>
+          </Line>
+          {days && (
+            <Copy
+              size={12}
+              style={{
+                textAlign: "right",
+                color: neutral
+                  ? t.muted
+                  : rate >= 0.8
+                    ? t.good
+                    : rate >= 0.5
+                      ? t.warn
+                      : t.bad,
+              }}
+            >
+              {days}
+            </Copy>
+          )}
+        </View>
+        <ChevronRight size={14} color={t.muted} style={{ marginTop: 2 }} />
+      </Line>
+    </Tap>
   )
 }
 
