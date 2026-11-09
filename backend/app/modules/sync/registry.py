@@ -83,6 +83,7 @@ SYNC_MODULES = (
     "companion",
     "weather",
     "stats",
+    "billing",
 )
 
 _registry: Registry | None = None

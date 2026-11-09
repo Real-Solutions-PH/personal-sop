@@ -13228,6 +13228,36 @@ export const PlacePublicSchema = {
     title: 'PlacePublic'
 } as const;
 
+export const PlanPublicSchema = {
+    properties: {
+        plan: {
+            type: 'string',
+            enum: ['free', 'plus'],
+            title: 'Plan'
+        },
+        plus_until: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Plus Until'
+        },
+        will_renew: {
+            type: 'boolean',
+            title: 'Will Renew'
+        }
+    },
+    type: 'object',
+    required: ['plan', 'plus_until', 'will_renew'],
+    title: 'PlanPublic',
+    description: 'The plan in force now, as the server decides it.'
+} as const;
+
 export const PlannedCreateSchema = {
     properties: {
         name: {
@@ -22284,7 +22314,7 @@ export const UsageEventInSchema = {
     properties: {
         kind: {
             type: 'string',
-            enum: ['app_open', 'app_close', 'share_card'],
+            enum: ['app_open', 'app_close', 'share_card', 'paywall_shown', 'purchase_started', 'restored'],
             title: 'Kind'
         },
         at: {
@@ -22429,6 +22459,83 @@ export const UserCreateSchema = {
     type: 'object',
     required: ['email'],
     title: 'UserCreate'
+} as const;
+
+export const UserMeSchema = {
+    properties: {
+        email: {
+            type: 'string',
+            maxLength: 255,
+            format: 'email',
+            title: 'Email'
+        },
+        is_active: {
+            type: 'boolean',
+            title: 'Is Active',
+            default: true
+        },
+        is_superuser: {
+            type: 'boolean',
+            title: 'Is Superuser',
+            default: false
+        },
+        full_name: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 255
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Full Name'
+        },
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        tenant_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Tenant Id'
+        },
+        created_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Created At'
+        },
+        plan: {
+            type: 'string',
+            enum: ['free', 'plus'],
+            title: 'Plan',
+            default: 'free'
+        },
+        plus_until: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Plus Until'
+        }
+    },
+    type: 'object',
+    required: ['email', 'id', 'tenant_id'],
+    title: 'UserMe',
+    description: 'The signed-in account, with its plan as the server decides it.'
 } as const;
 
 export const UserPermissionsSchema = {

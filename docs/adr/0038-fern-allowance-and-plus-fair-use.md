@@ -20,7 +20,7 @@ Three facts shaped how this is built:
 - **Only the server's key is limited.** A person who brought their own provider key pays their own provider, so neither the allowance nor fair use counts their turns. Their own spend cap still applies. Plus spend is the server-key spend (`ai_usage.credential_id IS NULL`) of every purpose in the business month.
 - **The light model is a setting, not an assignment row.** `FERN_LIGHT_MODELS` names a model per purpose (`chat=deepseek-ai/DeepSeek-V4-Flash-0731`). The ticket suggested `ai_model_assignment`, but that table only names models on a person's own key, and those turns are not limited (above), so a row there would never be read.
 - **Price tier.** `PRICE_TIER_COUNTRIES` maps ISO countries to the pricing study's tiers (BR, MX tier 2; PH, IN, ID tier 3; every other country tier 1). The country is `user_profile.storefront_country` when the phone has set it, else the country of the account's time zone (`ai_providers.price_tier.ZONE_COUNTRY`).
-- **One plan seam.** `ai_providers.allowance.plan_of` is the one place the plan is read. It returns `free` until the billing module (ADR-0037) is on master, then reads the entitlement.
+- **One plan seam.** `ai_providers.allowance.plan_of` is the one place the plan is read. It reads the entitlement through `billing.public.plan_of` (ADR-0037): Plus while it is in force, free otherwise.
 - **Errors.** 402 `fern_daily_allowance_reached` (free allowance, or Plus's 60 a day) and 402 `fern_monthly_limit_reached` (Plus's US$5 a month), each with `resets_at`. The stream route refuses before it opens, so the phone reads a plain 402. `GET /companion/allowance` tells the phone what is left.
 - Every number is a setting (`FERN_*`, `PRICE_TIER_COUNTRIES`); none is a constant.
 
@@ -39,7 +39,7 @@ None.
 - When the AI is off or capped, the free rules engine still answers and is not counted; that is deliberate, because it costs nothing.
 
 **Follow-ups:**
-- When the billing module lands, `plan_of` reads `billing.public.plan_of`, and the phone sets `storefront_country` from the purchases SDK's storefront (alpha-2).
+- The phone sets `storefront_country` from the purchases SDK's storefront (alpha-2).
 
 ## Amendment 2026-11-09: switched off while testing
 

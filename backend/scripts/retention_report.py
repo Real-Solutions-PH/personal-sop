@@ -305,7 +305,9 @@ def usage_summary(
             continue
         if kind == "share_card":
             shares[detail or "unknown"] += 1
-        else:
+        elif kind in ("app_open", "app_close"):
+            # The Unfurl Plus kinds are not app sessions (the server writes
+            # some of them from RevenueCat, with no app open at all).
             per[owner].append((at, kind))
     sessions = 0
     seconds: list[float] = []

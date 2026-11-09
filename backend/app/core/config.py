@@ -410,6 +410,17 @@ class Settings(BaseSettings):
     # Supabase Auth hook (Standard Webhooks signature, "v1,whsec_<base64>").
     SUPABASE_AUTH_HOOK_SECRET: SecretStr | None = None
 
+    # RevenueCat (Unfurl Plus, ADR-0037). The webhook's Authorization header
+    # value as set in the RevenueCat dashboard; unset, the route is absent.
+    REVENUECAT_WEBHOOK_AUTH: SecretStr | None = None
+    # Secret REST API key (v1), for the refresh that asks RevenueCat what an
+    # account holds; unset, the stored plan stands.
+    REVENUECAT_SECRET_API_KEY: SecretStr | None = None
+    REVENUECAT_ENTITLEMENT_ID: str = "plus"
+    # StoreKit sandbox purchases (TestFlight, local builds) count. Turn off
+    # once the App Store build is the only one people pay through.
+    REVENUECAT_ALLOW_SANDBOX: bool = True
+
     # Weather proxy (Open-Meteo, keyless).
     WEATHER_FORECAST_URL: str = "https://api.open-meteo.com/v1/forecast"
     WEATHER_GEOCODE_URL: str = "https://geocoding-api.open-meteo.com/v1/search"

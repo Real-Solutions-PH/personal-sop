@@ -14,9 +14,13 @@ import { liveStore } from "@domain/lib/live"
 import { screenStore } from "@domain/screen/store"
 import { tasksStore } from "@domain/tasks/store"
 import { companionStore } from "@/prototype/companion/store"
+import { FREE, planStore } from "@/prototype/plan"
 import { socialStore } from "@/prototype/social/store"
 
 export function clearToBlank() {
+  // The plan is the account's: the next one starts free until the server
+  // says otherwise.
+  planStore.set({ ...FREE })
   habitsStore.set((s) => ({
     ...s,
     habits: [],

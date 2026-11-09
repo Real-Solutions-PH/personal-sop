@@ -82,6 +82,13 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   EXPO_PUSH_RECEIPTS_URL: "Code default.",
   SUPABASE_AUTH_HOOK_SECRET:
     "NOT FILLABLE YET: it signs a Supabase Database Webhook on auth.users, a Supabase-platform feature that self-hosted GoTrue on RDS does not have. Deletions still work (the backend deletes its own row on account deletion); a user deleted directly in GoTrue leaves a local row until a replacement is built.",
+  REVENUECAT_WEBHOOK_AUTH:
+    "NOT SET YET: waits for the RevenueCat project. Unset, POST /webhooks/revenuecat answers 404 and every account stays free. To turn on: add it (and REVENUECAT_SECRET_API_KEY) to THIRD_PARTY_FIELDS and the API's secrets in prod-stack.ts, fill unfurl/third-party with `bun run secrets`, then deploy (ADR-0037).",
+  REVENUECAT_SECRET_API_KEY:
+    "NOT SET YET: as REVENUECAT_WEBHOOK_AUTH. Unset, POST /billing/refresh keeps the stored plan.",
+  REVENUECAT_ENTITLEMENT_ID: "Code default (`plus`).",
+  REVENUECAT_ALLOW_SANDBOX:
+    "Code default (true) while TestFlight sandbox purchases count; set false at App Store launch.",
   WEATHER_FORECAST_URL: "Code default.",
   WEATHER_GEOCODE_URL: "Code default.",
   WEATHER_CACHE_SECONDS: "Code default.",

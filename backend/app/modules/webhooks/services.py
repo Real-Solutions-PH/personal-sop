@@ -34,15 +34,22 @@ def _client() -> redis.Redis:
     return _redis
 
 
-def first_delivery(msg_id: str) -> bool:
+def first_delivery(msg_id: str, ttl: int = SEEN_TTL_SECONDS) -> bool:
     """True the first time a webhook id is seen (replay guard). Fails closed:
     without the guard an event is refused and the sender retries."""
     try:
-        return bool(
-            _client().set(f"webhook:seen:{msg_id}", "1", nx=True, ex=SEEN_TTL_SECONDS)
-        )
+        return bool(_client().set(f"webhook:seen:{msg_id}", "1", nx=True, ex=ttl))
     except RedisError as exc:
         raise domain_error(503, "webhook_unavailable", "Try again later") from exc
+
+
+def forget_delivery(msg_id: str) -> None:
+    """Undo ``first_delivery`` for an id whose handling failed, so the
+    sender's retry is applied rather than taken for a replay."""
+    try:
+        _client().delete(f"webhook:seen:{msg_id}")
+    except RedisError:
+        pass
 
 
 def handle_auth_event(session: Session, event: dict[str, Any]) -> str:

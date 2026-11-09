@@ -126,3 +126,18 @@ def test_usage_sessions_and_shares(rr: ModuleType) -> None:
     assert out["sessions_28d"] == 2
     assert out["share_cards_by_card"] == {"week-wrap": 1}
     assert out["people_opening_28d"] == 1
+
+
+def test_plus_events_are_not_app_opens(rr: ModuleType) -> None:
+    opener, buyer = uuid.uuid4(), uuid.uuid4()
+    t = datetime(2026, 11, 10, 9, tzinfo=timezone.utc)
+    rows = [
+        (opener, "app_open", t, None),
+        (opener, "paywall_shown", t + timedelta(minutes=1), None),
+        # Written by the server from a RevenueCat webhook: no app open.
+        (buyer, "purchased", t, "plus_yearly"),
+        (buyer, "refunded", t + timedelta(days=1), "plus_yearly"),
+    ]
+    out = rr.usage_summary(rows, today=date(2026, 11, 15))
+    assert out["people_opening_28d"] == 1
+    assert out["sessions_28d"] == 1

@@ -20,6 +20,7 @@ from app.core.config import settings
 from app.modules.ai_providers import allowance as allowance_mod
 from app.modules.ai_providers import public
 from app.modules.ai_providers.models import FernTurn
+from app.modules.billing.models import Entitlement
 from app.modules.iam.users.models import User
 from app.modules.profile.models import UserProfile
 from app.shared import context as context_mod
@@ -255,6 +256,43 @@ def test_plus_hard_stop_at_5_dollars_a_month(
     assert err.detail["code"] == "fern_monthly_limit_reached"  # type: ignore[index]
     # The business month of December starts 04:00 Manila on 1 Dec.
     assert err.detail["details"]["resets_at"] == "2026-11-30T20:00:00+00:00"  # type: ignore[index]
+
+
+def _hold_plus(db: Session, u: User, until: datetime) -> None:
+    """The account's billing row as a verified webhook leaves it."""
+    db.add(
+        Entitlement(
+            owner_id=u.id,
+            tenant_id=u.tenant_id,
+            plan="plus",
+            plus_until=until,
+            will_renew=True,
+            product_id="plus_yearly",
+        )
+    )
+    db.commit()
+
+
+def test_a_plus_account_gets_plus_limits_from_its_billing_row(
+    db: Session,
+) -> None:
+    """No stand-in for the plan: the allowance reads the ``entitlement`` row,
+    so a Plus holder passes the free 15 and stops at Plus's 60."""
+    u = _account(db, storefront="US")
+    _hold_plus(db, u, DAY_2 + timedelta(days=30))
+    with ctx_for(u, now=DAY_2) as ctx:
+        a = public.allowance(ctx)
+    assert a.plan == "plus"
+    assert a.limit == 60
+
+
+def test_plus_that_has_lapsed_is_back_on_the_free_allowance(db: Session) -> None:
+    u = _account(db, storefront="US")
+    _hold_plus(db, u, DAY_2 - timedelta(minutes=1))
+    with ctx_for(u, now=DAY_2) as ctx:
+        a = public.allowance(ctx)
+    assert a.plan == "free"
+    assert a.limit == 15
 
 
 def test_limits_come_from_settings(

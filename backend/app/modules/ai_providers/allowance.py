@@ -35,6 +35,7 @@ from sqlmodel import col, func, select
 from app.core.config import settings
 from app.modules.ai_providers import price_tier
 from app.modules.ai_providers.models import AIUsage, FernTurn
+from app.modules.billing.public import plan_of as billing_plan
 from app.shared.context import Ctx
 from app.shared.domain import domain_error
 
@@ -47,11 +48,13 @@ Plan = Literal["free", "plus"]
 def plan_of(ctx: Ctx) -> Plan:
     """The account's plan: the ONE place the allowance learns it.
 
-    TODO: read the ``entitlement`` table (``billing.public.plan_of``) once
-    the billing module is on master; until then every account is free.
+    Read from the ``entitlement`` table, which only verified RevenueCat
+    webhooks and the server's own refresh write (ADR-0037). Plus counts
+    while its end is still ahead of ``ctx.now``; anything else is free.
     """
-    del ctx
-    return "free"
+    return (
+        "plus" if billing_plan(ctx.session, ctx.user_id, ctx.now) == "plus" else "free"
+    )
 
 
 def day_window(ctx: Ctx, day: date) -> tuple[datetime, datetime]:

@@ -9,6 +9,7 @@ import { getConnectivity } from "@domain/lib/platform"
 import type { StorageAdapter } from "@domain/lib/store"
 import { fetch as expoFetch } from "expo/fetch"
 import { AppState } from "react-native"
+import { refreshPlan } from "@/prototype/plan"
 import { http, tokens } from "./auth"
 import { clearToBlank } from "./blank"
 import { captureMappers } from "./capture"
@@ -19,6 +20,7 @@ import { settleDeviceExtras } from "./extras-upload"
 import { foregroundStream } from "./foreground-stream"
 import { transcribePending } from "./journal-audio"
 import type { AnyMapper } from "./mapper"
+import { billingMappers } from "./mappers/billing"
 import { companionMappers } from "./mappers/companion"
 import { dashMappers } from "./mappers/dash"
 import { financeMappers } from "./mappers/finance"
@@ -29,6 +31,7 @@ import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { screenMappers } from "./mappers/screen"
 import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
+import { configurePurchases } from "./purchases"
 import { registerPushDevice } from "./push"
 import { syncReady } from "./ready"
 import { startSocialLive } from "./social"
@@ -50,6 +53,8 @@ const factories: MapperFactory[] = [
   focusMappers,
   captureMappers,
   companionMappers,
+  // The plan (pulled only).
+  billingMappers,
 ]
 export const registerMappers = (f: MapperFactory) => void factories.push(f)
 
@@ -222,6 +227,11 @@ export function startLive(
     }),
   )
   void registerPushDevice({ http })
+  // Unfurl Plus: RevenueCat signs in as this account, and the server is
+  // asked what the account holds now (it asks RevenueCat; a webhook missed
+  // while the server was down is caught here).
+  void configurePurchases(userId)
+  void refreshPlan()
   active = {
     engine,
     stats,
