@@ -2415,10 +2415,12 @@ def capture_tools(run: Run) -> list[BaseTool]:
         basis = {"100g": "per 100 g", "piece": "per piece", "serving": "per serving"}[
             a.basis
         ]
+        # A built-in food that already says this is reused, never changed.
+        verb = "Saved" if new else "Already" if food.is_global else "Updated"
         return {
             "saved": food.name,
             "new": new,
-            "summary": f"{'Saved' if new else 'Updated'} in your food library: "
+            "summary": f"{verb} in your food library: "
             f"{food.name} · {round(a.kcal)} kcal {basis}",
         }
 

@@ -1,12 +1,12 @@
 """The catalog: exercises and workout routines, built in and your own.
 
-Exercises and routines (with their slots) are a global catalog
+Exercises and routines (with their slots), and foods, are a global catalog
 (``global_catalog``): a row with ``is_global`` is built in, read and used by
 every member of the tenant and edited, merged away or deleted by nobody
 through the API; every other row is its owner's alone, invisible to the
 rest (:func:`app.shared.owned_repo.scope` / ``can_write``). A member copies a
-built-in routine to customise it. Foods stay one shared catalog
-(``shared_catalog``): every member reads them, the author or an admin edits.
+built-in routine or food to customise it. A built-in food is one a bulk
+import of a public database made (``food_library.BULK_PREFIXES``).
 
 A create must still reuse what the caller can see. Names are
 compared by :func:`exercise_key`: folded words, plural and spelling variants

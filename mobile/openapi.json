@@ -8227,7 +8227,7 @@
       "get": {
         "tags": ["nutrition"],
         "summary": "List Foods",
-        "description": "The shared food library. ``q`` narrows it to foods holding every word\ntyped (in the name or an alias, any order), the household's own and most\nrecently eaten first (``food_library.search_order``). ``origin`` keeps\nonly the foods the person made (``you``), Fern saved (``fern``) or a\npublic database supplied (``database``). With neither, it lists the\nhousehold's own foods and the database ones they have eaten, most used\nfirst; ``origin=database`` alone browses the databases, eaten ones\nfirst.",
+        "description": "The food library: built-in foods and your own. ``q`` narrows it to foods holding every word\ntyped (in the name or an alias, any order), the household's own and most\nrecently eaten first (``food_library.search_order``). ``origin`` keeps\nonly the foods the person made (``you``), Fern saved (``fern``) or a\npublic database supplied (``database``). With neither, it lists the\nhousehold's own foods and the database ones they have eaten, most used\nfirst; ``origin=database`` alone browses the databases, eaten ones\nfirst.",
         "operationId": "nutrition-list_foods",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -8335,7 +8335,7 @@
       "patch": {
         "tags": ["nutrition"],
         "summary": "Update Food",
-        "description": "Edit a food's name, numbers, notes or photo. Only its author or an\nadmin may (403 ``catalog_read_only``).",
+        "description": "Edit one of your own foods' name, numbers, notes or photo. A built-in\nfood is refused for everyone, admins included (403\n``catalog_read_only``); copy it instead.",
         "operationId": "nutrition-update_food",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -8374,11 +8374,46 @@
         }
       }
     },
+    "/api/v1/nutrition/foods/{food_id}/copy": {
+      "post": {
+        "tags": ["nutrition"],
+        "summary": "Copy Food",
+        "description": "A food of your own from any you can see (a built-in one, to\ncustomise). It keeps the name unless one of your own foods has it, then\ngains \" (copy)\" (\" (copy 2)\", ...).",
+        "operationId": "nutrition-copy_food",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "food_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Food Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/nutrition/foods/{food_id}/use": {
       "post": {
         "tags": ["nutrition"],
         "summary": "Count Food Use",
-        "description": "A food was picked from the library into a meal: count the use, which\norders the library (most used first).",
+        "description": "A food was picked from the library into a meal: count the use, which\norders the library (most used first). On a built-in food the count is\nevery member's together (a counter, not an edit).",
         "operationId": "nutrition-count_food_use",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -23295,6 +23330,11 @@
             "title": "Can Edit",
             "default": false
           },
+          "is_global": {
+            "type": "boolean",
+            "title": "Is Global",
+            "default": false
+          },
           "origin": {
             "type": "string",
             "enum": ["you", "fern", "database"],
@@ -23326,7 +23366,7 @@
           "last_used_at"
         ],
         "title": "FoodOut",
-        "description": "One food of the shared library. Amounts are per ``basis`` (per 100 g,\nper piece or per serving); sodium is in milligrams, every other amount in\ngrams. ``can_edit``: the caller is its author or an admin."
+        "description": "One food of the library: a built-in one (``is_global``, every\nmember's, read-only) or the caller's own. Amounts are per ``basis`` (per\n100 g, per piece or per serving); sodium is in milligrams, every other\namount in grams. ``can_edit``: it is the caller's own (never a built-in\none; copy it instead)."
       },
       "FoodPatch": {
         "properties": {

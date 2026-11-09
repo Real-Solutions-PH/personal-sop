@@ -24,9 +24,12 @@ are ~10 MB zipped and versioned by date, and the Open Food Facts export is
 1.5 GB and changes daily (and its licence asks that we not redistribute it).
 
 Re-running updates rather than duplicates: a row is keyed by its source id
-(``external_ref``: ``usda:<fdc id>``, ``off:<barcode>``). A food whose name
-another live food already has is skipped and counted, so an import never
-overwrites a food the household made. A food someone deleted stays deleted.
+(``external_ref``: ``usda:<fdc id>``, ``off:<barcode>``). Every imported
+food is built in (``is_global``): every member reads it, nobody edits it.
+An import reads and writes only built-in foods, so it never touches a food
+a member made (theirs may share a name with a built-in one). A food whose
+name another live built-in food already has is skipped and counted. A food
+deleted stays deleted.
 """
 
 import argparse
@@ -640,10 +643,11 @@ class ImportResult:
 def upsert_drafts(
     ctx: Ctx, drafts: Iterable[FoodDraft], *, batch: int = 500
 ) -> ImportResult:
-    """Add or update imported foods by their ``external_ref``. A draft whose
-    folded name another live food already holds is skipped (the household's
-    own food, or an earlier draft of this import, keeps it); aliases that
-    are another food's name are dropped. Commits every ``batch`` rows."""
+    """Add or update imported (built-in) foods by their ``external_ref``. A
+    draft whose folded name another live built-in food already holds is
+    skipped (an earlier draft of this import keeps it); aliases that are
+    another built-in food's name are dropped. Members' own foods are never
+    read or written. Commits every ``batch`` rows."""
     t0 = time.monotonic()
     res = ImportResult()
     s: Session = ctx.session
@@ -651,7 +655,10 @@ def upsert_drafts(
     by_ref: dict[str, FoodItem] = {}
     holders: dict[str, Any] = {}  # folded name -> id of the live food holding it
     deleted_refs: set[str] = set()
-    for r in s.exec(select(FoodItem).where(col(FoodItem.tenant_id) == tenant)).all():
+    built_in = select(FoodItem).where(
+        col(FoodItem.tenant_id) == tenant, col(FoodItem.is_global).is_(True)
+    )
+    for r in s.exec(built_in).all():
         if r.deleted_at is not None:
             if r.external_ref:
                 deleted_refs.add(r.external_ref)
@@ -703,7 +710,13 @@ def upsert_drafts(
             "barcode": d.barcode,
         }
         if row is None:
-            row = FoodItem(**values, aliases=aliases, external_ref=ref, **ctx.owned())
+            row = FoodItem(
+                **values,
+                aliases=aliases,
+                external_ref=ref,
+                is_global=True,
+                **ctx.owned(),
+            )
             s.add(row)
             by_ref[ref] = row
             res.added += 1

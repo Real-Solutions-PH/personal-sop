@@ -484,15 +484,15 @@ def removal_target(
 
 
 def _built_in(row: Any) -> dict[str, Any] | None:
-    """The refusal for a built-in exercise or routine: every member's, and
-    nobody's to change (``owned_repo.guard_write`` refuses it anyway)."""
+    """The refusal for a built-in exercise, routine or food: every member's,
+    and nobody's to change (``owned_repo.guard_write`` refuses it anyway)."""
     if not getattr(row, "is_global", False):
         return None
     return {
         "error": "built_in",
         "name": _name(row),
         "instead": "it is built in and can't be changed; offer to make one of "
-        "their own (a routine can be copied in the app)",
+        "their own (a routine or a food can be copied in the app)",
     }
 
 
@@ -1128,6 +1128,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         f = find_food(a.food, run)
         if isinstance(f, dict):
             return f
+        if (refused := _built_in(f)) is not None:
+            return refused
         ch = a.model_dump(exclude_none=True, exclude={"food", "new_name"})
         if a.new_name:
             ch["name"] = a.new_name

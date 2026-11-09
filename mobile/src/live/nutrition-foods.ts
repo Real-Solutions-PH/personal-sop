@@ -1,7 +1,9 @@
 // Live reads and edits of the food library (GET/PATCH /nutrition/foods,
-// ADR-0024). The library is server-owned and shared by every member (Fern
-// saves foods it reads from labels), so it is read on demand rather than
-// synced, through keyed queries under ``["nutrition", "foods"]``.
+// ADR-0024). The library is server-owned: built-in foods (a public database
+// import, ``is_global``) are every member's and read-only, every other food
+// is the member's own (Fern saves foods it reads from labels). It is read on
+// demand rather than synced, through keyed queries under
+// ``["nutrition", "foods"]``.
 
 import {
   keepPreviousData,
@@ -42,8 +44,11 @@ export interface LibraryFood {
   photo_media_id?: string | null
   /** A short-lived link to the photo, or null. */
   photo_url?: string | null
-  /** Whether the signed-in member may edit it (its author, or an admin). */
+  /** Whether the signed-in member may edit it: their own food, never a
+   * built-in one. */
   can_edit?: boolean
+  /** Built in: every member's, read-only; copy it to make your own. */
+  is_global?: boolean
   /** Who it came from: the person, Fern (saved from a label or what it was
    * told), or a public database the server imported (USDA and others). */
   origin?: "you" | "fern" | "database"
@@ -194,6 +199,29 @@ export async function patchFood(
   )
 }
 
+/** A food of the member's own with ``id``'s numbers (a built-in food, to
+ * customise). The server keeps the name, or adds " (copy)" when one of
+ * their own foods has it. */
+export async function copyFood(id: string): Promise<LibraryFood> {
+  return auth().http.request(
+    "POST",
+    `/nutrition/foods/${encodeURIComponent(id)}/copy`,
+  )
+}
+
+/** Copies a food into the member's own; the answer is cached as that food
+ * and the lists refresh. */
+export function useCopyFood() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => copyFood(id),
+    onSuccess: (food: LibraryFood) => {
+      client.setQueryData(foodKey(food.id), food)
+      void client.invalidateQueries({ queryKey: ["nutrition", "foods"] })
+    },
+  })
+}
+
 /** Uploads a picked photo (a data or file URI) and sets it on the food. */
 export async function setFoodPhoto(
   id: string,
@@ -248,7 +276,7 @@ export function foodEditError(error: unknown): string {
     // The server's envelope carries the route's own code (catalog_read_only).
     const code = error.code
     if (error.status === 403 || code === "catalog_read_only")
-      return "Only the person who added this food (or an admin) can change it."
+      return "This food is built in and can't be changed. Copy it to make your own."
     if (error.status === 409 || code === "food_name_taken")
       return "Another food already has that name. Pick a different one."
     if (code === "media_not_ready")

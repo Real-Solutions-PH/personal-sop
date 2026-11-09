@@ -195,6 +195,17 @@ test("each row says its source; a filter asks the server for one", async () => {
   expect(screen.queryByText("Skyr, vanilla")).toBeNull()
 })
 
+test("a built-in food's row says Built-in; an own food's doesn't", async () => {
+  mockRequest.mockResolvedValue({
+    data: [food, { ...usda, is_global: true, use_count: 2 }],
+    count: 2,
+  })
+  show()
+  expect(await screen.findByText("Egg, whole, raw")).toBeTruthy()
+  // One mark: the built-in database food, not the member's own Skyr.
+  expect(screen.getAllByText("Built-in")).toHaveLength(1)
+})
+
 test("a search reaches every source and shows what it matched", async () => {
   mockRequest.mockResolvedValue({ data: [food], count: 1 })
   show()

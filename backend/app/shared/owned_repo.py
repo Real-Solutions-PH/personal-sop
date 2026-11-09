@@ -4,13 +4,11 @@ Ownership is a service invariant: every lookup filters on ``owner_id`` (and
 ``tenant_id``), so another user's id is a natural 404 with no existence leak.
 Row-level security is the second wall underneath.
 
-A ``shared_catalog`` table is read tenant-wide instead, and every write path
-here (upsert, soft delete, restore, :func:`require_writable`) refuses a row
-whose author is someone else unless the caller is an admin.
-
 A ``global_catalog`` table is read as the caller's own rows plus the
-tenant's global (built-in) rows, and every write path refuses a global row
-for everyone, admins included: built-ins change only through migrations.
+tenant's global (built-in) rows, and every write path here (upsert, soft
+delete, restore, :func:`require_writable`) refuses a global row for
+everyone, admins included: built-ins change only through migrations and
+server-side imports.
 
 Upserts are idempotent on the client-minted id, and a write that hits a
 natural-key unique constraint whose holder is a tombstone REVIVES that row
@@ -47,11 +45,9 @@ PROTECTED = frozenset(
 
 
 def scope(ctx: Ctx, model: type[M]) -> list[ColumnElement[bool]]:
-    """Who sees a row: its owner, or the whole tenant for a shared catalog;
-    in a global catalog, its owner or (a built-in row) the whole tenant."""
+    """Who sees a row: its owner; in a global catalog, also (a built-in
+    row) the whole tenant."""
     tenant = model.tenant_id == ctx.tenant_id
-    if model.shared_catalog:
-        return [tenant]  # type: ignore[list-item]
     if model.global_catalog:
         return [
             tenant,  # type: ignore[list-item]
@@ -69,13 +65,11 @@ def is_global(row: OwnedRow) -> bool:
 
 
 def can_write(ctx: Ctx, row: OwnedRow) -> bool:
-    """Whether the caller may change this row: always their own unless it is
-    built in; another member's shared catalog row only as an admin."""
+    """Whether the caller may change this row: their own unless it is built
+    in."""
     if is_global(row):
         return False
-    return row.owner_id == ctx.user_id or (
-        type(row).shared_catalog and bool(ctx.user.is_superuser)
-    )
+    return row.owner_id == ctx.user_id
 
 
 def guard_write(ctx: Ctx, row: OwnedRow) -> None:
@@ -89,7 +83,7 @@ def guard_write(ctx: Ctx, row: OwnedRow) -> None:
         raise domain_error(
             403,
             "catalog_read_only",
-            "Another member added this; only they or an admin can change it",
+            "This one isn't yours to change",
         )
 
 
@@ -124,7 +118,8 @@ def require_writable(
     what: str,
     include_deleted: bool = False,
 ) -> M:
-    """``require``, refusing (403) a shared row the caller may not change."""
+    """``require``, refusing (403) a built-in row (or one not the
+    caller's)."""
     row = require(ctx, model, row_id, what=what, include_deleted=include_deleted)
     guard_write(ctx, row)
     return row

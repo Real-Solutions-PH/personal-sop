@@ -6,9 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class FoodOut(BaseModel):
-    """One food of the shared library. Amounts are per ``basis`` (per 100 g,
-    per piece or per serving); sodium is in milligrams, every other amount in
-    grams. ``can_edit``: the caller is its author or an admin."""
+    """One food of the library: a built-in one (``is_global``, every
+    member's, read-only) or the caller's own. Amounts are per ``basis`` (per
+    100 g, per piece or per serving); sodium is in milligrams, every other
+    amount in grams. ``can_edit``: it is the caller's own (never a built-in
+    one; copy it instead)."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -43,6 +45,8 @@ class FoodOut(BaseModel):
     photo_media_id: uuid.UUID | None = None
     photo_url: str | None = None
     can_edit: bool = False
+    # Built in: every member's, read-only (else the caller's own).
+    is_global: bool = False
     # Who it came from, the label every row shows: the person ("you"), Fern
     # (read from a label or told, "fern"), or a public database the server
     # imported ("database": USDA, Open Food Facts, FNRI).
