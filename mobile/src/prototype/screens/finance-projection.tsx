@@ -241,8 +241,10 @@ export function Projection() {
   }
   const runway = expense ? proj.start / (expense / 3) : 0
   // The accounts a purchase can come from, and the card an installment plan
-  // runs on: the user's own (live accounts are UUIDs, not the demo's
-  // "bpi" / "bpicc", which the server refused).
+  // runs on, when there is one: the user's own (live accounts are UUIDs, not
+  // the demo's "bpi" / "bpicc", which the server refused). A card is
+  // optional: without one, the monthly payments are plain expenses from the
+  // picked (or default) account, so a plan saves for anyone.
   const payable = s.accounts.filter((a) => a.inProjection && !a.archived),
     acct = (
       payable.find((a) => a.id === picked) ??
@@ -250,16 +252,18 @@ export function Projection() {
       payable[0]
     )?.id,
     card = s.accounts.find((a) => a.type === "credit" && !a.archived),
-    instFrom = (payable.find((a) => a.type === "bank") ?? payable[0])?.id
+    instFrom = card
+      ? (
+          payable.find((a) => a.type === "bank" && a.id !== card.id) ??
+          payable.find((a) => a.id !== card.id)
+        )?.id
+      : acct,
+    onCard = mode === "inst" && !!card
   const save = (draft: boolean) => {
     if (!whatIf) return
     const from = mode === "inst" ? instFrom : acct
-    if (!from || (mode === "inst" && !card)) {
-      toast.error(
-        mode === "inst"
-          ? "Add a credit card to plan installments"
-          : "Add an account first",
-      )
+    if (!from) {
+      toast.error("Add an account first")
       return
     }
     const date = `${month}-15`
@@ -280,12 +284,12 @@ export function Projection() {
       })
     A.addPlanned({
       name: name || "Planned purchase",
-      type: mode === "inst" ? "transfer" : "expense",
+      type: onCard ? "transfer" : "expense",
       amount: plan ? plan.monthlyMinor / 100 : Number(amount),
       estimated: false,
       accountId: from,
-      toAccountId: mode === "inst" ? card?.id : undefined,
-      categoryId: mode === "inst" ? undefined : "shopping",
+      toAccountId: onCard ? card?.id : undefined,
+      categoryId: onCard ? undefined : "shopping",
       schedule:
         mode === "inst" ? { kind: "monthly", day: 8 } : { kind: "once", date },
       start: date,
@@ -745,7 +749,18 @@ export function Projection() {
                 { value: "inst", label: "Installments" },
               ]}
             />
-            {mode === "inst" ? (
+            {(mode !== "inst" || !card) &&
+              chiprow(
+                payable.map((a) => (
+                  <FinChip
+                    key={a.id}
+                    label={a.name}
+                    active={acct === a.id}
+                    onPress={() => setAcct(a.id)}
+                  />
+                )),
+              )}
+            {mode === "inst" && (
               <>
                 <Line style={{ gap: 8, flexWrap: "wrap" }}>
                   {INSTALLMENT_TERMS.map((v) => (
@@ -822,8 +837,8 @@ export function Projection() {
                 {plan && (
                   <View testID="installment-plan" style={{ gap: 2 }}>
                     <Copy weight="semibold">
-                      {money(plan.monthlyMinor / 100)}/mo × {n} on{" "}
-                      {card?.name ?? "a credit card"}
+                      {money(plan.monthlyMinor / 100)}/mo × {n}
+                      {card ? ` on ${card.name}` : ""}
                     </Copy>
                     <Copy
                       size={12}
@@ -842,17 +857,6 @@ export function Projection() {
                   </View>
                 )}
               </>
-            ) : (
-              chiprow(
-                payable.map((a) => (
-                  <FinChip
-                    key={a.id}
-                    label={a.name}
-                    active={acct === a.id}
-                    onPress={() => setAcct(a.id)}
-                  />
-                )),
-              )
             )}
             {whatIf && (
               <View

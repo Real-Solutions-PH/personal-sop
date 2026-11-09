@@ -306,8 +306,9 @@ def answer(
                 "label": "Add installment plan",
                 "prefill": {
                     "name": "Phone — 0% installment",
-                    "type": "transfer",
+                    "type": "expense",
                     "amount_minor": monthly,
+                    "category_slug": "shopping",
                     "is_installment": True,
                     "schedule": {"kind": "monthly", "day": 8},
                     "end_rule": {"kind": "count", "n": n},
