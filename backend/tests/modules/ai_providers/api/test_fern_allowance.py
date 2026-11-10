@@ -463,12 +463,12 @@ def test_plus_past_its_budget_is_answered_by_the_light_model(
     api = _api(client, db, storefront="US")
     api.post("/companion/ask", {"text": "hello", "id": str(uuid.uuid4())})
     assert server_key.models and settings.NEBIUS_MODEL in server_key.models
-    assert "deepseek-ai/DeepSeek-V4-Flash-0731" not in server_key.models
+    assert settings.fern_light_models["chat"] not in server_key.models
     _spend_server(api.user, _usd(2.50), DAY_2)  # type: ignore[attr-defined]
     server_key.models.clear()
     api.post("/companion/ask", {"text": "hello again", "id": str(uuid.uuid4())})
     assert server_key.models
-    assert set(server_key.models) == {"deepseek-ai/DeepSeek-V4-Flash-0731"}
+    assert set(server_key.models) == {settings.fern_light_models["chat"]}
 
 
 # ---------------------------------------------------------------------------

@@ -259,7 +259,9 @@ class Settings(BaseSettings):
     # what a user may pick instead): text for chat/capture, vision for photos.
     # DeepSeek V4.1 Flash since 2026-11-05: on Fern's replay eval it kept all
     # 28 guards and fixed 78/184 failures (V4 Flash: 59), at 2.7x the cost.
-    NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4.1-Flash"
+    # Nebius dropped the undated name on 2026-11-10 (model_not_found, and
+    # Fern stopped answering); only the dated id "-1017" is served now.
+    NEBIUS_MODEL: str = "deepseek-ai/DeepSeek-V4.1-Flash-1017"
     NEBIUS_VISION_MODEL: str = "Qwen/Qwen3.8-27B"
     # Photos on the server key are read by several vision models at once and
     # each label number is decided by majority, so one misread digit never
@@ -356,7 +358,9 @@ class Settings(BaseSettings):
     FERN_PLUS_MONTHLY_HARD_STOP_USD: float = 5.00
     # The lighter model per purpose for a Plus account past its budget, as
     # "purpose=model" pairs; a purpose not listed keeps its model.
-    FERN_LIGHT_MODELS: str = "chat=deepseek-ai/DeepSeek-V4-Flash-0731"
+    # Nemotron 3.5 Lightning since 2026-11-10: Nebius no longer serves
+    # DeepSeek V4 Flash (0731), and it is the cheapest text model left.
+    FERN_LIGHT_MODELS: str = "chat=nvidia/Nemotron-3_5-Lightning"
     # Price tier by ISO 3166 country (the pricing study's tiers 2 and 3);
     # any country not listed is tier 1. "CC=tier" pairs.
     PRICE_TIER_COUNTRIES: str = "BR=2,MX=2,PH=3,IN=3,ID=3"

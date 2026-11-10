@@ -54,6 +54,8 @@ export const BACKEND_DEFAULTED: Record<string, string> = {
   FERN_HISTORY_MAX_TOKENS:
     "Code default (64k): Fern's chat history cap; raise only to spend more per reply.",
   FERN_RULE_VOTER_SALT: "Falls back to the credentials KEK.",
+  FERN_ALLOWANCE_ENFORCED:
+    "Code default (false) while the app is in testing: no Fern message is refused.",
   FERN_FREE_WEEK_ONE_DAYS:
     "Code default (7): the pricing ruling's first week of the free Fern allowance.",
   FERN_FREE_DAILY_WEEK_ONE: "Code default (15), the pricing ruling.",

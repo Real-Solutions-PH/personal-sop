@@ -75,7 +75,7 @@ NEBIUS: tuple[CatalogModel, ...] = (
         0.90,
     ),
     CatalogModel(
-        "deepseek-ai/DeepSeek-V4.1-Flash",
+        "deepseek-ai/DeepSeek-V4.1-Flash-1017",
         "DeepSeek V4.1 Flash",
         "DeepSeek",
         "vision",
@@ -171,7 +171,7 @@ CONTEXT_WINDOWS: dict[str, int] = {
     "Qwen/Qwen3-30B-A3B-Instruct-2507": 262_144,
     "reflection/beam": 1_048_576,
     "nvidia/Nemotron-3.5-Super-VL": 1_048_576,
-    "deepseek-ai/DeepSeek-V4.1-Flash": 1_048_576,
+    "deepseek-ai/DeepSeek-V4.1-Flash-1017": 1_048_576,
     "MiniMaxAI/MiniMax-M3": 1_048_576,
     "nvidia/nemotron-3-super-120b-a12b": 262_144,
     "Qwen/Qwen3.8-27B": 262_144,
