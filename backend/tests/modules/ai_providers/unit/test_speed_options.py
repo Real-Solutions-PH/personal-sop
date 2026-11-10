@@ -45,7 +45,7 @@ def test_the_server_default_gets_the_deepseek_switch(
 ) -> None:
     """V4.1 Flash, the default since 2026-11-05, thinks only when asked,
     like V4 Flash before it."""
-    assert settings.NEBIUS_MODEL == "deepseek-ai/DeepSeek-V4.1-Flash"
+    assert settings.NEBIUS_MODEL == "deepseek-ai/DeepSeek-V4.1-Flash-1017"
     default = _resolved(settings.NEBIUS_MODEL)
     assert public.speed_options(default)["extra_body"] == {
         "chat_template_kwargs": {"thinking": False}
