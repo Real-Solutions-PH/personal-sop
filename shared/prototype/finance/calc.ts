@@ -149,8 +149,14 @@ export function liquid(s: FinState, bal = balances(s), exclude: string[] = []) {
     .filter((a) => a.inProjection && !a.archived && !exclude.includes(a.id))
     .reduce((sum, a) => sum + bal[a.id], 0)
 }
-export function netWorthSeries(s: FinState, days = 90): number[] {
-  const t = today()
+/** Net worth at the end of each of the ``days`` days ending on ``end``
+ * (today unless given), oldest first. */
+export function netWorthSeries(
+  s: FinState,
+  days = 90,
+  end = today(),
+): number[] {
+  const t = end
   const inc = s.accounts.filter((a) => a.inNetWorth && !a.archived)
   let nw = inc.reduce((sum, a) => sum + a.opening, 0)
   const byDay = new Map<string, number>()

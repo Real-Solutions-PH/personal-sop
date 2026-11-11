@@ -25,7 +25,9 @@ export function monthlyNetWorth(s: FinState, n = 6, today = C.today()) {
     first = C.monthRange(keys[0], sd)[0],
     // One value per day from the day before the first month to today.
     days = C.diffDays(today, first) + 2,
-    series = C.netWorthSeries(s, days),
+    // Ends on ``today`` (not the clock's day), so ``at`` indexes it right
+    // whatever day it is passed.
+    series = C.netWorthSeries(s, days, today),
     at = (day: string) =>
       series[Math.min(series.length - 1, C.diffDays(day, first) + 1)] ?? 0,
     startValue = series[0] ?? 0
