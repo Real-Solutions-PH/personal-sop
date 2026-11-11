@@ -85,7 +85,11 @@ def test_a_40_message_chat_sends_all_40_word_for_word(
     thread = _chat(api, texts)
     model = install(monkeypatch, say("We talked about the trip."))
     _ask(client, api, thread)
-    assert _convo(model.seen[0]) == texts
+    # Word for word. A message from an earlier business day carries a day
+    # stamp, which is not part of its words: this chat spans the 20 minutes
+    # before now, so a run just after the 04:00 rollover stamps its older
+    # half (CI, 2026-11-11). The stamp itself is tested below.
+    assert [services._unstamped(t) for t in _convo(model.seen[0])] == texts
 
 
 def test_a_chat_over_budget_drops_its_oldest_whole_and_keeps_them_in_the_summary(
