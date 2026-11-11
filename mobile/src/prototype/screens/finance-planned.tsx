@@ -274,6 +274,10 @@ export function Planned({ id }: { id?: string }) {
           .reverse()
       : [],
     past = history.filter((o) => o.status !== "upcoming" && o.status !== "due"),
+    // What the empty History draws, dimmed: the plan's first three dates.
+    firstDates = p
+      ? C.occurrences(p, p.start, C.addDays(p.start, 1200)).slice(0, 3)
+      : [],
     next = p
       ? C.occurrencesIn(s, C.addDays(today, -14), C.addDays(today, 400), {
           includeWhatIf: true,
@@ -586,17 +590,18 @@ export function Planned({ id }: { id?: string }) {
                   style={{ paddingBottom: 8 }}
                 >
                   <Dimmed>
-                    {[1, 2, 3].map((n) => (
+                    {/* The sample is the plan's own first dates, never days
+                        before it starts: a date the plan could not have had,
+                        drawn "paid", reads as real history. */}
+                    {firstDates.map((d) => (
                       <Line
-                        key={n}
+                        key={d}
                         style={{
                           paddingVertical: 10,
                           justifyContent: "space-between",
                         }}
                       >
-                        <Copy size={14}>
-                          {C.shortDate(C.addDays(today, -30 * n))}
-                        </Copy>
+                        <Copy size={14}>{C.shortDate(d)}</Copy>
                         <Line style={{ gap: 8 }}>
                           <Copy size={14}>{money(p.amount)}</Copy>
                           <FinPill tone="good">
@@ -606,7 +611,13 @@ export function Planned({ id }: { id?: string }) {
                       </Line>
                     ))}
                   </Dimmed>
-                  <EmptyFoot hint="Each past date lands here as paid or missed, with how far it was off." />
+                  <EmptyFoot
+                    hint={
+                      firstDates[0]
+                        ? `${firstDates[0] > today ? "Starts" : "First date"} ${C.dayLabel(firstDates[0])}. Each date lands here once it passes, as paid or missed.`
+                        : "Each past date lands here as paid or missed, with how far it was off."
+                    }
+                  />
                 </View>
               )}
             </Frame>
