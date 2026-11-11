@@ -430,7 +430,7 @@ export function planReminders(
   for (const o of more.bills ?? []) {
     if (!billTime || o.item.type === "income") continue
     if (o.status === "paid" || o.status === "skipped") continue
-    const amount = more.billAmount ? ` · ${more.billAmount(o.item.amount)}` : ""
+    const amount = more.billAmount ? ` · ${more.billAmount(o.amount)}` : ""
     // k: days from the due day, the week before through the overdue days.
     for (let k = 1 - BILL_DAYS; k <= BILL_OVERDUE_DAYS; k++) {
       const [by, bm, bd] = addDays(o.day, k).split("-").map(Number) as [

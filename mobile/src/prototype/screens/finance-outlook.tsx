@@ -200,7 +200,7 @@ export function OutlookRow({ x }: { x: Occurrence }) {
             : x.item.type === "expense"
               ? "−"
               : ""}
-          {money(x.item.amount)}
+          {money(x.amount)}
         </Copy>
       </Line>
     </Tap>
