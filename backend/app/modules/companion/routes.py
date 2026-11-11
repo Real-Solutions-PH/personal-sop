@@ -149,7 +149,8 @@ def ask_stream(
     tool, ``TEXT_MESSAGE_*`` for the reply, ``TOOL_CALL_*`` per tool with a
     one-line outcome in ``TOOL_CALL_RESULT``, ``CUSTOM`` events for the
     stored question (``message``), cards (``card``, ``ask``, ``info``),
-    blocks (``block``) and a router capture (``capture``), then
+    blocks (``block``), a router capture (``capture``), the synced rows a
+    tool just wrote, committed (``changes``, right after its result), then
     ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. While the
     model reasons, ``REASONING_*`` events carry its thinking as it is
     written. Validation happens before the stream opens.
@@ -199,6 +200,10 @@ def ask_stream(
                 ),
                 written.tracking(ctx.session) as wrote,
             ):
+                # Each tool's own rows: what the turn wrote before it rides
+                # on the finished reply.
+                stream.before_tool = lambda: wrote.fresh.clear()
+                stream.after_tool = lambda: _send_written(ctx, stream, wrote)
                 out = services.ask(
                     ctx,
                     text=data.text,
@@ -264,6 +269,31 @@ def ask_stream(
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
+
+
+def _send_written(ctx: Ctx, stream: turn.TurnStream, wrote: written.Wrote) -> None:
+    """Send the synced rows a tool just wrote, committed, as a ``changes``
+    event, and tell the person's other devices to pull.
+
+    Kai, 2026-11-12: a meal Fern logged showed as saved in the chat but
+    reached the Nutrition screen only when the reply ended, 1-12 s later
+    (the model still writing). The commit is the one the next model call
+    makes anyway (``capture.agent.call_model``), made a moment earlier so
+    the app never shows a row that is not stored. Inside a batch or a
+    savepoint (a capture interpreting) nothing is committed or sent: those
+    rows ride on the finished reply as before."""
+    if ctx.in_batch or ctx.session.in_nested_transaction():
+        return
+    ctx.session.flush()
+    fresh = wrote.take_fresh()
+    if not fresh:
+        return
+    release_connection(ctx.session)
+    rows = written.changes(ctx, fresh)
+    if not rows:
+        return
+    stream.custom("changes", {"changes": [r.model_dump(mode="json") for r in rows]})
+    publish(ctx.user_id, "sync.changed", {"cursor": rows[-1].version})
 
 
 def _after_reply(
