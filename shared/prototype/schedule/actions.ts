@@ -48,6 +48,9 @@ export function moveItem(item: CalendarItem, time: string): MoveOutcome {
     const t = tasksStore.get().tasks.find((x) => x.id === ref.refId)
     if (!t || t.status === "deleted") return "fixed"
     if (!t.recurrence) {
+      // A move kept from while it repeated would pin it: its time is now
+      // the due time alone.
+      put(ref, item.day, null)
       const shift =
         t.remindAt && t.dueTime
           ? (dayMinutes(time) - dayMinutes(t.dueTime)) * 60_000

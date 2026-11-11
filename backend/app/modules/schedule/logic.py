@@ -22,6 +22,21 @@ KINDS: tuple[Kind, ...] = ("habit", "routine", "task")
 _CLOCK = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
+DAY_START_HOUR = 4
+
+
+def day_minutes(clock: str) -> int:
+    """``HH:MM`` as minutes on the business day: the small hours (before
+    04:00) come after midnight, so 01:30 is 25 h 30 m."""
+    h, m = int(clock[:2]), int(clock[3:5])
+    return (h + 24 if h < DAY_START_HOUR else h) * 60 + m
+
+
+def shift_minutes(own: str, moved: str) -> int:
+    """How far a move took an item, in minutes on its business day."""
+    return day_minutes(moved) - day_minutes(own)
+
+
 def is_clock(value: str) -> bool:
     """``HH:MM`` on a 24-hour clock, as every schedule slot stores it."""
     return bool(_CLOCK.match(value))

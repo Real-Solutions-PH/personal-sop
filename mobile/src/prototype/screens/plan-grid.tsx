@@ -19,7 +19,7 @@ import {
 } from "@domain/schedule/logic"
 import { Check, Undo2 } from "lucide-react-native"
 import { useContext, useEffect, useRef, useState } from "react"
-import { Pressable, View } from "react-native"
+import { Pressable, useWindowDimensions, View } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   runOnJS,
@@ -34,7 +34,7 @@ import { feel, MOTION } from "../motion"
 import { Copy, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
-import { ScrollLock } from "../ui"
+import { PageNudge, ScrollLock } from "../ui"
 
 /** Points per minute: an hour row is 64 pt, a quarter hour 16. */
 const PX = 64 / 60
@@ -42,6 +42,10 @@ const PX = 64 / 60
 const SPAN_MIN = 30
 const BLOCK_MIN_H = SPAN_MIN * PX - 2
 const GUTTER = 48
+/** Points from the screen's top or bottom where a held block scrolls. */
+const EDGE = 96
+/** The tab bar under the page, roughly: the bottom zone sits above it. */
+const TAB_BAR = 40
 
 const label12 = (min: number) => {
   const [h, m] = clockOf(min).split(":").map(Number)
@@ -90,16 +94,9 @@ export function layout(items: readonly CalendarItem[]): Placed[] {
   return out
 }
 
-/** The hours shown: 6 AM to midnight, stretched to every timed item. */
-function hourRange(placed: Placed[]) {
-  const mins = placed.map((p) => p.min)
-  const first = Math.min(6 * 60, ...mins)
-  const last = Math.max(24 * 60, ...mins.map((m) => m + 60))
-  return {
-    from: Math.max(DAY_FIRST_MIN, Math.floor(first / 60) * 60),
-    to: Math.min(DAY_FIRST_MIN + 24 * 60, Math.ceil(last / 60) * 60),
-  }
-}
+/** The whole business day, 4 AM to 4 AM: anywhere a block can land. */
+const DAY_FROM = DAY_FIRST_MIN,
+  DAY_TO = DAY_FIRST_MIN + 24 * 60
 
 export function DayGrid({
   items,
@@ -112,7 +109,8 @@ export function DayGrid({
   const t = useTheme()
   const [width, setWidth] = useState(0)
   const placed = layout(items)
-  const { from, to } = hourRange(placed)
+  const from = DAY_FROM,
+    to = DAY_TO
   const hours = Array.from(
     { length: (to - from) / 60 },
     (_, k) => from + k * 60,
@@ -186,7 +184,6 @@ export function DayGrid({
             top={(p.min - from) * PX}
             left={GUTTER + (lane / p.lanes) * p.lane}
             width={lane / p.lanes - 4}
-            bounds={{ from, to: to - SNAP_MIN }}
           />
         ))}
     </View>
@@ -198,17 +195,17 @@ function Block({
   top,
   left,
   width,
-  bounds,
 }: {
   placed: Placed
   top: number
   left: number
   width: number
-  bounds: { from: number; to: number }
 }) {
   const t = useTheme()
   const reduced = useReducedMotion()
   const lock = useContext(ScrollLock)
+  const nudge = useContext(PageNudge)
+  const screen = useWindowDimensions().height
   const { item, min } = placed
   const accent = t[AREA[item.module].accent]
   const canMove = movable(item)
@@ -216,6 +213,10 @@ function Block({
   const lifted = useSharedValue(0)
   const scale = useSharedValue(1)
   const slot = useSharedValue(min)
+  // The finger's travel and how far the page has scrolled under it since
+  // the lift: the block sits at their sum below where it started.
+  const travel = useSharedValue(0)
+  const scrolled = useSharedValue(0)
   const [target, setTarget] = useState<number | null>(null)
   // On web the release that ends a drag is also a click: it must not open
   // the item. Cleared on the next press-in.
@@ -229,9 +230,60 @@ function Block({
     y.value = reduced ? top : withTiming(top, { duration: 180 })
   }, [top, reduced, y, lifted])
 
-  const lo = Math.max(bounds.from, DAY_FIRST_MIN),
-    hi = Math.min(bounds.to, DAY_LAST_MIN)
+  // Anywhere on the business day the grid shows.
+  const lo = DAY_FIRST_MIN,
+    hi = DAY_LAST_MIN
+  /** The quarter hour the block is over, ``offset`` points below its start. */
+  const slotAt = (offset: number) => {
+    "worklet"
+    const raw = Math.round((min + offset / PX) / SNAP_MIN) * SNAP_MIN
+    return Math.min(hi, Math.max(lo, raw))
+  }
+  // Held near the top or bottom of the screen, the page scrolls under the
+  // block (the page itself is locked while it is lifted).
+  const edge = useRef<{
+    dir: number
+    speed: number
+    timer?: ReturnType<typeof setInterval>
+  }>({ dir: 0, speed: 0 })
+  /** Never above the day's first quarter hour or below its last. */
+  const clampOffset = (offset: number) => {
+    "worklet"
+    return Math.min((hi - min) * PX, Math.max((lo - min) * PX, offset))
+  }
+  // ``depth``: -1..1, how far into the top (negative) or bottom edge zone
+  // the finger is; deeper scrolls faster. Stops at the day's ends.
+  const setEdge = (depth: number) => {
+    const dir = Math.sign(depth)
+    edge.current.speed = 2 + Math.abs(depth) * 6
+    if (dir === edge.current.dir) return
+    edge.current.dir = dir
+    if (edge.current.timer) clearInterval(edge.current.timer)
+    edge.current.timer = undefined
+    if (!dir) return
+    edge.current.timer = setInterval(() => {
+      if ((dir > 0 && slot.value >= hi) || (dir < 0 && slot.value <= lo)) return
+      const moved = nudge(dir * edge.current.speed)
+      if (!moved) return
+      scrolled.value += moved
+      const offset = clampOffset(travel.value + scrolled.value)
+      y.value = top + offset
+      const next = slotAt(offset)
+      if (next !== slot.value) {
+        slot.value = next
+        feel.select()
+        setTarget(next)
+      }
+    }, 16)
+  }
+  useEffect(
+    () => () => {
+      if (edge.current.timer) clearInterval(edge.current.timer)
+    },
+    [],
+  )
   const drop = (to: number) => {
+    setEdge(0)
     lock(false)
     setTarget(null)
     if (to === min) {
@@ -258,6 +310,8 @@ function Block({
     .onStart(() => {
       lifted.value = 1
       slot.value = min
+      travel.value = 0
+      scrolled.value = 0
       runOnJS(lock)(true)
       runOnJS(markDragged)()
       runOnJS(feel.impact)()
@@ -265,9 +319,18 @@ function Block({
     })
     .onUpdate((e) => {
       // The block follows the finger; the time it would land on snaps.
-      y.value = top + e.translationY
-      const raw = Math.round((min + e.translationY / PX) / SNAP_MIN) * SNAP_MIN
-      const next = Math.min(hi, Math.max(lo, raw))
+      travel.value = e.translationY
+      const offset = clampOffset(e.translationY + scrolled.value)
+      y.value = top + offset
+      const bottom = screen - EDGE - TAB_BAR
+      const depth =
+        e.absoluteY < EDGE
+          ? -Math.min(1, (EDGE - e.absoluteY) / EDGE)
+          : e.absoluteY > bottom
+            ? Math.min(1, (e.absoluteY - bottom) / EDGE)
+            : 0
+      runOnJS(setEdge)(depth)
+      const next = slotAt(offset)
       if (next !== slot.value) {
         slot.value = next
         runOnJS(feel.select)()
@@ -285,6 +348,7 @@ function Block({
     .onFinalize((_e, ok) => {
       if (ok) return
       lifted.value = 0
+      runOnJS(setEdge)(0)
       runOnJS(lock)(false)
       runOnJS(setTarget)(null)
     })

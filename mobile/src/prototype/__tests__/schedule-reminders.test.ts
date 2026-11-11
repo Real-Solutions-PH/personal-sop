@@ -144,3 +144,22 @@ test("a recurring task's moved occurrence reminds as much later, at the moved ti
   expect(p && "at" in p ? p.at.getTime() : 0).toBe(local(22, 15).getTime())
   expect(p?.body).toBe("Due at 15:00")
 })
+
+test("two slots on the moved day: one reminder at the moved time, not two", () => {
+  const twice = habit({
+    schedule: [
+      { days: [THU], time: "09:00" },
+      { days: [THU], time: "18:00" },
+    ],
+  })
+  const plan = planReminders([], [twice], NOW, {
+    overrides: [moved("habit", "h1", TODAY, "14:30")],
+  })
+  const today = plan.filter(
+    (p) => "at" in p && p.at.getTime() < local(23, 4).getTime(),
+  )
+  expect(today.map((p) => p.id)).toEqual([`habit-h1-${THU}-09:00-moved-0`])
+  // Both slots come back at their own times the week after.
+  expect(at(plan, `habit-h1-${THU}-09:00`)).toBe(local(29, 9).getTime())
+  expect(at(plan, `habit-h1-${THU}-18:00`)).toBe(local(29, 18).getTime())
+})

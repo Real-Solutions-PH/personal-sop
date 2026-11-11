@@ -11,7 +11,7 @@ import { dayKey, dayOffset } from "../lib/day"
 import { walkRun } from "../lib/grace"
 import { useSharedMemo } from "../lib/memo"
 import { modules } from "../modules"
-import { withOverrides } from "../schedule/logic"
+import { dayMinutes, withOverrides } from "../schedule/logic"
 import { scheduleStore } from "../schedule/store"
 import {
   AREA,
@@ -371,9 +371,11 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
  * what a moved item goes back to (see ``withOverrides``). */
 const ownTimes = (...lists: CalendarItem[][]) =>
   new Map(lists.flat().map((i) => [i.id, i.time]))
+/** By day, then by time on the business day: 01:00 is the end of a day,
+ * after 23:00, not its start. Untimed last. */
 const byDayThenTime = (x: CalendarItem, y: CalendarItem) =>
   x.day.localeCompare(y.day) ||
-  (x.time ?? "99:99").localeCompare(y.time ?? "99:99")
+  (x.time ? dayMinutes(x.time) : 9999) - (y.time ? dayMinutes(y.time) : 9999)
 /** Today's (or any range's) items from this phone's own stores only, so
  * what was just checked off shows at once (``useAllCalendar`` prefers the
  * server's copy once it has one). */

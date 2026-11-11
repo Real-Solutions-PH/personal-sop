@@ -528,6 +528,9 @@ export const ScrollLock = createContext<(locked: boolean) => void>(() => {})
 /** Scrolls the page so content down to ``y`` (from the top of the page's
  * content) shows above its bottom edge; no-op when it already does. */
 export const PageScroll = createContext<(y: number) => void>(() => {})
+/** Scrolls the page by ``dy`` points within its content (a drag held at the
+ * screen's edge, while ScrollLock holds the page); returns how far it went. */
+export const PageNudge = createContext<(dy: number) => number>(() => 0)
 
 /** How close to the end of a page (pt) its next rows are added. */
 const END_DISTANCE = 600
@@ -634,7 +637,7 @@ export function Screen({
   const [footerHeight, setFooterHeight] = useState(0)
   const slot = useRef<FooterSlotStore>(null)
   if (!slot.current) slot.current = footerSlot()
-  const view = useRef({ top: 0, height: 0 })
+  const view = useRef({ top: 0, height: 0, content: 0 })
   // The keyboard now covers the bottom of the page instead of shrinking it
   // (see KeyboardAwareScrollView below), so what shows is the page less it.
   const keyboard = useKeyboardState((k) => (k.isVisible ? k.height : 0))
@@ -646,6 +649,14 @@ export function Screen({
     if (height <= 0 || y <= top + height) return
     view.current.top = y - height
     scroller.current?.scrollTo({ y: y - height, animated: false })
+  }, [])
+  const nudge = useCallback((dy: number) => {
+    const { top, height, content } = view.current
+    const next = Math.max(0, Math.min(Math.max(0, content - height), top + dy))
+    if (next === top) return 0
+    view.current.top = next
+    scroller.current?.scrollTo({ y: next, animated: false })
+    return next - top
   }, [])
   const refresh = async () => {
     if (!onRefresh) return
@@ -781,6 +792,7 @@ export function Screen({
             const { contentOffset, contentSize, layoutMeasurement } =
               e.nativeEvent
             view.current.top = contentOffset.y
+            view.current.content = contentSize.height
             const next = contentOffset.y > 4
             if (next !== scrolled) setScrolled(next)
             if (
@@ -801,6 +813,7 @@ export function Screen({
             ) : undefined
           }
           onContentSizeChange={(_w, h) => {
+            view.current.content = h
             latest.handlers.onContentSizeChange()
             // Not enough rows to scroll yet: the next page fills the screen.
             if (onEndReached && view.current.height && h < view.current.height)
@@ -816,9 +829,11 @@ export function Screen({
         >
           <ScrollLock.Provider value={setLocked}>
             <PageScroll.Provider value={reveal}>
-              <PinnedFooterContext.Provider value={slot.current}>
-                {children}
-              </PinnedFooterContext.Provider>
+              <PageNudge.Provider value={nudge}>
+                <PinnedFooterContext.Provider value={slot.current}>
+                  {children}
+                </PinnedFooterContext.Provider>
+              </PageNudge.Provider>
             </PageScroll.Provider>
           </ScrollLock.Provider>
         </KeyboardAwareScrollView>

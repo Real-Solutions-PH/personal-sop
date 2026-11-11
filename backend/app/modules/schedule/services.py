@@ -1,8 +1,10 @@
 """Schedule overrides: writes (through sync) and the reads the calendar uses."""
 
 import uuid
-from datetime import date
-from typing import Any
+from collections.abc import Sequence
+from dataclasses import replace
+from datetime import date, timedelta
+from typing import TYPE_CHECKING, Any
 
 from sqlmodel import col
 
@@ -12,6 +14,12 @@ from app.shared import owned_repo
 from app.shared.context import Ctx
 from app.shared.domain import invalid
 from app.shared.owned import OwnedRow
+
+if TYPE_CHECKING:
+    from app.modules.tasks.logic import TaskView
+
+# The furthest a move can shift a reminder: a whole business day.
+MAX_SHIFT = timedelta(hours=24)
 
 
 def _owner_model(kind: str) -> type[OwnedRow]:
@@ -56,3 +64,31 @@ def in_window(ctx: Ctx, first: date, last: date) -> list[L.Override]:
         L.Override(kind=r.kind, ref_id=r.ref_id, day=r.day, time=r.time)  # type: ignore[arg-type]
         for r in rows
     ]
+
+
+def moved_task_reminders(ctx: Ctx, views: Sequence["TaskView"]) -> list["TaskView"]:
+    """Tasks with a moved occurrence on their due day remind as much later or
+    earlier, and read the moved time (the phone does the same for its local
+    reminder: ``local-reminders.ts``)."""
+    days = {v.due_date for v in views if v.due_date is not None}
+    if not days:
+        return list(views)
+    moved = {
+        (str(o.ref_id), o.day): o.time
+        for o in in_window(ctx, min(days), max(days))
+        if o.kind == "task"
+    }
+    out: list[TaskView] = []
+    for v in views:
+        to = moved.get((v.id, v.due_date)) if v.due_date else None
+        if to is None:
+            out.append(v)
+            continue
+        by = shift_by(v.due_time, to)
+        remind = v.remind_at + by if v.remind_at else None
+        out.append(replace(v, due_time=to, remind_at=remind))
+    return out
+
+
+def shift_by(own: str | None, moved: str) -> timedelta:
+    return timedelta(minutes=L.shift_minutes(own, moved)) if own else timedelta(0)

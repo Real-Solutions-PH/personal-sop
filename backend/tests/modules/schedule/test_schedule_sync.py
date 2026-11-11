@@ -193,3 +193,39 @@ def test_refuses_a_bad_time_kind_or_someone_elses_habit(
         ),
     )
     assert [r["status"] for r in res] == ["rejected"] * 4, res
+
+
+def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
+    client: TestClient, db: Session
+) -> None:
+    """The server's task reminder push follows the occurrence's move: not at
+    the series time (when it was moved later), but at the moved time."""
+    from datetime import UTC, datetime
+
+    from app.modules.tasks import jobs
+    from tests.modules.tasks.api.helpers import day, new_task
+
+    user, h = signed_in(db)
+    remind = datetime.now(UTC) - timedelta(minutes=1)
+    t = new_task(
+        client,
+        h,
+        "Stand-up",
+        due_date=day(0),
+        due_time="09:00",
+        remind_at=remind.isoformat(),
+        recurrence={"rule": {"kind": "daily"}, "mode": "fixed"},
+    )
+    res = push(
+        client,
+        h,
+        op("upsert", "schedule_override", uuid.uuid4(), kind="task",
+           ref_id=t["id"], day=day(0), time="11:00"),
+    )
+    assert res[0]["status"] == "applied", res
+    # Its own reminder time has passed, the moved one (two hours on) not yet.
+    with ctx_for(user, now=datetime.now(UTC)) as ctx:
+        assert jobs.send_reminders(ctx) == 0
+    later = datetime.now(UTC) + timedelta(hours=2)
+    with ctx_for(user, now=later) as ctx:
+        assert jobs.send_reminders(ctx) == 1

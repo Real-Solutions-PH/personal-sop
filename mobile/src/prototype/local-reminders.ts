@@ -193,6 +193,13 @@ const hm = (t: string) => {
     : null
 }
 
+/** The slot that day's occurrence uses (the calendar's ``slotFor``: the
+ * first slot on that weekday); a move replaces it alone. */
+const firstSlot = <T extends { days: number[] }>(
+  schedule: readonly T[],
+  wd: number,
+) => schedule.find((s) => s.days.includes(wd))
+
 /** What to schedule, soonest first, capped at ``MAX_PENDING``. Pure. */
 export function planReminders(
   allTasks: readonly Task[],
@@ -286,6 +293,7 @@ export function planReminders(
           href: `/habits/routines/${r.id}`,
         }
         const n = ahead(day),
+          first = slot === firstSlot(r.schedule, day),
           moved = movedTo("routine", r.id, n)
         if (!moved) {
           habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
@@ -294,8 +302,8 @@ export function planReminders(
         // A repeating trigger can't skip the moved day: that day at the
         // moved time, then dated ones at its own time (the next rebuild
         // puts the weekly one back).
-        const at = onDayAt(n, moved)
-        if (at > now)
+        const at = first ? onDayAt(n, moved) : null
+        if (at && at > now)
           habitPlans.push({ ...text, id: `${text.id}-moved-${n}`, at })
         habitPlans.push({ ...text, at: onDay(n + 7, time) })
       }
@@ -313,7 +321,11 @@ export function planReminders(
         for (const slot of h.schedule) {
           const own = slot.time ? hm(slot.time) : null
           if (!own || !slot.days.includes(wd)) continue
-          const moved = movedTo("habit", h.id, n)
+          // The move is the occurrence the calendar shows: its first slot.
+          const moved =
+            slot === firstSlot(h.schedule, wd)
+              ? movedTo("habit", h.id, n)
+              : null
           const due = moved ? onDayAt(n, moved) : onDay(n, own)
           if (isPausedOn(h, dayKey(due))) continue
           for (const at of nagTimes(due, h.nagEveryMin, now, more.quiet))
@@ -338,8 +350,13 @@ export function planReminders(
         }
         const n = ahead(day),
           done = doneToday && n === 0,
-          moved = movedTo("habit", h.id, n)
-        if (!done && !moved) {
+          moved =
+            slot === firstSlot(h.schedule, day)
+              ? movedTo("habit", h.id, n)
+              : null,
+          // Another slot that day: the move replaced it for that day.
+          dropped = !moved && !!movedTo("habit", h.id, n)
+        if (!done && !moved && !dropped) {
           habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
           continue
         }

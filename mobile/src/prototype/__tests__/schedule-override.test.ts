@@ -188,3 +188,34 @@ describe("moveItem", () => {
     expect(scheduleStore.get().overrides).toEqual([])
   })
 })
+
+describe("a task that stopped repeating", () => {
+  it("drops the move kept from its repeating days when its time changes", () => {
+    const day = dayKey()
+    const t = createTask({
+      title: "Stand-up",
+      dueDate: day,
+      dueTime: "10:00",
+      recurrence: { rule: { kind: "daily" }, mode: "fixed" },
+    })
+    const item = {
+      ...habitItem("10:00", day),
+      id: `task:${t.id}`,
+      module: "tasks",
+    } as CalendarItem
+    moveItem(item, "15:00")
+    tasksStore.set((s) => ({
+      ...s,
+      tasks: s.tasks.map((x) =>
+        x.id === t.id ? { ...x, recurrence: null } : x,
+      ),
+    }))
+    expect(moveItem(item, "12:00")).toBe("retimed")
+    expect(scheduleStore.get().overrides).toEqual([])
+    const [shown] = withOverrides(
+      [{ ...item, time: "12:00" }],
+      scheduleStore.get().overrides,
+    )
+    expect(shown.time).toBe("12:00")
+  })
+})
