@@ -5,16 +5,24 @@ import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
 import {
+  AlarmClock,
   ArrowLeftRight,
+  ChevronRight,
   Pause,
   Pencil,
   Play,
   Plus,
+  Receipt,
+  RotateCcw,
+  SkipForward,
   Tag,
   Trash2,
+  Undo2,
 } from "lucide-react-native"
 import { useState } from "react"
 import { ScrollView, Text, View } from "react-native"
+import { toast } from "sonner-native"
+import { MoneyInput } from "../money-input"
 import {
   border,
   Copy,
@@ -27,7 +35,7 @@ import {
 } from "../native-kit"
 import { back, go } from "../navigation"
 import { fonts, radius, useTheme } from "../theme"
-import { Button, Empty, Screen, Sheet } from "../ui"
+import { Button, DateField, Empty, Screen, Sheet } from "../ui"
 import { PlannedEditor, RecordEditor, useMoney } from "./finance"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 export function FinPill({
@@ -152,22 +160,47 @@ export function DueSheet({
     [phase, setPhase] = useState<"due" | "leaving" | "editor">(
       record ? "editor" : "due",
     )
+  // The amount being typed for this date; written when the field is left.
+  const [draft, setDraft] = useState<string | null>(null)
   if (!p) return null
-  const where = plannedWhere(p, s.accounts, s.categories)
+  const where = plannedWhere(p, s.accounts, s.categories),
+    when = p.snoozed[day] ?? day,
+    amount = C.amountOn(p, day),
+    moved = when !== day,
+    ownAmount = amount !== p.amount,
+    skipped = p.skipped.includes(day),
+    // Cents keep both digits: "1,234,567.50", never ".5".
+    shown =
+      draft ?? (Number.isInteger(amount) ? String(amount) : amount.toFixed(2))
+  /** Writes the amount being typed: on leaving the field, and before any
+   * action or close, so a press with the keyboard up never drops it. */
+  // False when what was typed is not an amount: the action that asked
+  // for the write then stops, so nothing goes through on the old amount.
+  const commitAmount = (): boolean => {
+    if (draft === null) return true
+    const v = Number(draft)
+    setDraft(null)
+    if (v === amount) return true
+    if (A.adjustOccurrence(id, day, { amount: v })) return true
+    toast.error("Enter an amount above zero")
+    return false
+  }
+  // A snooze moves at most two weeks past the scheduled day; once that
+  // limit is behind today it could only leave the date overdue, so the
+  // button goes.
+  const canSnooze = C.addDays(day, C.MOVE_DAYS) >= dayKey()
   return (
     <>
       {phase !== "editor" && (
         <Sheet
           title={p.name}
           open={phase === "due"}
-          onClose={onClose}
+          onClose={() => {
+            commitAmount()
+            onClose()
+          }}
           onClosed={() => setPhase((v) => (v === "leaving" ? "editor" : v))}
         >
-          <Copy size={14} muted>
-            Due {C.shortDate(p.snoozed[day] ?? day)} · expected{" "}
-            {p.estimated ? "≈ " : ""}
-            {money(p.amount)}
-          </Copy>
           <Line
             style={{
               padding: 12,
@@ -188,29 +221,100 @@ export function DueSheet({
               </Copy>
             </View>
           </Line>
+          {/* This one date, edited where it is shown: its day and its
+              amount. The plan's own rule and amount stay as they are. */}
+          <View
+            testID="occurrence-edit"
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 4,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: border(t.line, 0.6),
+              opacity: skipped ? 0.5 : 1,
+            }}
+          >
+            <DateField
+              label="Date"
+              value={when}
+              minimumDate={C.addDays(day, -C.MOVE_DAYS)}
+              maximumDate={C.addDays(day, C.MOVE_DAYS)}
+              onChangeText={(v) => {
+                if (v !== when && !A.adjustOccurrence(id, day, { day: v }))
+                  toast.error(
+                    "Pick a day within two weeks of the scheduled one",
+                  )
+              }}
+            />
+            <MoneyInput
+              label="Amount for this date"
+              value={shown}
+              onChange={setDraft}
+              onEndEditing={commitAmount}
+              onSubmitEditing={commitAmount}
+            />
+            {(moved || ownAmount) && (
+              <Line style={{ gap: 8, paddingBottom: 8 }}>
+                <Copy size={12} muted style={{ flex: 1 }}>
+                  Plan: {money(p.amount)} on {C.dayLabel(day)}
+                </Copy>
+                <Button
+                  small
+                  tone="quiet"
+                  icon={RotateCcw}
+                  onPress={() => {
+                    setDraft(null)
+                    A.resetOccurrence(id, day)
+                  }}
+                >
+                  Reset
+                </Button>
+              </Line>
+            )}
+          </View>
           <Line>
             {[
+              skipped
+                ? {
+                    label: "Restore",
+                    icon: Undo2,
+                    press: () => A.unskipOccurrence(id, day),
+                  }
+                : {
+                    label: "Skip",
+                    icon: SkipForward,
+                    press: () => {
+                      A.skipOccurrence(id, day)
+                      onClose()
+                    },
+                  },
+              ...(canSnooze
+                ? [
+                    {
+                      label: "Snooze",
+                      icon: AlarmClock,
+                      press: () => {
+                        A.snoozeOccurrence(id, day)
+                        onClose()
+                      },
+                    },
+                  ]
+                : []),
               {
-                label: "Skip",
-                press: () => {
-                  A.skipOccurrence(id, day)
-                  onClose()
-                },
-              },
-              {
-                label: "Snooze",
-                press: () => {
-                  A.snoozeOccurrence(id, day)
-                  onClose()
-                },
-              },
-              {
-                label: "Review & record",
+                label: "Record",
+                icon: Receipt,
                 press: () => setPhase("leaving"),
               },
-            ].map((a, i) => (
+            ].map((a) => (
               <View key={a.label} style={{ flex: 1 }}>
-                <Button tone={i === 2 ? "primary" : "quiet"} onPress={a.press}>
+                <Button
+                  tone={a.label === "Record" ? "primary" : "quiet"}
+                  icon={a.icon}
+                  disabled={skipped && a.label !== "Restore"}
+                  onPress={() => {
+                    if (commitAmount()) a.press()
+                  }}
+                >
                   {a.label}
                 </Button>
               </View>
@@ -224,7 +328,7 @@ export function DueSheet({
         settles={{ plannedId: id, day }}
         prefill={{
           type: p.type,
-          amount: p.amount,
+          amount: C.amountOn(p, day),
           accountId: p.accountId,
           toAccountId: p.toAccountId,
           categoryId: p.categoryId,
@@ -266,24 +370,36 @@ export function Planned({ id }: { id?: string }) {
           : !p.isWhatIf && p.schedule.kind !== "once",
     ),
     { income, out } = C.recurringMonth(s, today),
-    signed = (p: PlannedItem) =>
-      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(p.amount)}`
+    // An occurrence passes its own amount (a date can carry one).
+    signed = (p: PlannedItem, amount = p.amount) =>
+      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(amount)}`
   const history = p
-      ? C.occurrencesIn(s, p.start, today, { includeWhatIf: true })
+      ? // A first date moved earlier can fall before the start.
+        C.occurrencesIn(s, C.addDays(p.start, -C.MOVE_DAYS), today, {
+          includeWhatIf: true,
+        })
           .filter((o) => o.item.id === id)
           .reverse()
       : [],
     past = history.filter((o) => o.status !== "upcoming" && o.status !== "due"),
+    // What the empty History draws, dimmed: the plan's first three dates.
+    firstDates = p
+      ? C.occurrences(p, p.start, C.addDays(p.start, 1200)).slice(0, 3)
+      : [],
     next = p
       ? C.occurrencesIn(s, C.addDays(today, -14), C.addDays(today, 400), {
           includeWhatIf: true,
         })
+          // A skipped date ahead stays listed, so it can be restored.
           .filter(
             (o) =>
-              o.item.id === id && o.status !== "paid" && o.status !== "skipped",
+              o.item.id === id &&
+              o.status !== "paid" &&
+              (o.status !== "skipped" || o.day >= today),
           )
-          .slice(0, 5)
+          .slice(0, 6)
       : [],
+    nextLive = next.filter((o) => o.status !== "skipped"),
     paid = history
       .filter((o) => o.recordId)
       .map((o) => s.records.find((r) => r.id === o.recordId)?.amount ?? 0),
@@ -399,9 +515,9 @@ export function Planned({ id }: { id?: string }) {
             <Line style={{ gap: 8 }}>
               <View style={{ flex: 1 }}>
                 <Button
-                  disabled={!next[0] || p.isWhatIf}
+                  disabled={!nextLive[0] || p.isWhatIf}
                   onPress={() =>
-                    setDue({ id: p.id, day: next[0].orig, record: true })
+                    setDue({ id: p.id, day: nextLive[0].orig, record: true })
                   }
                 >
                   {p.type === "income" ? "Received now" : "Pay now"}
@@ -410,10 +526,10 @@ export function Planned({ id }: { id?: string }) {
               <View style={{ flex: 1 }}>
                 <Button
                   tone="quiet"
-                  disabled={!next[0]}
+                  disabled={!nextLive[0]}
                   onPress={() => {
-                    if (!next[0]) return
-                    A.skipOccurrence(p.id, next[0].orig)
+                    if (!nextLive[0]) return
+                    A.skipOccurrence(p.id, nextLive[0].orig)
                   }}
                 >
                   Skip next
@@ -488,35 +604,69 @@ export function Planned({ id }: { id?: string }) {
                   No more upcoming dates.
                 </Copy>
               )}
-              {next.map((o) => (
-                <Tap
-                  key={o.orig}
-                  onPress={() => setDue({ id: p.id, day: o.orig })}
-                >
-                  <Line
-                    style={{
-                      paddingVertical: 10,
-                      justifyContent: "space-between",
-                    }}
+              {next.map((o, i) => {
+                const skipped = o.status === "skipped",
+                  own = o.amount !== p.amount
+                return (
+                  <Tap
+                    key={o.orig}
+                    label={`${C.dayLabel(o.day)}, ${skipped ? "skipped" : o.status}, ${money(o.amount)}${own ? ", its own amount" : ""}. Change, skip or record this date`}
+                    onPress={() => setDue({ id: p.id, day: o.orig })}
                   >
-                    <Copy size={14}>
-                      {C.dayLabel(o.day)}
-                      {o.day !== o.orig
-                        ? ` (snoozed from ${C.shortDate(o.orig)})`
-                        : ""}
-                    </Copy>
-                    {o.status === "upcoming" ? (
-                      <Copy size={12} muted>
-                        upcoming
-                      </Copy>
-                    ) : (
-                      <FinPill tone={o.status === "overdue" ? "bad" : "warn"}>
-                        {o.status}
-                      </FinPill>
-                    )}
-                  </Line>
-                </Tap>
-              ))}
+                    <Line
+                      style={{
+                        paddingVertical: 10,
+                        gap: 8,
+                        borderTopWidth: i ? 1 : 0,
+                        borderColor: border(t.line, 0.4),
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Copy
+                          size={14}
+                          muted={skipped}
+                          style={
+                            skipped
+                              ? { textDecorationLine: "line-through" }
+                              : undefined
+                          }
+                        >
+                          {C.dayLabel(o.day)}
+                        </Copy>
+                        {o.day !== o.orig && (
+                          <Copy size={12} muted>
+                            moved from {C.shortDate(o.orig)}
+                          </Copy>
+                        )}
+                      </View>
+                      <Line style={{ gap: 4 }}>
+                        {own && !skipped && <Pencil size={12} color={t.fin} />}
+                        <Copy
+                          size={14}
+                          muted={skipped}
+                          style={own && !skipped ? { color: t.fin } : undefined}
+                        >
+                          {money(o.amount)}
+                        </Copy>
+                      </Line>
+                      {o.status === "upcoming" ? null : (
+                        <FinPill
+                          tone={
+                            skipped
+                              ? "muted"
+                              : o.status === "overdue"
+                                ? "bad"
+                                : "warn"
+                          }
+                        >
+                          {o.status}
+                        </FinPill>
+                      )}
+                      <ChevronRight size={16} color={t.muted} />
+                    </Line>
+                  </Tap>
+                )
+              })}
             </Frame>
             <SectionHeading>History</SectionHeading>
             <Frame style={{ paddingHorizontal: 12, paddingVertical: 4 }}>
@@ -534,7 +684,7 @@ export function Planned({ id }: { id?: string }) {
                         justifyContent: "space-between",
                       }}
                     >
-                      <Copy size={14}>{C.shortDate(o.orig)}</Copy>
+                      <Copy size={14}>{C.shortDate(o.day)}</Copy>
                       <Line style={{ gap: 8 }}>
                         {r && (
                           <>
@@ -586,27 +736,31 @@ export function Planned({ id }: { id?: string }) {
                   style={{ paddingBottom: 8 }}
                 >
                   <Dimmed>
-                    {[1, 2, 3].map((n) => (
+                    {/* The sample is the plan's own first dates, never days
+                        before it starts: a date the plan could not have had,
+                        drawn "paid", reads as real history. */}
+                    {firstDates.map((d) => (
                       <Line
-                        key={n}
+                        key={d}
                         style={{
                           paddingVertical: 10,
                           justifyContent: "space-between",
                         }}
                       >
-                        <Copy size={14}>
-                          {C.shortDate(C.addDays(today, -30 * n))}
-                        </Copy>
-                        <Line style={{ gap: 8 }}>
-                          <Copy size={14}>{money(p.amount)}</Copy>
-                          <FinPill tone="good">
-                            {p.type === "income" ? "received" : "paid"}
-                          </FinPill>
-                        </Line>
+                        <Copy size={14}>{C.shortDate(d)}</Copy>
+                        {/* Every one of these dates is still ahead, so the
+                            sample claims no paid or missed state. */}
+                        <Copy size={14}>{money(C.amountOn(p, d))}</Copy>
                       </Line>
                     ))}
                   </Dimmed>
-                  <EmptyFoot hint="Each past date lands here as paid or missed, with how far it was off." />
+                  <EmptyFoot
+                    hint={
+                      firstDates[0]
+                        ? `${firstDates[0] > today ? "Starts" : "First date"} ${C.dayLabel(firstDates[0])}. Each date lands here once it passes, as paid or missed.`
+                        : "Each past date lands here as paid or missed, with how far it was off."
+                    }
+                  />
                 </View>
               )}
             </Frame>
@@ -664,7 +818,7 @@ export function Planned({ id }: { id?: string }) {
                     <Copy size={14} weight="medium" style={{ marginTop: 4 }}>
                       {o.item.name}
                     </Copy>
-                    <Copy size={14}>{signed(o.item)}</Copy>
+                    <Copy size={14}>{signed(o.item, o.amount)}</Copy>
                     {o.status === "overdue" && (
                       <FinPill tone="bad">overdue</FinPill>
                     )}

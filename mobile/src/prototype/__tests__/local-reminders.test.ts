@@ -376,6 +376,7 @@ describe("bill reminders", () => {
       day: "2026-10-25",
       orig: "2026-10-25",
       status: "upcoming",
+      amount: item.amount ?? 5000,
       ...extra,
     }) as Occurrence
   const plan = (

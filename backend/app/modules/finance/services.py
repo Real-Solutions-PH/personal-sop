@@ -1207,6 +1207,15 @@ def _settle(
     existing = owned_repo.get(ctx, FinRecord, rid)
     if existing is not None:
         return existing  # settling twice is the same record
+    if amount_minor is None:
+        # The date's own amount, when one was set for it.
+        own = owned_repo.find_one(
+            ctx,
+            PlannedSnooze,
+            col(PlannedSnooze.planned_id) == p.id,
+            col(PlannedSnooze.on_day) == day,
+        )
+        amount_minor = own.amount_minor if own is not None else None
     when_day = on or ctx.today
     local = ctx.now.astimezone(ctx.clock.zone)
     at = ctx.clock.local_time(when_day, f"{local.hour:02d}:{local.minute:02d}")
@@ -1310,12 +1319,20 @@ def _snooze(ctx: Ctx, planned_id: uuid.UUID, day: date, days: int) -> PlannedSno
     base = cur.until_day if cur is not None else day
     if base < ctx.today:
         base = ctx.today
-    until = base + timedelta(days=days)
+    # Never past two weeks from its own day: every window that lists
+    # occurrences looks only that far, so the date would vanish.
+    until = min(base + timedelta(days=days), day + timedelta(days=calc.MOVE_DAYS))
     row, _ = owned_repo.upsert(
         ctx,
         PlannedSnooze,
         derived_id("planned-snooze", p.id, day.isoformat()),
-        {"planned_id": p.id, "on_day": day, "until_day": until},
+        # Keeps the date's own amount, if it has one.
+        {
+            "planned_id": p.id,
+            "on_day": day,
+            "until_day": until,
+            "amount_minor": cur.amount_minor if cur is not None else None,
+        },
         natural_key=("planned_id", "on_day"),
     )
     _dirty(ctx, day, until)
@@ -1360,7 +1377,15 @@ def auto_log_due(ctx: Ctx) -> list[FinRecord]:
         rid = settle_record_id(planned_id, o.orig)
         if owned_repo.get(ctx, FinRecord, rid, include_deleted=True) is not None:
             continue
-        out.append(_settle(ctx, planned_id, o.orig, on=o.day))
+        out.append(
+            _settle(
+                ctx,
+                planned_id,
+                o.orig,
+                amount_minor=calc.amount_on(o.item, o.orig),
+                on=o.day,
+            )
+        )
     ctx.commit()
     return out
 
@@ -1441,7 +1466,7 @@ def _occ_out(o: calc.Occurrence) -> S.OccurrenceOut:
         planned_id=uuid.UUID(o.item.id),
         name=o.item.name,
         type=o.item.type,
-        amount_minor=o.item.amount,
+        amount_minor=calc.amount_on(o.item, o.orig),
         day=o.day,
         orig=o.orig,
         status=o.status,
