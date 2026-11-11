@@ -7,7 +7,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
-from app.shared.day import DayClock
+from tests.utils.day import settled_today
 
 API = f"{settings.API_V1_STR}/tasks"
 SYNC = f"{settings.API_V1_STR}/sync"
@@ -15,7 +15,7 @@ SYNC = f"{settings.API_V1_STR}/sync"
 
 def today() -> date:
     # A fresh user has no profile: Asia/Manila, day starts 04:00.
-    return DayClock().today()
+    return settled_today()
 
 
 def day(n: int) -> str:

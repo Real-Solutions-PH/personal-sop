@@ -12,9 +12,10 @@ from app.modules.finance.models import ImportRow, StatementImport
 from app.modules.finance.schema import AccountCreate, BudgetCreate
 from app.shared import owned_repo
 from app.shared.day import DayClock
+from tests.utils.day import run_day
 from tests.utils.mobile import ctx_for, signed_in
 
-TODAY = DayClock().today()
+TODAY = run_day()
 
 
 def _at(n: int, hh: int = 12) -> datetime:
