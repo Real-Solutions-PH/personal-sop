@@ -1,14 +1,22 @@
 import { dashStore } from "@domain/dash/store"
 import * as A from "@domain/habits/actions"
+import * as HL from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
-import { dayKey } from "@domain/lib/day"
+import { dayKey, dayOffset } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
-import { act, fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native"
 import { router } from "expo-router"
 import { type ReactNode, useState } from "react"
 import { Alert } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
+import { statColumns } from "../screens/habit-detail"
 import { HabitsList } from "../screens/habit-list"
 import { HabitDetail, HabitForm, HabitLog } from "../screens/habits"
 import { HabitsCard } from "../screens/today"
@@ -133,7 +141,7 @@ test("with Screen time off, a screen-time habit is logged by hand everywhere", (
   list.unmount()
   // Its page offers Mark done instead of the automatic ring.
   render(<HabitDetail id={h.id} />, { wrapper })
-  expect(screen.getByText("Mark done today")).toBeTruthy()
+  expect(screen.getByText("Mark done")).toBeTruthy()
   expect(screen.getByText("Screen Time off · log it yourself")).toBeTruthy()
 })
 
@@ -145,7 +153,7 @@ test("with Screen time on, the list and the page keep it automatic", () => {
   expect(screen.queryByRole("checkbox", { name: "Check Phone" })).toBeNull()
   list.unmount()
   render(<HabitDetail id={h.id} />, { wrapper })
-  expect(screen.queryByText("Mark done today")).toBeNull()
+  expect(screen.queryByText("Mark done")).toBeNull()
 })
 
 test("rows in Manage habits open the actions for that habit", () => {
@@ -280,4 +288,139 @@ test("an edit saves itself without a toast; an invalid draft is not saved", () =
     "Long walk",
   )
   expect(screen.getByLabelText("Saved")).toBeTruthy()
+})
+
+test("the detail page shows the streak as a number with its unit, and Log by icon and name", () => {
+  const h = walk()
+  A.checkHabit(h.id)
+  render(<HabitDetail id={h.id} />, { wrapper })
+  expect(screen.getByLabelText("Current streak, 1 day")).toBeTruthy()
+  expect(screen.queryByText(/-day$/)).toBeNull()
+  expect(
+    within(screen.getByTestId("current-streak")).getByText("day"),
+  ).toBeTruthy()
+  expect(screen.getByText("Done · undo")).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Log a day" })).toBeTruthy()
+})
+
+test("the stats grid drops columns before a figure can collide with its neighbour", () => {
+  // Inner widths of the stats card at 320, 375, 390 and 430pt phones.
+  const widths = [254, 309, 324, 364]
+  for (const width of widths)
+    for (let chars = 1; chars <= 12; chars++)
+      for (const scale of [1, 1.35, 2, 3.1]) {
+        const cols = statColumns(width, chars, scale),
+          need = Math.max(chars * 24 * 0.62, 72) * Math.min(scale, 2)
+        // Each cell keeps 12pt clear on its right; a single column wraps.
+        expect(cols === 1 || width / cols - 12 >= need).toBe(true)
+        expect(cols).toBeGreaterThanOrEqual(1)
+        expect(cols).toBeLessThanOrEqual(3)
+      }
+  // Short figures stay three across even on a 320pt phone.
+  expect(statColumns(254, 4)).toBe(3)
+  // A seven-digit figure ("1,234,567") gets its own room.
+  expect(statColumns(254, 9)).toBe(1)
+  expect(statColumns(364, 9)).toBe(2)
+  // Before the first layout: two columns, never zero.
+  expect(statColumns(0, 4)).toBe(2)
+})
+
+/** What the detail page derives from the logs: streaks (grace use
+ * included), the 30-day stats and the cell each day shows. */
+const derived = (id: string) => {
+  const h = habitsStore.get().habits.find((x) => x.id === id)
+  if (!h) throw new Error("no habit")
+  const idx = HL.logIndex(habitsStore.get().logs),
+    today = dayKey(),
+    st = HL.streaks(h, idx, today)
+  return {
+    current: st.current,
+    best: st.best,
+    broken: st.broken,
+    stats: HL.habitStats(h, idx, dayOffset(-29), today, today),
+    cells: Array.from({ length: 8 }, (_, i) =>
+      HL.cellFor(h, dayOffset(-i), idx, today),
+    ),
+  }
+}
+
+test("a wrongly ticked day resets from the Calendar and every stat returns", () => {
+  // Mid-month, so the days below are all in the Calendar's month.
+  jest.setSystemTime(new Date("2026-06-15T12:00:00"))
+  const h = walk()
+  habitsStore.set((s) => ({
+    ...s,
+    habits: s.habits.map((x) =>
+      x.id === h.id ? { ...x, createdAt: dayOffset(-7) } : x,
+    ),
+  }))
+  // A run with one miss in it (2 days ago), so grace and streaks matter.
+  for (const n of [-7, -6, -5, -4, -3, -1]) A.checkHabit(h.id, dayOffset(n))
+  const before = derived(h.id)
+  // Ticked by mistake.
+  const wrong = dayOffset(-2)
+  A.checkHabit(h.id, wrong)
+  expect(derived(h.id)).not.toEqual(before)
+  render(<HabitDetail id={h.id} />, { wrapper })
+  fireEvent.press(screen.getByLabelText(`${wrong}: done`))
+  // The sheet opens on that day's entry, with Reset beside it.
+  expect(screen.getByTestId("habit-log-entry")).toBeTruthy()
+  fireEvent.press(screen.getByRole("button", { name: /^Reset/ }))
+  expect(derived(h.id)).toEqual(before)
+  // The outcome shows in place; no toast (toasts are for ticks only).
+  expect(screen.getByText("Not logged")).toBeTruthy()
+  expect(screen.queryByRole("button", { name: /^Reset/ })).toBeNull()
+  expect(toast).not.toHaveBeenCalled()
+  expect(toast.success).not.toHaveBeenCalled()
+  // The footer now only closes: tapping it cannot write the tick back.
+  expect(screen.queryByText("Save log")).toBeNull()
+  fireEvent.press(screen.getByText("Done"))
+  expect(derived(h.id)).toEqual(before)
+  // Ticking the day again later counts it once more.
+  A.checkHabit(h.id, wrong)
+  expect(
+    habitsStore.get().logs.filter((l) => l.habitId === h.id && l.day === wrong),
+  ).toHaveLength(1)
+  A.clearLog(h.id, wrong)
+  expect(derived(h.id)).toEqual(before)
+})
+
+test("editing a field after Reset brings Save log back", () => {
+  const h = walk()
+  A.checkHabit(h.id)
+  render(<HabitLog habit={h} day={dayKey()} open onClose={() => {}} />, {
+    wrapper,
+  })
+  fireEvent.press(screen.getByRole("button", { name: /^Reset/ }))
+  fireEvent.press(screen.getByText("Yesterday"))
+  expect(screen.getByText("Save log")).toBeTruthy()
+})
+
+test("a screen-time habit's Calendar day still opens the day page", () => {
+  screenTime(true)
+  const h = screenHabit()
+  render(<HabitDetail id={h.id} />, { wrapper })
+  fireEvent.press(screen.getByLabelText(new RegExp(`^${dayKey()}:`)))
+  expect(push).toHaveBeenCalledWith(`/habits/day/${dayKey()}`)
+  expect(screen.queryByTestId("habit-log-entry")).toBeNull()
+})
+
+test("a count habit's day resets to nothing logged", () => {
+  const h = A.createHabit({
+    name: "Water",
+    icon: "💧",
+    type: "count",
+    target: 8,
+  })
+  A.incrementCount(h.id, 3)
+  render(<HabitLog habit={h} day={dayKey()} open onClose={() => {}} />, {
+    wrapper,
+  })
+  fireEvent.press(screen.getByRole("button", { name: /^Reset/ }))
+  expect(habitsStore.get().logs.filter((l) => l.habitId === h.id)).toHaveLength(
+    0,
+  )
+  expect(screen.getByText("Not logged")).toBeTruthy()
+  // The amount field goes back to the target, ready for a fresh entry.
+  expect(screen.getByDisplayValue("8")).toBeTruthy()
 })
