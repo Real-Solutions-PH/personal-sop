@@ -234,3 +234,30 @@ test("snoozing never pushes a date past two weeks from its scheduled day", () =>
   A.snoozeOccurrence(p.id, first)
   expect(planOf(p.id).snoozed[first]).toBe(C.addDays(first, C.MOVE_DAYS))
 })
+
+test("an amount that is not one stops the action instead of running it on the old amount", () => {
+  const p = plan({ start: C.addDays(today, 20) }),
+    [first] = firstDates(p, 1)
+  openDate(p, first)
+  fireEvent.changeText(screen.getByLabelText("Amount for this date"), "")
+  fireEvent.press(screen.getByText("Skip"))
+  expect(toastMock.error).toHaveBeenCalled()
+  expect(planOf(p.id).skipped).toEqual([])
+})
+
+test("Snooze is offered only while it can still move the date to today or later", () => {
+  // Scheduled 20 days ago and moved 12 days later: its two-week limit is
+  // already behind today.
+  const orig = C.addDays(today, -20),
+    p = plan({
+      start: orig,
+      schedule: { kind: "monthly", day: Number(orig.slice(8, 10)) },
+    })
+  A.adjustOccurrence(p.id, orig, { day: C.addDays(orig, 12) })
+  render(<Planned id={p.id} />, { wrapper })
+  fireEvent.press(
+    screen.getByLabelText(new RegExp(`^${C.dayLabel(C.addDays(orig, 12))}, `)),
+  )
+  expect(screen.queryByText("Snooze")).toBeNull()
+  expect(screen.getByText("Record")).toBeTruthy()
+})

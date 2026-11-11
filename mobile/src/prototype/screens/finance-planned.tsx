@@ -174,14 +174,21 @@ export function DueSheet({
       draft ?? (Number.isInteger(amount) ? String(amount) : amount.toFixed(2))
   /** Writes the amount being typed: on leaving the field, and before any
    * action or close, so a press with the keyboard up never drops it. */
-  const commitAmount = () => {
-    if (draft === null) return
+  // False when what was typed is not an amount: the action that asked
+  // for the write then stops, so nothing goes through on the old amount.
+  const commitAmount = (): boolean => {
+    if (draft === null) return true
     const v = Number(draft)
     setDraft(null)
-    if (v === amount) return
-    if (!A.adjustOccurrence(id, day, { amount: v }))
-      toast.error("Enter an amount above zero")
+    if (v === amount) return true
+    if (A.adjustOccurrence(id, day, { amount: v })) return true
+    toast.error("Enter an amount above zero")
+    return false
   }
+  // A snooze moves at most two weeks past the scheduled day; once that
+  // limit is behind today it could only leave the date overdue, so the
+  // button goes.
+  const canSnooze = C.addDays(day, C.MOVE_DAYS) >= dayKey()
   return (
     <>
       {phase !== "editor" && (
@@ -281,28 +288,31 @@ export function DueSheet({
                       onClose()
                     },
                   },
-              {
-                label: "Snooze",
-                icon: AlarmClock,
-                press: () => {
-                  A.snoozeOccurrence(id, day)
-                  onClose()
-                },
-              },
+              ...(canSnooze
+                ? [
+                    {
+                      label: "Snooze",
+                      icon: AlarmClock,
+                      press: () => {
+                        A.snoozeOccurrence(id, day)
+                        onClose()
+                      },
+                    },
+                  ]
+                : []),
               {
                 label: "Record",
                 icon: Receipt,
                 press: () => setPhase("leaving"),
               },
-            ].map((a, i) => (
+            ].map((a) => (
               <View key={a.label} style={{ flex: 1 }}>
                 <Button
-                  tone={i === 2 ? "primary" : "quiet"}
+                  tone={a.label === "Record" ? "primary" : "quiet"}
                   icon={a.icon}
-                  disabled={i > 0 && skipped}
+                  disabled={skipped && a.label !== "Restore"}
                   onPress={() => {
-                    commitAmount()
-                    a.press()
+                    if (commitAmount()) a.press()
                   }}
                 >
                   {a.label}
