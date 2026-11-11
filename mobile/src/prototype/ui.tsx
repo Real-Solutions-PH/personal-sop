@@ -123,9 +123,12 @@ export function Button({
   tone = "primary",
   disabled = false,
   small = false,
+  label,
 }: {
   children: string
   icon?: LucideIcon
+  /** Spoken name when the visible text leans on its icon ("+" = add). */
+  label?: string
   onPress?: () => void
   href?: string
   tone?: "primary" | "quiet" | "danger"
@@ -143,6 +146,7 @@ export function Button({
       <Pressable
         cssInterop={false}
         accessibilityRole="button"
+        accessibilityLabel={label}
         accessibilityState={{ disabled }}
         disabled={disabled}
         onPress={() => {
@@ -195,6 +199,10 @@ export function Button({
         )}
         <Text
           style={{
+            // A label longer than its button wraps inside it rather than
+            // spilling past the edge in a shared row.
+            flexShrink: 1,
+            textAlign: "center",
             fontSize: 14,
             fontFamily: fonts.semibold,
             color:
