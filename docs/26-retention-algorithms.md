@@ -1,6 +1,6 @@
 # 26 — Retention algorithms (proposal)
 
-2026-11-12. **Status: proposed, nothing built.** How Unfurl brings each person back to open the app every day, personalised from their behaviour, with Duolingo-style mechanics adapted to a personal-life app. A build session can start from [Slice 1](#7-build-plan) directly.
+2026-11-12. **Status: Slice 1 built (2026-11-12, see [§7.1](#71-slice-1-as-built)); Slices 2 and 3 proposed.** How Unfurl brings each person back to open the app every day, personalised from their behaviour, with Duolingo-style mechanics adapted to a personal-life app. A build session can start from [Slice 1](#7-build-plan) directly.
 
 Read with [25-retention-kpis.md](25-retention-kpis.md) (what we measure) and [brand/fern.md](brand/fern.md) (Fern's voice). Unfurl's target person has quit trackers before ([brand/positioning-and-name.md](brand/positioning-and-name.md)), so every mechanic here is judged by one question: **does it make coming back after a gap easier, or does it punish the gap?**
 
@@ -318,6 +318,26 @@ Smallest set that reaches people who don't open the app, and removes the loss-av
 | Client | `bash scripts/generate-client.sh`; mobile client via `mobile/openapi-ts.config.ts` | Regenerated, not hand-edited. |
 
 **Out of Slice 1:** archetypes beyond what the ladder needs (only the top habit/task pick), goal sizing, Fern proactive beyond ladder copy, NBA card, friends board, earned rest-day bank.
+
+### 7.1 Slice 1 as built
+
+Built 2026-11-12 in `backend/app/modules/retention/` (`logic.py` pure rules, `jobs.py` nightly, `sender.py`, `copy.py`, `signals.py`), migration `5cf0aa4a327d`, and on the phone `rewards.ts` (`streakNote`), `grace.ts` (`graceReady`), `notifications.ts` (`push_open`), `nudge-settings.ts` and Settings. Where the build differs from the text above:
+
+| # | Where | As built | Why |
+|---|---|---|---|
+| 1 | §4.2 data model | Added `user_profile.nudge_time` (pinned HH:MM, 07:00–21:30, null = usual time), `retention_profile.log_days_total` and `.computed_day`, `nudge.day`. | The pinned time needs a column; the day-30 note needs lifetime log days; one nightly run per day and per-day nudge reads need the day. |
+| 2 | §4.2 `nudge.suppressed` | Also `fatigue`, `backoff`, `no_content`. | Every reason the sender holds a nudge back is recorded, not only the five listed. |
+| 3 | §1.3 / Slice 1 push opens | A push the server sent records its inbox notification's id as `detail` (that is how a nudge gets `opened_at`); its category is `notification.kind`. A reminder the phone scheduled records its category (`habit`, `task`, `bill`, …). | The phone cannot tell a nudge from another server push; the id resolves both. |
+| 4 | §3.3 day-14 step | No action buttons: the push opens Settings, where Daily / Weekly / Off is. | Push action categories need native registration; the setting is one tap away. |
+| 5 | §3.5 fatigue card | Not built. Four ignores in a row stop nudges server-side (`fatigue`); the opt-out is the Settings control. | Not in the Slice 1 table; the stop itself is. |
+| 6 | §3.5 weekly mode | At most one engagement nudge per rolling 7 days. | The text left "weekly" undefined. |
+| 7 | §3.2 reminders | "45 min from a reminder" and "4+ reminders skip the day" count what the server knows: task reminders, the morning digest, the Fern check-in. Habit, routine and bill reminders live on the phone. | The daily `reminders_today` upload is not in Slice 1. |
+| 8 | §3.3 ladder vs best time | Day 0 (logged today) and day 1 get the best-time nudge (day 0 is then `active_today`); days 2, 4–6, 8–13, 15–29 and 31+ get nothing; 3, 7, 14, 30 get the ladder step. | The ladder's "day 1: none" is about ladder pushes; the steady daily nudge is the best-time one. |
+| 9 | §3.3 day-7 copy | "It's been a week. [habit] is still on your list; one tap picks it up." plus "Your streaks pause across the gap when you come back." only when no way-back pause was used in 30 days. No "0 of 4" count. | Keeps it to one fact and one step without a weekly tally. |
+| 10 | Slice 1 retire at-risk | Removed in every mode (not only live); the phone cancels a leftover `streak-at-risk` on launch. | D2 retires the copy itself; demo mode has nothing that should keep it. |
+| 11 | Sender timing | A run more than 1 h after the nudge time lets the day go. | After a scheduler outage a late nudge would land at an odd hour. |
+| 12 | Settings | `GET /retention/nudge` gives the usual time; until the nightly job has run, the phone shows the same cold start (evening push time − 10 min). | The usual time lives on the server. |
+| 13 | §3.1 returning | A return is a log day 3+ days after the previous one (the same 3 days that make someone `lapsing`). | "Gap ≥ 3 days" read two ways. |
 
 ### Slice 2 — goal sizing, earned rest days, archetypes, Fern openers
 

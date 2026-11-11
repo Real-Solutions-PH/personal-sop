@@ -40,6 +40,7 @@ import { useEffect, useState } from "react"
 import { Platform, ScrollView, Text, TextInput, View } from "react-native"
 import { liveMode } from "@/live/config"
 import { SavedMark, useAutosave } from "../autosave"
+import { companionStore } from "../companion/store"
 import { EXTRAS, type Extra, extrasStore, setShown } from "../extras"
 import { pickAvatar } from "../media"
 import {
@@ -54,6 +55,14 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import {
+  clampNudgeTime,
+  fallbackUsual,
+  NUDGE_MODES,
+  type NudgeMode,
+  nudgeStore,
+  refreshNudge,
+} from "../nudge-settings"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
 import { enableScreenTime } from "../screen-sync"
@@ -531,7 +540,15 @@ export function Settings() {
     s = dashStore.use((s) => s),
     hidden = privacyStore.use((s) => s.hidden),
     theme = appearanceStore.use((s) => s.mode),
-    shown = extrasStore.use((s) => s)
+    shown = extrasStore.use((s) => s),
+    fern = companionStore.use((s) => s.name),
+    usualFromServer = nudgeStore.use((s) => s.usual)
+  useEffect(() => {
+    void refreshNudge()
+  }, [])
+  const nudge: NudgeMode = s.push.nudge ?? "daily"
+  const pinned = s.push.nudgeTime ?? ""
+  const usual = usualFromServer ?? fallbackUsual(s.push.evening)
   const allOn =
     MODULE_KEYS.every((k) => s.enabled[k]) && EXTRAS.every((x) => shown[x.key])
   // Screen time turns on only once iOS allows it.
@@ -798,6 +815,48 @@ export function Settings() {
                 onChange={(v) => setPush({ checkin: v })}
               />,
             )}
+          <View testID="nudge-mode" style={{ paddingVertical: 12, gap: 8 }}>
+            <View>
+              <Copy weight="medium">Nudges from {fern}</Copy>
+              <Copy size={12} muted>
+                One a day at most, about your own habits and tasks. Reminders
+                you set still come.
+              </Copy>
+            </View>
+            <Segmented
+              value={nudge}
+              onChange={(v) => setPush({ nudge: v })}
+              options={NUDGE_MODES}
+            />
+          </View>
+          {nudge !== "off" && (
+            <View testID="nudge-time">
+              {row(
+                pinned
+                  ? "Nudge time"
+                  : usual
+                    ? `Usually around ${usual}`
+                    : "Nudge time",
+                pinned
+                  ? "You picked this time"
+                  : usual
+                    ? "When you usually log. Change it to pick your own"
+                    : "Learning when you usually log",
+                <Line style={{ gap: 8 }}>
+                  {!!pinned && (
+                    <Button small onPress={() => setPush({ nudgeTime: "" })}>
+                      Auto
+                    </Button>
+                  )}
+                  <TimeInput
+                    label="Nudge time"
+                    value={pinned || usual || "19:00"}
+                    onChange={(v) => setPush({ nudgeTime: clampNudgeTime(v) })}
+                  />
+                </Line>,
+              )}
+            </View>
+          )}
         </Frame>
         <SectionHeading>Appearance</SectionHeading>
         <Frame style={{ padding: 8, gap: 8 }}>

@@ -34,7 +34,7 @@ export function YesterdayStrip() {
   const headline = !recap.offTarget
     ? `Yesterday: ${missed} missed`
     : recap.grace
-      ? "Yesterday: off target · grace day used"
+      ? "Yesterday: off target · rest day used"
       : `Yesterday: off target${recap.ended > 1 ? ` · run of ${recap.ended} ended` : ""}`
   // Fern's line: the cost first, then the way back.
   const lost = missed ? `${missed} missed. ` : ""
