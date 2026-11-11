@@ -201,21 +201,26 @@ def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
     """The server's task reminder push follows the occurrence's move: not at
     the series time (when it was moved later), but at the moved time."""
     from datetime import UTC, datetime
+    from zoneinfo import ZoneInfo
 
     from app.modules.tasks import jobs
     from tests.modules.tasks.api.helpers import day, new_task
 
     user, h = signed_in(db)
-    remind = datetime.now(UTC) - timedelta(minutes=1)
+    now = datetime.now(UTC)
+    # Due a minute from now (a fresh user's clock: Manila), reminding at
+    # that due time, as "remind me" sets it; then moved an hour later.
+    due = (now + timedelta(minutes=1)).astimezone(ZoneInfo("Asia/Manila"))
     t = new_task(
         client,
         h,
         "Stand-up",
         due_date=day(0),
-        due_time="09:00",
-        remind_at=remind.isoformat(),
+        due_time=due.strftime("%H:%M"),
+        remind_at=(now - timedelta(minutes=1)).isoformat(),
         recurrence={"rule": {"kind": "daily"}, "mode": "fixed"},
     )
+    moved = (due + timedelta(hours=1)).strftime("%H:%M")
     res = push(
         client,
         h,
@@ -226,14 +231,14 @@ def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
             kind="task",
             ref_id=t["id"],
             day=day(0),
-            time="11:00",
+            time=moved,
         ),
     )
     assert res[0]["status"] == "applied", res
-    # Its own reminder time has passed, the moved one (two hours on) not yet.
-    with ctx_for(user, now=datetime.now(UTC)) as ctx:
+    # Its own reminder time has passed, the moved one (an hour on) not yet.
+    with ctx_for(user, now=now) as ctx:
         assert jobs.send_reminders(ctx) == 0
-    later = datetime.now(UTC) + timedelta(hours=2)
+    later = now + timedelta(minutes=65)
     with ctx_for(user, now=later) as ctx:
         assert jobs.send_reminders(ctx) == 1
 
