@@ -1,7 +1,9 @@
-# Vercel builds only the Next.js prototype (project root directory: frontend/).
-# Upload the frontend plus the root Bun workspace files it installs from.
+# Vercel builds the Next.js prototype (root directory: frontend/) and the
+# marketing site (root directory: marketing/). Upload both plus the root Bun
+# workspace files they install from.
 /*
 !/frontend
+!/marketing
 !/package.json
 !/bun.lock
 !/e2e
@@ -11,3 +13,6 @@
 /frontend/.next
 /frontend/.env
 /frontend/.env.local
+/marketing/node_modules
+/marketing/.next
+/marketing/out
