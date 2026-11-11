@@ -144,6 +144,10 @@ export interface PlannedItem {
   archived: boolean
   skipped: string[]
   snoozed: Record<string, string>
+  /** One date's own amount, keyed by its scheduled day: "this month's bill
+   * is ₱3,480", without changing the plan. Synced on the date's
+   * planned_snooze row. */
+  amounts?: Record<string, number>
 }
 export type MatchState =
   | "matched"

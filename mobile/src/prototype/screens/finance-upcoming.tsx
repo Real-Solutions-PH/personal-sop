@@ -42,8 +42,9 @@ export function UpcomingWeek() {
       ),
     ],
     shown = all ? rows : rows.slice(0, FIRST_ROWS),
-    signed = (p: PlannedItem) =>
-      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(p.amount)}`
+    // An occurrence passes its own amount (a date can carry one).
+    signed = (p: PlannedItem, amount = p.amount) =>
+      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(amount)}`
   if (!rows.length) return <UpcomingEmpty s={s} />
   return (
     <View testID="upcoming-week">
@@ -71,7 +72,7 @@ export function UpcomingWeek() {
                 </Copy>
               )}
               <Tap
-                label={`${o.item.name}, ${signed(o.item)}, ${paid ? "paid" : c.label}`}
+                label={`${o.item.name}, ${signed(o.item, o.amount)}, ${paid ? "paid" : c.label}`}
                 onPress={() =>
                   go(
                     paid && o.recordId
@@ -108,7 +109,7 @@ export function UpcomingWeek() {
                               : t.text,
                       }}
                     >
-                      {signed(o.item)}
+                      {signed(o.item, o.amount)}
                     </Copy>
                     {paid ? (
                       <FinPill tone="good">paid</FinPill>

@@ -8,13 +8,13 @@ too. Statement imports are REST-only: they are server-driven.
 
 import uuid
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.modules.finance import calc, services
 from app.modules.finance import schema as S
-from app.modules.finance import services
 from app.modules.finance.models import (
     Account,
     AdvisorMessage,
@@ -87,6 +87,7 @@ class SnoozeRow(_Row):
     planned_id: uuid.UUID
     on_day: date
     until_day: date
+    amount_minor: int | None = None
 
 
 class MessageRow(_Row):
@@ -124,6 +125,8 @@ class SkipSync(BaseModel):
 
 class SnoozeSync(SkipSync):
     until_day: date | None = None
+    # The date's own amount; null puts it back on the plan's.
+    amount_minor: S.Minor | None = None
 
 
 class LookBackSync(BaseModel):
@@ -243,17 +246,31 @@ def _snooze(ctx: Ctx, row_id: uuid.UUID, p: BaseModel) -> OwnedRow:
     planned_id = p.planned_id or (row.planned_id if row else None)
     on_day = p.on_day or (row.on_day if row else None)
     until = p.until_day or (row.until_day if row else None)
+    # Field-level: an op that leaves the amount out keeps the row's.
+    amount = (
+        p.amount_minor
+        if "amount_minor" in p.model_fields_set
+        else (row.amount_minor if row else None)
+    )
     if planned_id is None or on_day is None or until is None:
         raise invalid("missing_fields", "A planned item and both days are required")
     item = owned_repo.require(ctx, PlannedItem, planned_id, what="planned_item")
     services._require_occurrence(item, on_day)
-    if until < on_day:
-        raise invalid("snooze_backwards", "A snooze moves an occurrence later")
+    if until < on_day - timedelta(days=calc.MOVE_DAYS):
+        raise invalid(
+            "snooze_too_early",
+            "A date moves at most two weeks before its own day",
+        )
     out, _ = owned_repo.upsert(
         ctx,
         PlannedSnooze,
         row_id,
-        {"planned_id": planned_id, "on_day": on_day, "until_day": until},
+        {
+            "planned_id": planned_id,
+            "on_day": on_day,
+            "until_day": until,
+            "amount_minor": amount,
+        },
         natural_key=("planned_id", "on_day"),
     )
     services._dirty(ctx, on_day, until)

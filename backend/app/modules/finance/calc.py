@@ -120,6 +120,18 @@ class Plan:
     estimated: bool = False
     skipped: set[date] = field(default_factory=set)
     snoozed: dict[date, date] = field(default_factory=dict)
+    # One date's own amount, keyed by its scheduled day.
+    amounts: dict[date, int] = field(default_factory=dict)
+
+
+def amount_on(p: Plan, orig: date) -> int:
+    """What one scheduled date is expected to be: its own amount when one
+    was set for it, else the plan's."""
+    return p.amounts.get(orig, p.amount)
+
+
+# How far a date can be moved from its scheduled day, either way.
+MOVE_DAYS = 14
 
 
 @dataclass
@@ -640,8 +652,10 @@ def occurrences_in(
     for p in s.planned:
         if p.archived or (p.is_what_if and not include_what_if):
             continue
-        # A snoozed occurrence can land up to two weeks after its own day.
-        for orig in occurrences(p, add_days(first, -14), last):
+        # A moved date can land up to two weeks either side of its own day.
+        for orig in occurrences(
+            p, add_days(first, -MOVE_DAYS), add_days(last, MOVE_DAYS)
+        ):
             day = p.snoozed.get(orig, orig)
             if day < first or day > last:
                 continue
@@ -795,18 +809,19 @@ def project(
             for o in occurrences(p, first, mt):
                 if (p.id, o) in paid or o in p.skipped:
                     continue
+                amt = amount_on(p, o)
                 if p.type == "income":
-                    inflow += p.amount
+                    inflow += amt
                     has_income = True
                 elif p.type == "expense":
-                    planned_out += p.amount
+                    planned_out += amt
                 else:
                     from_liquid = p.account_id in liquid_set
                     to_liquid = bool(p.to_account_id) and p.to_account_id in liquid_set
                     if from_liquid and not to_liquid:
-                        planned_out += p.amount
+                        planned_out += amt
                     if not from_liquid and to_liquid:
-                        inflow += p.amount
+                        inflow += amt
         share = max(0, diff_days(mt, t)) / (diff_days(mt, mf) + 1) if i == 0 else 1.0
         unplanned = avg_u * share if include_unplanned else 0.0
         wi = 0.0
