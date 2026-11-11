@@ -23,9 +23,9 @@ export function monthlyNetWorth(s: FinState, n = 6, today = C.today()) {
     now = C.monthOf(today, sd),
     keys = Array.from({ length: n }, (_, i) => C.addMonths(now, i - (n - 1))),
     first = C.monthRange(keys[0], sd)[0],
-    // One value per day from the day before the first month to today.
+    // One value per day from the day before the first month to ``today``
+    // (the series must end on the same day the indexes below count from).
     days = C.diffDays(today, first) + 2,
-    // Ends on `today`, so `at` below indexes the same days.
     series = C.netWorthSeries(s, days, today),
     at = (day: string) =>
       series[Math.min(series.length - 1, C.diffDays(day, first) + 1)] ?? 0,

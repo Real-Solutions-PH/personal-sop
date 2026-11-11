@@ -329,6 +329,51 @@ describe("Net worth charts", () => {
     expect(m[2].current).toBe(true)
   })
 
+  // The daily series under the months must end on the ``today`` passed in,
+  // not on the real clock: it used to end on the clock's today, so every
+  // month-end read slid by the gap (October's end landed on 2 November and
+  // took November's income). Freeze the clock at awkward moments, each
+  // away from 2026-11-09, and the answer must not move.
+  it.each([
+    ["the first of a month", "2026-12-01T09:00:00"],
+    ["the last of a month", "2026-11-30T20:00:00"],
+    ["January", "2027-01-15T12:00:00"],
+    ["December", "2026-12-24T12:00:00"],
+    ["between midnight and 04:00 UTC", "2026-11-12T02:30:00Z"],
+    ["a day after the given today", "2026-11-10T12:00:00"],
+  ])("ignores the real clock on %s", (_label, now) => {
+    jest.useFakeTimers({ now: new Date(now) })
+    try {
+      const id = acct() as string
+      const rec = (amount: number, day: string, type: "income" | "expense") =>
+        ({
+          id: `${day}-${amount}`,
+          type,
+          amount,
+          accountId: id,
+          at: `${day}T12:00:00`,
+          source: "manual",
+          status: "cleared",
+        }) as FinRecord
+      const m = monthlyNetWorth(
+        only([
+          rec(10_000, "2026-09-10", "income"),
+          rec(4_000, "2026-10-05", "expense"),
+          rec(1_000, "2026-11-02", "income"),
+        ]),
+        3,
+        "2026-11-09",
+      )
+      expect(m.map((x) => [x.key, x.change, x.value])).toEqual([
+        ["2026-09", 10_000, 10_000],
+        ["2026-10", -4_000, 6_000],
+        ["2026-11", 1_000, 7_000],
+      ])
+    } finally {
+      jest.useRealTimers()
+    }
+  })
+
   it("draws a row per month and per account", () => {
     render(
       <>
