@@ -7,12 +7,12 @@ from typing import Any
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.shared.day import DayClock
 from app.shared.ids import derived_id
 from tests.modules.finance.api.helpers import API, Fin, op
+from tests.utils.day import run_day
 from tests.utils.mobile import signed_in
 
-TODAY = DayClock().today()
+TODAY = run_day()
 
 
 def _fin(client: TestClient, db: Session) -> Fin:

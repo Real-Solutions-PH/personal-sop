@@ -17,7 +17,7 @@ from sqlmodel import Session
 
 from app.core.config import settings
 from app.core.db import app_engine, engine
-from app.shared.day import DayClock
+from tests.utils.day import settled_today
 from tests.utils.mobile import signed_in
 
 API = settings.API_V1_STR
@@ -88,7 +88,7 @@ def test_a_write_recomputing_stats_never_holds_two_connections(
     r = client.post(
         f"{API}/tasks/",
         headers=headers,
-        json={"title": "Pool check", "due_date": DayClock().today().isoformat()},
+        json={"title": "Pool check", "due_date": settled_today().isoformat()},
     )
     assert r.status_code in (200, 201), r.text
     assert ran, "the write never triggered a stats recompute"

@@ -11,10 +11,11 @@ from sqlmodel import Session
 from app.shared.day import DayClock
 from app.shared.ids import derived_id
 from tests.modules.finance.api.helpers import API, Fin
+from tests.utils.day import run_day
 from tests.utils.mobile import signed_in
 
 CLOCK = DayClock()
-TODAY = CLOCK.today()
+TODAY = run_day(CLOCK)
 
 
 def d(n: int) -> str:

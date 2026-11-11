@@ -7,12 +7,12 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
-from app.shared.day import DayClock
 from app.shared.ids import derived_id
 from tests.modules.finance.api.helpers import Fin
+from tests.utils.day import run_day
 from tests.utils.mobile import signed_in
 
-TODAY = DayClock().today()  # a new user has the default clock
+TODAY = run_day()  # a new user has the default clock
 
 
 def _fin(client: TestClient, db: Session) -> Fin:
