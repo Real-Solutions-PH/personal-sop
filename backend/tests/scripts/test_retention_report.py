@@ -141,3 +141,46 @@ def test_plus_events_are_not_app_opens(rr: ModuleType) -> None:
     out = rr.usage_summary(rows, today=date(2026, 11, 15))
     assert out["people_opening_28d"] == 1
     assert out["sessions_28d"] == 1
+
+
+def test_nudges_by_kind_and_arm(rr: ModuleType) -> None:
+    """Sends, opens, open rate and logs within 2 h, by kind and by arm;
+    held-back decisions are counted by reason and are not sends."""
+    t = datetime(2026, 11, 10, 11, 0, tzinfo=timezone.utc)
+    a, b = uuid.uuid4(), uuid.uuid4()
+    rows = [
+        # owner, kind, arm, suppressed, sent_at, opened_at, logged within 2 h
+        (a, "best_time", "treated", None, t, t + timedelta(minutes=3), True),
+        (a, "best_time", "treated", None, t, None, False),
+        (b, "best_time", "treated", None, t, None, True),
+        (b, "ladder_3", "treated", None, t, t + timedelta(hours=1), False),
+        (b, "best_time", "holdout", "holdout", None, None, False),
+        (a, "best_time", "treated", "active_today", None, None, False),
+    ]
+    out = rr.nudge_summary(rows)
+    assert out["by_kind"]["best_time"] == {
+        "sent": 3,
+        "opened": 1,
+        "open_rate_pct": 33.3,
+        "logged_within_2h": 2,
+    }
+    assert out["by_kind"]["ladder_3"] == {
+        "sent": 1,
+        "opened": 1,
+        "open_rate_pct": 100.0,
+        "logged_within_2h": 0,
+    }
+    assert out["by_arm"]["treated"]["sent"] == 4
+    assert out["by_arm"]["holdout"] == {
+        "sent": 0,
+        "opened": 0,
+        "open_rate_pct": None,
+        "logged_within_2h": 0,
+    }
+    assert out["held_back"] == {"active_today": 1, "holdout": 1}
+    assert out["people_nudged"] == 2
+
+
+def test_nudges_absent_table_is_reported(rr: ModuleType) -> None:
+    out = rr.compute([], D, {}, {}, None, None)
+    assert out["nudges"] == "nudge table not present"

@@ -1,7 +1,7 @@
 """Read-only retention report: the KPIs in docs/25-retention-kpis.md.
 
 Reads the record tables, ``companion_message``, ``ai_usage``, ``user``,
-``user_profile`` and (once it exists) ``usage_event`` inside a READ ONLY
+``user_profile`` and (once they exist) ``usage_event`` and ``nudge`` inside a READ ONLY
 transaction, and prints one line ``KPI <json>`` of aggregates. Nothing is
 written, and no per-person row, id, email or record content is printed:
 every figure is a count, a share or a median over people.
@@ -34,7 +34,7 @@ from sqlalchemy import Connection, text
 # job or a balance adjustment wrote. Fern chats are counted apart (a chat is
 # not a log); captures are left out because each one writes records that are
 # already counted here.
-LOGS_SQL = """
+LOGS_CTE = """
 WITH logs AS (
     SELECT owner_id, created_at AS at, 'habits' AS area
         FROM habit_log WHERE source <> 'screen'
@@ -51,6 +51,10 @@ WITH logs AS (
     UNION ALL SELECT owner_id, created_at, 'focus' FROM focus_session
     UNION ALL SELECT owner_id, created_at, 'journal' FROM journal_entry
 )
+"""
+LOGS_SQL = (
+    LOGS_CTE
+    + """
 SELECT l.owner_id,
        (l.at AT TIME ZONE COALESCE(p.timezone, 'Asia/Manila'))::date AS day,
        l.area,
@@ -60,6 +64,7 @@ FROM logs l
 LEFT JOIN user_profile p ON p.owner_id = l.owner_id
 GROUP BY 1, 2, 3
 """
+)
 
 USERS_SQL = """
 SELECT u.id, u.created_at, u.is_superuser,
@@ -83,6 +88,26 @@ FROM ai_usage WHERE at >= :since GROUP BY 1
 USAGE_SQL = """
 SELECT owner_id, kind, at, detail FROM usage_event WHERE at >= :since
 """
+
+# Engagement nudges decided in the window (docs/26-retention-algorithms.md
+# §5): sent or held back, and whether a log followed a sent one within 2 h.
+NUDGES_SQL = (
+    LOGS_CTE
+    + """
+SELECT n.owner_id, n.kind, n.arm, n.suppressed, n.sent_at, n.opened_at,
+       (n.sent_at IS NOT NULL AND EXISTS (
+            SELECT 1 FROM logs l WHERE l.owner_id = n.owner_id
+            AND l.at >= n.sent_at AND l.at < n.sent_at + interval '2 hours'
+       )) AS logged_2h
+FROM nudge n WHERE n.scheduled_for >= :since
+"""
+)
+
+# owner, kind, arm, suppressed, sent_at, opened_at, logged within 2 h
+NudgeRow = tuple[
+    uuid.UUID, str, str, str | None, datetime | None, datetime | None, bool
+]
+
 
 LAPSE_DAYS = 3  # inactive this many whole days = lapsed
 RETURN_WINDOW = 14  # days after lapsing in which a log counts as a return
@@ -157,6 +182,7 @@ def compute(
     fern: dict[uuid.UUID, int],
     ai: dict[uuid.UUID, tuple[int, int]],
     usage: list[tuple[uuid.UUID, str, datetime, str | None]] | None,
+    nudges: list[NudgeRow] | None = None,
 ) -> dict[str, Any]:
     ppl = list(people)
     out: dict[str, Any] = {"today": today.isoformat(), "people": len(ppl)}
@@ -287,7 +313,51 @@ def compute(
         out["usage"] = "usage_event table not present"
     else:
         out["usage"] = usage_summary(usage, today)
+
+    # Engagement nudges: only once the nudge table exists.
+    if nudges is None:
+        out["nudges"] = "nudge table not present"
+    else:
+        out["nudges"] = nudge_summary(nudges)
     return out
+
+
+def nudge_summary(rows: list[NudgeRow]) -> dict[str, Any]:
+    """Sends, opens, open rate and logs within 2 h of a send, by kind and by
+    arm (holdout vs treated); held-back decisions counted by reason."""
+
+    def blank() -> dict[str, int]:
+        return {"sent": 0, "opened": 0, "logged_within_2h": 0}
+
+    by_kind: dict[str, dict[str, int]] = defaultdict(blank)
+    by_arm: dict[str, dict[str, int]] = {"holdout": blank(), "treated": blank()}
+    held: dict[str, int] = defaultdict(int)
+    nudged: set[uuid.UUID] = set()
+    for owner, kind, arm, suppressed, sent_at, opened_at, logged in rows:
+        if suppressed is not None or sent_at is None:
+            held[suppressed or "unsent"] += 1
+            continue
+        nudged.add(owner)
+        for bucket in (by_kind[kind], by_arm.setdefault(arm, blank())):
+            bucket["sent"] += 1
+            bucket["opened"] += opened_at is not None
+            bucket["logged_within_2h"] += bool(logged)
+
+    def rated(b: dict[str, int]) -> dict[str, Any]:
+        rate = round(100 * b["opened"] / b["sent"], 1) if b["sent"] else None
+        return {
+            "sent": b["sent"],
+            "opened": b["opened"],
+            "open_rate_pct": rate,
+            "logged_within_2h": b["logged_within_2h"],
+        }
+
+    return {
+        "people_nudged": len(nudged),
+        "by_kind": {k: rated(v) for k, v in sorted(by_kind.items())},
+        "by_arm": {k: rated(v) for k, v in sorted(by_arm.items())},
+        "held_back": dict(sorted(held.items())),
+    }
 
 
 def usage_summary(
@@ -378,7 +448,22 @@ def load(conn: Connection, today: date, include_superusers: bool) -> dict[str, A
             for r in conn.execute(text(USAGE_SQL), {"since": since})
             if r.owner_id in people
         ]
-    out = compute(people.values(), today, fern, ai, usage)
+    nudges = None
+    if conn.execute(text("SELECT to_regclass('nudge')")).scalar() is not None:
+        nudges = [
+            (
+                r.owner_id,
+                r.kind,
+                r.arm,
+                r.suppressed,
+                r.sent_at,
+                r.opened_at,
+                bool(r.logged_2h),
+            )
+            for r in conn.execute(text(NUDGES_SQL), {"since": since})
+            if r.owner_id in people
+        ]
+    out = compute(people.values(), today, fern, ai, usage, nudges)
     out["superusers_excluded"] = skipped
     return out
 
