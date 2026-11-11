@@ -6,6 +6,7 @@ Repositories only flush; the use case commits.
 
 import uuid
 from collections.abc import Iterable
+from datetime import date
 from typing import Any
 
 from sqlmodel import col
@@ -169,6 +170,25 @@ def skips_and_snoozes(
     return skips, snoozes
 
 
+def occurrence_amounts(
+    ctx: Ctx, planned_ids: Iterable[uuid.UUID]
+) -> dict[uuid.UUID, dict[date, int]]:
+    """Each planned item's dates that carry their own amount."""
+    ids = list(planned_ids)
+    out: dict[uuid.UUID, dict[date, int]] = {i: {} for i in ids}
+    if not ids:
+        return out
+    for sn in owned_repo.list_rows(
+        ctx,
+        PlannedSnooze,
+        col(PlannedSnooze.planned_id).in_(ids),
+        col(PlannedSnooze.amount_minor).is_not(None),
+    ):
+        if sn.amount_minor is not None:
+            out[sn.planned_id][sn.on_day] = sn.amount_minor
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Snapshot
 # ---------------------------------------------------------------------------
@@ -216,6 +236,7 @@ def plan_of(
     p: PlannedItem,
     skipped: set[Any] | None = None,
     snoozed: dict[Any, Any] | None = None,
+    amounts: dict[date, int] | None = None,
 ) -> calc.Plan:
     return calc.Plan(
         id=str(p.id),
@@ -235,6 +256,7 @@ def plan_of(
         estimated=p.estimated,
         skipped=skipped or set(),
         snoozed=snoozed or {},
+        amounts=amounts or {},
     )
 
 
@@ -266,6 +288,7 @@ def _load_state(ctx: Ctx, settings: FinanceSettings | None) -> calc.State:
         ctx, PlannedItem, order_by=[col(PlannedItem.created_at), col(PlannedItem.id)]
     )
     skips, snoozes = skips_and_snoozes(ctx, [p.id for p in planned])
+    amounts = occurrence_amounts(ctx, [p.id for p in planned])
     return calc.State(
         today=ctx.today,
         accounts=[acct_of(a) for a in accounts],
@@ -295,7 +318,9 @@ def _load_state(ctx: Ctx, settings: FinanceSettings | None) -> calc.State:
             )
             for b in budgets
         ],
-        planned=[plan_of(p, skips[p.id], snoozes[p.id]) for p in planned],
+        planned=[
+            plan_of(p, skips[p.id], snoozes[p.id], amounts[p.id]) for p in planned
+        ],
         settings=calc.Settings(month_start_day=st.month_start_day),
         cat_by_slug={c.slug: str(c.id) for c in cats if c.slug},
     )

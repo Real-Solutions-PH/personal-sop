@@ -6,6 +6,7 @@ import {
   addDays,
   balanceOf,
   companionOf,
+  MOVE_DAYS,
   recDay,
   reconcile,
   statementClosing,
@@ -569,8 +570,60 @@ export function snoozeOccurrence(plannedId: string, day: string, days = 1) {
   if (!p) return
   const cur = p.snoozed[day] ?? day
   const base = cur < today() ? today() : cur
+  // Never past two weeks from its scheduled day: every window that lists
+  // occurrences looks only that far, so the date would vanish.
+  const limit = addDays(day, MOVE_DAYS),
+    until = addDays(base, days)
   updatePlanned(plannedId, {
-    snoozed: { ...p.snoozed, [day]: addDays(base, days) },
+    snoozed: { ...p.snoozed, [day]: until > limit ? limit : until },
+  })
+}
+/** Change one scheduled date on its own: move it (up to ``MOVE_DAYS``
+ * either side of its scheduled day) or give it its own amount, leaving the
+ * plan's rule and amount as they are. The scheduled day stays the date's
+ * key, so a paid record and a skip still find it. Returns false (and
+ * changes nothing) for a move out of range or an amount that is not a
+ * positive number. */
+export function adjustOccurrence(
+  plannedId: string,
+  orig: string,
+  change: { day?: string; amount?: number },
+): boolean {
+  const p = finStore.get().planned.find((x) => x.id === plannedId)
+  if (!p) return false
+  const { day, amount } = change
+  if (
+    day !== undefined &&
+    (!/^\d{4}-\d{2}-\d{2}$/.test(day) ||
+      day < addDays(orig, -MOVE_DAYS) ||
+      day > addDays(orig, MOVE_DAYS))
+  )
+    return false
+  if (amount !== undefined && !(Number.isFinite(amount) && amount > 0))
+    return false
+  // A date back on its own day keeps its entry (pointing at itself): the
+  // synced row stays, so a later change to the same date is an update.
+  const snoozed = day === undefined ? p.snoozed : { ...p.snoozed, [orig]: day }
+  const amounts = { ...p.amounts }
+  if (amount !== undefined) {
+    if (amount === p.amount) delete amounts[orig]
+    else amounts[orig] = amount
+  }
+  updatePlanned(plannedId, { snoozed, amounts })
+  return true
+}
+/** Puts a date back on its schedule: its own day, the plan's amount, and
+ * not skipped. */
+export function resetOccurrence(plannedId: string, orig: string) {
+  const p = finStore.get().planned.find((x) => x.id === plannedId)
+  if (!p) return
+  const { [orig]: _amount, ...amounts } = p.amounts ?? {}
+  // The entry stays, pointing at its own day: see ``adjustOccurrence``.
+  const changed = orig in p.snoozed || _amount !== undefined
+  updatePlanned(plannedId, {
+    snoozed: changed ? { ...p.snoozed, [orig]: orig } : p.snoozed,
+    amounts,
+    skipped: p.skipped.filter((x) => x !== orig),
   })
 }
 export type SampleFile = "gcash-pdf" | "bpi-pdf" | "maya-shot" | "blurry"

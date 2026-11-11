@@ -529,6 +529,7 @@ export function plannedMapper(cats: Cats): Mapper<FinState, PlannedItem> {
         // These arrive as planned_skip / planned_snooze rows.
         skipped: cur?.skipped ?? [],
         snoozed: cur?.snoozed ?? {},
+        amounts: cur?.amounts,
       }
     },
     merge: (s, ups, dels) => ({
@@ -600,31 +601,45 @@ interface Snooze {
   plannedId: string
   day: string
   until: string
+  /** The date's own amount; null when it follows the plan's. */
+  amount: number | null
 }
 
 const snoozeId = (plannedId: string, day: string) =>
   derivedId("planned-snooze", plannedId, day)
 
-/** A snooze is written whole (until_day), so an offline snooze replays to
- * the same day whatever the server's today is. */
+/** One scheduled date's own changes: the day it moved to (``until_day``,
+ * its own day when only the amount changed) and its own amount. Written
+ * whole, so an offline change replays to the same day whatever the
+ * server's today is. A reset keeps the row, pointing at its own day with no
+ * amount, since a deleted derived id could not be written again. */
 export function plannedSnoozeMapper(): Mapper<FinState, Snooze> {
   return {
     entity: "planned_snooze",
     store: finStore,
     list: (s) =>
       s.planned.flatMap((p) =>
-        Object.entries(p.snoozed).map(([day, until]) => ({
-          id: snoozeId(p.id, day),
-          plannedId: p.id,
-          day,
-          until,
-        })),
+        [
+          ...new Set([
+            ...Object.keys(p.snoozed),
+            ...Object.keys(p.amounts ?? {}),
+          ]),
+        ]
+          .sort()
+          .map((day) => ({
+            id: snoozeId(p.id, day),
+            plannedId: p.id,
+            day,
+            until: p.snoozed[day] ?? day,
+            amount: p.amounts?.[day] ?? null,
+          })),
       ),
     id: (z) => z.id,
     toServer: (z) => ({
       planned_id: z.plannedId,
       on_day: z.day,
       until_day: z.until,
+      amount_minor: z.amount === null ? null : toMinor(z.amount),
     }),
     fromServer: (row) => {
       const plannedId = String(row.planned_id)
@@ -634,6 +649,10 @@ export function plannedSnoozeMapper(): Mapper<FinState, Snooze> {
         plannedId,
         day,
         until: String(row.until_day),
+        amount:
+          row.amount_minor === null || row.amount_minor === undefined
+            ? null
+            : fromMinor(row.amount_minor),
       }
     },
     merge: (s, ups, dels) => {
@@ -643,15 +662,24 @@ export function plannedSnoozeMapper(): Mapper<FinState, Snooze> {
         ...s,
         planned: s.planned.map((p) => {
           const mine = ups.filter((u) => u.plannedId === p.id)
-          const hit = Object.keys(p.snoozed).some((d) =>
-            gone.has(snoozeId(p.id, d)),
-          )
+          const amounts0 = p.amounts ?? {}
+          const hit = [
+            ...Object.keys(p.snoozed),
+            ...Object.keys(amounts0),
+          ].some((d) => gone.has(snoozeId(p.id, d)))
           if (!mine.length && !hit) return p
           const snoozed: Record<string, string> = {}
           for (const [d, u] of Object.entries(p.snoozed))
             if (!gone.has(snoozeId(p.id, d))) snoozed[d] = u
-          for (const u of mine) snoozed[u.day] = u.until
-          return { ...p, snoozed }
+          const amounts: Record<string, number> = {}
+          for (const [d, a] of Object.entries(amounts0))
+            if (!gone.has(snoozeId(p.id, d))) amounts[d] = a
+          for (const u of mine) {
+            snoozed[u.day] = u.until
+            if (u.amount === null) delete amounts[u.day]
+            else amounts[u.day] = u.amount
+          }
+          return { ...p, snoozed, amounts }
         }),
       }
     },

@@ -5,6 +5,7 @@ import {
   addCategory,
   addPlanned,
   adjustBalance,
+  adjustOccurrence,
   confirmRecord,
   deleteCategoryMoving,
   deleteRecord,
@@ -12,6 +13,7 @@ import {
   logTransfer,
   newThread,
   pushMessage,
+  resetOccurrence,
   saveLookBack,
   settleOccurrence,
   skipOccurrence,
@@ -714,6 +716,62 @@ test("skip, un-skip and snooze write the child rows the server derives", () => {
       data: { until_day: addDays(first, 1) },
     }),
   ])
+})
+
+test("one date's own amount and day ride its planned_snooze row; a reset keeps the row", () => {
+  const { e, acct } = setup()
+  const p = addPlanned({
+    name: "Meralco",
+    type: "expense",
+    amount: 3200,
+    estimated: true,
+    accountId: acct.id,
+    categoryId: "internet",
+    schedule: { kind: "monthly", day: 8 },
+    end: { kind: "never" },
+    autoLog: false,
+    isWhatIf: false,
+    inProjection: true,
+  })
+  captureWire(e, seen)
+  const day = addDays(today(), 40).slice(0, 8) + "08",
+    sid = derivedId("planned-snooze", p.id, day)
+  expect(adjustOccurrence(p.id, day, { amount: 3480.5 })).toBe(true)
+  let ops = captureWire(e, seen)
+  expect(ops).toEqual([
+    expect.objectContaining({
+      kind: "upsert",
+      name: "planned_snooze",
+      id: sid,
+      data: {
+        planned_id: p.id,
+        on_day: day,
+        until_day: day,
+        amount_minor: 348050,
+      },
+    }),
+  ])
+  // Moved earlier: only the day changes on the wire.
+  expect(adjustOccurrence(p.id, day, { day: addDays(day, -3) })).toBe(true)
+  ops = captureWire(e, seen)
+  expect(ops).toEqual([
+    expect.objectContaining({ id: sid, data: { until_day: addDays(day, -3) } }),
+  ])
+  // Out of range or a non-positive amount changes nothing.
+  expect(adjustOccurrence(p.id, day, { day: addDays(day, 15) })).toBe(false)
+  expect(adjustOccurrence(p.id, day, { amount: 0 })).toBe(false)
+  expect(captureWire(e, seen)).toEqual([])
+  resetOccurrence(p.id, day)
+  ops = captureWire(e, seen)
+  expect(ops).toEqual([
+    expect.objectContaining({
+      kind: "upsert",
+      id: sid,
+      data: { until_day: day, amount_minor: null },
+    }),
+  ])
+  const back = finStore.get().planned.find((x) => x.id === p.id)
+  expect(back?.amounts).toEqual({})
 })
 
 test("a budget's categories are budget_category rows; a name edit is the name only", () => {

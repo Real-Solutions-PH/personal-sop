@@ -56,7 +56,7 @@ def status(ctx: Ctx) -> dict[str, Any]:
         {
             "name": o.item.name,
             "day": o.day.isoformat(),
-            "amount": money(o.item.amount, cur),
+            "amount": money(calc.amount_on(o.item, o.orig), cur),
             "type": o.item.type,
             "status": o.status,
         }

@@ -205,12 +205,12 @@ test("a transfer plan records one transfer and offers no fee", () => {
   ])
 })
 
-test("Review & record leaves the date's sheet, then opens the editor", async () => {
+test("Record leaves the date's sheet, then opens the editor", async () => {
   const p = plan()
   render(<DueSheet id={p.id} day={DAY} onClose={() => {}} />, { wrapper })
   expect(screen.getByText("Skip")).toBeTruthy()
   expect(screen.getByText("Snooze")).toBeTruthy()
-  fireEvent.press(screen.getByText("Review & record"))
+  fireEvent.press(screen.getByText("Record"))
   // Only once the first sheet is gone (iOS refuses two at once).
   expect(await screen.findByText("Record Salary")).toBeTruthy()
 })
