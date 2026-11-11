@@ -50,11 +50,12 @@ const DAY_COL = "14.2857%"
  * or runs into its neighbour. `chars` is the longest value's length. */
 export function statColumns(width: number, chars: number, fontScale = 1) {
   if (width <= 0) return 2
+  // Every cell, the last included, keeps 12pt clear on its right. Figures
+  // stop growing at 2x text size (maxScale), labels wrap by word.
   const gap = 12,
-    // 24pt display digits run about 0.62em wide; a label needs ~72pt
-    // (it wraps by word below that).
-    need = Math.max(chars * 24 * 0.62, 72) * fontScale
-  return Math.max(1, Math.min(3, Math.floor((width + gap) / (need + gap))))
+    // 24pt display digits run about 0.62em wide; a label needs ~72pt.
+    need = Math.max(chars * 24 * 0.62, 72) * Math.min(fontScale, 2)
+  return Math.max(1, Math.min(3, Math.floor(width / (need + gap))))
 }
 function fmt(day: string) {
   return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
@@ -63,7 +64,15 @@ function fmt(day: string) {
     day: "numeric",
   })
 }
-function Month({ habit }: { habit: Habit }) {
+/** `onDay` opens that day's entry for this habit (to log, fix or reset it);
+ * without it a day opens the all-habits day page. */
+function Month({
+  habit,
+  onDay,
+}: {
+  habit: Habit
+  onDay?: (day: string) => void
+}) {
   const t = useTheme(),
     s = habitsStore.use((s) => s),
     [offset, setOffset] = useState(0),
@@ -144,9 +153,11 @@ function Month({ habit }: { habit: Habit }) {
             <View key={d} style={{ width: DAY_COL, padding: 3 }}>
               <Tap
                 label={`${d}: ${c}`}
-                onPress={() =>
-                  d <= today && d >= habit.createdAt && go(`/habits/day/${d}`)
-                }
+                onPress={() => {
+                  if (d > today || d < habit.createdAt) return
+                  if (onDay) onDay(d)
+                  else go(`/habits/day/${d}`)
+                }}
                 style={{
                   width: "100%",
                   aspectRatio: 1,
@@ -321,10 +332,15 @@ export function HabitDetail({ id }: { id: string }) {
   ]
   const cols = statColumns(
     gridW,
-    // A 12pt unit is about half a 24pt digit, plus its gap.
+    // A 12pt unit or delta is about half a 24pt digit, plus its gap.
     Math.max(
       ...cells.map(
-        (x) => x.value.length + (x.unit ? x.unit.length / 2 + 1 : 0),
+        (x) =>
+          x.value.length +
+          (x.unit ? x.unit.length / 2 + 1 : 0) +
+          (x.delta !== undefined
+            ? (String(Math.abs(x.delta)).length + 1) / 2 + 1
+            : 0),
       ),
     ),
     fontScale,
@@ -399,6 +415,13 @@ export function HabitDetail({ id }: { id: string }) {
           <Line style={{ gap: 8, alignItems: "stretch" }}>
             <Cheer fire={marked} color={t.hab} style={{ flex: 2 }}>
               <Button
+                label={
+                  h.type === "count"
+                    ? `Add ${h.step ?? 1}${h.unit ? ` ${h.unit}` : ""}${log?.value !== undefined ? `, ${log.value.toLocaleString()} of ${(h.target ?? 0).toLocaleString()}` : ""}`
+                    : h.type === "check" && log?.status === "done"
+                      ? "Done today, undo"
+                      : undefined
+                }
                 icon={
                   h.type === "duration"
                     ? Play
@@ -466,8 +489,15 @@ export function HabitDetail({ id }: { id: string }) {
           >
             <Line style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <Flame size={28} color={t.warn} />
-              <Line style={{ gap: 6, alignItems: "baseline" }}>
-                <Copy size={36} weight="displayMedium" style={{ color: t.hab }}>
+              <Line
+                style={{ gap: 6, alignItems: "baseline", flexWrap: "wrap" }}
+              >
+                <Copy
+                  size={36}
+                  weight="displayMedium"
+                  maxScale={2}
+                  style={{ color: t.hab }}
+                >
                   {st.current.toLocaleString()}
                 </Copy>
                 <Copy size={16} muted>
@@ -492,8 +522,10 @@ export function HabitDetail({ id }: { id: string }) {
                   paddingRight: 12,
                 }}
               >
-                <Line style={{ gap: 4, alignItems: "baseline" }}>
-                  <Copy size={24} weight="displayMedium">
+                <Line
+                  style={{ gap: 4, alignItems: "baseline", flexWrap: "wrap" }}
+                >
+                  <Copy size={24} weight="displayMedium" maxScale={2}>
                     {c.value}
                   </Copy>
                   {c.unit && (
@@ -551,7 +583,7 @@ export function HabitDetail({ id }: { id: string }) {
       <View style={{ marginTop: -12 }}>
         <SectionHeading>Calendar</SectionHeading>
         <Frame style={{ padding: 16 }}>
-          <Month habit={h} />
+          <Month habit={h} onDay={auto ? undefined : setLogDay} />
         </Frame>
       </View>
       <View style={{ marginTop: -12 }}>

@@ -11,12 +11,12 @@ import {
 import { router } from "expo-router"
 import {
   Archive,
-  Eraser,
   Info,
   Pause,
   Pencil,
   PenLine,
   Play,
+  RotateCcw,
   Timer,
 } from "lucide-react-native"
 import type { ReactNode } from "react"
@@ -162,19 +162,18 @@ test("a timed habit's menu offers Start timer among today's actions", () => {
   expect(push).toHaveBeenCalledWith(`/habits/${h.id}/timer`)
 })
 
-test("the Log sheet puts Clear log last, apart, with its icon", () => {
+test("the Log sheet shows the day's entry first, with Reset beside it", () => {
   const h = A.createHabit({ name: "Walk", icon: "🚶" })
+  A.checkHabit(h.id, "2026-01-01")
   render(<HabitLog habit={h} day="2026-01-01" open onClose={() => {}} />, {
     wrapper,
   })
   expect(group("habit-log-more", [Pencil])).toEqual([["Edit habit", true]])
-  expect(group("habit-log-danger", [Eraser])).toEqual([["Clear log", true]])
-  // Last in the sheet's body (Save log is pinned in its footer).
-  const body = screen
-    .getAllByRole("button")
-    .map(textOf)
-    .filter((x) => x !== "Save log")
-  expect(body.at(-1)).toBe("Clear log")
+  expect(group("habit-log-entry", [RotateCcw])).toEqual([["Reset", true]])
+  // Above the day's fields: before the Today shortcut and Edit habit.
+  const body = screen.getAllByRole("button").map(textOf)
+  expect(body.indexOf("Reset")).toBeLessThan(body.indexOf("Today"))
+  expect(body.indexOf("Reset")).toBeLessThan(body.indexOf("Edit habit"))
 })
 
 test("Edit habit in the Log sheet opened from the menu opens the form", () => {

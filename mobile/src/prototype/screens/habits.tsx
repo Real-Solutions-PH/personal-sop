@@ -2,6 +2,7 @@ import * as A from "@domain/habits/actions"
 import {
   EVERY_DAY,
   type Habit,
+  type HabitLog as LogRow,
   type ScheduleSlot,
   WEEKDAY_SHORT,
 } from "@domain/habits/data"
@@ -14,15 +15,22 @@ import {
   Eraser,
   History,
   Pencil,
+  RotateCcw,
   Timer,
 } from "lucide-react-native"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   Text as NativeText,
   View as NativeView,
   Pressable,
   View,
 } from "react-native"
+import Animated, {
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated"
 import { toast } from "sonner-native"
 import { Trend } from "../chart"
 import { AnimatedCheck, feel, TickRow, useSwipeComplete } from "../motion"
@@ -290,6 +298,11 @@ export function HabitLog({
   const [date, setDate] = useState(day)
   // Edit opens once the sheet has left; iOS drops a push made while it leaves.
   const [editNext, setEditNext] = useState(false)
+  // The entry the chosen day holds now, so a reset shows its outcome here.
+  const entry = habitsStore.use((s) =>
+    s.logs.find((l) => l.habitId === habit.id && l.day === date),
+  )
+  const [reset, setReset] = useState(false)
   return (
     <Sheet
       title={`Log ${habit.name}`}
@@ -301,6 +314,17 @@ export function HabitLog({
         go(`/habits/${habit.id}/edit`)
       }}
     >
+      <LogEntry
+        habit={habit}
+        entry={entry}
+        reset={reset}
+        onReset={() => {
+          A.clearLog(habit.id, date)
+          feel.select()
+          setReset(true)
+          setValue(String(habit.target ?? ""))
+        }}
+      />
       <Choices
         value={status}
         onChange={setStatus}
@@ -391,19 +415,89 @@ export function HabitLog({
           Edit habit
         </Button>
       </MenuGroup>
-      <MenuGroup divided testID="habit-log-danger">
-        <Button
-          tone="danger"
-          icon={Eraser}
-          onPress={() => {
-            A.clearLog(habit.id, date)
-            onClose()
-          }}
-        >
-          Clear log
-        </Button>
-      </MenuGroup>
     </Sheet>
+  )
+}
+/** The day's entry at the top of the Log sheet, with Reset beside it: a day
+ * ticked by mistake goes back to nothing logged (a count to 0) in place, and
+ * the sheet says so. Streaks and rates follow from the logs. */
+function LogEntry({
+  habit,
+  entry,
+  reset,
+  onReset,
+}: {
+  habit: Habit
+  entry?: LogRow
+  reset: boolean
+  onReset: () => void
+}) {
+  const t = useTheme()
+  const reduced = useReducedMotion()
+  const shown = useSharedValue(reset && !reduced ? 0 : 1)
+  useEffect(() => {
+    if (reset && !reduced) shown.value = withTiming(1, { duration: 220 })
+  }, [reset, reduced, shown])
+  const style = useAnimatedStyle(() => ({ opacity: shown.value }))
+  return (
+    <NativeView
+      testID="habit-log-entry"
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 8,
+        minHeight: 36,
+      }}
+    >
+      {entry ? (
+        <>
+          <NativeView
+            style={{
+              flex: 1,
+              minWidth: 120,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <Check
+              size={16}
+              color={entry.status === "skipped" ? t.warn : t.hab}
+            />
+            <NativeText
+              style={{ fontFamily: fonts.medium, fontSize: 14, color: t.text }}
+            >
+              {entry.status === "done"
+                ? "Done"
+                : entry.status === "partial"
+                  ? "Partial"
+                  : "Skipped"}
+              {entry.value !== undefined
+                ? ` · ${L.valueLabel(habit, entry.value)}`
+                : ""}
+            </NativeText>
+          </NativeView>
+          <Button tone="danger" small icon={RotateCcw} onPress={onReset}>
+            Reset
+          </Button>
+        </>
+      ) : (
+        <Animated.View
+          style={[
+            { flexDirection: "row", alignItems: "center", gap: 6 },
+            style,
+          ]}
+        >
+          <Eraser size={16} color={t.muted} />
+          <NativeText
+            style={{ fontFamily: fonts.body, fontSize: 14, color: t.muted }}
+          >
+            Not logged
+          </NativeText>
+        </Animated.View>
+      )}
+    </NativeView>
   )
 }
 export function HabitsList({
