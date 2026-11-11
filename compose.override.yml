@@ -22,7 +22,7 @@ services:
     # Same dev-only Supabase address as the backend: init_db calls GoTrue at
     # startup, so prestart must reach the host stack via host.docker.internal.
     environment:
-      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_URL: http://host.docker.internal:24321
 
   backend:
     restart: "no"
@@ -61,7 +61,7 @@ services:
       # The host-run Supabase stack (supabase start) is reached from inside the
       # container via host.docker.internal; this dev-only address lives here,
       # not in the base compose, so the base image stays environment-agnostic.
-      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_URL: http://host.docker.internal:24321
 
   worker:
     restart: "no"
@@ -80,7 +80,7 @@ services:
 
   # Catches the BACKEND's app-notification SMTP emails only (SMTP_HOST above).
   # Auth emails (signup/recovery) are sent by Supabase GoTrue and land in the
-  # local Supabase stack's Mailpit (http://127.0.0.1:54324) — the E2E suite
+  # local Supabase stack's Mailpit (http://127.0.0.1:24324) — the E2E suite
   # reads those from Mailpit, not from here.
   mailcatcher:
     # No version tags are published for this image, so pin by digest
@@ -108,9 +108,9 @@ services:
     environment:
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
-      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-http://127.0.0.1:54321}
+      NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:-http://127.0.0.1:24321}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-}
-      SUPABASE_URL: http://host.docker.internal:54321
+      SUPABASE_URL: http://host.docker.internal:24321
       # Server-side (SSR) backend base URL: NEXT_PUBLIC_API_URL points at the
       # HOST's localhost:8000 and is unreachable from inside this container —
       # SSR of useSuspenseQuery pages was failing with ECONNREFUSED. See
@@ -144,9 +144,9 @@ services:
       - frontend
     # The frontend image bakes browser-facing URLs for a HOST browser
     # (NEXT_PUBLIC_API_URL=http://localhost:8000, Supabase on
-    # 127.0.0.1:54321), so the Cypress browser must see the stack exactly
+    # 127.0.0.1:24321), so the Cypress browser must see the stack exactly
     # like the host does: host networking makes the published ports
-    # (frontend :3000, backend :8000, Supabase :54321, Mailpit :54324)
+    # (frontend :3000, backend :8000, Supabase :24321, Mailpit :24324)
     # reachable on localhost. Linux-only (fine: CI runners + `cypress open`
     # on macOS runs from the host, not this container).
     network_mode: host
@@ -155,7 +155,7 @@ services:
     environment:
       - CYPRESS_BASE_URL=http://localhost:3000
       - CYPRESS_API_URL=http://localhost:8000
-      - CYPRESS_MAILPIT_HOST=http://127.0.0.1:54324
+      - CYPRESS_MAILPIT_HOST=http://127.0.0.1:24324
       - CI=${CI:-}
     volumes:
       - ./e2e/cypress/screenshots:/e2e/cypress/screenshots
