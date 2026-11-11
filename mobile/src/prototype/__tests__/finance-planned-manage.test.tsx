@@ -199,3 +199,38 @@ test("Pay now and Skip next act on the first date that is not skipped", () => {
   fireEvent.press(screen.getByText("Skip next"))
   expect(planOf(p.id).skipped).toEqual([first, second])
 })
+
+test("a date moved earlier shows in History on the day it fell, never as a later date", () => {
+  // Scheduled 5 days ahead, moved to 3 days ago: overdue now.
+  const orig = C.addDays(today, 5),
+    p = plan({
+      start: orig,
+      schedule: { kind: "monthly", day: Number(orig.slice(8, 10)) },
+    })
+  expect(A.adjustOccurrence(p.id, orig, { day: C.addDays(today, -3) })).toBe(
+    true,
+  )
+  render(<Planned id={p.id} />, { wrapper })
+  // History lists it, even though it moved before the plan's start, under
+  // the day it fell on, not the scheduled day still ahead.
+  expect(screen.getByText(C.shortDate(C.addDays(today, -3)))).toBeTruthy()
+  expect(screen.queryByText(C.shortDate(orig))).toBeNull()
+})
+
+test("an amount still being typed is kept when an action is pressed", () => {
+  const p = plan({ start: C.addDays(today, 20) }),
+    [first] = firstDates(p, 1)
+  openDate(p, first)
+  fireEvent.changeText(screen.getByLabelText("Amount for this date"), "30,000")
+  // No blur: straight to Skip.
+  fireEvent.press(screen.getByText("Skip"))
+  expect(planOf(p.id).amounts).toEqual({ [first]: 30000 })
+})
+
+test("snoozing never pushes a date past two weeks from its scheduled day", () => {
+  const p = plan({ start: C.addDays(today, 20) }),
+    [first] = firstDates(p, 1)
+  A.adjustOccurrence(p.id, first, { day: C.addDays(first, C.MOVE_DAYS) })
+  A.snoozeOccurrence(p.id, first)
+  expect(planOf(p.id).snoozed[first]).toBe(C.addDays(first, C.MOVE_DAYS))
+})

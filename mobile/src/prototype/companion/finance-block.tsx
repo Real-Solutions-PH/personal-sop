@@ -66,8 +66,9 @@ export function FinanceBlock({ day }: { day: string }) {
     bills = [...week.overdue, ...week.days.flatMap((d) => d.items)].filter(
       (o) => o.status !== "paid",
     ),
-    signed = (p: PlannedItem) =>
-      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(p.amount)}`
+    // An occurrence passes its own amount (a date can carry one).
+    signed = (p: PlannedItem, amount = p.amount) =>
+      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(amount)}`
   return (
     <View style={{ gap: 14 }} testID="finance-block">
       <Tap label="Open finance" onPress={() => go("/finance")}>
@@ -150,7 +151,7 @@ export function FinanceBlock({ day }: { day: string }) {
           return (
             <Tap
               key={`${o.item.id}-${o.orig}`}
-              label={`${o.item.name}, ${signed(o.item)}, ${c.label}`}
+              label={`${o.item.name}, ${signed(o.item, o.amount)}, ${c.label}`}
               onPress={() => go(`/finance/planned/${o.item.id}`)}
             >
               <Line style={{ alignItems: "flex-start", gap: 10 }}>
@@ -172,7 +173,7 @@ export function FinanceBlock({ day }: { day: string }) {
                             : t.text,
                     }}
                   >
-                    {signed(o.item)}
+                    {signed(o.item, o.amount)}
                   </Copy>
                   <FinPill tone={TONE[c.state]}>{c.label}</FinPill>
                 </View>

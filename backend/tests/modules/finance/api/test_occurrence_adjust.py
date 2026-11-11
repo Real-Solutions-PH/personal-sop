@@ -116,3 +116,26 @@ def test_auto_log_records_a_dates_own_amount(client: TestClient, db: Session) ->
     assert [(r["planned_on"], r["amount_minor"]) for r in logged] == [
         (on.isoformat(), 410_000)
     ]
+
+
+def test_settling_without_an_amount_records_the_dates_own(
+    client: TestClient, db: Session
+) -> None:
+    f, a, cat = _fin(client, db)
+    on = TODAY + timedelta(days=3)
+    p = _plan(f, a, cat, on)
+    _adjust(f, p, on, until_day=on.isoformat(), amount_minor=410_000)
+    rec = f.post("/planned/settle", {"planned_id": p["id"], "day": on.isoformat()})
+    assert rec["amount_minor"] == 410_000
+
+
+def test_snooze_never_passes_two_weeks_from_the_scheduled_day(
+    client: TestClient, db: Session
+) -> None:
+    f, a, cat = _fin(client, db)
+    on = TODAY + timedelta(days=3)
+    p = _plan(f, a, cat, on)
+    out = f.post(
+        "/planned/snooze", {"planned_id": p["id"], "day": on.isoformat(), "days": 30}
+    )
+    assert out["until_day"] == (on + timedelta(days=14)).isoformat()

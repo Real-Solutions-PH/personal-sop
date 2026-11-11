@@ -172,6 +172,8 @@ export function DueSheet({
     // Cents keep both digits: "1,234,567.50", never ".5".
     shown =
       draft ?? (Number.isInteger(amount) ? String(amount) : amount.toFixed(2))
+  /** Writes the amount being typed: on leaving the field, and before any
+   * action or close, so a press with the keyboard up never drops it. */
   const commitAmount = () => {
     if (draft === null) return
     const v = Number(draft)
@@ -186,7 +188,10 @@ export function DueSheet({
         <Sheet
           title={p.name}
           open={phase === "due"}
-          onClose={onClose}
+          onClose={() => {
+            commitAmount()
+            onClose()
+          }}
           onClosed={() => setPhase((v) => (v === "leaving" ? "editor" : v))}
         >
           <Line
@@ -295,7 +300,10 @@ export function DueSheet({
                   tone={i === 2 ? "primary" : "quiet"}
                   icon={a.icon}
                   disabled={i > 0 && skipped}
-                  onPress={a.press}
+                  onPress={() => {
+                    commitAmount()
+                    a.press()
+                  }}
                 >
                   {a.label}
                 </Button>
@@ -352,10 +360,14 @@ export function Planned({ id }: { id?: string }) {
           : !p.isWhatIf && p.schedule.kind !== "once",
     ),
     { income, out } = C.recurringMonth(s, today),
-    signed = (p: PlannedItem) =>
-      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(p.amount)}`
+    // An occurrence passes its own amount (a date can carry one).
+    signed = (p: PlannedItem, amount = p.amount) =>
+      `${p.type === "income" ? "+" : p.type === "expense" ? "−" : ""}${money(amount)}`
   const history = p
-      ? C.occurrencesIn(s, p.start, today, { includeWhatIf: true })
+      ? // A first date moved earlier can fall before the start.
+        C.occurrencesIn(s, C.addDays(p.start, -C.MOVE_DAYS), today, {
+          includeWhatIf: true,
+        })
           .filter((o) => o.item.id === id)
           .reverse()
       : [],
@@ -662,7 +674,7 @@ export function Planned({ id }: { id?: string }) {
                         justifyContent: "space-between",
                       }}
                     >
-                      <Copy size={14}>{C.shortDate(o.orig)}</Copy>
+                      <Copy size={14}>{C.shortDate(o.day)}</Copy>
                       <Line style={{ gap: 8 }}>
                         {r && (
                           <>
@@ -796,7 +808,7 @@ export function Planned({ id }: { id?: string }) {
                     <Copy size={14} weight="medium" style={{ marginTop: 4 }}>
                       {o.item.name}
                     </Copy>
-                    <Copy size={14}>{signed(o.item)}</Copy>
+                    <Copy size={14}>{signed(o.item, o.amount)}</Copy>
                     {o.status === "overdue" && (
                       <FinPill tone="bad">overdue</FinPill>
                     )}

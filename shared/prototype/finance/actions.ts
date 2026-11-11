@@ -570,8 +570,12 @@ export function snoozeOccurrence(plannedId: string, day: string, days = 1) {
   if (!p) return
   const cur = p.snoozed[day] ?? day
   const base = cur < today() ? today() : cur
+  // Never past two weeks from its scheduled day: every window that lists
+  // occurrences looks only that far, so the date would vanish.
+  const limit = addDays(day, MOVE_DAYS),
+    until = addDays(base, days)
   updatePlanned(plannedId, {
-    snoozed: { ...p.snoozed, [day]: addDays(base, days) },
+    snoozed: { ...p.snoozed, [day]: until > limit ? limit : until },
   })
 }
 /** Change one scheduled date on its own: move it (up to ``MOVE_DAYS``
