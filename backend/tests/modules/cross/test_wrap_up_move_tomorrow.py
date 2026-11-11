@@ -6,8 +6,8 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.core.config import settings
-from app.shared.day import DayClock
 from tests.modules.fitness.api.helpers import ok
+from tests.utils.day import settled_today
 from tests.utils.mobile import signed_in
 
 API = settings.API_V1_STR
@@ -15,7 +15,7 @@ API = settings.API_V1_STR
 
 def test_move_task_tomorrow(client: TestClient, db: Session) -> None:
     _, h = signed_in(db)
-    today = DayClock().today()
+    today = settled_today()
     task = ok(
         client.post(
             f"{API}/tasks/",
