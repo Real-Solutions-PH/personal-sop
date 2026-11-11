@@ -11,6 +11,8 @@ import { dayKey, dayOffset } from "../lib/day"
 import { walkRun } from "../lib/grace"
 import { useSharedMemo } from "../lib/memo"
 import { modules } from "../modules"
+import { withOverrides } from "../schedule/logic"
+import { scheduleStore } from "../schedule/store"
 import {
   AREA,
   type Goal,
@@ -349,22 +351,29 @@ export function useAllCalendar(from: string, to: string): CalendarItem[] {
   const sc = SCR.useCalendar(from, to)
   const enabled = useEnabled()
   const server = useServerStat<ServerCalendarItem[]>(statKey.calendar(from, to))
+  const overrides = scheduleStore.use((s) => s.overrides)
   return useSharedMemo(
     "dash.useAllCalendar",
     () =>
-      (server.data
-        ? calendarFrom(server.data)
-        : [...a, ...b, ...c, ...fo, ...d, ...sc].filter(
-            (i) => enabled[i.module],
-          )
-      ).sort(
-        (x, y) =>
-          x.day.localeCompare(y.day) ||
-          (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
-      ),
-    [a, b, c, fo, d, sc, enabled, server.data],
+      withOverrides(
+        server.data
+          ? calendarFrom(server.data)
+          : [...a, ...b, ...c, ...fo, ...d, ...sc].filter(
+              (i) => enabled[i.module],
+            ),
+        overrides,
+        ownTimes(a, b),
+      ).sort(byDayThenTime),
+    [a, b, c, fo, d, sc, enabled, server.data, overrides],
   )
 }
+/** Each habit, routine and task's own time on this phone, by calendar item:
+ * what a moved item goes back to (see ``withOverrides``). */
+const ownTimes = (...lists: CalendarItem[][]) =>
+  new Map(lists.flat().map((i) => [i.id, i.time]))
+const byDayThenTime = (x: CalendarItem, y: CalendarItem) =>
+  x.day.localeCompare(y.day) ||
+  (x.time ?? "99:99").localeCompare(y.time ?? "99:99")
 /** Today's (or any range's) items from this phone's own stores only, so
  * what was just checked off shows at once (``useAllCalendar`` prefers the
  * server's copy once it has one). */
@@ -374,17 +383,15 @@ export function useLocalCalendar(from: string, to: string): CalendarItem[] {
   const c = FIT.useCalendar(from, to)
   const d = FIN.useCalendar(from, to)
   const enabled = useEnabled()
+  const overrides = scheduleStore.use((s) => s.overrides)
   return useSharedMemo(
     "dash.useLocalCalendar",
     () =>
-      [...a, ...b, ...c, ...d]
-        .filter((i) => enabled[i.module])
-        .sort(
-          (x, y) =>
-            x.day.localeCompare(y.day) ||
-            (x.time ?? "99:99").localeCompare(y.time ?? "99:99"),
-        ),
-    [a, b, c, d, enabled],
+      withOverrides(
+        [...a, ...b, ...c, ...d].filter((i) => enabled[i.module]),
+        overrides,
+      ).sort(byDayThenTime),
+    [a, b, c, d, enabled, overrides],
   )
 }
 export function useAllMisses(from: string, to: string): Miss[] {

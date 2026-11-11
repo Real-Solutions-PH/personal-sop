@@ -1,0 +1,28 @@
+[
+  {
+    "kind": "upsert",
+    "name": "schedule_override",
+    "id": "3ffed26c-7f20-5e1b-b7cb-040ef620dd15",
+    "data": {
+      "kind": "habit",
+      "ref_id": "8f5e2c1a-0b7d-4c3e-9a21-6d4f0e8b2a10",
+      "day": "2026-11-12",
+      "time": "14:30"
+    },
+    "create": true
+  },
+  {
+    "kind": "upsert",
+    "name": "schedule_override",
+    "id": "3ffed26c-7f20-5e1b-b7cb-040ef620dd15",
+    "data": {
+      "time": "16:00"
+    },
+    "create": false
+  },
+  {
+    "kind": "delete",
+    "name": "schedule_override",
+    "id": "3ffed26c-7f20-5e1b-b7cb-040ef620dd15"
+  }
+]
