@@ -74,6 +74,8 @@ SYNC_MODULES = (
     "profile",
     "habits",
     "tasks",
+    # After habits and tasks: an override names one of them.
+    "schedule",
     "fitness",
     "finance",
     "focus",

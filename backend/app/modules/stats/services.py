@@ -11,6 +11,8 @@ from datetime import date, timedelta
 
 from app.modules.profile import public as profile_public
 from app.modules.profile.models import UserProfile
+from app.modules.schedule import logic as schedule_logic
+from app.modules.schedule import services as schedule
 from app.modules.stats import logic as L
 from app.modules.stats.contract import (
     CalendarItem,
@@ -261,6 +263,8 @@ def calendar(ctx: Ctx, first: date, last: date) -> list[CalendarItem]:
     items = [
         i for k, c in contributors().items() if s.enabled[k] for i in c.calendar(ctx, w)
     ]
+    # Items moved on the Plan tab for one day sit at that day's time.
+    items = schedule_logic.apply_overrides(items, schedule.in_window(ctx, first, last))
     return sorted(items, key=lambda i: (i.day, i.time or "99:99"))
 
 
