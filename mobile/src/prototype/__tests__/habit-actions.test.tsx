@@ -345,6 +345,8 @@ const derived = (id: string) => {
 }
 
 test("a wrongly ticked day resets from the Calendar and every stat returns", () => {
+  // Mid-month, so the days below are all in the Calendar's month.
+  jest.setSystemTime(new Date("2026-06-15T12:00:00"))
   const h = walk()
   habitsStore.set((s) => ({
     ...s,
@@ -368,7 +370,39 @@ test("a wrongly ticked day resets from the Calendar and every stat returns", () 
   // The outcome shows in place; no toast (toasts are for ticks only).
   expect(screen.getByText("Not logged")).toBeTruthy()
   expect(screen.queryByRole("button", { name: /^Reset/ })).toBeNull()
+  expect(toast).not.toHaveBeenCalled()
   expect(toast.success).not.toHaveBeenCalled()
+  // The footer now only closes: tapping it cannot write the tick back.
+  expect(screen.queryByText("Save log")).toBeNull()
+  fireEvent.press(screen.getByText("Done"))
+  expect(derived(h.id)).toEqual(before)
+  // Ticking the day again later counts it once more.
+  A.checkHabit(h.id, wrong)
+  expect(
+    habitsStore.get().logs.filter((l) => l.habitId === h.id && l.day === wrong),
+  ).toHaveLength(1)
+  A.clearLog(h.id, wrong)
+  expect(derived(h.id)).toEqual(before)
+})
+
+test("editing a field after Reset brings Save log back", () => {
+  const h = walk()
+  A.checkHabit(h.id)
+  render(<HabitLog habit={h} day={dayKey()} open onClose={() => {}} />, {
+    wrapper,
+  })
+  fireEvent.press(screen.getByRole("button", { name: /^Reset/ }))
+  fireEvent.press(screen.getByText("Yesterday"))
+  expect(screen.getByText("Save log")).toBeTruthy()
+})
+
+test("a screen-time habit's Calendar day still opens the day page", () => {
+  screenTime(true)
+  const h = screenHabit()
+  render(<HabitDetail id={h.id} />, { wrapper })
+  fireEvent.press(screen.getByLabelText(new RegExp(`^${dayKey()}:`)))
+  expect(push).toHaveBeenCalledWith(`/habits/day/${dayKey()}`)
+  expect(screen.queryByTestId("habit-log-entry")).toBeNull()
 })
 
 test("a count habit's day resets to nothing logged", () => {
@@ -387,4 +421,6 @@ test("a count habit's day resets to nothing logged", () => {
     0,
   )
   expect(screen.getByText("Not logged")).toBeTruthy()
+  // The amount field goes back to the target, ready for a fresh entry.
+  expect(screen.getByDisplayValue("8")).toBeTruthy()
 })

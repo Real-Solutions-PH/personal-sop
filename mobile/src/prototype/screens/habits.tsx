@@ -20,6 +20,7 @@ import {
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
 import {
+  AccessibilityInfo,
   Text as NativeText,
   View as NativeView,
   Pressable,
@@ -302,7 +303,15 @@ export function HabitLog({
   const entry = habitsStore.use((s) =>
     s.logs.find((l) => l.habitId === habit.id && l.day === date),
   )
+  // Just reset and untouched since: the footer only closes, so a tap meant
+  // to confirm the reset cannot write the old entry back.
   const [reset, setReset] = useState(false)
+  const edit =
+    <T,>(set: (v: T) => void) =>
+    (v: T) => {
+      setReset(false)
+      set(v)
+    }
   return (
     <Sheet
       title={`Log ${habit.name}`}
@@ -322,12 +331,15 @@ export function HabitLog({
           A.clearLog(habit.id, date)
           feel.select()
           setReset(true)
+          setStatus("done")
           setValue(String(habit.target ?? ""))
+          setNote("")
+          AccessibilityInfo.announceForAccessibility("Reset. Not logged.")
         }}
       />
       <Choices
         value={status}
-        onChange={setStatus}
+        onChange={edit(setStatus)}
         options={["done", "partial", "skipped"].map((value) => ({
           value: value as typeof status,
           label: value,
@@ -338,13 +350,13 @@ export function HabitLog({
           label={habit.unit ?? "Minutes"}
           keyboardType="decimal-pad"
           value={value}
-          onChangeText={setValue}
+          onChangeText={edit(setValue)}
         />
       )}
       <DateField
         label="Day"
         value={date}
-        onChangeText={setDate}
+        onChangeText={edit(setDate)}
         maximumDate={dayKey()}
       />
       <Actions>
@@ -352,7 +364,7 @@ export function HabitLog({
           tone="quiet"
           small
           icon={CalendarCheck}
-          onPress={() => setDate(dayKey())}
+          onPress={() => edit(setDate)(dayKey())}
         >
           Today
         </Button>
@@ -360,36 +372,42 @@ export function HabitLog({
           tone="quiet"
           small
           icon={History}
-          onPress={() => setDate(dayOffset(-1))}
+          onPress={() => edit(setDate)(dayOffset(-1))}
         >
           Yesterday
         </Button>
       </Actions>
-      <Field label="Note" value={note} onChangeText={setNote} multiline />
+      <Field label="Note" value={note} onChangeText={edit(setNote)} multiline />
       <PinnedFooter>
-        <Button
-          icon={Check}
-          onPress={() => {
-            if (
-              !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
-              !Number.isFinite(Number(value)) ||
-              Number(value) < 0
-            ) {
-              toast.error("Enter a valid day and non-negative value")
-              return
-            }
-            A.logHabit({
-              habitId: habit.id,
-              day: date,
-              status,
-              value: habit.type === "check" ? undefined : Number(value),
-              note,
-            })
-            onClose()
-          }}
-        >
-          Save log
-        </Button>
+        {reset ? (
+          <Button icon={Check} onPress={onClose}>
+            Done
+          </Button>
+        ) : (
+          <Button
+            icon={Check}
+            onPress={() => {
+              if (
+                !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+                !Number.isFinite(Number(value)) ||
+                Number(value) < 0
+              ) {
+                toast.error("Enter a valid day and non-negative value")
+                return
+              }
+              A.logHabit({
+                habitId: habit.id,
+                day: date,
+                status,
+                value: habit.type === "check" ? undefined : Number(value),
+                note,
+              })
+              onClose()
+            }}
+          >
+            Save log
+          </Button>
+        )}
       </PinnedFooter>
       <MenuGroup testID="habit-log-more">
         {habit.type === "duration" && (
@@ -434,9 +452,11 @@ function LogEntry({
 }) {
   const t = useTheme()
   const reduced = useReducedMotion()
-  const shown = useSharedValue(reset && !reduced ? 0 : 1)
+  const shown = useSharedValue(1)
   useEffect(() => {
-    if (reset && !reduced) shown.value = withTiming(1, { duration: 220 })
+    if (!reset || reduced) return
+    shown.value = 0
+    shown.value = withTiming(1, { duration: 220 })
   }, [reset, reduced, shown])
   const style = useAnimatedStyle(() => ({ opacity: shown.value }))
   return (
@@ -466,7 +486,12 @@ function LogEntry({
               color={entry.status === "skipped" ? t.warn : t.hab}
             />
             <NativeText
-              style={{ fontFamily: fonts.medium, fontSize: 14, color: t.text }}
+              style={{
+                flexShrink: 1,
+                fontFamily: fonts.medium,
+                fontSize: 14,
+                color: t.text,
+              }}
             >
               {entry.status === "done"
                 ? "Done"
@@ -484,6 +509,7 @@ function LogEntry({
         </>
       ) : (
         <Animated.View
+          accessibilityLiveRegion="polite"
           style={[
             { flexDirection: "row", alignItems: "center", gap: 6 },
             style,
