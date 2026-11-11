@@ -890,38 +890,41 @@ function CalendarPanel() {
     showFin = enabled.finance && !hidden.includes("finance"),
     due = occ.filter((o) => o.day === sel)
   const itemRow = (i: CalendarItem) => (
-    <Tap key={i.id} onPress={() => go(i.href)} style={{ paddingVertical: 8 }}>
-      <Line style={{ gap: 8, alignItems: "flex-start" }}>
-        {i.time && (
-          <Copy size={12} muted style={{ width: 42, marginTop: 2 }}>
-            {i.time}
+    <Line key={i.id} style={{ gap: 8 }}>
+      <Tap onPress={() => go(i.href)} style={{ flex: 1, paddingVertical: 8 }}>
+        <Line style={{ gap: 8, alignItems: "flex-start" }}>
+          {i.time && (
+            <Copy size={12} muted style={{ width: 42, marginTop: 2 }}>
+              {i.time}
+            </Copy>
+          )}
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              marginTop: 7,
+              borderRadius: 3,
+              backgroundColor: t[AREA[i.module].accent],
+            }}
+          />
+          <Copy
+            size={14}
+            style={{
+              flex: 1,
+              color: i.done ? t.muted : t.text,
+              textDecorationLine: i.done ? "line-through" : "none",
+            }}
+          >
+            {i.title}
           </Copy>
-        )}
-        <View
-          style={{
-            width: 6,
-            height: 6,
-            marginTop: 7,
-            borderRadius: 3,
-            backgroundColor: t[AREA[i.module].accent],
-          }}
-        />
-        <Copy
-          size={14}
-          style={{
-            flex: 1,
-            color: i.done ? t.muted : t.text,
-            textDecorationLine: i.done ? "line-through" : "none",
-          }}
-        >
-          {i.title}
-        </Copy>
-        {i.movedFrom !== undefined && (
-          <MovedMark item={i} from={i.movedFrom} inline />
-        )}
-        {i.done && <Check size={14} color={t.good} style={{ marginTop: 3 }} />}
-      </Line>
-    </Tap>
+          {i.done && (
+            <Check size={14} color={t.good} style={{ marginTop: 3 }} />
+          )}
+        </Line>
+      </Tap>
+      {/* Moved for this day: beside the row, never inside its button. */}
+      {i.movedFrom !== undefined && <MovedMark item={i} from={i.movedFrom} />}
+    </Line>
   )
   return (
     <View>

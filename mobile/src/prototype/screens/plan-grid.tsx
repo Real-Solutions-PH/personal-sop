@@ -18,8 +18,8 @@ import {
   snapMinutes,
 } from "@domain/schedule/logic"
 import { Check, Undo2 } from "lucide-react-native"
-import { useContext, useEffect, useState } from "react"
-import { View } from "react-native"
+import { useContext, useEffect, useRef, useState } from "react"
+import { Pressable, View } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
   runOnJS,
@@ -217,6 +217,12 @@ function Block({
   const scale = useSharedValue(1)
   const slot = useSharedValue(min)
   const [target, setTarget] = useState<number | null>(null)
+  // On web the release that ends a drag is also a click: it must not open
+  // the item. Cleared on the next press-in.
+  const dragged = useRef(false)
+  const markDragged = () => {
+    dragged.current = true
+  }
   // A new time from anywhere (a drop here, a reset, a pull): slide there.
   useEffect(() => {
     if (lifted.value) return
@@ -253,6 +259,7 @@ function Block({
       lifted.value = 1
       slot.value = min
       runOnJS(lock)(true)
+      runOnJS(markDragged)()
       runOnJS(feel.impact)()
       runOnJS(setTarget)(min)
     })
@@ -302,6 +309,9 @@ function Block({
           left,
           width,
           minHeight: BLOCK_MIN_H,
+          // Opaque, so the hour lines never show through a block.
+          borderRadius: 8,
+          backgroundColor: t.card,
           shadowColor: "#000",
           shadowRadius: 10,
           shadowOffset: { width: 0, height: 4 },
@@ -309,48 +319,59 @@ function Block({
         style,
       ]}
     >
-      <GestureDetector gesture={pan}>
-        <View
-          accessible
-          accessibilityRole={canMove ? "adjustable" : "button"}
-          accessibilityLabel={`${item.title}, ${timeLabel(min)}${
-            movedFrom !== undefined ? ", moved for this day" : ""
-          }`}
-          accessibilityHint={
-            canMove
-              ? "Hold and drag to move it. Swipe up or down to move it 15 minutes."
-              : undefined
-          }
-          accessibilityActions={
-            canMove
-              ? [
-                  { name: "increment", label: "15 minutes later" },
-                  { name: "decrement", label: "15 minutes earlier" },
-                  { name: "activate", label: "Open" },
-                ]
-              : [{ name: "activate", label: "Open" }]
-          }
-          onAccessibilityAction={(e) => {
-            const a = e.nativeEvent.actionName
-            if (a === "increment") step(1)
-            else if (a === "decrement") step(-1)
-            else go(item.href)
-          }}
-        >
-          <Tap onPress={() => go(item.href)} style={{ flex: 1 }}>
+      <View
+        style={{
+          flexGrow: 1,
+          minHeight: BLOCK_MIN_H,
+          borderRadius: 8,
+          borderLeftWidth: 3,
+          borderLeftColor: accent,
+          backgroundColor: `${accent}26`,
+        }}
+      >
+        <GestureDetector gesture={pan}>
+          {/* One pressable carries the open tap, the drag and the screen
+            reader's actions: a button inside a button is invalid on web. */}
+          <Pressable
+            cssInterop={false}
+            accessibilityRole={canMove ? "adjustable" : "button"}
+            accessibilityLabel={`${item.title}, ${timeLabel(min)}${
+              movedFrom !== undefined ? ", moved for this day" : ""
+            }`}
+            accessibilityHint={
+              canMove
+                ? "Hold and drag to move it. Swipe up or down to move it 15 minutes."
+                : undefined
+            }
+            accessibilityActions={
+              canMove
+                ? [
+                    { name: "increment", label: "15 minutes later" },
+                    { name: "decrement", label: "15 minutes earlier" },
+                    { name: "activate", label: "Open" },
+                  ]
+                : [{ name: "activate", label: "Open" }]
+            }
+            onAccessibilityAction={(e) => {
+              const a = e.nativeEvent.actionName
+              if (a === "increment") step(1)
+              else if (a === "decrement") step(-1)
+              else go(item.href)
+            }}
+            onPressIn={() => {
+              dragged.current = false
+            }}
+            onPress={() => {
+              if (!dragged.current) go(item.href)
+            }}
+          >
             <Line
               style={{
                 gap: 6,
                 alignItems: "flex-start",
-                minHeight: BLOCK_MIN_H,
                 paddingVertical: 4,
-                paddingLeft: 8,
-                // Room for the moved mark in the corner.
-                paddingRight: movedFrom !== undefined ? 60 : 4,
-                borderRadius: 8,
-                borderLeftWidth: 3,
-                borderLeftColor: accent,
-                backgroundColor: `${accent}26`,
+                paddingLeft: 6,
+                paddingRight: 4,
               }}
             >
               <View style={{ flex: 1, gap: 1 }}>
@@ -374,12 +395,15 @@ function Block({
                 <Check size={14} color={t.good} style={{ marginTop: 1 }} />
               )}
             </Line>
-          </Tap>
-        </View>
-      </GestureDetector>
-      {movedFrom !== undefined && target === null && (
-        <MovedMark item={item} from={movedFrom} />
-      )}
+          </Pressable>
+        </GestureDetector>
+        {/* Beside the pressable, never inside it (no button in a button). */}
+        {movedFrom !== undefined && target === null && (
+          <View style={{ paddingLeft: 4, paddingBottom: 4 }}>
+            <MovedMark item={item} from={movedFrom} />
+          </View>
+        )}
+      </View>
     </Animated.View>
   )
 }
@@ -388,11 +412,9 @@ function Block({
 export function MovedMark({
   item,
   from,
-  inline = false,
 }: {
   item: CalendarItem
   from: string | null
-  inline?: boolean
 }) {
   const t = useTheme()
   const was = from ? timeLabel(dayMinutes(from)) : "no time"
@@ -403,9 +425,7 @@ export function MovedMark({
         if (resetItem(item)) feel.select()
       }}
       style={{
-        position: inline ? "relative" : "absolute",
-        right: inline ? undefined : 2,
-        bottom: inline ? undefined : 2,
+        alignSelf: "flex-start",
         minHeight: 24,
         paddingHorizontal: 6,
         borderRadius: 12,
