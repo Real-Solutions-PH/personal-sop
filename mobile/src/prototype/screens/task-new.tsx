@@ -1,8 +1,8 @@
 // "Add task": a plain form that creates one task as entered (ADR-0015).
 // Free text belongs to Fern; this screen never splits a line into several
 // tasks. Quick-add words in the title ("tomorrow 3pm !high #work") fill
-// the fields below as they are typed; a field set by hand wins, and the
-// word's chip then goes, since it no longer says what will be saved.
+// the fields below as they are typed. A field set by hand owns its value:
+// words of that kind then stay in the title as text.
 import * as A from "@domain/tasks/actions"
 import type { TaskPriority } from "@domain/tasks/data"
 import * as L from "@domain/tasks/logic"
@@ -41,32 +41,40 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
     allLists = tasksStore.use((s) => s.lists),
     lists = useMemo(() => allLists.filter((l) => !l.archivedAt), [allLists]),
     defaultTime = tasksStore.use((s) => s.settings.defaultRemindTime),
-    quick = useQuickAdd(allLists),
     [notes, setNotes] = useState(""),
-    // null: not set by hand, so the title's words decide.
-    [pickedList, setList] = useState<string | null>(listId ?? null),
-    [pickedDate, setDate] = useState<string | null>(day ?? null),
+    // null: not set by hand, so the title's words decide, then the
+    // screen's preset (the list or day it was opened from).
+    [pickedList, setList] = useState<string | null>(null),
+    [pickedDate, setDate] = useState<string | null>(null),
     [pickedTime, setTime] = useState<string | null>(null),
     [remind, setRemind] = useState<Remind>("off"),
     [pickedPriority, setPriority] = useState<TaskPriority | null>(null),
+    skip = useMemo(
+      () =>
+        new Set([
+          ...(pickedDate !== null ? (["date", "when", "repeat"] as const) : []),
+          ...(pickedTime !== null ? (["time", "when"] as const) : []),
+          ...(pickedPriority !== null ? (["priority"] as const) : []),
+          ...(pickedList !== null ? (["list"] as const) : []),
+        ]),
+      [pickedDate, pickedTime, pickedPriority, pickedList],
+    ),
+    quick = useQuickAdd(allLists, skip),
     [errors, setErrors] = useState<{ title?: string; when?: string }>({}),
     [making, setMaking] = useState(false)
 
   const p = quick.parsed,
-    date = pickedDate ?? p.dueDate ?? "",
+    date = pickedDate ?? p.dueDate ?? day ?? "",
     time = pickedTime ?? p.dueTime ?? "",
     priority = pickedPriority ?? p.priority ?? "none",
-    list = pickedList ?? p.listId ?? "",
-    overridden = [
-      ...(pickedDate !== null ? (["date", "when"] as const) : []),
-      ...(pickedTime !== null ? (["time", "when"] as const) : []),
-      ...(pickedPriority !== null ? (["priority"] as const) : []),
-      ...(pickedList !== null ? (["list"] as const) : []),
-    ]
+    list = pickedList ?? p.listId ?? listId ?? ""
 
   function save() {
-    // A line that is only syntax ("tomorrow !high") keeps its words.
-    const name = (p.title || quick.text).replace(/\s+/g, " ").trim()
+    // A line with no syntax saves as typed; one that is only syntax
+    // ("tomorrow !high") keeps its words.
+    const name = (p.tokens.length ? p.title || quick.text : quick.text)
+      .replace(/\s+/g, " ")
+      .trim()
     const next: typeof errors = {}
     if (!name) next.title = "Give the task a name"
     if ((date && !isDay(date)) || (time && !TIME.test(time)))
@@ -108,12 +116,7 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
           returnKeyType="done"
           onSubmitEditing={save}
         />
-        <QuickChips
-          parsed={p}
-          onKeep={quick.keep}
-          lists={lists}
-          hide={overridden}
-        />
+        <QuickChips parsed={p} onKeep={quick.keep} lists={lists} />
         <Field
           label="Notes (optional)"
           value={notes}

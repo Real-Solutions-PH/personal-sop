@@ -26,6 +26,10 @@ export interface QuickToken {
   key: string
   start: number
   end: number
+  /** What this word alone sets (date, time and repeat words): a chip
+   * names it, not the final value, which a later word may override. */
+  dueDate?: string | null
+  dueTime?: string | null
 }
 
 export interface QuickParse {
@@ -92,10 +96,14 @@ export function parseQuickAdd(
     today?: string
     lists?: readonly { id: string; name: string }[]
     ignore?: ReadonlySet<string>
+    /** Kinds set elsewhere (a field picked by hand): their words stay in
+     * the title as text and set nothing. */
+    skip?: ReadonlySet<QuickTokenKind>
   } = {},
 ): QuickParse {
   const tk = opts.today ?? today(),
     ignore = opts.ignore ?? new Set<string>(),
+    skip = opts.skip ?? new Set<QuickTokenKind>(),
     tokens: QuickToken[] = []
   // Same length as the input throughout, so positions carry over.
   let masked = input
@@ -117,7 +125,7 @@ export function parseQuickAdd(
       key = text.toLowerCase(),
       p = PRIORITY[m[3].toLowerCase()]
     if (!p) continue
-    if (ignore.has(key) || priority) hole(start, text)
+    if (ignore.has(key) || skip.has("priority") || priority) hole(start, text)
     else {
       priority = p
       tokens.push({
@@ -137,7 +145,7 @@ export function parseQuickAdd(
         key = text.toLowerCase(),
         id = findList(m[3], opts.lists)
       if (!id) continue
-      if (ignore.has(key) || listId) hole(start, text)
+      if (ignore.has(key) || skip.has("list") || listId) hole(start, text)
       else {
         listId = id
         tokens.push({
@@ -156,16 +164,22 @@ export function parseQuickAdd(
   let parsed = parseTask(masked, tk)
   for (let guard = 0; guard < 20; guard++) {
     const spans = locate(masked, parsed.matched)
-    const off = spans.find((s) => ignore.has(s.text.toLowerCase()))
+    const off = spans.find(
+      (s) => ignore.has(s.text.toLowerCase()) || skip.has(kindOf(s.text, tk)),
+    )
     if (!off) {
-      for (const s of spans)
+      for (const s of spans) {
+        const alone = parseTask(s.text, tk)
         tokens.push({
           kind: kindOf(s.text, tk),
           text: s.text,
+          dueDate: alone.dueDate,
+          dueTime: alone.dueTime,
           key: s.text.toLowerCase(),
           start: s.start,
           end: s.start + s.text.length,
         })
+      }
       break
     }
     hole(off.start, off.text)
@@ -176,10 +190,13 @@ export function parseQuickAdd(
   const nothingLeft =
     parsed.matched.length > 0 && parsed.title === masked.trim()
   let i = 0
-  const title = (nothingLeft ? "" : parsed.title)
-    .replace(HOLES, () => literal[i++]?.text ?? "")
-    .replace(/\s+/g, " ")
-    .trim()
+  const title = firstWordCase(
+    input,
+    (nothingLeft ? "" : parsed.title)
+      .replace(HOLES, () => literal[i++]?.text ?? "")
+      .replace(/\s+/g, " ")
+      .trim(),
+  )
   tokens.sort((a, b) => a.start - b.start)
   return {
     title,
@@ -190,6 +207,20 @@ export function parseQuickAdd(
     listId,
     tokens,
   }
+}
+
+/** The title's first word as typed when it has a capital past its first
+ * letter ("iPhone", "macOS"), else capitalised — `parseTask` capitalises
+ * blindly, and misses a word kept literal at the start. */
+function firstWordCase(input: string, title: string): string {
+  const word = title.match(/^\S+/)?.[0]
+  if (!word) return title
+  const at = input.toLowerCase().indexOf(word.toLowerCase()),
+    typed = at >= 0 ? input.slice(at, at + word.length) : word
+  const head = /\p{Lu}/u.test(typed.slice(1))
+    ? typed
+    : typed[0].toUpperCase() + typed.slice(1)
+  return head + title.slice(word.length)
 }
 
 /** Where each string `parseTask` matched sits in `text`, replayed in the

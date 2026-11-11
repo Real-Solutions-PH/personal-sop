@@ -156,7 +156,7 @@ test("New task: the words fill the fields left unset", () => {
   expect(new Date(`${t.dueDate}T12:00:00`).getDay()).toBe(5)
 })
 
-test("New task: a field set by hand wins and drops that word's chip", () => {
+test("New task: a field set by hand wins and its word stays text", () => {
   render(<TaskNew />, { wrapper })
   fireEvent.changeText(screen.getByLabelText("Task"), "Ship deck !high")
   const chip = /^High from “!high”/
@@ -164,7 +164,7 @@ test("New task: a field set by hand wins and drops that word's chip", () => {
   fireEvent.press(screen.getByRole("button", { name: /^Low/ }))
   expect(screen.queryByRole("button", { name: chip })).toBeNull()
   fireEvent.press(screen.getByRole("button", { name: "Add task" }))
-  expect(only()).toMatchObject({ title: "Ship deck", priority: "low" })
+  expect(only()).toMatchObject({ title: "Ship deck !high", priority: "low" })
 })
 
 test("Return in the list field adds the task (the web types a newline)", () => {
@@ -173,4 +173,24 @@ test("Return in the list field adds the task (the web types a newline)", () => {
   fireEvent.changeText(screen.getByLabelText("Add task"), "Pay rent fri\n")
   expect(only()).toMatchObject({ title: "Pay rent", listId: work.id })
   expect(screen.getByLabelText("Add task").props.value ?? "").toBe("")
+})
+
+test("New task: typed words beat the day and list it was opened with", () => {
+  const work = list("Work")
+  const home = list("Home")
+  render(<TaskNew listId={work.id} day={L.today()} />, { wrapper })
+  fireEvent.changeText(screen.getByLabelText("Task"), "Call mom tomorrow #home")
+  fireEvent.press(screen.getByRole("button", { name: "Add task" }))
+  expect(only()).toMatchObject({
+    title: "Call mom",
+    dueDate: L.addDays(L.today(), 1),
+    listId: home.id,
+  })
+})
+
+test("New task: a line with no syntax saves exactly as typed", () => {
+  render(<TaskNew />, { wrapper })
+  fireEvent.changeText(screen.getByLabelText("Task"), "iPhone sign off on")
+  fireEvent.press(screen.getByRole("button", { name: "Add task" }))
+  expect(only().title).toBe("iPhone sign off on")
 })

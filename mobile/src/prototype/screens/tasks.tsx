@@ -280,7 +280,12 @@ export function TaskActionGrid({
             word="No date"
             label="Remove date"
             color={t.tsk}
-            onPress={act(() => A.setDue(task.id, null, null, null))}
+            // No date means no schedule: a repeat would bring one back
+            // on the next completion.
+            onPress={act(() => {
+              A.setDue(task.id, null, null, null)
+              if (task.recurrence) A.updateTask(task.id, { recurrence: null })
+            })}
           />
         )}
       </Line>

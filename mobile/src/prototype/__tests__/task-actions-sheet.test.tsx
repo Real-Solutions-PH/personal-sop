@@ -189,3 +189,17 @@ it("Move to list swaps the sheet to the list chooser", () => {
   expect(screen.getByText("Move to list")).toBeTruthy()
   expect(screen.getByText("Inbox")).toBeTruthy()
 })
+
+it("Remove date on a repeating task drops the repeat too", () => {
+  tasksStore.set((s) => ({
+    ...s,
+    tasks: s.tasks.map((x) =>
+      x.id === "dated"
+        ? { ...x, recurrence: { rule: { kind: "daily" }, mode: "fixed" } }
+        : x,
+    ),
+  }))
+  open("dated")
+  fireEvent.press(action("Remove date"))
+  expect(get("dated")).toMatchObject({ dueDate: null, recurrence: null })
+})

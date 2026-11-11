@@ -25,13 +25,17 @@ import { fonts, useTheme } from "./theme"
 type Theme = ReturnType<typeof useTheme>
 
 /** The field's text, what it parses to, and the words switched off. */
-export function useQuickAdd(lists?: readonly TaskList[]) {
+export function useQuickAdd(
+  lists?: readonly TaskList[],
+  /** Kinds a field set by hand owns: their words stay text. */
+  skip?: ReadonlySet<QuickToken["kind"]>,
+) {
   const [text, setRaw] = useState(""),
     [ignore, setIgnore] = useState<ReadonlySet<string>>(new Set()),
     live = useMemo(() => lists?.filter((l) => !l.archivedAt), [lists]),
     parsed = useMemo(
-      () => parseQuickAdd(text, { lists: live, ignore }),
-      [text, live, ignore],
+      () => parseQuickAdd(text, { lists: live, ignore, skip }),
+      [text, live, ignore, skip],
     )
   return {
     text,
@@ -42,7 +46,8 @@ export function useQuickAdd(lists?: readonly TaskList[]) {
     },
     /** What another line would parse to with the same words switched off
      * (for a submit that carries its own text). */
-    parseOf: (line: string) => parseQuickAdd(line, { lists: live, ignore }),
+    parseOf: (line: string) =>
+      parseQuickAdd(line, { lists: live, ignore, skip }),
     /** Keep a recognised word as plain text. */
     keep: (key: string) => setIgnore((prev) => new Set(prev).add(key)),
     reset: () => {
@@ -76,7 +81,9 @@ export function quickInputProps(
   parsed: QuickParse,
   lists?: readonly TaskList[],
 ): { value?: string; children?: ReactNode } {
-  if (Platform.OS === "web" || !parsed.tokens.length) return { value: text }
+  // Always spans on a phone, so the input never switches between a value
+  // and children as words come and go (which can jump the cursor).
+  if (Platform.OS === "web") return { value: text }
   const parts: ReactNode[] = []
   let at = 0
   for (const tok of parsed.tokens) {
@@ -107,8 +114,8 @@ function chipFor(
   lists?: readonly TaskList[],
 ): { icon: ReactNode; label: string } | null {
   const c = tokenColor(t, token, parsed, lists)
-  const day = parsed.dueDate ? L.fmtDay(parsed.dueDate) : null,
-    time = parsed.dueTime ? L.fmtTime(parsed.dueTime) : null
+  const day = token.dueDate ? L.fmtDay(token.dueDate) : null,
+    time = token.dueTime ? L.fmtTime(token.dueTime) : null
   switch (token.kind) {
     case "date":
       return day
@@ -150,18 +157,13 @@ export function QuickChips({
   parsed,
   onKeep,
   lists,
-  hide = [],
 }: {
   parsed: QuickParse
   onKeep: (key: string) => void
   lists?: readonly TaskList[]
-  /** Kinds a field set by hand overrides: their chips would claim a value
-   * that will not be saved. */
-  hide?: readonly QuickToken["kind"][]
 }) {
   const t = useTheme()
   const chips = parsed.tokens.flatMap((tok) => {
-    if (hide.includes(tok.kind)) return []
     const c = chipFor(t, tok, parsed, lists)
     return c ? [{ tok, ...c }] : []
   })

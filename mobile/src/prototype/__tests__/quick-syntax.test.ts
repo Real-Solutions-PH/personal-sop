@@ -149,3 +149,30 @@ describe("parseQuickAdd", () => {
     expect(p.dueDate).toBe("2027-01-01")
   })
 })
+
+describe("parseQuickAdd — review fixes", () => {
+  it("keeps a typed inner capital and capitalises a kept first word", () => {
+    expect(q("iPhone setup tomorrow").title).toBe("iPhone setup")
+    expect(q("macOS update").title).toBe("macOS update")
+    expect(q("tomorrow buy milk", ["tomorrow"]).title).toBe("Tomorrow buy milk")
+  })
+
+  it("a chip value is what its own word sets, not the final value", () => {
+    const p = q("next fri ship nov 20")
+    expect(p.dueDate).toBe("2026-11-20")
+    expect(p.tokens.map((t) => t.dueDate)).toEqual(["2026-11-13", "2026-11-20"])
+  })
+
+  it("skipped kinds stay literal and set nothing", () => {
+    const skip = new Set(["date", "when", "repeat", "priority"] as const)
+    const p = parseQuickAdd("Call mom tomorrow 3pm !high every day", {
+      today: TK,
+      skip,
+    })
+    expect(p.title).toBe("Call mom tomorrow !high every day")
+    expect(p.priority).toBeNull()
+    expect(p.recurrence).toBeNull()
+    expect(p.dueTime).toBe("15:00")
+    expect(p.tokens.map((t) => t.kind)).toEqual(["time"])
+  })
+})
