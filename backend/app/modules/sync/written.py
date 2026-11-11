@@ -29,11 +29,29 @@ from app.shared.context import Ctx
 MAX_ROWS = 500
 
 
+class Wrote(set[tuple[str, uuid.UUID]]):
+    """``(table, id)`` of every row flushed while :func:`tracking` runs.
+
+    ``take_fresh`` hands out the rows flushed since it was last called, so a
+    Fern turn can send each tool's rows as that tool finishes (a row a later
+    tool changes again is handed out again); the set itself keeps them all
+    for the finished reply."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.fresh: set[tuple[str, uuid.UUID]] = set()
+
+    def take_fresh(self) -> set[tuple[str, uuid.UUID]]:
+        out = set(self.fresh)
+        self.fresh.clear()
+        return out
+
+
 @contextmanager
-def tracking(session: Session) -> Iterator[set[tuple[str, uuid.UUID]]]:
+def tracking(session: Session) -> Iterator[Wrote]:
     """Collect ``(table, id)`` of every row flushed in ``session`` while the
     block runs (created, changed or soft-deleted)."""
-    seen: set[tuple[str, uuid.UUID]] = set()
+    seen = Wrote()
 
     def after_flush(s: Any, _ctx: Any) -> None:
         for obj in (*s.new, *s.dirty, *s.deleted):
@@ -41,6 +59,7 @@ def tracking(session: Session) -> Iterator[set[tuple[str, uuid.UUID]]]:
             row_id = getattr(obj, "id", None)
             if isinstance(table, str) and isinstance(row_id, uuid.UUID):
                 seen.add((table, row_id))
+                seen.fresh.add((table, row_id))
 
     event.listen(session, "after_flush", after_flush)
     try:
@@ -86,3 +105,9 @@ def changes(ctx: Ctx, seen: set[tuple[str, uuid.UUID]]) -> list[SyncChange]:
             )
     out.sort(key=lambda c: c.version)
     return out
+
+
+def tables(seen: set[tuple[str, uuid.UUID]]) -> list[str]:
+    """The tables ``seen`` touched, synced or not: the app refreshes what it
+    reads from the server outside sync (the food library) by these."""
+    return sorted({table for table, _ in seen})

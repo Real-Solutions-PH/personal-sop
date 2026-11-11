@@ -571,6 +571,11 @@ class TurnStream(capture.LoopHooks):
     # Whether the person asked this reply to stop (see ``gate``), checked
     # at most every STOP_CHECK_SECONDS; once true it stays true.
     stop_check: Callable[[], bool] = lambda: False
+    # Run as a tool starts and once its result is out: the streaming route
+    # sends the rows the tool wrote (``changes``) so they show in the app
+    # now, not when the reply ends.
+    after_tool: Callable[[], None] = lambda: None
+    before_tool: Callable[[], None] = lambda: None
     _stopped: bool = False
     _checked_at: float = 0.0
     # The model's thinking being shown: its message id, what is gathered
@@ -769,6 +774,7 @@ class TurnStream(capture.LoopHooks):
         self.sink(StepFinishedEvent(step_name=f"think:{turn}"))
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
+        self.before_tool()
         self._args[call_id] = args
         self.log.append({"id": call_id, "tool": name, "args": _cut(args, LOG_ARGS)})
         # Tools that run once a turn: a repeat call answers from the first
@@ -837,6 +843,7 @@ class TurnStream(capture.LoopHooks):
             )
         )
         self.sink(StepFinishedEvent(step_name=f"tool:{name}"))
+        self.after_tool()
 
     # ---------------------------------------------------------- frames
 

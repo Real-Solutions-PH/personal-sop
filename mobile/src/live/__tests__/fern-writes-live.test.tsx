@@ -272,6 +272,93 @@ describe.each(Object.keys(ENTITY))("%s Fern records", (kind) => {
   })
 })
 
+/** The reply streamed up to its end, the stream still open: Fern is still
+ * writing (the model's next call), so ``RUN_FINISHED`` has not come. */
+function openReply(events: Row[]): { res: Response; end: () => void } {
+  const enc = new TextEncoder()
+  const shown = events.filter((e) => e.type !== "RUN_FINISHED")
+  const rest = events.filter((e) => e.type === "RUN_FINISHED")
+  const chunk = (d: Row) => `event: message\ndata: ${JSON.stringify(d)}\n\n`
+  let i = 0
+  let release: () => void = () => {}
+  const ended = new Promise<void>((r) => {
+    release = r
+  })
+  return {
+    end: () => release(),
+    res: {
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            if (i < shown.length)
+              return { value: enc.encode(chunk(shown[i++])), done: false }
+            await ended
+            const last = rest.shift()
+            return last
+              ? { value: enc.encode(chunk(last)), done: false }
+              : { value: undefined, done: true }
+          },
+        }),
+      },
+      text: async () => "",
+    } as unknown as Response,
+  }
+}
+
+// Kai, 2026-11-12: a meal Fern logged showed as saved in the chat and
+// reached the Nutrition screen only once the reply ended (1-12 s later on the
+// real model). A saved record's rows now come right after its tool's result.
+describe.each(
+  Object.keys(ENTITY).filter((kind) => !REC.cases[kind].confirm),
+)("%s Fern saves on its own", (kind) => {
+  const c = REC.cases[kind]
+  const entity = ENTITY[kind]
+  const written = finishedOf(c).find(
+    (x) => x.entity === entity && !x.deleted,
+  ) as Change
+
+  test("shows on the open screen while Fern is still writing its reply", async () => {
+    let reply: ReturnType<typeof openReply> | undefined
+    installLiveCapture({
+      http: server,
+      post: async (_path, body) => {
+        reply = openReply(replay(c, String((body as Row).id)))
+        return reply.res
+      },
+      fetch: async () => {
+        throw new Error("no fetch expected")
+      },
+      online: () => true,
+      act: (name, data) => {
+        engine.act(name, data)
+        return true
+      },
+      kick: () => void engine.sync(),
+      applyRows: (changes) => engine.apply(changes),
+      cats: categoryIds(USER),
+    })
+    render(<Shows entity={entity} id={written.id} />)
+    expect(screen.getByText("absent")).toBeTruthy()
+
+    // Not inside act: the reply is still being written, so ask() is too.
+    const asking = ask(c.ask.text)
+    try {
+      await flush()
+      expect(screen.getByText("shown")).toBeTruthy()
+    } finally {
+      // Ended even on a failure: a reply left open leaks into later tests.
+      reply?.end()
+      await act(async () => {
+        await asking
+      })
+    }
+    await flush()
+    expect(screen.getByText("shown")).toBeTruthy()
+  })
+})
+
 test("a discarded proposal leaves the screen as it was and the card says so", async () => {
   const c = REC.cases.meal
   const card = finishedOf(c).find((x) => x.entity === "record_card") as Change

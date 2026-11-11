@@ -180,6 +180,98 @@ def test_a_record_fern_writes_comes_back_with_the_reply_and_its_decisions(
     assert any(c["id"] == record_id for c in settled["changes"])
 
 
+def stream(api: Api, client: TestClient, words: str) -> list[dict[str, Any]]:
+    r = client.post(f"{API}/companion/ask/stream", headers=api.h, json={"text": words})
+    assert r.status_code == 200, r.text
+    return parse_agui(r.text)
+
+
+@pytest.mark.parametrize(
+    ("kind", "words", "tool", "entity"), CASES, ids=[c[0] for c in CASES]
+)
+def test_a_write_reaches_the_phone_when_its_tool_finishes_not_with_the_reply(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    kind: str,
+    words: str,
+    tool: dict[str, Any],
+    entity: str,
+) -> None:
+    """Kai, 2026-11-12: a meal Fern logged showed as saved in the chat and
+    reached the Nutrition screen only once Fern had finished writing its
+    reply (3-12 s later, measured on the real model). The rows a tool wrote
+    now follow its result at once, committed, in a ``changes`` event."""
+    api = user(client, db)
+    api.assign("chat")
+    if kind == "habit":
+        api.post("/habits/", {"name": "Stretch"})
+    cursor = pull(api, client, 0)["cursor"]
+    install(monkeypatch, say("", tool), say("Done."))
+
+    events = stream(api, client, words)
+    at = {
+        "result": next(
+            i for i, e in enumerate(events) if e.get("type") == "TOOL_CALL_RESULT"
+        ),
+        "words": next(
+            i
+            for i, e in enumerate(events)
+            if e.get("type") == "TEXT_MESSAGE_CONTENT" and "Done" in str(e)
+        ),
+    }
+    sent = [
+        (i, e["value"])
+        for i, e in enumerate(events)
+        if e.get("type") == "CUSTOM" and e.get("name") == "changes"
+    ]
+    assert sent, [e.get("type") for e in events]
+    i, value = sent[0]
+    assert at["result"] < i < at["words"]
+    (card,) = rows(value["changes"], "record_card")
+    out = next(e for e in events if e.get("type") == "RUN_FINISHED")["result"]
+    if card["row"]["state"] == "proposed":
+        # Waiting for a Confirm: nothing is written yet but the card.
+        assert rows(value["changes"], entity) == []
+    else:
+        mine = rows(value["changes"], entity)
+        assert mine and not mine[0]["deleted"], value
+        assert {c["id"] for c in mine} <= {c["id"] for c in out["changes"]}
+    # Sent once committed: a pull now (nothing else running) has it.
+    settled = pull(api, client, cursor)
+    sent_ids = {c["id"] for c in value["changes"]}
+    assert sent_ids <= {c["id"] for c in settled["changes"]}
+
+
+def test_each_tool_of_a_reply_sends_its_own_rows(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_expense", amount=250, category="grab", payee="Grab")),
+        say("", call("create_tasks", tasks=[{"title": "Buy milk"}])),
+        say("Done."),
+    )
+    events = stream(api, client, "250 grab, and remind me to buy milk")
+    sent = [e["value"] for e in events if e.get("name") == "changes"]
+    assert len(sent) == 2, [e.get("name") or e.get("type") for e in events]
+    money, todo = sent
+    assert rows(money["changes"], "fin_record") and not rows(money["changes"], "task")
+    assert rows(todo["changes"], "task") and not rows(todo["changes"], "fin_record")
+
+
+def test_a_tool_that_writes_nothing_sends_no_changes(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(monkeypatch, say("", call("nutrition_status")), say("You're on track."))
+    events = stream(api, client, "how am I doing on food today?")
+    assert not [e for e in events if e.get("name") == "changes"]
+
+
 def test_a_discarded_proposal_comes_back_with_the_decision(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
