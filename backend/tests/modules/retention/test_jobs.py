@@ -23,6 +23,7 @@ from app.modules.retention.models import Nudge, RetentionProfile
 from app.modules.usage.models import UsageEvent
 from app.shared.context import Ctx, make_ctx
 from app.shared.day import DayClock
+from tests.utils.day import settled_today
 from tests.utils.mobile import signed_in
 
 PINNED = "09:00"
@@ -39,8 +40,8 @@ def _ctx(session: Session, user: User, now: datetime) -> Ctx:
 
 
 def _today_at(hm: str, plus: timedelta = timedelta()) -> datetime:
-    clock = DayClock()
-    return clock.local_time(clock.today(), hm) + plus
+    # Waits out a day rollover that is under 90 s away (tests/utils/day.py).
+    return DayClock().local_time(settled_today(), hm) + plus
 
 
 def _setup(
@@ -167,7 +168,7 @@ def test_nightly_reads_logs_and_opens_into_stage_and_best_slot(
     # Opens at 19:40 on twelve recent days: the usual time is 19:30.
     with Session(engine) as s:
         for k in range(1, 13):
-            day = clock.today() - timedelta(days=k)
+            day = settled_today() - timedelta(days=k)
             s.add(
                 UsageEvent(
                     owner_id=user.id,
@@ -179,7 +180,7 @@ def test_nightly_reads_logs_and_opens_into_stage_and_best_slot(
         s.commit()
         rp = jobs.compute(_ctx(s, user, now))
         assert rp.stage in ("new", "lapsing")
-        assert rp.last_log_day == clock.today() - timedelta(days=4)
+        assert rp.last_log_day == settled_today() - timedelta(days=4)
         assert rp.log_days_total == 1
         # Weekday opens pass the cold-start floor; the weekend row is cold
         # and falls back to the evening push time (21:00).
@@ -329,7 +330,7 @@ def test_backoff_and_budget_hold_the_nudge(db: Session) -> None:
             select(RetentionProfile).where(RetentionProfile.owner_id == user.id)
         ).one()
         rp.ignore_streak = 2
-        rp.next_nudge_after = DayClock().today() + timedelta(days=1)
+        rp.next_nudge_after = settled_today() + timedelta(days=1)
         s.add(rp)
         s.commit()
     row = _send(user, _today_at(PINNED, timedelta(minutes=1)))
@@ -339,7 +340,7 @@ def test_backoff_and_budget_hold_the_nudge(db: Session) -> None:
     _setup(busy)
     with Session(engine) as s:
         for k in range(1, 5):
-            day = DayClock().today() - timedelta(days=k)
+            day = settled_today() - timedelta(days=k)
             s.add(
                 Nudge(
                     owner_id=busy.id,
