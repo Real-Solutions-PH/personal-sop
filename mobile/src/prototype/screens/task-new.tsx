@@ -64,7 +64,10 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
     [making, setMaking] = useState(false)
 
   const p = quick.parsed,
-    date = pickedDate ?? p.dueDate ?? day ?? "",
+    // A time or repeat word alone implies today in the parser; only a
+    // date word may move the day the screen was opened on.
+    dateWord = p.tokens.some((k) => k.kind === "date" || k.kind === "when"),
+    date = pickedDate ?? (dateWord ? p.dueDate : (day ?? p.dueDate)) ?? "",
     time = pickedTime ?? p.dueTime ?? "",
     priority = pickedPriority ?? p.priority ?? "none",
     list = pickedList ?? p.listId ?? listId ?? ""

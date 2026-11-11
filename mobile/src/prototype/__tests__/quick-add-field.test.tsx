@@ -194,3 +194,21 @@ test("New task: a line with no syntax saves exactly as typed", () => {
   fireEvent.press(screen.getByRole("button", { name: "Add task" }))
   expect(only().title).toBe("iPhone sign off on")
 })
+
+test("New task: a time word keeps the day the screen was opened on", () => {
+  const day = L.addDays(L.today(), 8)
+  render(<TaskNew day={day} />, { wrapper })
+  fireEvent.changeText(screen.getByLabelText("Task"), "Call mom 3pm")
+  fireEvent.press(screen.getByRole("button", { name: "Add task" }))
+  expect(only()).toMatchObject({ dueDate: day, dueTime: "15:00" })
+})
+
+test("a tonight chip leaves out a time another word overrides", () => {
+  const work = list("Work")
+  render(<TaskListPage id={work.id} />, { wrapper })
+  fireEvent.changeText(screen.getByLabelText("Add task"), "Dinner 7pm tonight")
+  expect(
+    screen.getByRole("button", { name: /^Today from “tonight”/ }),
+  ).toBeTruthy()
+  expect(screen.getByRole("button", { name: /^7 PM from “7pm”/ })).toBeTruthy()
+})

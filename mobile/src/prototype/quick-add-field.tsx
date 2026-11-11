@@ -81,9 +81,10 @@ export function quickInputProps(
   parsed: QuickParse,
   lists?: readonly TaskList[],
 ): { value?: string; children?: ReactNode } {
-  // Always spans on a phone, so the input never switches between a value
-  // and children as words come and go (which can jump the cursor).
-  if (Platform.OS === "web") return { value: text }
+  // Spans on a phone whenever there is text, so the input does not switch
+  // between a value and children as words come and go (which can jump the
+  // cursor); an empty field takes a value so its placeholder shows.
+  if (Platform.OS === "web" || !text) return { value: text }
   const parts: ReactNode[] = []
   let at = 0
   for (const tok of parsed.tokens) {
@@ -127,7 +128,9 @@ function chipFor(
       return day
         ? {
             icon: <CalendarClock size={14} color={c} />,
-            label: time ? `${day} ${time}` : day,
+            // "tonight" next to "7pm": the 7pm is what is saved.
+            label:
+              time && token.dueTime === parsed.dueTime ? `${day} ${time}` : day,
           }
         : null
     case "repeat": {

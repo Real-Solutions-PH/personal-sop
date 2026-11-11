@@ -176,3 +176,10 @@ describe("parseQuickAdd — review fixes", () => {
     expect(p.tokens.map((t) => t.kind)).toEqual(["time"])
   })
 })
+
+describe("parseQuickAdd — round 2", () => {
+  it("matches the first word as a whole word in the input", () => {
+    expect(q("!HIGH hi there tomorrow").title).toBe("Hi there")
+    expect(q("REMIND ME TO mind the gap tmr").title).toBe("Mind the gap")
+  })
+})

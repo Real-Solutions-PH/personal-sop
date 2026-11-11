@@ -215,8 +215,12 @@ export function parseQuickAdd(
 function firstWordCase(input: string, title: string): string {
   const word = title.match(/^\S+/)?.[0]
   if (!word) return title
-  const at = input.toLowerCase().indexOf(word.toLowerCase()),
-    typed = at >= 0 ? input.slice(at, at + word.length) : word
+  // As a whole word, so "hi" is not found inside "!HIGH".
+  const hit = new RegExp(
+      `(?<![\\p{L}\\p{N}!#])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}\\p{N}])`,
+      "iu",
+    ).exec(input),
+    typed = hit ? hit[0] : word
   const head = /\p{Lu}/u.test(typed.slice(1))
     ? typed
     : typed[0].toUpperCase() + typed.slice(1)
