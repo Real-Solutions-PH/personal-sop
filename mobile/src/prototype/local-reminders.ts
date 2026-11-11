@@ -293,8 +293,10 @@ export function planReminders(
           href: `/habits/routines/${r.id}`,
         }
         const n = ahead(day),
-          first = slot === firstSlot(r.schedule, day),
-          moved = movedTo("routine", r.id, n)
+          moved =
+            slot === firstSlot(r.schedule, day)
+              ? movedTo("routine", r.id, n)
+              : null
         if (!moved) {
           habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
           continue
@@ -302,8 +304,8 @@ export function planReminders(
         // A repeating trigger can't skip the moved day: that day at the
         // moved time, then dated ones at its own time (the next rebuild
         // puts the weekly one back).
-        const at = first ? onDayAt(n, moved) : null
-        if (at && at > now)
+        const at = onDayAt(n, moved)
+        if (at > now)
           habitPlans.push({ ...text, id: `${text.id}-moved-${n}`, at })
         habitPlans.push({ ...text, at: onDay(n + 7, time) })
       }
@@ -350,13 +352,13 @@ export function planReminders(
         }
         const n = ahead(day),
           done = doneToday && n === 0,
+          // The move is the occurrence the calendar shows (its first slot);
+          // another slot that day keeps its own reminder.
           moved =
             slot === firstSlot(h.schedule, day)
               ? movedTo("habit", h.id, n)
-              : null,
-          // Another slot that day: the move replaced it for that day.
-          dropped = !moved && !!movedTo("habit", h.id, n)
-        if (!done && !moved && !dropped) {
+              : null
+        if (!done && !moved) {
           habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
           continue
         }
@@ -382,6 +384,11 @@ export function planReminders(
     const to = mins(o.time),
       from = mins(t.dueTime ?? o.time)
     if (to === null || from === null) return null
+    // Only a reminder tied to the occurrence moves with it (at or before its
+    // own due time); a snooze, set after, already says when.
+    const own = taskDue({ ...t, remindAt: null }, more.defaultRemindTime)
+    if (t.remindAt && own && new Date(t.remindAt) > own)
+      return { time: o.time, by: 0 }
     const dayMin = (m: number) => (m < DAY_START_HOUR * 60 ? m + 1440 : m)
     return { time: o.time, by: (dayMin(to) - dayMin(from)) * 60_000 }
   }

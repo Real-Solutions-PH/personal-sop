@@ -145,7 +145,7 @@ test("a recurring task's moved occurrence reminds as much later, at the moved ti
   expect(p?.body).toBe("Due at 15:00")
 })
 
-test("two slots on the moved day: one reminder at the moved time, not two", () => {
+test("two slots on the moved day: the first moves, the second keeps its own reminder", () => {
   const twice = habit({
     schedule: [
       { days: [THU], time: "09:00" },
@@ -155,11 +155,28 @@ test("two slots on the moved day: one reminder at the moved time, not two", () =
   const plan = planReminders([], [twice], NOW, {
     overrides: [moved("habit", "h1", TODAY, "14:30")],
   })
-  const today = plan.filter(
-    (p) => "at" in p && p.at.getTime() < local(23, 4).getTime(),
+  expect(at(plan, `habit-h1-${THU}-09:00-moved-0`)).toBe(
+    local(22, 14, 30).getTime(),
   )
-  expect(today.map((p) => p.id)).toEqual([`habit-h1-${THU}-09:00-moved-0`])
-  // Both slots come back at their own times the week after.
+  expect(plan.filter((p) => p.id.includes("-moved-"))).toHaveLength(1)
   expect(at(plan, `habit-h1-${THU}-09:00`)).toBe(local(29, 9).getTime())
-  expect(at(plan, `habit-h1-${THU}-18:00`)).toBe(local(29, 18).getTime())
+  expect(weekly(plan, `habit-h1-${THU}-18:00`)).toBe(true)
+})
+
+test("a snoozed reminder on a moved occurrence stays where the snooze put it", () => {
+  const t = {
+    id: "t1",
+    title: "Stand-up",
+    status: "open",
+    dueDate: TODAY,
+    dueTime: "10:00",
+    remindAt: local(22, 12, 1).toISOString(),
+    recurrence: { rule: { kind: "daily" }, mode: "fixed" },
+  } as Task
+  const plan = planReminders([t], [], NOW, {
+    overrides: [moved("task", "t1", TODAY, "11:00")],
+  })
+  const p = plan.find((x) => x.id === "task-t1")
+  expect(p && "at" in p ? p.at.getTime() : 0).toBe(local(22, 12, 1).getTime())
+  expect(p?.body).toBe("Due at 11:00")
 })

@@ -30,6 +30,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated"
+import { useSafeAreaInsets } from "react-native-safe-area-context"
 import { feel, MOTION } from "../motion"
 import { Copy, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
@@ -42,10 +43,12 @@ const PX = 64 / 60
 const SPAN_MIN = 30
 const BLOCK_MIN_H = SPAN_MIN * PX - 2
 const GUTTER = 48
-/** Points from the screen's top or bottom where a held block scrolls. */
-const EDGE = 96
-/** The tab bar under the page, roughly: the bottom zone sits above it. */
-const TAB_BAR = 40
+/** How deep the zones are, inside the page's visible part, where a held
+ * block scrolls it. */
+const EDGE = 80
+/** The page header above the content and the tab bar under it. */
+const HEADER = 56
+const TAB_BAR = 64
 
 const label12 = (min: number) => {
   const [h, m] = clockOf(min).split(":").map(Number)
@@ -206,6 +209,10 @@ function Block({
   const lock = useContext(ScrollLock)
   const nudge = useContext(PageNudge)
   const screen = useWindowDimensions().height
+  const insets = useSafeAreaInsets()
+  // The page's visible part, in window points: zones sit just inside it.
+  const topZone = insets.top + HEADER + EDGE,
+    bottomZone = screen - insets.bottom - TAB_BAR - EDGE
   const { item, min } = placed
   const accent = t[AREA[item.module].accent]
   const canMove = movable(item)
@@ -322,12 +329,11 @@ function Block({
       travel.value = e.translationY
       const offset = clampOffset(e.translationY + scrolled.value)
       y.value = top + offset
-      const bottom = screen - EDGE - TAB_BAR
       const depth =
-        e.absoluteY < EDGE
-          ? -Math.min(1, (EDGE - e.absoluteY) / EDGE)
-          : e.absoluteY > bottom
-            ? Math.min(1, (e.absoluteY - bottom) / EDGE)
+        e.absoluteY < topZone
+          ? -Math.min(1, (topZone - e.absoluteY) / EDGE)
+          : e.absoluteY > bottomZone
+            ? Math.min(1, (e.absoluteY - bottomZone) / EDGE)
             : 0
       runOnJS(setEdge)(depth)
       const next = slotAt(offset)

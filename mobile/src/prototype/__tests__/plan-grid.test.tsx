@@ -8,6 +8,7 @@ import { withOverrides } from "@domain/schedule/logic"
 import { scheduleStore } from "@domain/schedule/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
+import { SafeAreaProvider } from "react-native-safe-area-context"
 import { DayGrid, layout } from "../screens/plan-grid"
 
 jest.mock("expo-router", () => ({
@@ -85,7 +86,16 @@ function Grid() {
 }
 
 test("adjusting moves it a quarter hour for the day; the mark resets it", () => {
-  render(<Grid />)
+  render(
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 47, left: 0, right: 0, bottom: 34 },
+      }}
+    >
+      <Grid />
+    </SafeAreaProvider>,
+  )
   // Lay out the grid so blocks render.
   act(() => {
     fireEvent(screen.getByTestId("plan-day-grid"), "layout", {

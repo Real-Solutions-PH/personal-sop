@@ -219,8 +219,15 @@ def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
     res = push(
         client,
         h,
-        op("upsert", "schedule_override", uuid.uuid4(), kind="task",
-           ref_id=t["id"], day=day(0), time="11:00"),
+        op(
+            "upsert",
+            "schedule_override",
+            uuid.uuid4(),
+            kind="task",
+            ref_id=t["id"],
+            day=day(0),
+            time="11:00",
+        ),
     )
     assert res[0]["status"] == "applied", res
     # Its own reminder time has passed, the moved one (two hours on) not yet.
@@ -228,4 +235,44 @@ def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
         assert jobs.send_reminders(ctx) == 0
     later = datetime.now(UTC) + timedelta(hours=2)
     with ctx_for(user, now=later) as ctx:
+        assert jobs.send_reminders(ctx) == 1
+
+
+def test_a_snoozed_reminder_on_a_moved_occurrence_is_not_shifted_again(
+    client: TestClient, db: Session
+) -> None:
+    """A reminder set after the occurrence's own due time (a snooze) already
+    says when: the move does not push it further."""
+    from datetime import UTC, datetime
+
+    from app.modules.tasks import jobs
+    from tests.modules.tasks.api.helpers import day, new_task
+
+    user, h = signed_in(db)
+    now = datetime.now(UTC)
+    # Due at 04:00 business-day start (always before now's snooze), the
+    # reminder snoozed to a minute ago.
+    t = new_task(
+        client,
+        h,
+        "Stand-up",
+        due_date=day(0),
+        due_time="04:00",
+        remind_at=(now - timedelta(minutes=1)).isoformat(),
+        recurrence={"rule": {"kind": "daily"}, "mode": "fixed"},
+    )
+    push(
+        client,
+        h,
+        op(
+            "upsert",
+            "schedule_override",
+            uuid.uuid4(),
+            kind="task",
+            ref_id=t["id"],
+            day=day(0),
+            time="23:00",
+        ),
+    )
+    with ctx_for(user, now=now) as ctx:
         assert jobs.send_reminders(ctx) == 1

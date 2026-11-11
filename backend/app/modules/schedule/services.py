@@ -84,8 +84,12 @@ def moved_task_reminders(ctx: Ctx, views: Sequence["TaskView"]) -> list["TaskVie
         if to is None:
             out.append(v)
             continue
-        by = shift_by(v.due_time, to)
-        remind = v.remind_at + by if v.remind_at else None
+        remind = v.remind_at
+        # Only a reminder tied to the occurrence moves with it (at or before
+        # its own due time); a snooze, set after, already says when.
+        if remind and v.due_time and v.due_date:
+            if remind <= ctx.clock.local_time(v.due_date, v.due_time):
+                remind = remind + shift_by(v.due_time, to)
         out.append(replace(v, due_time=to, remind_at=remind))
     return out
 

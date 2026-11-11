@@ -630,7 +630,14 @@ export function Screen({
   // A chat page follows its newest message only while the reader lets it.
   const latest = useFollowBottom(scroller, scrollToEnd)
   // A drag inside the page (reordering a list) pauses its scrolling.
-  const [locked, setLocked] = useState(false)
+  const [locked, setLockedState] = useState(false)
+  // While a drag holds the page, only ``nudge`` moves it: a late scroll
+  // event must not wind the offset it keeps back.
+  const lockedRef = useRef(false)
+  const setLocked = useCallback((on: boolean) => {
+    lockedRef.current = on
+    setLockedState(on)
+  }, [])
   // A hairline appears under the header once content scrolls beneath it.
   const [scrolled, setScrolled] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -791,7 +798,7 @@ export function Screen({
             if (scrollToEnd) latest.handlers.onScroll(e)
             const { contentOffset, contentSize, layoutMeasurement } =
               e.nativeEvent
-            view.current.top = contentOffset.y
+            if (!lockedRef.current) view.current.top = contentOffset.y
             view.current.content = contentSize.height
             const next = contentOffset.y > 4
             if (next !== scrolled) setScrolled(next)
