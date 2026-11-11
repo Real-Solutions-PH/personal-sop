@@ -291,13 +291,15 @@ def ignore_streak(
     now: datetime,
 ) -> int:
     """Consecutive ignored nudges, newest first. ``sent``: (sent_at,
-    opened_at). Ignored = not opened within 6 h and no app open within 2 h;
-    one younger than 6 h is not judged yet."""
+    opened_at). Ignored = never opened and no app open within 2 h of the
+    send; one younger than 6 h is not judged yet."""
     k = 0
     for sent_at, opened_at in sorted(sent, key=lambda x: x[0], reverse=True):
         if now - sent_at < IGNORE_AFTER:
             continue
-        opened = opened_at is not None and opened_at - sent_at <= IGNORE_AFTER
+        # Any tap counts, however late: the same rule as ``record_open``,
+        # which clears the streak on the tap.
+        opened = opened_at is not None
         came = any(sent_at <= o <= sent_at + OPEN_COUNTS_WITHIN for o in app_opens)
         if opened or came:
             break
@@ -365,7 +367,14 @@ def decide(
         return Decision(kind, "quiet")
     if ignore_streak >= FATIGUE_STOP:
         return Decision(kind, "fatigue")
-    if next_nudge_after is not None and today < next_nudge_after:
+    # The ladder is its own widening schedule (days 3, 7, 14, 30): backoff
+    # applies to the daily best-time nudge only, so the day-14 "I'll stay
+    # quiet" note is never pushed past by a backoff.
+    if (
+        kind == "best_time"
+        and next_nudge_after is not None
+        and today < next_nudge_after
+    ):
         return Decision(kind, "backoff")
     if sent_last_7 >= weekly_cap(mode, stage) or reminders_today >= REMINDERS_CAP:
         return Decision(kind, "budget")

@@ -154,7 +154,7 @@ def test_nudges_by_kind_and_arm(rr: ModuleType) -> None:
         (a, "best_time", "treated", None, t, None, False),
         (b, "best_time", "treated", None, t, None, True),
         (b, "ladder_3", "treated", None, t, t + timedelta(hours=1), False),
-        (b, "best_time", "holdout", "holdout", None, None, False),
+        (b, "best_time", "holdout", "holdout", None, None, True),
         (a, "best_time", "treated", "active_today", None, None, False),
     ]
     out = rr.nudge_summary(rows)
@@ -171,11 +171,14 @@ def test_nudges_by_kind_and_arm(rr: ModuleType) -> None:
         "logged_within_2h": 0,
     }
     assert out["by_arm"]["treated"]["sent"] == 4
+    assert out["by_arm"]["treated"]["eligible"] == 4
+    # The holdout sends nothing but has a would-have-sent moment to compare.
     assert out["by_arm"]["holdout"] == {
+        "eligible": 1,
         "sent": 0,
         "opened": 0,
         "open_rate_pct": None,
-        "logged_within_2h": 0,
+        "logged_within_2h": 1,
     }
     assert out["held_back"] == {"active_today": 1, "holdout": 1}
     assert out["people_nudged"] == 2

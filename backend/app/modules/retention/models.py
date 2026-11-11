@@ -28,6 +28,7 @@ SUPPRESSIONS = (
     "backoff",
     "budget",
     "no_content",
+    "no_push",
     "holdout",
 )
 

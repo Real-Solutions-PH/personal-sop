@@ -271,9 +271,9 @@ def test_ignore_streak_counts_consecutive_unopened_nudges() -> None:
         L.ignore_streak(ignored, app_opens=[sent[0] + timedelta(minutes=90)], now=now)
         == 0
     )
-    # Opened after 6 h is still an ignore.
+    # Opened late still counts as opened (the tap cleared the streak).
     late = [(sent[0], sent[0] + timedelta(hours=7))]
-    assert L.ignore_streak(late, app_opens=[], now=now) == 1
+    assert L.ignore_streak(late, app_opens=[], now=now) == 0
 
 
 def test_a_nudge_younger_than_6_hours_is_not_judged_yet() -> None:
@@ -363,6 +363,16 @@ def test_quiet_backoff_fatigue_and_budget_suppress() -> None:
         ignore_streak=2, next_nudge_after=T + timedelta(days=1)
     ).suppressed == ("backoff")
     assert decide(ignore_streak=2, next_nudge_after=T).suppressed is None
+    # The ladder is not held by backoff: day 14's note still goes out.
+    assert (
+        decide(
+            days_since_log=14,
+            stage="lapsing",
+            ignore_streak=3,
+            next_nudge_after=T + timedelta(days=1),
+        ).suppressed
+        is None
+    )
     assert decide(sent_last_7=4).suppressed == "budget"
     assert decide(sent_last_7=3).suppressed is None
     assert decide(stage="lapsing", days_since_log=3, sent_last_7=3).suppressed == (

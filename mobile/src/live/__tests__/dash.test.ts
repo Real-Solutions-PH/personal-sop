@@ -265,6 +265,12 @@ test("nudges from Fern sync: the mode and a pinned time, null when unpinned", ()
   // Never touched on this phone: the account's choice is left alone.
   setPush({ nudge: undefined, nudgeTime: undefined })
   expect(profileToServer(cur())).not.toHaveProperty("nudge_mode")
+  expect(profileToServer(cur())).not.toHaveProperty("nudge_time")
+  // Only the time changed: it still goes, and the mode stays the account's.
+  setPush({ nudgeTime: "08:30" })
+  const timeOnly = profileToServer(cur())
+  expect(timeOnly.nudge_time).toBe("08:30")
+  expect(timeOnly).not.toHaveProperty("nudge_mode")
   setPush({ nudge: "weekly", nudgeTime: "08:30" })
   const row = profileToServer(cur())
   expect(row).toMatchObject({ nudge_mode: "weekly", nudge_time: "08:30" })

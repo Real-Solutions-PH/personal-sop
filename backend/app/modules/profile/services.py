@@ -149,6 +149,8 @@ def update_profile(ctx: Ctx, data: ProfileUpdate) -> UserProfile:
         if k in values and values[k] is None:
             # Null means "not changing it": never reset a choice to unchosen.
             del values[k]
+    if "nudge_mode" in values and values["nudge_mode"] is None:
+        del values["nudge_mode"]  # null means "not changing it"
     if values.get("nudge_time") == "":
         values["nudge_time"] = None
     perm = values.get("push_permission")

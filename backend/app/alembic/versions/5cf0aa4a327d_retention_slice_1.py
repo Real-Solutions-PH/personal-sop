@@ -130,7 +130,7 @@ def upgrade() -> None:
             name="ck_nudge_kind",
         ),
         sa.CheckConstraint(
-            "suppressed IS NULL OR suppressed IN ('opt_out', 'active_today', 'quiet', 'fatigue', 'backoff', 'budget', 'no_content', 'holdout')",
+            "suppressed IS NULL OR suppressed IN ('opt_out', 'active_today', 'quiet', 'fatigue', 'backoff', 'budget', 'no_content', 'no_push', 'holdout')",
             name="ck_nudge_suppressed",
         ),
         sa.ForeignKeyConstraint(

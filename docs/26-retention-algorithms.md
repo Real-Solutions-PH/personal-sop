@@ -326,7 +326,7 @@ Built 2026-11-12 in `backend/app/modules/retention/` (`logic.py` pure rules, `jo
 | # | Where | As built | Why |
 |---|---|---|---|
 | 1 | §4.2 data model | Added `user_profile.nudge_time` (pinned HH:MM, 07:00–21:30, null = usual time), `retention_profile.log_days_total` and `.computed_day`, `nudge.day`. | The pinned time needs a column; the day-30 note needs lifetime log days; one nightly run per day and per-day nudge reads need the day. |
-| 2 | §4.2 `nudge.suppressed` | Also `fatigue`, `backoff`, `no_content`. | Every reason the sender holds a nudge back is recorded, not only the five listed. |
+| 2 | §4.2 `nudge.suppressed` | Also `fatigue`, `backoff`, `no_content`, and `no_push` (no active push device: not a send, not an ignore, not a holdout counterfactual). | Every reason the sender holds a nudge back is recorded; an unreachable person must not build an ignore streak. |
 | 3 | §1.3 / Slice 1 push opens | A push the server sent records its inbox notification's id as `detail` (that is how a nudge gets `opened_at`); its category is `notification.kind`. A reminder the phone scheduled records its category (`habit`, `task`, `bill`, …). | The phone cannot tell a nudge from another server push; the id resolves both. |
 | 4 | §3.3 day-14 step | No action buttons: the push opens Settings, where Daily / Weekly / Off is. | Push action categories need native registration; the setting is one tap away. |
 | 5 | §3.5 fatigue card | Not built. Four ignores in a row stop nudges server-side (`fatigue`); the opt-out is the Settings control. | Not in the Slice 1 table; the stop itself is. |
@@ -337,6 +337,10 @@ Built 2026-11-12 in `backend/app/modules/retention/` (`logic.py` pure rules, `jo
 | 10 | Slice 1 retire at-risk | Removed in every mode (not only live); the phone cancels a leftover `streak-at-risk` on launch. | D2 retires the copy itself; demo mode has nothing that should keep it. |
 | 11 | Sender timing | A run more than 1 h after the nudge time lets the day go. | After a scheduler outage a late nudge would land at an odd hour. |
 | 12 | Settings | `GET /retention/nudge` gives the usual time; until the nightly job has run, the phone shows the same cold start (evening push time − 10 min). | The usual time lives on the server. |
+| 14 | §3.5 backoff vs ladder | Backoff holds the best-time nudge only; ladder steps are not backed off (fatigue still stops them). | The ladder is already a widening schedule; otherwise ignored day-3 and day-7 steps pushed the day-14 "I'll stay quiet" note past its day. |
+| 15 | §3.5 ignore | A nudge opened at any time counts as opened (not only within 6 h). | "Any opened nudge sets ignore_streak = 0" and the 6-hour rule disagreed; the nightly recount now matches the reset on tap. |
+| 16 | §3.2 placement | The sender picks today's slot again from the stored histogram against today's reminders and quiet hours; the nightly best slots are what Settings shows. | The nightly run at 03:xx is still on the previous business day (day start 04:00), so its reminder check looked at the wrong day. |
+| 17 | §5 report | Per arm, `eligible` counts days a nudge went out (treated) or would have (holdout), and logs within 2 h are measured from the send or the would-be send. | Otherwise the holdout arm read zero on every figure. |
 | 13 | §3.1 returning | A return is a log day 3+ days after the previous one (the same 3 days that make someone `lapsing`). | "Gap ≥ 3 days" read two ways. |
 
 ### Slice 2 — goal sizing, earned rest days, archetypes, Fern openers

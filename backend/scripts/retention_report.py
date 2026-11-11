@@ -90,14 +90,16 @@ SELECT owner_id, kind, at, detail FROM usage_event WHERE at >= :since
 """
 
 # Engagement nudges decided in the window (docs/26-retention-algorithms.md
-# §5): sent or held back, and whether a log followed a sent one within 2 h.
+# §5): sent or held back, and whether a log followed within 2 h of the send
+# (for a holdout row, of when it would have been sent).
 NUDGES_SQL = (
     LOGS_CTE
     + """
 SELECT n.owner_id, n.kind, n.arm, n.suppressed, n.sent_at, n.opened_at,
-       (n.sent_at IS NOT NULL AND EXISTS (
+       ((n.sent_at IS NOT NULL OR n.suppressed = 'holdout') AND EXISTS (
             SELECT 1 FROM logs l WHERE l.owner_id = n.owner_id
-            AND l.at >= n.sent_at AND l.at < n.sent_at + interval '2 hours'
+            AND l.at >= COALESCE(n.sent_at, n.scheduled_for)
+            AND l.at < COALESCE(n.sent_at, n.scheduled_for) + interval '2 hours'
        )) AS logged_2h
 FROM nudge n WHERE n.scheduled_for >= :since
 """
@@ -324,38 +326,49 @@ def compute(
 
 def nudge_summary(rows: list[NudgeRow]) -> dict[str, Any]:
     """Sends, opens, open rate and logs within 2 h of a send, by kind and by
-    arm (holdout vs treated); held-back decisions counted by reason."""
+    arm; held-back decisions counted by reason. Per arm, ``eligible`` counts
+    the days a nudge went out (treated) or would have (holdout), and
+    ``logged_within_2h`` counts logs within 2 h of that moment, so the two
+    arms compare like for like."""
 
     def blank() -> dict[str, int]:
-        return {"sent": 0, "opened": 0, "logged_within_2h": 0}
+        return {"eligible": 0, "sent": 0, "opened": 0, "logged_within_2h": 0}
 
     by_kind: dict[str, dict[str, int]] = defaultdict(blank)
     by_arm: dict[str, dict[str, int]] = {"holdout": blank(), "treated": blank()}
     held: dict[str, int] = defaultdict(int)
     nudged: set[uuid.UUID] = set()
     for owner, kind, arm, suppressed, sent_at, opened_at, logged in rows:
+        if suppressed == "holdout":
+            b = by_arm.setdefault(arm, blank())
+            b["eligible"] += 1
+            b["logged_within_2h"] += bool(logged)
         if suppressed is not None or sent_at is None:
             held[suppressed or "unsent"] += 1
             continue
         nudged.add(owner)
         for bucket in (by_kind[kind], by_arm.setdefault(arm, blank())):
+            bucket["eligible"] += 1
             bucket["sent"] += 1
             bucket["opened"] += opened_at is not None
             bucket["logged_within_2h"] += bool(logged)
 
-    def rated(b: dict[str, int]) -> dict[str, Any]:
+    def rated(b: dict[str, int], *, arm: bool) -> dict[str, Any]:
         rate = round(100 * b["opened"] / b["sent"], 1) if b["sent"] else None
-        return {
+        out: dict[str, Any] = {
             "sent": b["sent"],
             "opened": b["opened"],
             "open_rate_pct": rate,
             "logged_within_2h": b["logged_within_2h"],
         }
+        if arm:
+            out["eligible"] = b["eligible"]
+        return out
 
     return {
         "people_nudged": len(nudged),
-        "by_kind": {k: rated(v) for k, v in sorted(by_kind.items())},
-        "by_arm": {k: rated(v) for k, v in sorted(by_arm.items())},
+        "by_kind": {k: rated(v, arm=False) for k, v in sorted(by_kind.items())},
+        "by_arm": {k: rated(v, arm=True) for k, v in sorted(by_arm.items())},
         "held_back": dict(sorted(held.items())),
     }
 

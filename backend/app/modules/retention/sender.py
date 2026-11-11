@@ -27,7 +27,7 @@ from app.modules.habits import logic as habit_logic
 from app.modules.habits import public as habits
 from app.modules.habits.models import HabitPause
 from app.modules.iam.users.models import User
-from app.modules.profile.models import UserProfile
+from app.modules.profile.models import PushDevice, UserProfile
 from app.modules.retention import copy, signals
 from app.modules.retention import logic as L
 from app.modules.retention.jobs import quiet_hours, reminder_minutes
@@ -53,14 +53,24 @@ def send_time(
     ctx: Ctx, rp: RetentionProfile, profile: UserProfile | None
 ) -> datetime | None:
     """Today's nudge time as an aware instant: the pinned time if the person
-    chose one, else just before their usual slot for this kind of day."""
+    chose one, else just before their usual slot for this kind of day,
+    chosen again here against TODAY's reminders and quiet hours (the
+    nightly run, at 03:xx, may still be on the day before)."""
     pinned = profile.nudge_time if profile else None
     if pinned:
         return ctx.clock.local_time(ctx.today, pinned)
-    slot = (
-        rp.best_slot_weekend
-        if L.day_type(ctx.today) == "weekend"
-        else rp.best_slot_weekday
+    hist = (rp.slot_hist or {}).get(L.day_type(ctx.today))
+    quiet = quiet_hours(ctx)
+    ok = L.eligible_slots(
+        quiet_start=quiet[0],
+        quiet_end=quiet[1],
+        reminders=reminder_minutes(ctx, profile),
+    )
+    slot = L.best_slot(
+        hist if hist and len(hist) == L.SLOTS else [0.0] * L.SLOTS,
+        ok,
+        push_evening=profile.push_evening if profile else None,
+        push_morning=profile.push_morning if profile else None,
     )
     if slot is None:
         return None
@@ -165,6 +175,19 @@ def _sent_last_7(ctx: Ctx) -> int:
     )
 
 
+def _reachable(ctx: Ctx) -> bool:
+    return (
+        ctx.session.exec(
+            select(PushDevice.id).where(
+                PushDevice.owner_id == ctx.user_id,
+                col(PushDevice.deleted_at).is_(None),
+                col(PushDevice.disabled_at).is_(None),
+            )
+        ).first()
+        is not None
+    )
+
+
 def _record(ctx: Ctx, row: Nudge) -> bool:
     """Insert the day's decision; False when another run got there first."""
     savepoint = ctx.session.begin_nested()
@@ -238,6 +261,11 @@ def send_for(ctx: Ctx) -> Nudge | None:
     )
     if decision is None:
         return None
+    if decision.suppressed in (None, "holdout") and not _reachable(ctx):
+        # No phone to push to (permission off, or every token disabled): a
+        # nudge nobody can receive is not a send, not an ignore, and not a
+        # holdout counterfactual either.
+        decision = L.Decision(decision.kind, "no_push")
     row = Nudge(
         **ctx.owned(),
         day=today,

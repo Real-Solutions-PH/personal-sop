@@ -262,11 +262,11 @@ export function profileToServer(v: ProfileState): Payload {
     intro_dismissed: d.intro.dismissed,
     enabled_extras: extrasToServer(v.extras),
   }
-  // Never touched on this phone: leave the account's nudge choice alone.
-  if (d.push.nudge) {
-    out.nudge_mode = d.push.nudge
-    out.nudge_time = HM.test(d.push.nudgeTime ?? "") ? d.push.nudgeTime : null
-  }
+  // Each nudge field goes only once this phone has a value for it (set
+  // here or pulled), so an untouched phone leaves the account's alone.
+  if (d.push.nudge) out.nudge_mode = d.push.nudge
+  if (d.push.nudgeTime !== undefined)
+    out.nudge_time = HM.test(d.push.nudgeTime) ? d.push.nudgeTime : null
   // Never edited: leave the account's as it is (another phone's may stand).
   if (v.homeLayout) out.home_layout = v.homeLayout
   const name = d.profile.name.trim()

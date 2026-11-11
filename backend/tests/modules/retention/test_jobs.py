@@ -17,6 +17,7 @@ from app.modules.dashboard.models import Notification
 from app.modules.habits import public as habits
 from app.modules.iam.users.models import User
 from app.modules.profile import public as profile_public
+from app.modules.profile.models import PushDevice
 from app.modules.retention import jobs, sender
 from app.modules.retention.models import Nudge, RetentionProfile
 from app.modules.usage.models import UsageEvent
@@ -49,6 +50,7 @@ def _setup(
     pinned: str | None = PINNED,
     mode: str = "daily",
     arm: str = "treated",
+    device: bool = True,
 ) -> uuid.UUID:
     """A habit due every day, its last tick ``last_log_days_ago`` days back,
     a pinned nudge time and a fresh retention profile. Returns the habit."""
@@ -59,6 +61,15 @@ def _setup(
         p.nudge_time = pinned
         p.nudge_mode = mode
         s.add(p)
+        if device:
+            s.add(
+                PushDevice(
+                    owner_id=user.id,
+                    tenant_id=user.tenant_id,
+                    token=f"ExponentPushToken[{user.id}]",
+                    platform="ios",
+                )
+            )
         habit = habits.create_habit(ctx, name="Read 10 pages")
         hid = habit.id
         if last_log_days_ago is not None:
@@ -203,6 +214,40 @@ def test_a_run_more_than_an_hour_late_lets_the_day_go(
     user, _ = person
     _setup(user)
     assert _send(user, _today_at(PINNED, timedelta(minutes=61))) is None
+    assert _nudges(db, user) == []
+
+
+def test_no_phone_to_push_to_is_held_back_not_sent(db: Session) -> None:
+    user, _ = signed_in(db)
+    _setup(user, device=False)
+    row = _send(user, _today_at(PINNED, timedelta(minutes=1)))
+    assert row is not None and row.suppressed == "no_push" and row.sent_at is None
+    assert _notes(db, user) == []
+    held, _ = signed_in(db)
+    _setup(held, device=False, arm="holdout")
+    row = _send(held, _today_at(PINNED, timedelta(minutes=1)))
+    assert row is not None and row.suppressed == "no_push"
+
+
+def test_the_usual_slot_avoids_a_reminder_set_today(db: Session) -> None:
+    """The nightly slot is chosen again at send time against today's task
+    reminders: a reminder at the usual time moves the nudge."""
+    user, _ = signed_in(db)
+    _setup(user, pinned=None)  # cold start: evening push 21:00 -> 20:50
+    with Session(engine) as s:
+        ctx = _ctx(s, user, _today_at("08:00"))
+        from app.modules.tasks.models import Task
+
+        s.add(
+            Task(
+                **ctx.owned(),
+                title="Call mum",
+                status="open",
+                remind_at=_today_at("20:45"),
+            )
+        )
+        s.commit()
+    assert _send(user, _today_at("20:52")) is None  # not 20:50 any more
     assert _nudges(db, user) == []
 
 
@@ -365,6 +410,14 @@ def test_push_open_needs_a_detail(client: TestClient, db: Session) -> None:
 
 
 # ---------------------------------------------------------------- settings
+
+
+def test_null_nudge_mode_changes_nothing(client: TestClient, db: Session) -> None:
+    _, h = signed_in(db)
+    r = client.patch(
+        f"{settings.API_V1_STR}/profile", headers=h, json={"nudge_mode": None}
+    )
+    assert r.status_code == 200 and r.json()["nudge_mode"] == "daily"
 
 
 def test_settings_change_mode_and_pin_and_the_next_run_honours_it(
