@@ -1602,8 +1602,15 @@ function FinanceCard() {
                 >
                   <Line style={{ justifyContent: "space-between" }}>
                     <Copy size={14}>
-                      <Text style={{ fontFamily: fonts.semibold }}>
-                        {money(last.end)}
+                      <Text
+                        style={{
+                          fontFamily: fonts.semibold,
+                          color: last.end < 0 ? t.bad : undefined,
+                        }}
+                      >
+                        {last.end < 0
+                          ? `−${money(-last.end)}`
+                          : money(last.end)}
                       </Text>{" "}
                       by {N.monthLabel(last.key)} {last.key.slice(2, 4)}
                     </Copy>
