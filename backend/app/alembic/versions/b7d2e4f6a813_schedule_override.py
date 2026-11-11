@@ -3,7 +3,7 @@ to another time on one day from the Plan tab. The item's own schedule is
 unchanged; reset is a tombstone.
 
 Revision ID: b7d2e4f6a813
-Revises: fddd1ce9e22e
+Revises: e9af4348ea3f
 Create Date: 2026-11-12
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "b7d2e4f6a813"
-down_revision = "fddd1ce9e22e"
+down_revision = "e9af4348ea3f"
 branch_labels = None
 depends_on = None
 

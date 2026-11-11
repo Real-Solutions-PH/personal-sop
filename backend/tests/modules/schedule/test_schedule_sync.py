@@ -1,7 +1,7 @@
 """Schedule overrides through ``/sync/push``, ``/sync/pull`` and the calendar."""
 
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from fastapi.testclient import TestClient
@@ -195,32 +195,35 @@ def test_refuses_a_bad_time_kind_or_someone_elses_habit(
     assert [r["status"] for r in res] == ["rejected"] * 4, res
 
 
+def _noon_today() -> datetime:
+    """Midday of a fresh user's business day (Manila, 04:00 rollover), as UTC:
+    far from the day boundary, so moves of an hour or so stay in the day."""
+    from app.shared.day import DayClock
+
+    clock = DayClock()
+    return clock.local_time(clock.today(), "12:00")
+
+
 def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
     client: TestClient, db: Session
 ) -> None:
     """The server's task reminder push follows the occurrence's move: not at
     the series time (when it was moved later), but at the moved time."""
-    from datetime import UTC, datetime
-    from zoneinfo import ZoneInfo
-
     from app.modules.tasks import jobs
     from tests.modules.tasks.api.helpers import day, new_task
 
     user, h = signed_in(db)
-    now = datetime.now(UTC)
-    # Due a minute from now (a fresh user's clock: Manila), reminding at
-    # that due time, as "remind me" sets it; then moved an hour later.
-    due = (now + timedelta(minutes=1)).astimezone(ZoneInfo("Asia/Manila"))
+    noon = _noon_today()
+    # Due 12:01, reminding at that due time ("remind me"), moved to 13:01.
     t = new_task(
         client,
         h,
         "Stand-up",
         due_date=day(0),
-        due_time=due.strftime("%H:%M"),
-        remind_at=(now - timedelta(minutes=1)).isoformat(),
+        due_time="12:01",
+        remind_at=(noon + timedelta(minutes=1)).isoformat(),
         recurrence={"rule": {"kind": "daily"}, "mode": "fixed"},
     )
-    moved = (due + timedelta(hours=1)).strftime("%H:%M")
     res = push(
         client,
         h,
@@ -231,15 +234,14 @@ def test_a_moved_recurring_occurrence_is_pushed_at_the_moved_time(
             kind="task",
             ref_id=t["id"],
             day=day(0),
-            time=moved,
+            time="13:01",
         ),
     )
     assert res[0]["status"] == "applied", res
-    # Its own reminder time has passed, the moved one (an hour on) not yet.
-    with ctx_for(user, now=now) as ctx:
+    # Just past its own reminder time: the moved one is an hour on.
+    with ctx_for(user, now=noon + timedelta(minutes=2)) as ctx:
         assert jobs.send_reminders(ctx) == 0
-    later = now + timedelta(minutes=65)
-    with ctx_for(user, now=later) as ctx:
+    with ctx_for(user, now=noon + timedelta(minutes=62)) as ctx:
         assert jobs.send_reminders(ctx) == 1
 
 
@@ -248,22 +250,19 @@ def test_a_snoozed_reminder_on_a_moved_occurrence_is_not_shifted_again(
 ) -> None:
     """A reminder set after the occurrence's own due time (a snooze) already
     says when: the move does not push it further."""
-    from datetime import UTC, datetime
-
     from app.modules.tasks import jobs
     from tests.modules.tasks.api.helpers import day, new_task
 
     user, h = signed_in(db)
-    now = datetime.now(UTC)
-    # Due at 04:00 business-day start (always before now's snooze), the
-    # reminder snoozed to a minute ago.
+    noon = _noon_today()
+    # Due 11:00, snoozed to 12:00, the occurrence moved to 15:00.
     t = new_task(
         client,
         h,
         "Stand-up",
         due_date=day(0),
-        due_time="04:00",
-        remind_at=(now - timedelta(minutes=1)).isoformat(),
+        due_time="11:00",
+        remind_at=noon.isoformat(),
         recurrence={"rule": {"kind": "daily"}, "mode": "fixed"},
     )
     push(
@@ -276,8 +275,8 @@ def test_a_snoozed_reminder_on_a_moved_occurrence_is_not_shifted_again(
             kind="task",
             ref_id=t["id"],
             day=day(0),
-            time="23:00",
+            time="15:00",
         ),
     )
-    with ctx_for(user, now=now) as ctx:
+    with ctx_for(user, now=noon + timedelta(minutes=1)) as ctx:
         assert jobs.send_reminders(ctx) == 1
