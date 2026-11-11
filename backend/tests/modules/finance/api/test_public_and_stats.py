@@ -12,9 +12,10 @@ from app.modules.stats.contract import Window
 from app.modules.stats.public import DIRTY_KEY
 from app.shared.day import DayClock
 from app.shared.domain import HTTPException
+from tests.utils.day import run_day
 from tests.utils.mobile import ctx_for, signed_in
 
-TODAY = DayClock().today()
+TODAY = run_day()
 
 
 def _at(n: int, hh: int = 12) -> datetime:

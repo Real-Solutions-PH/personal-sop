@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.db import engine, init_db
 from app.db.models import Item, User
 from app.main import app
+from tests.utils.day import RunDay, run_day
 from tests.utils.user import authentication_token_from_email
 from tests.utils.utils import get_superuser_token_headers
 
@@ -77,6 +78,15 @@ def credentials_key(monkeypatch: pytest.MonkeyPatch) -> None:
     kek = settings.AI_CREDENTIALS_KEK
     if kek is None or not kek.get_secret_value():
         monkeypatch.setattr(settings, "AI_CREDENTIALS_KEK", _TEST_KEK)
+
+
+@pytest.fixture(autouse=True)
+def business_today(request: pytest.FixtureRequest) -> None:
+    """A test module's ``TODAY = run_day()`` is the business day the test
+    runs on, not the one it was imported on (``tests.utils.day``)."""
+    module = request.module
+    if isinstance(getattr(module, "TODAY", None), RunDay):
+        module.TODAY = run_day(getattr(module, "CLOCK", None))
 
 
 @pytest.fixture(scope="session", autouse=True)
