@@ -1190,7 +1190,8 @@
     "data": {
       "planned_id": "00000000-0000-4000-8000-000000000018",
       "on_day": "2026-10-19",
-      "until_day": "2026-10-19"
+      "until_day": "2026-10-19",
+      "amount_minor": null
     }
   },
   {
@@ -1217,6 +1218,73 @@
     }
   },
   {
+    "entity": "planned_item",
+    "create": true,
+    "data": {
+      "name": "Meralco",
+      "type": "expense",
+      "amount_minor": 320000,
+      "estimated": true,
+      "account_id": "00000000-0000-4000-8000-000000000019",
+      "to_account_id": null,
+      "category_id": "00000000-0000-4000-8000-000000000017",
+      "schedule": {
+        "kind": "monthly",
+        "day": 8
+      },
+      "start": "2026-10-19",
+      "end_rule": {
+        "kind": "never"
+      },
+      "auto_log": false,
+      "is_what_if": false,
+      "is_installment": false,
+      "in_projection": true,
+      "archived": false
+    }
+  },
+  {
+    "entity": "planned_snooze",
+    "create": true,
+    "data": {
+      "planned_id": "00000000-0000-4000-8000-00000000001a",
+      "on_day": "2026-10-19",
+      "until_day": "2026-10-19",
+      "amount_minor": 348050
+    }
+  },
+  {
+    "entity": "planned_snooze",
+    "create": false,
+    "data": {
+      "until_day": "2026-10-19"
+    }
+  },
+  {
+    "entity": "planned_snooze",
+    "create": false,
+    "data": {
+      "until_day": "2026-10-19",
+      "amount_minor": null
+    }
+  },
+  {
+    "entity": "finance_settings",
+    "create": false,
+    "data": {
+      "default_account_id": "00000000-0000-4000-8000-00000000001b",
+      "month_start_day": 1,
+      "horizon": 12,
+      "include_unplanned": true,
+      "safety_floor_minor": 3000000,
+      "ai_scope": "aggregates",
+      "disclaimer_ack": false,
+      "nudge_days": 21,
+      "bill_reminder": "09:00",
+      "proj_excluded_planned": []
+    }
+  },
+  {
     "entity": "budget",
     "create": true,
     "data": {
@@ -1231,7 +1299,7 @@
     "entity": "budget_category",
     "create": true,
     "data": {
-      "budget_id": "00000000-0000-4000-8000-00000000001a",
+      "budget_id": "00000000-0000-4000-8000-00000000001c",
       "category_id": "00000000-0000-4000-8000-000000000001"
     }
   },
@@ -1239,7 +1307,7 @@
     "entity": "budget_category",
     "create": true,
     "data": {
-      "budget_id": "00000000-0000-4000-8000-00000000001a",
+      "budget_id": "00000000-0000-4000-8000-00000000001c",
       "category_id": "00000000-0000-4000-8000-000000000011"
     }
   },
@@ -1254,7 +1322,7 @@
     "entity": "finance_settings",
     "create": false,
     "data": {
-      "default_account_id": "00000000-0000-4000-8000-00000000001b",
+      "default_account_id": "00000000-0000-4000-8000-00000000001d",
       "month_start_day": 1,
       "horizon": 12,
       "include_unplanned": true,
@@ -1285,9 +1353,9 @@
     "data": {
       "type": "expense",
       "amount_minor": 4500,
-      "account_id": "00000000-0000-4000-8000-00000000001b",
+      "account_id": "00000000-0000-4000-8000-00000000001d",
       "to_account_id": null,
-      "category_id": "00000000-0000-4000-8000-00000000001c",
+      "category_id": "00000000-0000-4000-8000-00000000001e",
       "at": "2026-10-19T04:00:00.000Z",
       "payee": null,
       "note": null,
@@ -1310,7 +1378,7 @@
     "entity": "finance_settings",
     "create": false,
     "data": {
-      "default_account_id": "00000000-0000-4000-8000-00000000001d",
+      "default_account_id": "00000000-0000-4000-8000-00000000001f",
       "month_start_day": 1,
       "horizon": 12,
       "include_unplanned": true,
@@ -1341,7 +1409,7 @@
     "data": {
       "name": "Vet",
       "kind": "expense",
-      "parent_id": "00000000-0000-4000-8000-00000000001e",
+      "parent_id": "00000000-0000-4000-8000-000000000020",
       "icon": "💊",
       "discretionary": false,
       "archived": false,
@@ -1354,9 +1422,9 @@
     "data": {
       "type": "expense",
       "amount_minor": 90000,
-      "account_id": "00000000-0000-4000-8000-00000000001d",
+      "account_id": "00000000-0000-4000-8000-00000000001f",
       "to_account_id": null,
-      "category_id": "00000000-0000-4000-8000-00000000001f",
+      "category_id": "00000000-0000-4000-8000-000000000021",
       "at": "2026-10-19T04:00:00.000Z",
       "payee": null,
       "note": null,
@@ -1399,7 +1467,7 @@
     "entity": "advisor_message",
     "create": true,
     "data": {
-      "thread_id": "00000000-0000-4000-8000-000000000020",
+      "thread_id": "00000000-0000-4000-8000-000000000022",
       "role": "user",
       "text": "₱24,999 phone?",
       "answer": null,
@@ -1410,7 +1478,7 @@
     "entity": "advisor_message",
     "create": true,
     "data": {
-      "thread_id": "00000000-0000-4000-8000-000000000020",
+      "thread_id": "00000000-0000-4000-8000-000000000022",
       "role": "ai",
       "text": "Pick a scope",
       "answer": {
@@ -1423,7 +1491,7 @@
     "entity": "finance_settings",
     "create": false,
     "data": {
-      "default_account_id": "00000000-0000-4000-8000-000000000021",
+      "default_account_id": "00000000-0000-4000-8000-000000000023",
       "month_start_day": 1,
       "horizon": 12,
       "include_unplanned": true,
@@ -1441,7 +1509,7 @@
     "data": {
       "type": "expense",
       "amount_minor": 1000,
-      "account_id": "00000000-0000-4000-8000-000000000021",
+      "account_id": "00000000-0000-4000-8000-000000000023",
       "to_account_id": null,
       "category_id": "00000000-0000-4000-8000-000000000011",
       "at": "2026-10-19T04:00:00.000Z",
@@ -1467,7 +1535,7 @@
     "entity": "finance_settings",
     "create": false,
     "data": {
-      "default_account_id": "00000000-0000-4000-8000-000000000022",
+      "default_account_id": "00000000-0000-4000-8000-000000000024",
       "month_start_day": 1,
       "horizon": 12,
       "include_unplanned": true,

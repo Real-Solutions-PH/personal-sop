@@ -3,6 +3,7 @@
 // and the limits a picked range must respect.
 import {
   addDays,
+  amountOn,
   avgUnplanned,
   diffDays,
   type Occurrence,
@@ -78,13 +79,13 @@ export function backRangeError(r: DateRange): string | null {
 
 /** What one scheduled item does to a set of accounts: income in, bills
  * out, transfers only when they cross the edge of the set. */
-function effectOn(p: PlannedItem, ids: Set<string>): number {
-  if (p.type === "income") return ids.has(p.accountId) ? p.amount : 0
-  if (p.type === "expense") return ids.has(p.accountId) ? -p.amount : 0
+function effectOn(p: PlannedItem, ids: Set<string>, amount = p.amount): number {
+  if (p.type === "income") return ids.has(p.accountId) ? amount : 0
+  if (p.type === "expense") return ids.has(p.accountId) ? -amount : 0
   const out = ids.has(p.accountId)
   const into = !!p.toAccountId && ids.has(p.toAccountId)
-  if (out && !into) return -p.amount
-  if (!out && into) return p.amount
+  if (out && !into) return -amount
+  if (!out && into) return amount
   return 0
 }
 
@@ -162,7 +163,7 @@ export function forecast(
   const moves = new Map<string, { income: number; bills: number }>()
   let hasIncome = false
   for (const o of all) {
-    const d = effectOn(o.item, ids)
+    const d = effectOn(o.item, ids, o.amount)
     if (!d) continue
     if (d > 0 && o.item.type === "income") hasIncome = true
     const day = o.day < t ? t : o.day
@@ -295,10 +296,10 @@ export function expectedTrend(
   )
   const delta = new Map<string, number>()
   for (const p of recurring) {
-    const d = effectOn(p, ids)
-    if (!d) continue
+    if (!effectOn(p, ids)) continue
     for (const k of occurrences(p, from, to))
-      if (!p.skipped.includes(k)) delta.set(k, (delta.get(k) ?? 0) + d)
+      if (!p.skipped.includes(k))
+        delta.set(k, (delta.get(k) ?? 0) + effectOn(p, ids, amountOn(p, k)))
   }
   const days: string[] = []
   const actual: number[] = []
@@ -333,8 +334,8 @@ export function scheduledBetween(s: FinState, from: string, to: string) {
   let spend = 0
   for (const o of occurrencesIn(s, from, to)) {
     if (o.status === "paid" || o.status === "skipped") continue
-    if (o.item.type === "income") income += o.item.amount
-    else if (o.item.type === "expense") spend += o.item.amount
+    if (o.item.type === "income") income += o.amount
+    else if (o.item.type === "expense") spend += o.amount
   }
   return { income, spend }
 }
