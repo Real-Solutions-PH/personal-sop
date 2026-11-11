@@ -10,12 +10,12 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session
 
 from app.modules.finance.calc import add_months, month_of
-from app.shared.day import DayClock
 from app.shared.ids import derived_id
 from tests.modules.finance.api.helpers import Fin, op
+from tests.utils.day import run_day
 from tests.utils.mobile import signed_in
 
-TODAY = DayClock().today()
+TODAY = run_day()
 
 
 def _fin(client: TestClient, db: Session) -> tuple[Fin, str, str]:

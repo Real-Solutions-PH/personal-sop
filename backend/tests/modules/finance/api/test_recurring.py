@@ -15,9 +15,10 @@ from app.modules.finance import services
 from app.modules.finance.services import AUTO_LOG_CATCH_UP_DAYS
 from app.shared.day import DayClock
 from tests.modules.finance.api.helpers import Fin
+from tests.utils.day import run_day
 from tests.utils.mobile import ctx_for, signed_in
 
-TODAY = DayClock().today()  # a new user has the default clock
+TODAY = run_day()  # a new user has the default clock
 
 
 def _setup(client: TestClient, db: Session) -> tuple[Any, Fin, str, str]:
