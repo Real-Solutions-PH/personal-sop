@@ -1186,6 +1186,13 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           solText = joinSegments()
           return sol()
         }
+        case "changes":
+          // What a tool just wrote, committed: on every screen now, not when
+          // the reply ends (Kai, 2026-11-12: a logged meal reached Nutrition
+          // only after Fern finished writing). The finished reply carries
+          // them all again.
+          if (Array.isArray(d.changes)) deps.applyRows?.(d.changes as Change[])
+          return
         case "capture":
           thinking.setState({ on: false })
           if (!Array.isArray(d.cards)) open = String(d.id)
