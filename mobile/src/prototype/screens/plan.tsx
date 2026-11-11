@@ -1240,7 +1240,7 @@ function CalendarPanel() {
                         color: o.item.type === "income" ? t.good : t.text,
                       }}
                     >
-                      {`${m.sign}${money(o.item.amount)}`}
+                      {`${m.sign}${money(o.amount)}`}
                     </Copy>
                   </Line>
                 </Tap>
