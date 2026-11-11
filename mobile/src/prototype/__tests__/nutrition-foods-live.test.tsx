@@ -6,6 +6,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import {
+  configure,
   fireEvent,
   render,
   screen,
@@ -51,6 +52,12 @@ jest.mock("@/live/auth", () => ({ http: { request: mockRequest } }))
 
 // A search waits for a typing pause, which a loaded test host stretches.
 jest.setTimeout(30_000)
+// The first load of the screen (query client, render, the mocked request)
+// can take over the default 1 s wait for a `findBy`/`waitFor` late in a
+// `--runInBand` CI run: "a search reaches every source" failed there on
+// its first `findByText` (#364, #367). Wait as long as the loaded host
+// needs; what is asserted is unchanged.
+configure({ asyncUtilTimeout: 10_000 })
 
 const { FoodLibrary } = require("../screens/nutrition-foods")
 const { fitStore } = require("@domain/fitness/store")
