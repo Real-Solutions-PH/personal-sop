@@ -466,7 +466,7 @@
         "name": "GCash",
         "type": "ewallet",
         "opening_minor": 0,
-        "opening_date": "2026-11-03",
+        "opening_date": "2026-11-11",
         "limit_minor": null,
         "color": "fin",
         "in_net_worth": true,
@@ -515,7 +515,7 @@
         "name": "BPI Savings",
         "type": "bank",
         "opening_minor": 0,
-        "opening_date": "2026-11-03",
+        "opening_date": "2026-11-11",
         "limit_minor": null,
         "color": "fin",
         "in_net_worth": true,
@@ -541,7 +541,7 @@
         "name": "Cash",
         "type": "cash",
         "opening_minor": 0,
-        "opening_date": "2026-11-03",
+        "opening_date": "2026-11-11",
         "limit_minor": null,
         "color": "fin",
         "in_net_worth": true,
@@ -604,7 +604,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-000000000006",
         "module": "habits",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 1,
         "done": 0,
         "rate": null,
@@ -621,7 +621,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-000000000007",
         "module": "tasks",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 0,
         "done": 0,
         "rate": 0.5,
@@ -638,7 +638,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-000000000008",
         "module": "fitness",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 2,
         "done": 0,
         "rate": 0.0,
@@ -655,7 +655,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-000000000009",
         "module": "nutrition",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 0,
         "done": 0,
         "rate": null,
@@ -672,7 +672,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-00000000000a",
         "module": "focus",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 0,
         "done": 0,
         "rate": null,
@@ -689,7 +689,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-00000000000b",
         "module": "finance",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 0,
         "done": 0,
         "rate": 0.2,
@@ -706,7 +706,7 @@
       "row": {
         "id": "00000000-0000-4000-8000-00000000000c",
         "module": "screen",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "due": 0,
         "done": 0,
         "rate": null,
@@ -722,7 +722,7 @@
       "deleted": false,
       "row": {
         "id": "00000000-0000-4000-8000-00000000000d",
-        "day": "2026-11-03",
+        "day": "2026-11-11",
         "score": 20,
         "level": "Getting started",
         "rates": {
@@ -795,17 +795,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-514e63b8",
+          "toolCallId": "call-5108ad1b",
           "toolCallName": "log_expense"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-514e63b8",
+          "toolCallId": "call-5108ad1b",
           "delta": "{\"amount\": 250, \"category\": \"grab\", \"payee\": \"Grab\"}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-514e63b8"
+          "toolCallId": "call-5108ad1b"
         },
         {
           "type": "CUSTOM",
@@ -854,13 +854,163 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000015",
-          "toolCallId": "call-514e63b8",
-          "content": "{\"id\": \"call-514e63b8\", \"tool\": \"log_expense\", \"label\": \"Logging an expense\", \"ok\": true, \"summary\": \"Logged expense: ₱250 · grab\", \"card_id\": \"00000000-0000-4000-8000-000000000010\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000011\"}",
+          "toolCallId": "call-5108ad1b",
+          "content": "{\"id\": \"call-5108ad1b\", \"tool\": \"log_expense\", \"label\": \"Logging an expense\", \"ok\": true, \"summary\": \"Logged expense: ₱250 · grab\", \"card_id\": \"00000000-0000-4000-8000-000000000010\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000011\"}",
           "role": "tool"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "tool:log_expense"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-000000000011",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000011",
+                  "client_uuid": "00000000-0000-4000-8000-000000000016",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "250 grab",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000013",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000013",
+                  "card_id": "00000000-0000-4000-8000-000000000010",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "fin_record",
+                "id": "00000000-0000-4000-8000-000000000012",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000012",
+                  "type": "expense",
+                  "amount_minor": 25000,
+                  "account_id": "00000000-0000-4000-8000-000000000001",
+                  "to_account_id": null,
+                  "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "day": null,
+                  "payee": "Grab",
+                  "note": null,
+                  "source": "chat",
+                  "receipt_media_id": null,
+                  "planned_id": null,
+                  "planned_on": null,
+                  "import_id": null,
+                  "is_refund": false,
+                  "is_adjustment": false,
+                  "fee_of": null,
+                  "status": "cleared",
+                  "edited_at": null,
+                  "version": 1,
+                  "orig_currency": null,
+                  "orig_amount_minor": null,
+                  "fx_rate": null
+                }
+              },
+              {
+                "entity": "finance_settings",
+                "id": "00000000-0000-4000-8000-000000000002",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000002",
+                  "default_account_id": "00000000-0000-4000-8000-000000000001",
+                  "last_account_id": "00000000-0000-4000-8000-000000000001",
+                  "last_category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
+                  "month_start_day": 1,
+                  "horizon": 12,
+                  "include_unplanned": true,
+                  "safety_floor_minor": 0,
+                  "ai_scope": "aggregates",
+                  "disclaimer_ack": false,
+                  "nudge_days": 7,
+                  "bill_reminder": "09:00",
+                  "proj_excluded_planned": [],
+                  "setup_done": false,
+                  "version": 1
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-000000000010",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000010",
+                  "capture_id": "00000000-0000-4000-8000-000000000011",
+                  "position": 0,
+                  "kind": "expense",
+                  "target": "finance",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "kind": "expense",
+                    "payee": "Grab",
+                    "account_id": "00000000-0000-4000-8000-000000000001",
+                    "category_id": "d734945e-f134-542f-a0b6-f3ccbb011dbc",
+                    "amount_minor": 25000
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-000000000012"
+                  ],
+                  "ask": null,
+                  "note": null,
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": 0,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000014",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000014",
+                  "card_id": "00000000-0000-4000-8000-000000000010",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
         },
         {
           "type": "STEP_STARTED",
@@ -875,21 +1025,29 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-000000000016",
+          "messageId": "00000000-0000-4000-8000-000000000017",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-000000000016",
+          "messageId": "00000000-0000-4000-8000-000000000017",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-000000000016"
+          "messageId": "00000000-0000-4000-8000-000000000017"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "think:2"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "block",
+          "value": {
+            "t": "finance",
+            "day": "2026-11-11"
+          }
         },
         {
           "type": "RUN_FINISHED",
@@ -910,7 +1068,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-000000000017",
+                "id": "00000000-0000-4000-8000-000000000018",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -918,7 +1076,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-514e63b8",
+                        "id": "call-5108ad1b",
                         "ok": true,
                         "tool": "log_expense",
                         "label": "Logging an expense",
@@ -928,6 +1086,10 @@
                         "capture_id": "00000000-0000-4000-8000-000000000011"
                       }
                     ]
+                  },
+                  {
+                    "t": "finance",
+                    "day": "2026-11-11"
                   }
                 ],
                 "created_at": "2026-10-19T04:00:00.000000Z",
@@ -938,7 +1100,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-000000000011",
-              "client_uuid": "00000000-0000-4000-8000-000000000018",
+              "client_uuid": "00000000-0000-4000-8000-000000000016",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "250 grab",
@@ -1022,9 +1184,10 @@
                   "name": "",
                   "handle": null,
                   "photo_media_id": null,
-                  "since": "2026-11-03",
+                  "since": "2026-11-11",
                   "timezone": "Asia/Manila",
                   "currency": "PHP",
+                  "storefront_country": null,
                   "day_start_hour": 4,
                   "evening_start": "18:00",
                   "target_threshold": 0.8,
@@ -1037,7 +1200,14 @@
                   "push_morning": "07:00",
                   "push_evening": "21:00",
                   "push_review": true,
+                  "push_checkin": null,
+                  "fern_eval_consent": false,
+                  "fern_eval_consent_at": null,
                   "seen_trophies": [],
+                  "enabled_extras": null,
+                  "home_layout": null,
+                  "intro_offered": [],
+                  "intro_dismissed": [],
                   "occupation": null,
                   "occupation_detail": null,
                   "referral_source": null,
@@ -1235,7 +1405,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-000000000011",
-                  "client_uuid": "00000000-0000-4000-8000-000000000018",
+                  "client_uuid": "00000000-0000-4000-8000-000000000016",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "250 grab",
@@ -1255,11 +1425,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-000000000017",
+                "id": "00000000-0000-4000-8000-000000000018",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000017",
+                  "id": "00000000-0000-4000-8000-000000000018",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -1267,7 +1437,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-514e63b8",
+                          "id": "call-5108ad1b",
                           "ok": true,
                           "tool": "log_expense",
                           "label": "Logging an expense",
@@ -1277,6 +1447,10 @@
                           "capture_id": "00000000-0000-4000-8000-000000000011"
                         }
                       ]
+                    },
+                    {
+                      "t": "finance",
+                      "day": "2026-11-11"
                     }
                   ],
                   "created_at": "2026-10-19T04:00:00.000000Z",
@@ -1351,7 +1525,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-000000000011",
-              "client_uuid": "00000000-0000-4000-8000-000000000018",
+              "client_uuid": "00000000-0000-4000-8000-000000000016",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "250 grab",
@@ -1473,17 +1647,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-7420abec",
+          "toolCallId": "call-7eb25468",
           "toolCallName": "log_meal"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-7420abec",
+          "toolCallId": "call-7eb25468",
           "delta": "{\"description\": \"Lunch: rice and adobo\", \"items\": [{\"protein\": 0, \"carbs\": 50, \"fat\": 0, \"fiber\": 0, \"fiber_soluble\": 0, \"fiber_insoluble\": 0, \"sat_fat\": 0, \"sugar\": 0, \"sodium\": 0, \"name\": \"Rice\", \"kcal\": 200, \"grams\": 150}, {\"protein\": 0, \"carbs\": 40, \"fat\": 0, \"fiber\": 0, \"fiber_soluble\": 0, \"fiber_insoluble\": 0, \"sat_fat\": 0, \"sugar\": 0, \"sodium\": 0, \"name\": \"Adobo\", \"kcal\": 160, \"grams\": 120}], \"confidence\": 0.8}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-7420abec"
+          "toolCallId": "call-7eb25468"
         },
         {
           "type": "CUSTOM",
@@ -1557,13 +1731,124 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000022",
-          "toolCallId": "call-7420abec",
-          "content": "{\"id\": \"call-7420abec\", \"tool\": \"log_meal\", \"label\": \"Logging a meal\", \"ok\": true, \"summary\": \"Logged meal: Lunch: rice and adobo (waiting for your OK)\", \"card_id\": \"00000000-0000-4000-8000-00000000001f\", \"state\": \"proposed\", \"capture_id\": \"00000000-0000-4000-8000-000000000020\"}",
+          "toolCallId": "call-7eb25468",
+          "content": "{\"id\": \"call-7eb25468\", \"tool\": \"log_meal\", \"label\": \"Logging a meal\", \"ok\": true, \"summary\": \"Logged meal: Lunch: rice and adobo (waiting for your OK)\", \"card_id\": \"00000000-0000-4000-8000-00000000001f\", \"state\": \"proposed\", \"capture_id\": \"00000000-0000-4000-8000-000000000020\"}",
           "role": "tool"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "tool:log_meal"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-000000000020",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000020",
+                  "client_uuid": "00000000-0000-4000-8000-000000000023",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "lunch was rice and adobo",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-00000000001f",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000001f",
+                  "capture_id": "00000000-0000-4000-8000-000000000020",
+                  "position": 0,
+                  "kind": "meal",
+                  "target": "fitness",
+                  "tier": "confirm",
+                  "state": "proposed",
+                  "payload": {
+                    "raw": "Lunch: rice and adobo",
+                    "kind": "meal",
+                    "items": [
+                      {
+                        "fat": 0.0,
+                        "qty": 1,
+                        "kcal": 200.0,
+                        "name": "Rice",
+                        "unit": "serving",
+                        "carbs": 50.0,
+                        "fiber": 0.0,
+                        "sugar": 0.0,
+                        "sodium": 0.0,
+                        "protein": 0.0,
+                        "sat_fat": 0.0,
+                        "assumption": "about 150 g",
+                        "fiber_soluble": 0.0,
+                        "fiber_insoluble": 0.0
+                      },
+                      {
+                        "fat": 0.0,
+                        "qty": 1,
+                        "kcal": 160.0,
+                        "name": "Adobo",
+                        "unit": "serving",
+                        "carbs": 40.0,
+                        "fiber": 0.0,
+                        "sugar": 0.0,
+                        "sodium": 0.0,
+                        "protein": 0.0,
+                        "sat_fat": 0.0,
+                        "assumption": "about 120 g",
+                        "fiber_soluble": 0.0,
+                        "fiber_insoluble": 0.0
+                      }
+                    ],
+                    "label": "lunch",
+                    "confidence": 0.8
+                  },
+                  "refs": [],
+                  "ask": null,
+                  "note": null,
+                  "warn": null,
+                  "confidence": 0.8,
+                  "day_offset": 0,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000021",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000021",
+                  "card_id": "00000000-0000-4000-8000-00000000001f",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
         },
         {
           "type": "STEP_STARTED",
@@ -1578,17 +1863,17 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-000000000023",
+          "messageId": "00000000-0000-4000-8000-000000000024",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-000000000023",
+          "messageId": "00000000-0000-4000-8000-000000000024",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-000000000023"
+          "messageId": "00000000-0000-4000-8000-000000000024"
         },
         {
           "type": "STEP_FINISHED",
@@ -1613,7 +1898,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-000000000024",
+                "id": "00000000-0000-4000-8000-000000000025",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -1621,7 +1906,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-7420abec",
+                        "id": "call-7eb25468",
                         "ok": true,
                         "tool": "log_meal",
                         "label": "Logging a meal",
@@ -1641,7 +1926,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-000000000020",
-              "client_uuid": "00000000-0000-4000-8000-000000000025",
+              "client_uuid": "00000000-0000-4000-8000-000000000023",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "lunch was rice and adobo",
@@ -1843,7 +2128,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-000000000020",
-                  "client_uuid": "00000000-0000-4000-8000-000000000025",
+                  "client_uuid": "00000000-0000-4000-8000-000000000023",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "lunch was rice and adobo",
@@ -1863,11 +2148,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-000000000024",
+                "id": "00000000-0000-4000-8000-000000000025",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000024",
+                  "id": "00000000-0000-4000-8000-000000000025",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -1875,7 +2160,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-7420abec",
+                          "id": "call-7eb25468",
                           "ok": true,
                           "tool": "log_meal",
                           "label": "Logging a meal",
@@ -1986,7 +2271,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-000000000020",
-              "client_uuid": "00000000-0000-4000-8000-000000000025",
+              "client_uuid": "00000000-0000-4000-8000-000000000023",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "lunch was rice and adobo",
@@ -2255,7 +2540,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-000000000020",
-              "client_uuid": "00000000-0000-4000-8000-000000000025",
+              "client_uuid": "00000000-0000-4000-8000-000000000023",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "lunch was rice and adobo",
@@ -2494,6 +2779,823 @@
           "stepName": "tool:log_workout"
         },
         {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-00000000002f",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000002f",
+                  "client_uuid": "00000000-0000-4000-8000-000000000034",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "did bench 3x8 at 60",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000031",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000031",
+                  "card_id": "00000000-0000-4000-8000-00000000002e",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "fitness_settings",
+                "id": "00000000-0000-4000-8000-000000000035",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000035",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "units": "kg",
+                  "rest_sec": 120,
+                  "weekly_target": 4,
+                  "weigh_in_reminder": "06:30",
+                  "progression": "double",
+                  "ai_source": "builtin",
+                  "goal_direction": "maintain",
+                  "goal_weight": null,
+                  "setup_done": false,
+                  "sex": null,
+                  "birth_year": null,
+                  "height_cm": null,
+                  "activity_level": null,
+                  "plan_goal": null
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000036",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000036",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Barbell Bench Press",
+                  "equipment": "barbell",
+                  "muscle": "chest",
+                  "load_type": "weight",
+                  "rep_min": 6,
+                  "rep_max": 10,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000037",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000037",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Incline Dumbbell Press",
+                  "equipment": "dumbbell",
+                  "muscle": "chest",
+                  "load_type": "weight",
+                  "rep_min": 8,
+                  "rep_max": 12,
+                  "increment": 2.0,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000038",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000038",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Overhead Press",
+                  "equipment": "barbell",
+                  "muscle": "shoulders",
+                  "load_type": "weight",
+                  "rep_min": 6,
+                  "rep_max": 10,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000039",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000039",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Lateral Raise",
+                  "equipment": "dumbbell",
+                  "muscle": "shoulders",
+                  "load_type": "weight",
+                  "rep_min": 12,
+                  "rep_max": 15,
+                  "increment": 1.0,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-00000000003a",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000003a",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Triceps Pushdown",
+                  "equipment": "cable",
+                  "muscle": "triceps",
+                  "load_type": "weight",
+                  "rep_min": 10,
+                  "rep_max": 15,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-00000000003b",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000003b",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Barbell Row",
+                  "equipment": "barbell",
+                  "muscle": "back",
+                  "load_type": "weight",
+                  "rep_min": 6,
+                  "rep_max": 10,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-00000000003c",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000003c",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Lat Pulldown",
+                  "equipment": "cable",
+                  "muscle": "back",
+                  "load_type": "weight",
+                  "rep_min": 8,
+                  "rep_max": 12,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-00000000003d",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000003d",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Pull-up",
+                  "equipment": "bodyweight",
+                  "muscle": "back",
+                  "load_type": "bodyweight",
+                  "rep_min": 5,
+                  "rep_max": 10,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-00000000003e",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000003e",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Face Pull",
+                  "equipment": "cable",
+                  "muscle": "shoulders",
+                  "load_type": "weight",
+                  "rep_min": 12,
+                  "rep_max": 15,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-00000000003f",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000003f",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Dumbbell Curl",
+                  "equipment": "dumbbell",
+                  "muscle": "biceps",
+                  "load_type": "weight",
+                  "rep_min": 8,
+                  "rep_max": 12,
+                  "increment": 1.0,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000040",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000040",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Back Squat",
+                  "equipment": "barbell",
+                  "muscle": "quads",
+                  "load_type": "weight",
+                  "rep_min": 5,
+                  "rep_max": 8,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000041",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000041",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Romanian Deadlift",
+                  "equipment": "barbell",
+                  "muscle": "hamstrings",
+                  "load_type": "weight",
+                  "rep_min": 6,
+                  "rep_max": 10,
+                  "increment": 2.5,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000042",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000042",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Leg Press",
+                  "equipment": "machine",
+                  "muscle": "quads",
+                  "load_type": "weight",
+                  "rep_min": 10,
+                  "rep_max": 15,
+                  "increment": 5.0,
+                  "archived": false,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "exercise",
+                "id": "00000000-0000-4000-8000-000000000043",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000043",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Plank",
+                  "equipment": "bodyweight",
+                  "muscle": "core",
+                  "load_type": "time",
+                  "rep_min": 30,
+                  "rep_max": 60,
+                  "increment": 0.0,
+                  "archived": true,
+                  "track": null,
+                  "aliases": [],
+                  "merged_into_id": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "workout_template",
+                "id": "00000000-0000-4000-8000-000000000044",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000044",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Push A",
+                  "sort_order": 0,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000045",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000045",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000036",
+                  "position": 0,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000046",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000046",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000038",
+                  "position": 1,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000047",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000047",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000037",
+                  "position": 2,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000048",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000048",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000039",
+                  "position": 3,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000049",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000049",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003a",
+                  "position": 4,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "workout_template",
+                "id": "00000000-0000-4000-8000-00000000004a",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000004a",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Pull A",
+                  "sort_order": 1,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-00000000004b",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000004b",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003b",
+                  "position": 0,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-00000000004c",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000004c",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003c",
+                  "position": 1,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-00000000004d",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000004d",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003d",
+                  "position": 2,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-00000000004e",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000004e",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003e",
+                  "position": 3,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-00000000004f",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000004f",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003f",
+                  "position": 4,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "workout_template",
+                "id": "00000000-0000-4000-8000-000000000050",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000050",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Legs A",
+                  "sort_order": 2,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000051",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000051",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000050",
+                  "exercise_id": "00000000-0000-4000-8000-000000000040",
+                  "position": 0,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000052",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000052",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000050",
+                  "exercise_id": "00000000-0000-4000-8000-000000000041",
+                  "position": 1,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000053",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000053",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000050",
+                  "exercise_id": "00000000-0000-4000-8000-000000000042",
+                  "position": 2,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "workout_exercise",
+                "id": "00000000-0000-4000-8000-000000000054",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000054",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "workout_id": "00000000-0000-4000-8000-000000000030",
+                  "exercise_id": "00000000-0000-4000-8000-000000000036",
+                  "position": 0,
+                  "note": null
+                }
+              },
+              {
+                "entity": "workout_set",
+                "id": "00000000-0000-4000-8000-000000000055",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000055",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "workout_exercise_id": "00000000-0000-4000-8000-000000000054",
+                  "position": 0,
+                  "reps": 8,
+                  "weight": 60.0,
+                  "kind": "working",
+                  "completed_at": "2026-10-19T04:00:00.000000Z",
+                  "duration_sec": null,
+                  "speed_kmh": null,
+                  "unit": null
+                }
+              },
+              {
+                "entity": "workout_set",
+                "id": "00000000-0000-4000-8000-000000000056",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000056",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "workout_exercise_id": "00000000-0000-4000-8000-000000000054",
+                  "position": 1,
+                  "reps": 8,
+                  "weight": 60.0,
+                  "kind": "working",
+                  "completed_at": "2026-10-19T04:00:00.000000Z",
+                  "duration_sec": null,
+                  "speed_kmh": null,
+                  "unit": null
+                }
+              },
+              {
+                "entity": "workout_set",
+                "id": "00000000-0000-4000-8000-000000000057",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000057",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "workout_exercise_id": "00000000-0000-4000-8000-000000000054",
+                  "position": 2,
+                  "reps": 8,
+                  "weight": 60.0,
+                  "kind": "working",
+                  "completed_at": "2026-10-19T04:00:00.000000Z",
+                  "duration_sec": null,
+                  "speed_kmh": null,
+                  "unit": null
+                }
+              },
+              {
+                "entity": "workout",
+                "id": "00000000-0000-4000-8000-000000000030",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000030",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Push",
+                  "template_id": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "ended_at": "2026-10-19T04:00:00.000000Z",
+                  "status": "finished",
+                  "notes": null,
+                  "source": "chat",
+                  "cardio": null,
+                  "kcal": 35.0,
+                  "steps": null
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-00000000002e",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000002e",
+                  "capture_id": "00000000-0000-4000-8000-00000000002f",
+                  "position": 0,
+                  "kind": "workout",
+                  "target": "fitness",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "kind": "workout",
+                    "name": "Push",
+                    "exercises": [
+                      {
+                        "sets": [
+                          {
+                            "reps": 8,
+                            "weight": 60.0
+                          },
+                          {
+                            "reps": 8,
+                            "weight": 60.0
+                          },
+                          {
+                            "reps": 8,
+                            "weight": 60.0
+                          }
+                        ],
+                        "exercise": "Bench Press"
+                      }
+                    ]
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-000000000030"
+                  ],
+                  "ask": null,
+                  "note": "1 sessions in the last 7 days",
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": 0,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000032",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000032",
+                  "card_id": "00000000-0000-4000-8000-00000000002e",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
+        },
+        {
           "type": "STEP_STARTED",
           "stepName": "think:2"
         },
@@ -2506,17 +3608,17 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-000000000034",
+          "messageId": "00000000-0000-4000-8000-000000000058",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-000000000034",
+          "messageId": "00000000-0000-4000-8000-000000000058",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-000000000034"
+          "messageId": "00000000-0000-4000-8000-000000000058"
         },
         {
           "type": "STEP_FINISHED",
@@ -2541,7 +3643,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-000000000035",
+                "id": "00000000-0000-4000-8000-000000000059",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -2569,7 +3671,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-00000000002f",
-              "client_uuid": "00000000-0000-4000-8000-000000000036",
+              "client_uuid": "00000000-0000-4000-8000-000000000034",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "did bench 3x8 at 60",
@@ -2694,11 +3796,11 @@
               },
               {
                 "entity": "fitness_settings",
-                "id": "00000000-0000-4000-8000-000000000037",
+                "id": "00000000-0000-4000-8000-000000000035",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000037",
+                  "id": "00000000-0000-4000-8000-000000000035",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "units": "kg",
@@ -2719,11 +3821,11 @@
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000038",
+                "id": "00000000-0000-4000-8000-000000000036",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000038",
+                  "id": "00000000-0000-4000-8000-000000000036",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Barbell Bench Press",
@@ -2736,16 +3838,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000039",
+                "id": "00000000-0000-4000-8000-000000000037",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000039",
+                  "id": "00000000-0000-4000-8000-000000000037",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Incline Dumbbell Press",
@@ -2758,16 +3861,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-00000000003a",
+                "id": "00000000-0000-4000-8000-000000000038",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000003a",
+                  "id": "00000000-0000-4000-8000-000000000038",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Overhead Press",
@@ -2780,16 +3884,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-00000000003b",
+                "id": "00000000-0000-4000-8000-000000000039",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000003b",
+                  "id": "00000000-0000-4000-8000-000000000039",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Lateral Raise",
@@ -2802,16 +3907,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-00000000003c",
+                "id": "00000000-0000-4000-8000-00000000003a",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000003c",
+                  "id": "00000000-0000-4000-8000-00000000003a",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Triceps Pushdown",
@@ -2824,16 +3930,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-00000000003d",
+                "id": "00000000-0000-4000-8000-00000000003b",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000003d",
+                  "id": "00000000-0000-4000-8000-00000000003b",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Barbell Row",
@@ -2846,16 +3953,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-00000000003e",
+                "id": "00000000-0000-4000-8000-00000000003c",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000003e",
+                  "id": "00000000-0000-4000-8000-00000000003c",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Lat Pulldown",
@@ -2868,16 +3976,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-00000000003f",
+                "id": "00000000-0000-4000-8000-00000000003d",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000003f",
+                  "id": "00000000-0000-4000-8000-00000000003d",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Pull-up",
@@ -2890,16 +3999,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000040",
+                "id": "00000000-0000-4000-8000-00000000003e",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000040",
+                  "id": "00000000-0000-4000-8000-00000000003e",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Face Pull",
@@ -2912,16 +4022,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000041",
+                "id": "00000000-0000-4000-8000-00000000003f",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000041",
+                  "id": "00000000-0000-4000-8000-00000000003f",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Dumbbell Curl",
@@ -2934,16 +4045,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000042",
+                "id": "00000000-0000-4000-8000-000000000040",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000042",
+                  "id": "00000000-0000-4000-8000-000000000040",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Back Squat",
@@ -2956,16 +4068,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000043",
+                "id": "00000000-0000-4000-8000-000000000041",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000043",
+                  "id": "00000000-0000-4000-8000-000000000041",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Romanian Deadlift",
@@ -2978,16 +4091,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000044",
+                "id": "00000000-0000-4000-8000-000000000042",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000044",
+                  "id": "00000000-0000-4000-8000-000000000042",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Leg Press",
@@ -3000,16 +4114,17 @@
                   "archived": false,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "exercise",
-                "id": "00000000-0000-4000-8000-000000000045",
+                "id": "00000000-0000-4000-8000-000000000043",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000045",
+                  "id": "00000000-0000-4000-8000-000000000043",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
                   "name": "Plank",
@@ -3022,11 +4137,43 @@
                   "archived": true,
                   "track": null,
                   "aliases": [],
-                  "merged_into_id": null
+                  "merged_into_id": null,
+                  "is_global": true
                 }
               },
               {
                 "entity": "workout_template",
+                "id": "00000000-0000-4000-8000-000000000044",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000044",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "name": "Push A",
+                  "sort_order": 0,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
+                "id": "00000000-0000-4000-8000-000000000045",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000045",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000036",
+                  "position": 0,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
+                }
+              },
+              {
+                "entity": "template_item",
                 "id": "00000000-0000-4000-8000-000000000046",
                 "version": 1,
                 "deleted": false,
@@ -3034,8 +4181,12 @@
                   "id": "00000000-0000-4000-8000-000000000046",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "name": "Push A",
-                  "sort_order": 0
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000038",
+                  "position": 1,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3047,11 +4198,12 @@
                   "id": "00000000-0000-4000-8000-000000000047",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000046",
-                  "exercise_id": "00000000-0000-4000-8000-000000000038",
-                  "position": 0,
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000037",
+                  "position": 2,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3063,11 +4215,12 @@
                   "id": "00000000-0000-4000-8000-000000000048",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000046",
-                  "exercise_id": "00000000-0000-4000-8000-00000000003a",
-                  "position": 1,
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-000000000039",
+                  "position": 3,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3079,15 +4232,16 @@
                   "id": "00000000-0000-4000-8000-000000000049",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000046",
-                  "exercise_id": "00000000-0000-4000-8000-000000000039",
-                  "position": 2,
+                  "template_id": "00000000-0000-4000-8000-000000000044",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003a",
+                  "position": 4,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
-                "entity": "template_item",
+                "entity": "workout_template",
                 "id": "00000000-0000-4000-8000-00000000004a",
                 "version": 1,
                 "deleted": false,
@@ -3095,11 +4249,9 @@
                   "id": "00000000-0000-4000-8000-00000000004a",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000046",
-                  "exercise_id": "00000000-0000-4000-8000-00000000003b",
-                  "position": 3,
-                  "sets": 3,
-                  "target_sec": null
+                  "name": "Pull A",
+                  "sort_order": 1,
+                  "is_global": true
                 }
               },
               {
@@ -3111,15 +4263,16 @@
                   "id": "00000000-0000-4000-8000-00000000004b",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000046",
-                  "exercise_id": "00000000-0000-4000-8000-00000000003c",
-                  "position": 4,
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003b",
+                  "position": 0,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
-                "entity": "workout_template",
+                "entity": "template_item",
                 "id": "00000000-0000-4000-8000-00000000004c",
                 "version": 1,
                 "deleted": false,
@@ -3127,8 +4280,12 @@
                   "id": "00000000-0000-4000-8000-00000000004c",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "name": "Pull A",
-                  "sort_order": 1
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
+                  "exercise_id": "00000000-0000-4000-8000-00000000003c",
+                  "position": 1,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3140,11 +4297,12 @@
                   "id": "00000000-0000-4000-8000-00000000004d",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-00000000004c",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
                   "exercise_id": "00000000-0000-4000-8000-00000000003d",
-                  "position": 0,
+                  "position": 2,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3156,11 +4314,12 @@
                   "id": "00000000-0000-4000-8000-00000000004e",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-00000000004c",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
                   "exercise_id": "00000000-0000-4000-8000-00000000003e",
-                  "position": 1,
+                  "position": 3,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3172,15 +4331,16 @@
                   "id": "00000000-0000-4000-8000-00000000004f",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-00000000004c",
+                  "template_id": "00000000-0000-4000-8000-00000000004a",
                   "exercise_id": "00000000-0000-4000-8000-00000000003f",
-                  "position": 2,
+                  "position": 4,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
-                "entity": "template_item",
+                "entity": "workout_template",
                 "id": "00000000-0000-4000-8000-000000000050",
                 "version": 1,
                 "deleted": false,
@@ -3188,11 +4348,9 @@
                   "id": "00000000-0000-4000-8000-000000000050",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-00000000004c",
-                  "exercise_id": "00000000-0000-4000-8000-000000000040",
-                  "position": 3,
-                  "sets": 3,
-                  "target_sec": null
+                  "name": "Legs A",
+                  "sort_order": 2,
+                  "is_global": true
                 }
               },
               {
@@ -3204,15 +4362,16 @@
                   "id": "00000000-0000-4000-8000-000000000051",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-00000000004c",
-                  "exercise_id": "00000000-0000-4000-8000-000000000041",
-                  "position": 4,
+                  "template_id": "00000000-0000-4000-8000-000000000050",
+                  "exercise_id": "00000000-0000-4000-8000-000000000040",
+                  "position": 0,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
-                "entity": "workout_template",
+                "entity": "template_item",
                 "id": "00000000-0000-4000-8000-000000000052",
                 "version": 1,
                 "deleted": false,
@@ -3220,8 +4379,12 @@
                   "id": "00000000-0000-4000-8000-000000000052",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "name": "Legs A",
-                  "sort_order": 2
+                  "template_id": "00000000-0000-4000-8000-000000000050",
+                  "exercise_id": "00000000-0000-4000-8000-000000000041",
+                  "position": 1,
+                  "sets": 3,
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
@@ -3233,15 +4396,16 @@
                   "id": "00000000-0000-4000-8000-000000000053",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000052",
+                  "template_id": "00000000-0000-4000-8000-000000000050",
                   "exercise_id": "00000000-0000-4000-8000-000000000042",
-                  "position": 0,
+                  "position": 2,
                   "sets": 3,
-                  "target_sec": null
+                  "target_sec": null,
+                  "is_global": true
                 }
               },
               {
-                "entity": "template_item",
+                "entity": "workout_exercise",
                 "id": "00000000-0000-4000-8000-000000000054",
                 "version": 1,
                 "deleted": false,
@@ -3249,15 +4413,14 @@
                   "id": "00000000-0000-4000-8000-000000000054",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000052",
-                  "exercise_id": "00000000-0000-4000-8000-000000000043",
-                  "position": 1,
-                  "sets": 3,
-                  "target_sec": null
+                  "workout_id": "00000000-0000-4000-8000-000000000030",
+                  "exercise_id": "00000000-0000-4000-8000-000000000036",
+                  "position": 0,
+                  "note": null
                 }
               },
               {
-                "entity": "template_item",
+                "entity": "workout_set",
                 "id": "00000000-0000-4000-8000-000000000055",
                 "version": 1,
                 "deleted": false,
@@ -3265,15 +4428,19 @@
                   "id": "00000000-0000-4000-8000-000000000055",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "template_id": "00000000-0000-4000-8000-000000000052",
-                  "exercise_id": "00000000-0000-4000-8000-000000000044",
-                  "position": 2,
-                  "sets": 3,
-                  "target_sec": null
+                  "workout_exercise_id": "00000000-0000-4000-8000-000000000054",
+                  "position": 0,
+                  "reps": 8,
+                  "weight": 60.0,
+                  "kind": "working",
+                  "completed_at": "2026-10-19T04:00:00.000000Z",
+                  "duration_sec": null,
+                  "speed_kmh": null,
+                  "unit": null
                 }
               },
               {
-                "entity": "workout_exercise",
+                "entity": "workout_set",
                 "id": "00000000-0000-4000-8000-000000000056",
                 "version": 1,
                 "deleted": false,
@@ -3281,10 +4448,15 @@
                   "id": "00000000-0000-4000-8000-000000000056",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "workout_id": "00000000-0000-4000-8000-000000000030",
-                  "exercise_id": "00000000-0000-4000-8000-000000000038",
-                  "position": 0,
-                  "note": null
+                  "workout_exercise_id": "00000000-0000-4000-8000-000000000054",
+                  "position": 1,
+                  "reps": 8,
+                  "weight": 60.0,
+                  "kind": "working",
+                  "completed_at": "2026-10-19T04:00:00.000000Z",
+                  "duration_sec": null,
+                  "speed_kmh": null,
+                  "unit": null
                 }
               },
               {
@@ -3296,47 +4468,7 @@
                   "id": "00000000-0000-4000-8000-000000000057",
                   "version": 1,
                   "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "workout_exercise_id": "00000000-0000-4000-8000-000000000056",
-                  "position": 0,
-                  "reps": 8,
-                  "weight": 60.0,
-                  "kind": "working",
-                  "completed_at": "2026-10-19T04:00:00.000000Z",
-                  "duration_sec": null,
-                  "speed_kmh": null,
-                  "unit": null
-                }
-              },
-              {
-                "entity": "workout_set",
-                "id": "00000000-0000-4000-8000-000000000058",
-                "version": 1,
-                "deleted": false,
-                "row": {
-                  "id": "00000000-0000-4000-8000-000000000058",
-                  "version": 1,
-                  "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "workout_exercise_id": "00000000-0000-4000-8000-000000000056",
-                  "position": 1,
-                  "reps": 8,
-                  "weight": 60.0,
-                  "kind": "working",
-                  "completed_at": "2026-10-19T04:00:00.000000Z",
-                  "duration_sec": null,
-                  "speed_kmh": null,
-                  "unit": null
-                }
-              },
-              {
-                "entity": "workout_set",
-                "id": "00000000-0000-4000-8000-000000000059",
-                "version": 1,
-                "deleted": false,
-                "row": {
-                  "id": "00000000-0000-4000-8000-000000000059",
-                  "version": 1,
-                  "updated_at": "2026-10-19T04:00:00.000000Z",
-                  "workout_exercise_id": "00000000-0000-4000-8000-000000000056",
+                  "workout_exercise_id": "00000000-0000-4000-8000-000000000054",
                   "position": 2,
                   "reps": 8,
                   "weight": 60.0,
@@ -3438,7 +4570,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-00000000002f",
-                  "client_uuid": "00000000-0000-4000-8000-000000000036",
+                  "client_uuid": "00000000-0000-4000-8000-000000000034",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "did bench 3x8 at 60",
@@ -3458,11 +4590,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-000000000035",
+                "id": "00000000-0000-4000-8000-000000000059",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000035",
+                  "id": "00000000-0000-4000-8000-000000000059",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -3570,7 +4702,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-00000000002f",
-              "client_uuid": "00000000-0000-4000-8000-000000000036",
+              "client_uuid": "00000000-0000-4000-8000-000000000034",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "did bench 3x8 at 60",
@@ -3708,17 +4840,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-13da7603",
+          "toolCallId": "call-1331ab63",
           "toolCallName": "log_habit"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-13da7603",
+          "toolCallId": "call-1331ab63",
           "delta": "{\"habit\": \"Stretch\"}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-13da7603"
+          "toolCallId": "call-1331ab63"
         },
         {
           "type": "CUSTOM",
@@ -3765,13 +4897,123 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000062",
-          "toolCallId": "call-13da7603",
-          "content": "{\"id\": \"call-13da7603\", \"tool\": \"log_habit\", \"label\": \"Checking off a habit\", \"ok\": true, \"summary\": \"Checked off: Stretch\", \"card_id\": \"00000000-0000-4000-8000-00000000005d\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000005e\"}",
+          "toolCallId": "call-1331ab63",
+          "content": "{\"id\": \"call-1331ab63\", \"tool\": \"log_habit\", \"label\": \"Checking off a habit\", \"ok\": true, \"summary\": \"Checked off: Stretch\", \"card_id\": \"00000000-0000-4000-8000-00000000005d\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000005e\"}",
           "role": "tool"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "tool:log_habit"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-00000000005e",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000005e",
+                  "client_uuid": "00000000-0000-4000-8000-000000000063",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "stretched today",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000060",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000060",
+                  "card_id": "00000000-0000-4000-8000-00000000005d",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "habit_log",
+                "id": "00000000-0000-4000-8000-00000000005f",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000005f",
+                  "habit_id": "00000000-0000-4000-8000-000000000005",
+                  "day": "2026-11-11",
+                  "status": "done",
+                  "value": null,
+                  "logged_at": "2026-10-19T04:00:00.000000Z",
+                  "source": "capture",
+                  "note": null,
+                  "version": 1
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-00000000005d",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000005d",
+                  "capture_id": "00000000-0000-4000-8000-00000000005e",
+                  "position": 0,
+                  "kind": "habitLog",
+                  "target": "habits",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "add": false,
+                    "kind": "habitLog",
+                    "habit_id": "00000000-0000-4000-8000-000000000005"
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-00000000005f"
+                  ],
+                  "ask": null,
+                  "note": null,
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": 0,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000061",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000061",
+                  "card_id": "00000000-0000-4000-8000-00000000005d",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
         },
         {
           "type": "STEP_STARTED",
@@ -3786,17 +5028,17 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-000000000063",
+          "messageId": "00000000-0000-4000-8000-000000000064",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-000000000063",
+          "messageId": "00000000-0000-4000-8000-000000000064",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-000000000063"
+          "messageId": "00000000-0000-4000-8000-000000000064"
         },
         {
           "type": "STEP_FINISHED",
@@ -3821,7 +5063,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-000000000064",
+                "id": "00000000-0000-4000-8000-000000000065",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -3829,7 +5071,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-13da7603",
+                        "id": "call-1331ab63",
                         "ok": true,
                         "tool": "log_habit",
                         "label": "Checking off a habit",
@@ -3849,7 +5091,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-00000000005e",
-              "client_uuid": "00000000-0000-4000-8000-000000000065",
+              "client_uuid": "00000000-0000-4000-8000-000000000063",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "stretched today",
@@ -3962,7 +5204,7 @@
                 "row": {
                   "id": "00000000-0000-4000-8000-00000000005f",
                   "habit_id": "00000000-0000-4000-8000-000000000005",
-                  "day": "2026-11-03",
+                  "day": "2026-11-11",
                   "status": "done",
                   "value": null,
                   "logged_at": "2026-10-19T04:00:00.000000Z",
@@ -4023,7 +5265,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-00000000005e",
-                  "client_uuid": "00000000-0000-4000-8000-000000000065",
+                  "client_uuid": "00000000-0000-4000-8000-000000000063",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "stretched today",
@@ -4043,11 +5285,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-000000000064",
+                "id": "00000000-0000-4000-8000-000000000065",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000064",
+                  "id": "00000000-0000-4000-8000-000000000065",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -4055,7 +5297,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-13da7603",
+                          "id": "call-1331ab63",
                           "ok": true,
                           "tool": "log_habit",
                           "label": "Checking off a habit",
@@ -4137,7 +5379,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-00000000005e",
-              "client_uuid": "00000000-0000-4000-8000-000000000065",
+              "client_uuid": "00000000-0000-4000-8000-000000000063",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "stretched today",
@@ -4257,17 +5499,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-3c1874d0",
+          "toolCallId": "call-01519882",
           "toolCallName": "create_tasks"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-3c1874d0",
+          "toolCallId": "call-01519882",
           "delta": "{\"tasks\": [{\"title\": \"Buy milk\"}]}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-3c1874d0"
+          "toolCallId": "call-01519882"
         },
         {
           "type": "CUSTOM",
@@ -4322,13 +5564,147 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-00000000006e",
-          "toolCallId": "call-3c1874d0",
-          "content": "{\"id\": \"call-3c1874d0\", \"tool\": \"create_tasks\", \"label\": \"Adding to your tasks\", \"ok\": true, \"summary\": \"Added task: Buy milk\", \"card_id\": \"00000000-0000-4000-8000-000000000069\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000006a\"}",
+          "toolCallId": "call-01519882",
+          "content": "{\"id\": \"call-01519882\", \"tool\": \"create_tasks\", \"label\": \"Adding to your tasks\", \"ok\": true, \"summary\": \"Added task: Buy milk\", \"card_id\": \"00000000-0000-4000-8000-000000000069\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000006a\"}",
           "role": "tool"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "tool:create_tasks"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-00000000006a",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000006a",
+                  "client_uuid": "00000000-0000-4000-8000-00000000006f",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "remind me to buy milk",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-00000000006c",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000006c",
+                  "card_id": "00000000-0000-4000-8000-000000000069",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "task",
+                "id": "00000000-0000-4000-8000-00000000006b",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000006b",
+                  "title": "Buy milk",
+                  "list_id": null,
+                  "due_date": null,
+                  "due_time": null,
+                  "remind_at": null,
+                  "recurrence": null,
+                  "notes": null,
+                  "starred": false,
+                  "priority": "none",
+                  "tags": [],
+                  "status": "open",
+                  "completed_at": null,
+                  "cleared_at": null,
+                  "deleted_at": null,
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "source": "capture-text",
+                  "parse_state": "parsed",
+                  "original_due": null,
+                  "reschedule_count": 0,
+                  "sort_order": 0,
+                  "series_parent_id": null,
+                  "estimate_min": null,
+                  "nag_every_min": null,
+                  "version": 1
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-000000000069",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000069",
+                  "capture_id": "00000000-0000-4000-8000-00000000006a",
+                  "position": 0,
+                  "kind": "task",
+                  "target": "tasks",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "kind": "task",
+                    "tasks": [
+                      {
+                        "tags": [],
+                        "title": "Buy milk",
+                        "remind": false,
+                        "list_id": null,
+                        "due_date": null,
+                        "due_time": null
+                      }
+                    ]
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-00000000006b"
+                  ],
+                  "ask": null,
+                  "note": null,
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": null,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-00000000006d",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-00000000006d",
+                  "card_id": "00000000-0000-4000-8000-000000000069",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
         },
         {
           "type": "STEP_STARTED",
@@ -4343,17 +5719,17 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-00000000006f",
+          "messageId": "00000000-0000-4000-8000-000000000070",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-00000000006f",
+          "messageId": "00000000-0000-4000-8000-000000000070",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-00000000006f"
+          "messageId": "00000000-0000-4000-8000-000000000070"
         },
         {
           "type": "STEP_FINISHED",
@@ -4378,7 +5754,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-000000000070",
+                "id": "00000000-0000-4000-8000-000000000071",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -4386,7 +5762,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-3c1874d0",
+                        "id": "call-01519882",
                         "ok": true,
                         "tool": "create_tasks",
                         "label": "Adding to your tasks",
@@ -4406,7 +5782,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-00000000006a",
-              "client_uuid": "00000000-0000-4000-8000-000000000071",
+              "client_uuid": "00000000-0000-4000-8000-00000000006f",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "remind me to buy milk",
@@ -4534,6 +5910,7 @@
                   "recurrence": null,
                   "notes": null,
                   "starred": false,
+                  "priority": "none",
                   "tags": [],
                   "status": "open",
                   "completed_at": null,
@@ -4611,7 +5988,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-00000000006a",
-                  "client_uuid": "00000000-0000-4000-8000-000000000071",
+                  "client_uuid": "00000000-0000-4000-8000-00000000006f",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "remind me to buy milk",
@@ -4631,11 +6008,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-000000000070",
+                "id": "00000000-0000-4000-8000-000000000071",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000070",
+                  "id": "00000000-0000-4000-8000-000000000071",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -4643,7 +6020,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-3c1874d0",
+                          "id": "call-01519882",
                           "ok": true,
                           "tool": "create_tasks",
                           "label": "Adding to your tasks",
@@ -4733,7 +6110,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-00000000006a",
-              "client_uuid": "00000000-0000-4000-8000-000000000071",
+              "client_uuid": "00000000-0000-4000-8000-00000000006f",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "remind me to buy milk",
@@ -4861,17 +6238,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-3afdb43e",
+          "toolCallId": "call-76b5f641",
           "toolCallName": "log_weigh_in"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-3afdb43e",
+          "toolCallId": "call-76b5f641",
           "delta": "{\"kg\": 62.4}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-3afdb43e"
+          "toolCallId": "call-76b5f641"
         },
         {
           "type": "CUSTOM",
@@ -4917,13 +6294,120 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-00000000007a",
-          "toolCallId": "call-3afdb43e",
-          "content": "{\"id\": \"call-3afdb43e\", \"tool\": \"log_weigh_in\", \"label\": \"Logging your weight\", \"ok\": true, \"summary\": \"Logged 62.4 kg\", \"card_id\": \"00000000-0000-4000-8000-000000000075\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000076\"}",
+          "toolCallId": "call-76b5f641",
+          "content": "{\"id\": \"call-76b5f641\", \"tool\": \"log_weigh_in\", \"label\": \"Logging your weight\", \"ok\": true, \"summary\": \"Logged 62.4 kg\", \"card_id\": \"00000000-0000-4000-8000-000000000075\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000076\"}",
           "role": "tool"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "tool:log_weigh_in"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-000000000076",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000076",
+                  "client_uuid": "00000000-0000-4000-8000-00000000007b",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "62.4 kg today",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000078",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000078",
+                  "card_id": "00000000-0000-4000-8000-000000000075",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "weigh_in",
+                "id": "00000000-0000-4000-8000-000000000077",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000077",
+                  "version": 1,
+                  "updated_at": "2026-10-19T04:00:00.000000Z",
+                  "measured_at": "2026-10-19T04:00:00.000000Z",
+                  "weight_kg": 62.4,
+                  "body_fat_pct": null,
+                  "note": null
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-000000000075",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000075",
+                  "capture_id": "00000000-0000-4000-8000-000000000076",
+                  "position": 0,
+                  "kind": "weighIn",
+                  "target": "fitness",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "kg": 62.4,
+                    "kind": "weighIn"
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-000000000077"
+                  ],
+                  "ask": null,
+                  "note": null,
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": null,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000079",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000079",
+                  "card_id": "00000000-0000-4000-8000-000000000075",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
         },
         {
           "type": "STEP_STARTED",
@@ -4938,17 +6422,17 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-00000000007b",
+          "messageId": "00000000-0000-4000-8000-00000000007c",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-00000000007b",
+          "messageId": "00000000-0000-4000-8000-00000000007c",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-00000000007b"
+          "messageId": "00000000-0000-4000-8000-00000000007c"
         },
         {
           "type": "STEP_FINISHED",
@@ -4973,7 +6457,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-00000000007c",
+                "id": "00000000-0000-4000-8000-00000000007d",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -4981,7 +6465,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-3afdb43e",
+                        "id": "call-76b5f641",
                         "ok": true,
                         "tool": "log_weigh_in",
                         "label": "Logging your weight",
@@ -5001,7 +6485,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-000000000076",
-              "client_uuid": "00000000-0000-4000-8000-00000000007d",
+              "client_uuid": "00000000-0000-4000-8000-00000000007b",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "62.4 kg today",
@@ -5171,7 +6655,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-000000000076",
-                  "client_uuid": "00000000-0000-4000-8000-00000000007d",
+                  "client_uuid": "00000000-0000-4000-8000-00000000007b",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "62.4 kg today",
@@ -5191,11 +6675,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-00000000007c",
+                "id": "00000000-0000-4000-8000-00000000007d",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-00000000007c",
+                  "id": "00000000-0000-4000-8000-00000000007d",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -5203,7 +6687,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-3afdb43e",
+                          "id": "call-76b5f641",
                           "ok": true,
                           "tool": "log_weigh_in",
                           "label": "Logging your weight",
@@ -5284,7 +6768,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-000000000076",
-              "client_uuid": "00000000-0000-4000-8000-00000000007d",
+              "client_uuid": "00000000-0000-4000-8000-00000000007b",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "62.4 kg today",
@@ -5403,17 +6887,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-9a4e57b8",
+          "toolCallId": "call-edddb58d",
           "toolCallName": "save_journal"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-9a4e57b8",
+          "toolCallId": "call-edddb58d",
           "delta": "{\"body\": \"A calm day at the beach.\"}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-9a4e57b8"
+          "toolCallId": "call-edddb58d"
         },
         {
           "type": "CUSTOM",
@@ -5460,13 +6944,127 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000086",
-          "toolCallId": "call-9a4e57b8",
-          "content": "{\"id\": \"call-9a4e57b8\", \"tool\": \"save_journal\", \"label\": \"Saving to your journal\", \"ok\": true, \"summary\": \"Saved a journal entry\", \"card_id\": \"00000000-0000-4000-8000-000000000081\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000082\"}",
+          "toolCallId": "call-edddb58d",
+          "content": "{\"id\": \"call-edddb58d\", \"tool\": \"save_journal\", \"label\": \"Saving to your journal\", \"ok\": true, \"summary\": \"Saved a journal entry\", \"card_id\": \"00000000-0000-4000-8000-000000000081\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000082\"}",
           "role": "tool"
         },
         {
           "type": "STEP_FINISHED",
           "stepName": "tool:save_journal"
+        },
+        {
+          "type": "CUSTOM",
+          "name": "changes",
+          "value": {
+            "changes": [
+              {
+                "entity": "capture",
+                "id": "00000000-0000-4000-8000-000000000082",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000082",
+                  "client_uuid": "00000000-0000-4000-8000-000000000087",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "source": "chat",
+                  "text": "journal: a calm day at the beach",
+                  "transcript": null,
+                  "duration_sec": null,
+                  "hint": null,
+                  "file_name": null,
+                  "status": "processing",
+                  "reply_text": null,
+                  "error_code": null,
+                  "started_at": "2026-10-19T04:00:00.000000Z",
+                  "engine": "ai",
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000084",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000084",
+                  "card_id": "00000000-0000-4000-8000-000000000081",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "proposed",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "journal_entry",
+                "id": "00000000-0000-4000-8000-000000000083",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000083",
+                  "day": "2026-11-11",
+                  "body": "A calm day at the beach.",
+                  "source": "text",
+                  "capture_id": "00000000-0000-4000-8000-000000000082",
+                  "mood": null,
+                  "tags": [],
+                  "area": null,
+                  "private": true,
+                  "transcript": null,
+                  "created_at": "2026-10-19T04:00:00.000000Z",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "record_card",
+                "id": "00000000-0000-4000-8000-000000000081",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000081",
+                  "capture_id": "00000000-0000-4000-8000-000000000082",
+                  "position": 0,
+                  "kind": "journal",
+                  "target": "journal",
+                  "tier": "auto",
+                  "state": "saved",
+                  "payload": {
+                    "body": "A calm day at the beach.",
+                    "kind": "journal",
+                    "tags": []
+                  },
+                  "refs": [
+                    "00000000-0000-4000-8000-000000000083"
+                  ],
+                  "ask": null,
+                  "note": "Private · only you can see it",
+                  "warn": null,
+                  "confidence": null,
+                  "day_offset": null,
+                  "version": 1,
+                  "deleted_at": null
+                }
+              },
+              {
+                "entity": "card_write_log",
+                "id": "00000000-0000-4000-8000-000000000085",
+                "version": 1,
+                "deleted": false,
+                "row": {
+                  "id": "00000000-0000-4000-8000-000000000085",
+                  "card_id": "00000000-0000-4000-8000-000000000081",
+                  "at": "2026-10-19T04:00:00.000000Z",
+                  "action": "saved",
+                  "actor": "ai",
+                  "version": 1,
+                  "deleted_at": null
+                }
+              }
+            ]
+          }
         },
         {
           "type": "STEP_STARTED",
@@ -5481,17 +7079,17 @@
         },
         {
           "type": "TEXT_MESSAGE_START",
-          "messageId": "00000000-0000-4000-8000-000000000087",
+          "messageId": "00000000-0000-4000-8000-000000000088",
           "role": "assistant"
         },
         {
           "type": "TEXT_MESSAGE_CONTENT",
-          "messageId": "00000000-0000-4000-8000-000000000087",
+          "messageId": "00000000-0000-4000-8000-000000000088",
           "delta": "Done."
         },
         {
           "type": "TEXT_MESSAGE_END",
-          "messageId": "00000000-0000-4000-8000-000000000087"
+          "messageId": "00000000-0000-4000-8000-000000000088"
         },
         {
           "type": "STEP_FINISHED",
@@ -5516,7 +7114,7 @@
                 "thread_id": "00000000-0000-4000-8000-00000000000f"
               },
               {
-                "id": "00000000-0000-4000-8000-000000000088",
+                "id": "00000000-0000-4000-8000-000000000089",
                 "role": "sol",
                 "text": "Done.",
                 "blocks": [
@@ -5524,7 +7122,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-9a4e57b8",
+                        "id": "call-edddb58d",
                         "ok": true,
                         "tool": "save_journal",
                         "label": "Saving to your journal",
@@ -5544,7 +7142,7 @@
             ],
             "capture": {
               "id": "00000000-0000-4000-8000-000000000082",
-              "client_uuid": "00000000-0000-4000-8000-000000000089",
+              "client_uuid": "00000000-0000-4000-8000-000000000087",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "journal: a calm day at the beach",
@@ -5656,7 +7254,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-000000000083",
-                  "day": "2026-11-03",
+                  "day": "2026-11-11",
                   "body": "A calm day at the beach.",
                   "source": "text",
                   "capture_id": "00000000-0000-4000-8000-000000000082",
@@ -5722,7 +7320,7 @@
                 "deleted": false,
                 "row": {
                   "id": "00000000-0000-4000-8000-000000000082",
-                  "client_uuid": "00000000-0000-4000-8000-000000000089",
+                  "client_uuid": "00000000-0000-4000-8000-000000000087",
                   "at": "2026-10-19T04:00:00.000000Z",
                   "source": "chat",
                   "text": "journal: a calm day at the beach",
@@ -5742,11 +7340,11 @@
               },
               {
                 "entity": "companion_message",
-                "id": "00000000-0000-4000-8000-000000000088",
+                "id": "00000000-0000-4000-8000-000000000089",
                 "version": 1,
                 "deleted": false,
                 "row": {
-                  "id": "00000000-0000-4000-8000-000000000088",
+                  "id": "00000000-0000-4000-8000-000000000089",
                   "role": "sol",
                   "text": "Done.",
                   "blocks": [
@@ -5754,7 +7352,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-9a4e57b8",
+                          "id": "call-edddb58d",
                           "ok": true,
                           "tool": "save_journal",
                           "label": "Saving to your journal",
@@ -5836,7 +7434,7 @@
             "deleted": false,
             "row": {
               "id": "00000000-0000-4000-8000-000000000082",
-              "client_uuid": "00000000-0000-4000-8000-000000000089",
+              "client_uuid": "00000000-0000-4000-8000-000000000087",
               "at": "2026-10-19T04:00:00.000000Z",
               "source": "chat",
               "text": "journal: a calm day at the beach",

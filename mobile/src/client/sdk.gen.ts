@@ -932,7 +932,8 @@ export class CompanionService {
      * tool, ``TEXT_MESSAGE_*`` for the reply, ``TOOL_CALL_*`` per tool with a
      * one-line outcome in ``TOOL_CALL_RESULT``, ``CUSTOM`` events for the
      * stored question (``message``), cards (``card``, ``ask``, ``info``),
-     * blocks (``block``) and a router capture (``capture``), then
+     * blocks (``block``), a router capture (``capture``), the synced rows a
+     * tool just wrote, committed (``changes``, right after its result), then
      * ``RUN_FINISHED`` with the whole answer, or ``RUN_ERROR``. While the
      * model reasons, ``REASONING_*`` events carry its thinking as it is
      * written. Validation happens before the stream opens.
