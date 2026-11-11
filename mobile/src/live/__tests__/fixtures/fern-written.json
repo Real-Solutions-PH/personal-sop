@@ -795,17 +795,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-1f7216d9",
+          "toolCallId": "call-5108ad1b",
           "toolCallName": "log_expense"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-1f7216d9",
+          "toolCallId": "call-5108ad1b",
           "delta": "{\"amount\": 250, \"category\": \"grab\", \"payee\": \"Grab\"}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-1f7216d9"
+          "toolCallId": "call-5108ad1b"
         },
         {
           "type": "CUSTOM",
@@ -854,8 +854,8 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000015",
-          "toolCallId": "call-1f7216d9",
-          "content": "{\"id\": \"call-1f7216d9\", \"tool\": \"log_expense\", \"label\": \"Logging an expense\", \"ok\": true, \"summary\": \"Logged expense: ₱250 · grab\", \"card_id\": \"00000000-0000-4000-8000-000000000010\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000011\"}",
+          "toolCallId": "call-5108ad1b",
+          "content": "{\"id\": \"call-5108ad1b\", \"tool\": \"log_expense\", \"label\": \"Logging an expense\", \"ok\": true, \"summary\": \"Logged expense: ₱250 · grab\", \"card_id\": \"00000000-0000-4000-8000-000000000010\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000011\"}",
           "role": "tool"
         },
         {
@@ -1076,7 +1076,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-1f7216d9",
+                        "id": "call-5108ad1b",
                         "ok": true,
                         "tool": "log_expense",
                         "label": "Logging an expense",
@@ -1437,7 +1437,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-1f7216d9",
+                          "id": "call-5108ad1b",
                           "ok": true,
                           "tool": "log_expense",
                           "label": "Logging an expense",
@@ -1647,17 +1647,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-f790efe5",
+          "toolCallId": "call-7eb25468",
           "toolCallName": "log_meal"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-f790efe5",
+          "toolCallId": "call-7eb25468",
           "delta": "{\"description\": \"Lunch: rice and adobo\", \"items\": [{\"protein\": 0, \"carbs\": 50, \"fat\": 0, \"fiber\": 0, \"fiber_soluble\": 0, \"fiber_insoluble\": 0, \"sat_fat\": 0, \"sugar\": 0, \"sodium\": 0, \"name\": \"Rice\", \"kcal\": 200, \"grams\": 150}, {\"protein\": 0, \"carbs\": 40, \"fat\": 0, \"fiber\": 0, \"fiber_soluble\": 0, \"fiber_insoluble\": 0, \"sat_fat\": 0, \"sugar\": 0, \"sodium\": 0, \"name\": \"Adobo\", \"kcal\": 160, \"grams\": 120}], \"confidence\": 0.8}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-f790efe5"
+          "toolCallId": "call-7eb25468"
         },
         {
           "type": "CUSTOM",
@@ -1731,8 +1731,8 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000022",
-          "toolCallId": "call-f790efe5",
-          "content": "{\"id\": \"call-f790efe5\", \"tool\": \"log_meal\", \"label\": \"Logging a meal\", \"ok\": true, \"summary\": \"Logged meal: Lunch: rice and adobo (waiting for your OK)\", \"card_id\": \"00000000-0000-4000-8000-00000000001f\", \"state\": \"proposed\", \"capture_id\": \"00000000-0000-4000-8000-000000000020\"}",
+          "toolCallId": "call-7eb25468",
+          "content": "{\"id\": \"call-7eb25468\", \"tool\": \"log_meal\", \"label\": \"Logging a meal\", \"ok\": true, \"summary\": \"Logged meal: Lunch: rice and adobo (waiting for your OK)\", \"card_id\": \"00000000-0000-4000-8000-00000000001f\", \"state\": \"proposed\", \"capture_id\": \"00000000-0000-4000-8000-000000000020\"}",
           "role": "tool"
         },
         {
@@ -1906,7 +1906,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-f790efe5",
+                        "id": "call-7eb25468",
                         "ok": true,
                         "tool": "log_meal",
                         "label": "Logging a meal",
@@ -2160,7 +2160,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-f790efe5",
+                          "id": "call-7eb25468",
                           "ok": true,
                           "tool": "log_meal",
                           "label": "Logging a meal",
@@ -4840,17 +4840,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-d621e586",
+          "toolCallId": "call-1331ab63",
           "toolCallName": "log_habit"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-d621e586",
+          "toolCallId": "call-1331ab63",
           "delta": "{\"habit\": \"Stretch\"}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-d621e586"
+          "toolCallId": "call-1331ab63"
         },
         {
           "type": "CUSTOM",
@@ -4897,8 +4897,8 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000062",
-          "toolCallId": "call-d621e586",
-          "content": "{\"id\": \"call-d621e586\", \"tool\": \"log_habit\", \"label\": \"Checking off a habit\", \"ok\": true, \"summary\": \"Checked off: Stretch\", \"card_id\": \"00000000-0000-4000-8000-00000000005d\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000005e\"}",
+          "toolCallId": "call-1331ab63",
+          "content": "{\"id\": \"call-1331ab63\", \"tool\": \"log_habit\", \"label\": \"Checking off a habit\", \"ok\": true, \"summary\": \"Checked off: Stretch\", \"card_id\": \"00000000-0000-4000-8000-00000000005d\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000005e\"}",
           "role": "tool"
         },
         {
@@ -5071,7 +5071,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-d621e586",
+                        "id": "call-1331ab63",
                         "ok": true,
                         "tool": "log_habit",
                         "label": "Checking off a habit",
@@ -5297,7 +5297,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-d621e586",
+                          "id": "call-1331ab63",
                           "ok": true,
                           "tool": "log_habit",
                           "label": "Checking off a habit",
@@ -5499,17 +5499,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-dd12d05c",
+          "toolCallId": "call-01519882",
           "toolCallName": "create_tasks"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-dd12d05c",
+          "toolCallId": "call-01519882",
           "delta": "{\"tasks\": [{\"title\": \"Buy milk\"}]}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-dd12d05c"
+          "toolCallId": "call-01519882"
         },
         {
           "type": "CUSTOM",
@@ -5564,8 +5564,8 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-00000000006e",
-          "toolCallId": "call-dd12d05c",
-          "content": "{\"id\": \"call-dd12d05c\", \"tool\": \"create_tasks\", \"label\": \"Adding to your tasks\", \"ok\": true, \"summary\": \"Added task: Buy milk\", \"card_id\": \"00000000-0000-4000-8000-000000000069\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000006a\"}",
+          "toolCallId": "call-01519882",
+          "content": "{\"id\": \"call-01519882\", \"tool\": \"create_tasks\", \"label\": \"Adding to your tasks\", \"ok\": true, \"summary\": \"Added task: Buy milk\", \"card_id\": \"00000000-0000-4000-8000-000000000069\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-00000000006a\"}",
           "role": "tool"
         },
         {
@@ -5762,7 +5762,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-dd12d05c",
+                        "id": "call-01519882",
                         "ok": true,
                         "tool": "create_tasks",
                         "label": "Adding to your tasks",
@@ -6020,7 +6020,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-dd12d05c",
+                          "id": "call-01519882",
                           "ok": true,
                           "tool": "create_tasks",
                           "label": "Adding to your tasks",
@@ -6238,17 +6238,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-f164133d",
+          "toolCallId": "call-76b5f641",
           "toolCallName": "log_weigh_in"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-f164133d",
+          "toolCallId": "call-76b5f641",
           "delta": "{\"kg\": 62.4}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-f164133d"
+          "toolCallId": "call-76b5f641"
         },
         {
           "type": "CUSTOM",
@@ -6294,8 +6294,8 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-00000000007a",
-          "toolCallId": "call-f164133d",
-          "content": "{\"id\": \"call-f164133d\", \"tool\": \"log_weigh_in\", \"label\": \"Logging your weight\", \"ok\": true, \"summary\": \"Logged 62.4 kg\", \"card_id\": \"00000000-0000-4000-8000-000000000075\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000076\"}",
+          "toolCallId": "call-76b5f641",
+          "content": "{\"id\": \"call-76b5f641\", \"tool\": \"log_weigh_in\", \"label\": \"Logging your weight\", \"ok\": true, \"summary\": \"Logged 62.4 kg\", \"card_id\": \"00000000-0000-4000-8000-000000000075\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000076\"}",
           "role": "tool"
         },
         {
@@ -6465,7 +6465,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-f164133d",
+                        "id": "call-76b5f641",
                         "ok": true,
                         "tool": "log_weigh_in",
                         "label": "Logging your weight",
@@ -6687,7 +6687,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-f164133d",
+                          "id": "call-76b5f641",
                           "ok": true,
                           "tool": "log_weigh_in",
                           "label": "Logging your weight",
@@ -6887,17 +6887,17 @@
         },
         {
           "type": "TOOL_CALL_START",
-          "toolCallId": "call-07f7785d",
+          "toolCallId": "call-edddb58d",
           "toolCallName": "save_journal"
         },
         {
           "type": "TOOL_CALL_ARGS",
-          "toolCallId": "call-07f7785d",
+          "toolCallId": "call-edddb58d",
           "delta": "{\"body\": \"A calm day at the beach.\"}"
         },
         {
           "type": "TOOL_CALL_END",
-          "toolCallId": "call-07f7785d"
+          "toolCallId": "call-edddb58d"
         },
         {
           "type": "CUSTOM",
@@ -6944,8 +6944,8 @@
         {
           "type": "TOOL_CALL_RESULT",
           "messageId": "00000000-0000-4000-8000-000000000086",
-          "toolCallId": "call-07f7785d",
-          "content": "{\"id\": \"call-07f7785d\", \"tool\": \"save_journal\", \"label\": \"Saving to your journal\", \"ok\": true, \"summary\": \"Saved a journal entry\", \"card_id\": \"00000000-0000-4000-8000-000000000081\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000082\"}",
+          "toolCallId": "call-edddb58d",
+          "content": "{\"id\": \"call-edddb58d\", \"tool\": \"save_journal\", \"label\": \"Saving to your journal\", \"ok\": true, \"summary\": \"Saved a journal entry\", \"card_id\": \"00000000-0000-4000-8000-000000000081\", \"state\": \"saved\", \"capture_id\": \"00000000-0000-4000-8000-000000000082\"}",
           "role": "tool"
         },
         {
@@ -7122,7 +7122,7 @@
                     "t": "steps",
                     "items": [
                       {
-                        "id": "call-07f7785d",
+                        "id": "call-edddb58d",
                         "ok": true,
                         "tool": "save_journal",
                         "label": "Saving to your journal",
@@ -7352,7 +7352,7 @@
                       "t": "steps",
                       "items": [
                         {
-                          "id": "call-07f7785d",
+                          "id": "call-edddb58d",
                           "ok": true,
                           "tool": "save_journal",
                           "label": "Saving to your journal",

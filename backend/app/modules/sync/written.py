@@ -86,10 +86,14 @@ def changes(ctx: Ctx, seen: set[tuple[str, uuid.UUID]]) -> list[SyncChange]:
     for table, row_ids in ids.items():
         for entity in by_table[table]:
             model = entity.model
+            # As stored, not the session's copy: a commit that skips expiry
+            # (a Fern turn's, ``release_connection``) leaves the copy without
+            # what the database set (the trigger's ``version``) or another
+            # request changed since.
             rows = ctx.session.exec(
-                select(model).where(
-                    *owned_repo.scope(ctx, model), col(model.id).in_(row_ids)
-                )
+                select(model)
+                .where(*owned_repo.scope(ctx, model), col(model.id).in_(row_ids))
+                .execution_options(populate_existing=True)
             ).all()
             out.extend(
                 SyncChange(

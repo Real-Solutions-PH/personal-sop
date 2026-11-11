@@ -801,6 +801,8 @@ class TurnStream(capture.LoopHooks):
         if call_id in self._quiet:
             self._quiet.discard(call_id)
             self._args.pop(call_id, None)
+            # Shown nowhere, but a repeat confirm_pending still writes.
+            self.after_tool()
             return
         ok, summary = outcome(self.ctx, name, self._args.pop(call_id, {}), result)
         step = next((s for s in self.steps if s.call_id == call_id), None)
