@@ -125,6 +125,7 @@ import { WeeklyReviewCard } from "../weekly-review-card"
 import { CalendarCard } from "./calendar-card"
 import { RecordEditor, useMoney } from "./finance"
 import { DueSheet } from "./finance-planned"
+import { TodayBudgets } from "./finance-today-budgets"
 import { HabitActions } from "./habit-actions"
 import { ModuleIntroCard } from "./module-intro-card"
 import { MoodCheckIn } from "./mood-check-in"
@@ -1378,11 +1379,18 @@ function financeToday(s: ReturnType<typeof finStore.get>, today: string) {
       !s.lookbacks.some((l) => l.period === lastMonth),
     // Shown only with income to project from.
     last: proj.hasIncome ? proj.months.at(-1) : undefined,
-    alerts: s.budgets
-      .filter((b) => !b.archived && b.categoryIds !== null)
-      .map((b) => N.budgetView(s, b))
-      .filter((v) => v.pct >= 0.8)
-      .sort((a, b) => b.pct - a.pct),
+    // What the projection is made of, for its Manage line: the plans it
+    // counts and the what-if drafts beside it.
+    plans: s.planned.filter(
+      (p) =>
+        !p.archived &&
+        !p.isWhatIf &&
+        p.inProjection &&
+        !s.settings.projExcludedPlanned.includes(p.id) &&
+        !N.hasEnded(p, today) &&
+        (p.schedule.kind !== "once" || p.schedule.date >= today),
+    ).length,
+    drafts: s.planned.filter((p) => p.isWhatIf && !N.hasEnded(p, today)).length,
   }
 }
 function FinanceCard() {
@@ -1399,8 +1407,17 @@ function FinanceCard() {
     today = dayKey(),
     // Projection, budgets and occurrences walk every record: worked out
     // once per change to the finance data (or day), never per render.
-    { budget, due, pending, spentToday, lastMonth, reviewReady, last, alerts } =
-      useSharedMemo("today.finance", () => financeToday(s, today), [s, today])
+    {
+      budget,
+      due,
+      pending,
+      spentToday,
+      lastMonth,
+      reviewReady,
+      last,
+      plans,
+      drafts,
+    } = useSharedMemo("today.finance", () => financeToday(s, today), [s, today])
   const info = (
     Icon: LucideIcon,
     title: string,
@@ -1499,7 +1516,7 @@ function FinanceCard() {
                         </Copy>
                         <Copy size={11} muted>
                           {o.status === "overdue" ? "Overdue · " : ""}
-                          {N.dayLabel(o.day)} · {money(o.item.amount)}
+                          {N.dayLabel(o.day)} · {money(o.amount)}
                         </Copy>
                       </View>
                     </Line>
@@ -1525,7 +1542,10 @@ function FinanceCard() {
               ))}
             </View>
           )}
-          {(alerts.length > 0 || reviewReady || pending > 0) && (
+          {/* Every budget, coloured by how it stands: what used to be a
+              "budget at 85%" line here. */}
+          <TodayBudgets />
+          {(reviewReady || pending > 0) && (
             <View
               style={{
                 borderTopWidth: 1,
@@ -1534,16 +1554,6 @@ function FinanceCard() {
                 gap: 6,
               }}
             >
-              {alerts
-                .slice(0, 2)
-                .map((v) =>
-                  info(
-                    TriangleAlert,
-                    `${v.b.name} budget at ${Math.round(v.pct * 100)}%`,
-                    `/finance/budgets/${v.b.id}`,
-                    v.pct > 1 ? t.bad : t.warn,
-                  ),
-                )}
               {reviewReady &&
                 info(
                   CalendarClock,
@@ -1599,6 +1609,28 @@ function FinanceCard() {
                     </Copy>
                     <Copy size={12} weight="medium" style={{ color: t.fin }}>
                       What if? ›
+                    </Copy>
+                  </Line>
+                </Tap>
+              )}
+              {projection && (
+                // Every plan the projection is built from, each one opened
+                // to change, skip or delete its dates, or the whole plan.
+                <Tap
+                  label={`Manage the ${plans} plans in the projection${drafts ? ` and ${drafts} what-if drafts` : ""}`}
+                  onPress={() => go("/finance/planned")}
+                  style={{ marginTop: 6 }}
+                >
+                  <Line style={{ gap: 8 }}>
+                    <ListChecks size={16} color={t.muted} />
+                    <Copy size={12} muted style={{ flex: 1 }}>
+                      {plans} {plans === 1 ? "plan" : "plans"}
+                      {drafts
+                        ? ` · ${drafts} ${drafts === 1 ? "draft" : "drafts"}`
+                        : ""}
+                    </Copy>
+                    <Copy size={12} weight="medium" style={{ color: t.fin }}>
+                      Manage ›
                     </Copy>
                   </Line>
                 </Tap>

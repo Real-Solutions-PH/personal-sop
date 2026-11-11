@@ -542,7 +542,18 @@ export interface Occurrence {
   orig: string
   status: OccStatus
   recordId?: string
+  /** What this date is expected to cost or bring: its own amount when one
+   * was set for it, else the plan's. */
+  amount: number
 }
+/** What one scheduled date is expected to be: the amount set for that date
+ * alone, else the plan's. */
+export function amountOn(p: PlannedItem, orig: string): number {
+  return p.amounts?.[orig] ?? p.amount
+}
+/** How far a date can be moved from its scheduled day, either way: every
+ * window that lists occurrences looks this far past its ends. */
+export const MOVE_DAYS = 14
 export function paidIndex(s: FinState) {
   const idx = new Map<string, string>()
   for (const r of s.records)
@@ -563,7 +574,12 @@ export function occurrencesIn(
   const out: Occurrence[] = []
   for (const p of s.planned) {
     if (p.archived || (p.isWhatIf && !opts.includeWhatIf)) continue
-    for (const orig of occurrences(p, addDays(from, -14), to)) {
+    // A moved date can land up to two weeks either side of its own day.
+    for (const orig of occurrences(
+      p,
+      addDays(from, -MOVE_DAYS),
+      addDays(to, MOVE_DAYS),
+    )) {
       const day = p.snoozed[orig] ?? orig
       if (day < from || day > to) continue
       const recordId = paid.get(`${p.id}|${orig}`)
@@ -576,7 +592,14 @@ export function occurrencesIn(
             : day <= addDays(t, 1)
               ? "due"
               : "upcoming"
-      out.push({ item: p, day, orig, status, recordId })
+      out.push({
+        item: p,
+        day,
+        orig,
+        status,
+        recordId,
+        amount: amountOn(p, orig),
+      })
     }
   }
   return out.sort((a, b) => a.day.localeCompare(b.day))
@@ -621,7 +644,7 @@ export function upcomingWeek(s: FinState, days = UPCOMING_DAYS): UpcomingWeek {
   const unpaid = [...overdue, ...[...byDay.values()].flat()].filter(
     (o) => o.status !== "paid",
   )
-  const sum = (xs: Occurrence[]) => xs.reduce((n, o) => n + o.item.amount, 0)
+  const sum = (xs: Occurrence[]) => xs.reduce((n, o) => n + o.amount, 0)
   return {
     overdue,
     // Within a day what is still to pay comes first; paid rows sink.
@@ -934,24 +957,25 @@ export function project(
     for (const p of items) {
       for (const o of occurrences(p, from, mt)) {
         if (paid.has(`${p.id}|${o}`) || p.skipped.includes(o)) continue
+        const amt = amountOn(p, o)
         let effect = 0
         if (p.type === "income") {
-          inflow += p.amount
-          effect = p.amount
+          inflow += amt
+          effect = amt
           hasIncome = true
         } else if (p.type === "expense") {
-          plannedOut += p.amount
-          effect = -p.amount
+          plannedOut += amt
+          effect = -amt
         } else {
           const fromLiquid = liquidIds.has(p.accountId)
           const toLiquid = !!p.toAccountId && liquidIds.has(p.toAccountId)
           if (fromLiquid && !toLiquid) {
-            plannedOut += p.amount
-            effect = -p.amount
+            plannedOut += amt
+            effect = -amt
           }
           if (!fromLiquid && toLiquid) {
-            inflow += p.amount
-            effect = p.amount
+            inflow += amt
+            effect = amt
           }
         }
         if (effect)
@@ -1247,20 +1271,20 @@ export function outlook(s: FinState, to: string): Outlook {
     const day = o.day < t ? t : o.day
     let d = 0
     if (p.type === "income") {
-      comingIn += p.amount
-      d = liquidIds.has(p.accountId) ? p.amount : 0
+      comingIn += o.amount
+      d = liquidIds.has(p.accountId) ? o.amount : 0
     } else if (p.type === "expense") {
-      toPay += p.amount
-      d = liquidIds.has(p.accountId) ? -p.amount : 0
+      toPay += o.amount
+      d = liquidIds.has(p.accountId) ? -o.amount : 0
     } else {
       const fromLiquid = liquidIds.has(p.accountId)
       const toLiquid = !!p.toAccountId && liquidIds.has(p.toAccountId)
       if (fromLiquid && !toLiquid) {
-        toPay += p.amount
-        d = -p.amount
+        toPay += o.amount
+        d = -o.amount
       } else if (!fromLiquid && toLiquid) {
-        comingIn += p.amount
-        d = p.amount
+        comingIn += o.amount
+        d = o.amount
       }
     }
     if (p.inProjection && d) moves.set(day, (moves.get(day) ?? 0) + d)
@@ -1283,8 +1307,8 @@ export function scheduledFlow(s: FinState, to: string) {
   let income = 0
   let spend = 0
   for (const o of outlook(s, to).items) {
-    if (o.item.type === "income") income += o.item.amount
-    else if (o.item.type === "expense") spend += o.item.amount
+    if (o.item.type === "income") income += o.amount
+    else if (o.item.type === "expense") spend += o.amount
   }
   return { income, spend }
 }

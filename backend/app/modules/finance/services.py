@@ -1360,7 +1360,15 @@ def auto_log_due(ctx: Ctx) -> list[FinRecord]:
         rid = settle_record_id(planned_id, o.orig)
         if owned_repo.get(ctx, FinRecord, rid, include_deleted=True) is not None:
             continue
-        out.append(_settle(ctx, planned_id, o.orig, on=o.day))
+        out.append(
+            _settle(
+                ctx,
+                planned_id,
+                o.orig,
+                amount_minor=calc.amount_on(o.item, o.orig),
+                on=o.day,
+            )
+        )
     ctx.commit()
     return out
 
@@ -1441,7 +1449,7 @@ def _occ_out(o: calc.Occurrence) -> S.OccurrenceOut:
         planned_id=uuid.UUID(o.item.id),
         name=o.item.name,
         type=o.item.type,
-        amount_minor=o.item.amount,
+        amount_minor=calc.amount_on(o.item, o.orig),
         day=o.day,
         orig=o.orig,
         status=o.status,

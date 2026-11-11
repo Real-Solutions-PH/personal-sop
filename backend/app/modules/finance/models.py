@@ -263,9 +263,19 @@ class PlannedSkip(OwnedRow, table=True):
 
 
 class PlannedSnooze(OwnedRow, table=True):
+    """One scheduled date changed on its own: the day it moved to
+    (``until_day``; its own day when only the amount changed) and, when set,
+    that date's own amount. A reset keeps the row, pointing at its own day
+    with no amount."""
+
     __tablename__ = "planned_snooze"
     __table_args__ = (
         UniqueConstraint("planned_id", "on_day", name="uq_planned_snooze"),
+        CheckConstraint(
+            "amount_minor IS NULL OR "
+            "(amount_minor > 0 AND amount_minor <= 100000000000000)",
+            name="ck_planned_snooze_amount",
+        ),
     )
 
     planned_id: uuid.UUID = Field(
@@ -273,6 +283,7 @@ class PlannedSnooze(OwnedRow, table=True):
     )
     on_day: date
     until_day: date
+    amount_minor: int | None = Field(default=None, sa_type=_money())  # type: ignore
 
 
 class StatementImport(OwnedRow, table=True):
