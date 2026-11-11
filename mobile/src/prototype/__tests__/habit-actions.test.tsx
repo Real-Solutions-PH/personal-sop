@@ -10,6 +10,7 @@ import { Alert } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { HabitsList } from "../screens/habit-list"
+import { statColumns } from "../screens/habit-detail"
 import { HabitDetail, HabitForm, HabitLog } from "../screens/habits"
 import { HabitsCard } from "../screens/today"
 
@@ -133,7 +134,7 @@ test("with Screen time off, a screen-time habit is logged by hand everywhere", (
   list.unmount()
   // Its page offers Mark done instead of the automatic ring.
   render(<HabitDetail id={h.id} />, { wrapper })
-  expect(screen.getByText("Mark done today")).toBeTruthy()
+  expect(screen.getByText("Mark done")).toBeTruthy()
   expect(screen.getByText("Screen Time off · log it yourself")).toBeTruthy()
 })
 
@@ -145,7 +146,7 @@ test("with Screen time on, the list and the page keep it automatic", () => {
   expect(screen.queryByRole("checkbox", { name: "Check Phone" })).toBeNull()
   list.unmount()
   render(<HabitDetail id={h.id} />, { wrapper })
-  expect(screen.queryByText("Mark done today")).toBeNull()
+  expect(screen.queryByText("Mark done")).toBeNull()
 })
 
 test("rows in Manage habits open the actions for that habit", () => {
@@ -280,4 +281,28 @@ test("an edit saves itself without a toast; an invalid draft is not saved", () =
     "Long walk",
   )
   expect(screen.getByLabelText("Saved")).toBeTruthy()
+})
+
+test("the detail page shows the streak as a number with its unit, and Log by icon and name", () => {
+  const h = walk()
+  A.checkHabit(h.id)
+  render(<HabitDetail id={h.id} />, { wrapper })
+  expect(screen.getByLabelText("Current streak, 1 day")).toBeTruthy()
+  expect(screen.queryByText(/-day$/)).toBeNull()
+  expect(screen.getByText("Done · undo")).toBeTruthy()
+  expect(screen.getByRole("button", { name: "Log a day" })).toBeTruthy()
+})
+
+test("the stats grid drops columns before a figure can collide with its neighbour", () => {
+  // Inner widths of the card at 320 and 430pt phones.
+  expect(statColumns(256, 4)).toBe(3)
+  expect(statColumns(366, 4)).toBe(3)
+  // A seven-digit figure ("1,234,567") gets its own room.
+  expect(statColumns(256, 9)).toBe(1)
+  expect(statColumns(366, 9)).toBe(2)
+  // Large text needs more room per figure.
+  expect(statColumns(366, 4, 2)).toBe(2)
+  expect(statColumns(256, 4, 3)).toBe(1)
+  // Before the first layout: two columns, never zero.
+  expect(statColumns(0, 4)).toBe(2)
 })

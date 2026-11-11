@@ -195,6 +195,10 @@ export function Button({
         )}
         <Text
           style={{
+            // A label longer than its button wraps inside it rather than
+            // spilling past the edge in a shared row.
+            flexShrink: 1,
+            textAlign: "center",
             fontSize: 14,
             fontFamily: fonts.semibold,
             color:

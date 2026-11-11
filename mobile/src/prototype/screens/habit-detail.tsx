@@ -7,14 +7,18 @@ import { dayKey, dayOffset } from "@domain/lib/day"
 import { useScreen } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   Ellipsis,
   Flame,
+  NotebookPen,
   Pencil,
+  Play,
+  Plus,
 } from "lucide-react-native"
 import { useState } from "react"
-import { View } from "react-native"
+import { useWindowDimensions, View } from "react-native"
 import { FocusTimeCard } from "../focus-kit"
 import { Cheer, feel, markCompletion, StreakChip } from "../motion"
 import {
@@ -25,6 +29,7 @@ import {
   Line,
   SectionHeading,
   Tap,
+  ToolButton,
 } from "../native-kit"
 import { go } from "../navigation"
 import { streakMiss, streakNote } from "../rewards"
@@ -39,6 +44,18 @@ import {
   useRuleState,
 } from "./screen-card"
 
+const DAY_COL = "14.2857%"
+/** How many columns the stats grid gets: as many as fit the widest value at
+ * the phone's text size, from 1 to 3, so a figure never breaks mid-number
+ * or runs into its neighbour. `chars` is the longest value's length. */
+export function statColumns(width: number, chars: number, fontScale = 1) {
+  if (width <= 0) return 2
+  const gap = 12,
+    // 24pt display digits run about 0.62em wide; a label needs ~72pt
+    // (it wraps by word below that).
+    need = Math.max(chars * 24 * 0.62, 72) * fontScale
+  return Math.max(1, Math.min(3, Math.floor((width + gap) / (need + gap))))
+}
 function fmt(day: string) {
   return new Date(`${day}T12:00:00`).toLocaleDateString("en-US", {
     weekday: "short",
@@ -78,14 +95,16 @@ function Month({ habit }: { habit: Habit }) {
           onPress={() => setOffset(Math.min(0, offset + 1))}
         />
       </Line>
+      {/* Seven percentage columns, each padded, so a week is always one
+          row: fixed cell widths plus gaps wrapped the seventh day onto its
+          own line on a 320pt phone. */}
       <View
         style={{
           width: "100%",
-          maxWidth: 280,
+          maxWidth: 320,
           alignSelf: "center",
           flexDirection: "row",
           flexWrap: "wrap",
-          gap: 6,
         }}
       >
         {Array.from({ length: 7 }, (_, i) => (
@@ -93,7 +112,8 @@ function Month({ habit }: { habit: Habit }) {
             key={`h${i}`}
             size={12}
             muted
-            style={{ width: 244 / 7, textAlign: "center" }}
+            maxScale={1.3}
+            style={{ width: DAY_COL, textAlign: "center", marginBottom: 4 }}
           >
             {
               ["S", "M", "T", "W", "T", "F", "S"][
@@ -103,7 +123,7 @@ function Month({ habit }: { habit: Habit }) {
           </Copy>
         ))}
         {Array.from({ length: lead }, (_, i) => (
-          <View key={`l${i}`} style={{ width: 244 / 7, height: 34 }} />
+          <View key={`l${i}`} style={{ width: DAY_COL }} />
         ))}
         {Array.from({ length: n }, (_, i) => {
           const d = `${y}-${String(m + 1).padStart(2, "0")}-${String(i + 1).padStart(2, "0")}`,
@@ -121,35 +141,40 @@ function Month({ habit }: { habit: Habit }) {
                         ? `${t.soft}40`
                         : "transparent"
           return (
-            <Tap
-              key={d}
-              label={`${d}: ${c}`}
-              onPress={() =>
-                d <= today && d >= habit.createdAt && go(`/habits/day/${d}`)
-              }
-              style={{
-                width: 244 / 7,
-                height: 244 / 7,
-                borderRadius: 8,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: bg,
-                borderWidth:
-                  d === today || c === "bonus" || c === "pending"
-                    ? 2
-                    : c === "future"
-                      ? 1
-                      : 0,
-                borderColor:
-                  d === today ? t.text : c === "future" ? t.line : t.hab,
-                borderStyle: c === "pending" ? "dashed" : "solid",
-                opacity: d > today ? 0.6 : 1,
-              }}
-            >
-              <Copy size={12} style={{ color: c === "done" ? t.bg : t.text }}>
-                {i + 1}
-              </Copy>
-            </Tap>
+            <View key={d} style={{ width: DAY_COL, padding: 3 }}>
+              <Tap
+                label={`${d}: ${c}`}
+                onPress={() =>
+                  d <= today && d >= habit.createdAt && go(`/habits/day/${d}`)
+                }
+                style={{
+                  width: "100%",
+                  aspectRatio: 1,
+                  borderRadius: 8,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: bg,
+                  borderWidth:
+                    d === today || c === "bonus" || c === "pending"
+                      ? 2
+                      : c === "future"
+                        ? 1
+                        : 0,
+                  borderColor:
+                    d === today ? t.text : c === "future" ? t.line : t.hab,
+                  borderStyle: c === "pending" ? "dashed" : "solid",
+                  opacity: d > today ? 0.6 : 1,
+                }}
+              >
+                <Copy
+                  size={12}
+                  maxScale={1.3}
+                  style={{ color: c === "done" ? t.bg : t.text }}
+                >
+                  {i + 1}
+                </Copy>
+              </Tap>
+            </View>
           )
         })}
       </View>
@@ -226,7 +251,9 @@ export function HabitDetail({ id }: { id: string }) {
     [pausing, setPausing] = useState(params.pause === "1"),
     [until, setUntil] = useState(dayOffset(7)),
     [reason, setReason] = useState(""),
-    screenOn = dashStore.use((s) => s.enabled.screen)
+    screenOn = dashStore.use((s) => s.enabled.screen),
+    [gridW, setGridW] = useState(0),
+    { fontScale } = useWindowDimensions()
   if (!h)
     return (
       <Screen prototypeLayout title="Habit">
@@ -257,19 +284,29 @@ export function HabitDetail({ id }: { id: string }) {
       const to = dayOffset(-(11 - i) * 7)
       return L.habitStats(h, idx, L.addDays(to, -6), to, today).rate
     })
-  const cells = [
-    { label: "Current streak", value: `${st.current}-day` },
-    { label: "Best streak", value: st.best },
+  const cells: {
+    label: string
+    value: string
+    unit?: string
+    delta?: number
+  }[] = [
+    {
+      label: "Best streak",
+      value: st.best.toLocaleString(),
+      unit: st.best === 1 ? "day" : "days",
+    },
     {
       label: "30-day rate",
       value: L.pct(a.rate),
       delta: Math.round((a.rate - prev.rate) * 100),
     },
     { label: "Skip rate", value: L.pct(a.skipRate) },
-    { label: "Missed (30d)", value: a.missed },
+    { label: "Missed (30d)", value: a.missed.toLocaleString() },
     {
       label: h.schedule.some((s) => s.time) ? "On time" : "Done (30d)",
-      value: h.schedule.some((s) => s.time) ? L.pct(a.onTime) : a.done,
+      value: h.schedule.some((s) => s.time)
+        ? L.pct(a.onTime)
+        : a.done.toLocaleString(),
     },
     ...(h.type === "duration"
       ? [{ label: "Time (90d)", value: L.fmtMinutes(long.minutes) }]
@@ -282,6 +319,16 @@ export function HabitDetail({ id }: { id: string }) {
           ]
         : []),
   ]
+  const cols = statColumns(
+    gridW,
+    // A 12pt unit is about half a 24pt digit, plus its gap.
+    Math.max(
+      ...cells.map(
+        (x) => x.value.length + (x.unit ? x.unit.length / 2 + 1 : 0),
+      ),
+    ),
+    fontScale,
+  )
   return (
     <Screen
       prototypeLayout
@@ -349,9 +396,16 @@ export function HabitDetail({ id }: { id: string }) {
         ) : auto ? (
           <RuleToday habit={h} log={log} />
         ) : (
-          <Line style={{ gap: 8 }}>
-            <Cheer fire={marked} color={t.hab} style={{ flex: 1 }}>
+          <Line style={{ gap: 8, alignItems: "stretch" }}>
+            <Cheer fire={marked} color={t.hab} style={{ flex: 2 }}>
               <Button
+                icon={
+                  h.type === "duration"
+                    ? Play
+                    : h.type === "count"
+                      ? Plus
+                      : Check
+                }
                 tone={
                   h.type === "check" && log?.status === "done"
                     ? "quiet"
@@ -378,37 +432,75 @@ export function HabitDetail({ id }: { id: string }) {
                 }}
               >
                 {h.type === "duration"
-                  ? "◉ Start timer"
+                  ? "Start timer"
                   : h.type === "count"
-                    ? `+ ${h.step ?? 1} ${h.unit ?? ""}${log?.value !== undefined ? ` · ${log.value}/${h.target}` : ""}`
+                    ? `${h.step ?? 1}${h.unit ? ` ${h.unit}` : ""}${log?.value !== undefined ? ` · ${log.value.toLocaleString()}/${(h.target ?? 0).toLocaleString()}` : ""}`
                     : log?.status === "done"
-                      ? "✓ Done today — undo"
-                      : "Mark done today"}
+                      ? "Done · undo"
+                      : "Mark done"}
               </Button>
             </Cheer>
-            <Button tone="quiet" onPress={() => setLogDay(today)}>
-              Log…
-            </Button>
+            {/* Log keeps its icon and drops its word when the row is tight,
+                never a clipped label. */}
+            <ToolButton
+              icon={NotebookPen}
+              label="Log"
+              name="Log a day"
+              keepIcon
+              onPress={() => setLogDay(today)}
+              style={{
+                flex: 1,
+                backgroundColor: t.card,
+                borderWidth: 1,
+                borderColor: t.input,
+              }}
+            />
           </Line>
         )}
-        <Frame style={{ padding: 16 }}>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 12 }}>
-            {cells.map((c, i) => (
-              <View key={c.label} style={{ width: "33.333%", paddingRight: 8 }}>
-                <Line style={{ gap: 4 }}>
-                  {i === 0 && <Flame size={20} color={t.warn} />}
-                  <Copy
-                    size={30}
-                    weight="displayMedium"
-                    style={{ color: i === 0 ? t.hab : t.text }}
-                  >
+        <Frame style={{ padding: 16, gap: 16 }}>
+          {/* The current streak leads: flame, the number, its unit. */}
+          <View
+            testID="current-streak"
+            accessible
+            accessibilityLabel={`Current streak, ${st.current} ${st.current === 1 ? "day" : "days"}`}
+          >
+            <Line style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <Flame size={28} color={t.warn} />
+              <Line style={{ gap: 6, alignItems: "baseline" }}>
+                <Copy size={36} weight="displayMedium" style={{ color: t.hab }}>
+                  {st.current.toLocaleString()}
+                </Copy>
+                <Copy size={16} muted>
+                  {st.current === 1 ? "day" : "days"}
+                </Copy>
+              </Line>
+            </Line>
+            <Copy size={12} muted>
+              Current streak
+            </Copy>
+          </View>
+          <View
+            testID="habit-stats"
+            onLayout={(e) => setGridW(e.nativeEvent.layout.width)}
+            style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 16 }}
+          >
+            {cells.map((c) => (
+              <View
+                key={c.label}
+                style={{
+                  width: `${100 / cols}%`,
+                  paddingRight: 12,
+                }}
+              >
+                <Line style={{ gap: 4, alignItems: "baseline" }}>
+                  <Copy size={24} weight="displayMedium">
                     {c.value}
                   </Copy>
-                </Line>
-                <Line style={{ gap: 4 }}>
-                  <Copy size={12} muted>
-                    {c.label}
-                  </Copy>
+                  {c.unit && (
+                    <Copy size={12} muted>
+                      {c.unit}
+                    </Copy>
+                  )}
                   {c.delta !== undefined && (
                     <Copy
                       size={12}
@@ -419,6 +511,9 @@ export function HabitDetail({ id }: { id: string }) {
                     </Copy>
                   )}
                 </Line>
+                <Copy size={12} muted>
+                  {c.label}
+                </Copy>
               </View>
             ))}
           </View>
