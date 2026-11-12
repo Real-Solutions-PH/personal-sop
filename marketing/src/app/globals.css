@@ -367,7 +367,8 @@ section {
     margin-inline: 0;
   }
   .hero-cta .cta-row,
-  .hero-cta .reassure {
+  .hero-cta .reassure,
+  .hero-cta .browser-ask {
     justify-content: flex-start;
   }
 }
@@ -400,7 +401,8 @@ section {
   margin-top: 24px;
 }
 .hero-cta .cta-row,
-.hero-cta .reassure {
+.hero-cta .reassure,
+.hero-cta .browser-ask {
   justify-content: center;
 }
 
@@ -1100,7 +1102,7 @@ section {
 /* The browser-version list: a quiet second ask under the primary button,
    and its matching box in the waitlist form. */
 .browser-ask {
-  margin-top: 6px;
+  margin-top: 8px;
   font-size: 14px;
   display: flex;
   align-items: center;
