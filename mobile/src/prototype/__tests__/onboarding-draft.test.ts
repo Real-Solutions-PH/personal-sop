@@ -1,6 +1,7 @@
-// Live mode: onboarding's answers are given before the account exists and
-// written to it right after it is created; signing in to an existing account
-// discards them.
+// Live mode, account first: onboarding's answers are given after the
+// account exists and written to it at onboarding's last step (applyDraft).
+// A draft left on the phone at sign-up is from an earlier, unfinished
+// sign-up and is dropped; signing in to an existing account discards it too.
 import { dashStore } from "@domain/dash/store"
 import { configureStorage } from "@domain/lib/store"
 
@@ -69,7 +70,11 @@ beforeEach(() => {
     returning: false,
   }))
   D.discardDraft()
-  // Two identities, fitness off, steady pace, 06:30 / 21:30, about answers.
+  fill()
+})
+
+// Two identities, fitness off, steady pace, 06:30 / 21:30, about answers.
+function fill() {
   D.editDraft({
     identities: ["I show up every day", "I finish what I start"],
     enabled: {
@@ -99,11 +104,30 @@ beforeEach(() => {
     // Typed under "Other" before switching to TikTok, which asks no detail.
     referralDetail: "a poster",
   })
-})
+}
 
-test("sign-up writes the draft into the new account after clearing it, then forgets it", async () => {
+test("sign-up drops a draft left from an earlier sign-up, writing none of it", async () => {
   await session.completeSignUp()
   expect(mockBlank).toHaveBeenCalledTimes(1)
+  expect(D.getDraft()).toBeNull()
+  const dash = dashStore.get()
+  expect(dash.profile.identities).toEqual([])
+  expect(dash.goals.filter((g) => g.via === "onboarding")).toEqual([])
+  expect(session.sessionStore.get()).toMatchObject({
+    signedIn: true,
+    returning: false,
+  })
+})
+
+test("no about answers go with the sign-up call: onboarding sends them later", async () => {
+  await session.completeSignUp()
+  expect(mockComplete).toHaveBeenCalledWith("Kai", "kai.new", {})
+})
+
+test("onboarding's last step writes the draft into the account, then forgets it", async () => {
+  await session.completeSignUp()
+  fill()
+  D.applyDraft()
   const dash = dashStore.get()
   expect(dash.profile.identities.map((i) => i.text)).toEqual([
     "I show up every day",
@@ -123,19 +147,6 @@ test("sign-up writes the draft into the new account after clearing it, then forg
     },
   )
   expect(D.getDraft()).toBeNull()
-  expect(session.sessionStore.get()).toMatchObject({
-    signedIn: true,
-    returning: false,
-  })
-})
-
-test("the about answers go with the sign-up call", async () => {
-  await session.completeSignUp()
-  expect(mockComplete).toHaveBeenCalledWith("Kai", "kai.new", {
-    occupation: "student",
-    occupationDetail: "Nursing",
-    referralSource: "tiktok",
-  })
 })
 
 test("a failed sign-up call keeps the draft for the retry", async () => {
@@ -147,9 +158,11 @@ test("a failed sign-up call keeps the draft for the retry", async () => {
   expect(D.getDraft()).toBeNull()
 })
 
-test("Screen time picked in onboarding is on after sign-up, so setup asks", async () => {
-  D.editDraft({ enabled: { ...D.getDraft()!.enabled, screen: true } })
+test("Screen time picked in onboarding is on after its last step, so setup asks", async () => {
   await session.completeSignUp()
+  fill()
+  D.editDraft({ enabled: { ...D.getDraft()!.enabled, screen: true } })
+  D.applyDraft()
   expect(dashStore.get().enabled.screen).toBe(true)
 })
 
@@ -161,8 +174,10 @@ test("Journal and Community picked in onboarding go to the account's extras", as
     weather: true,
     calendar: true,
   })
-  D.editDraft({ extras: { journal: true, social: false } })
   await session.completeSignUp()
+  fill()
+  D.editDraft({ extras: { journal: true, social: false } })
+  D.applyDraft()
   expect(extrasStore.get()).toEqual({
     journal: true,
     social: false,
@@ -171,10 +186,12 @@ test("Journal and Community picked in onboarding go to the account's extras", as
   })
 })
 
-test("sign-up keeps the modules most wanted first for setup", async () => {
+test("onboarding keeps the modules most wanted first for setup", async () => {
   const { setupFirstStore } =
     require("../setup-first") as typeof import("../setup-first")
   await session.completeSignUp()
+  fill()
+  D.applyDraft()
   // "I show up every day", "I finish what I start", then a student's Tasks
   // (already in), then the ones ticked by hand in the app's order.
   expect(setupFirstStore.get().first).toEqual([
@@ -186,16 +203,16 @@ test("sign-up keeps the modules most wanted first for setup", async () => {
   ])
 })
 
-test("the first capture is held through sign-up and sent once live starts", async () => {
+test("a capture held from an earlier sign-up is dropped at sign-up, never sent", async () => {
   const FC = require("../first-capture") as typeof import("../first-capture")
   const engine = require("@domain/capture/engine")
   const send = jest.spyOn(engine, "sendCapture").mockReturnValue("cap-9")
-  D.editDraft({ firstCapture: { text: "ran 5k", source: "text" } })
+  FC.holdFirstCapture({ text: "someone else's words", source: "text" })
   await session.completeSignUp()
   // startLiveSession runs after sign-up returns.
   await new Promise((r) => setTimeout(r, 0))
-  expect(send).toHaveBeenCalledWith({ text: "ran 5k", source: "text" })
-  expect(FC.firstCaptureStore.get()).toEqual({ pending: null, sentId: "cap-9" })
+  expect(send).not.toHaveBeenCalled()
+  expect(FC.firstCaptureStore.get().pending).toBeNull()
   send.mockRestore()
 })
 

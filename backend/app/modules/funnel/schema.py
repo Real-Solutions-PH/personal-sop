@@ -5,9 +5,15 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 FunnelEventKind = Literal[
-    "step_view", "step_complete", "step_skip", "module_toggle", "module_choice"
+    "step_view",
+    "step_complete",
+    "step_skip",
+    "module_toggle",
+    "module_choice",
+    "first_log",
 ]
 FunnelStep = Literal[
+    "welcome",
     "identity",
     "about",
     "modules",
@@ -20,6 +26,12 @@ FunnelStep = Literal[
     "notifications",
     "done",
     "setup",
+    "tour_fern",
+    "tour_tick",
+    "tour_plan",
+    "tour_stats",
+    "tour_remind",
+    "app",
 ]
 FunnelModule = Literal[
     "habits",

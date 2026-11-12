@@ -15,8 +15,17 @@ from sqlmodel import Field, SQLModel
 
 from app.shared.owned import enum_check, tstz, utcnow
 
-EVENTS = ("step_view", "step_complete", "step_skip", "module_toggle", "module_choice")
+EVENTS = (
+    "step_view",
+    "step_complete",
+    "step_skip",
+    "module_toggle",
+    "module_choice",
+    # The install's first log (a message to Fern, a tick, an entry), once.
+    "first_log",
+)
 STEPS = (
+    "welcome",
     "identity",
     "about",
     "modules",
@@ -29,6 +38,14 @@ STEPS = (
     "notifications",
     "done",
     "setup",
+    # The guided tour after onboarding.
+    "tour_fern",
+    "tour_tick",
+    "tour_plan",
+    "tour_stats",
+    "tour_remind",
+    # Anywhere in the app after onboarding (first_log only).
+    "app",
 )
 # The scored modules plus the two extras onboarding offers.
 MODULES = (

@@ -1661,16 +1661,16 @@ export type FunnelBatch = {
 };
 
 export type FunnelEventIn = {
-    event: 'step_view' | 'step_complete' | 'step_skip' | 'module_toggle' | 'module_choice';
-    step: 'identity' | 'about' | 'modules' | 'capture' | 'targets' | 'when' | 'building' | 'pledge' | 'account' | 'notifications' | 'done' | 'setup';
+    event: 'step_view' | 'step_complete' | 'step_skip' | 'module_toggle' | 'module_choice' | 'first_log';
+    step: 'welcome' | 'identity' | 'about' | 'modules' | 'capture' | 'targets' | 'when' | 'building' | 'pledge' | 'account' | 'notifications' | 'done' | 'setup' | 'tour_fern' | 'tour_tick' | 'tour_plan' | 'tour_stats' | 'tour_remind' | 'app';
     module?: ('habits' | 'tasks' | 'fitness' | 'nutrition' | 'focus' | 'finance' | 'screen' | 'journal' | 'social' | null);
     turned_on?: (boolean | null);
     at: string;
 };
 
-export type event = 'step_view' | 'step_complete' | 'step_skip' | 'module_toggle' | 'module_choice';
+export type event = 'step_view' | 'step_complete' | 'step_skip' | 'module_toggle' | 'module_choice' | 'first_log';
 
-export type step = 'identity' | 'about' | 'modules' | 'capture' | 'targets' | 'when' | 'building' | 'pledge' | 'account' | 'notifications' | 'done' | 'setup';
+export type step = 'welcome' | 'identity' | 'about' | 'modules' | 'capture' | 'targets' | 'when' | 'building' | 'pledge' | 'account' | 'notifications' | 'done' | 'setup' | 'tour_fern' | 'tour_tick' | 'tour_plan' | 'tour_stats' | 'tour_remind' | 'app';
 
 /**
  * One unit of ``base`` in the user's currency (``quote``), as of the

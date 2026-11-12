@@ -16,8 +16,10 @@ export const SETUP_TIME: Record<ModuleKey, string> = {
   tasks: "1 min",
 }
 
-/** How many modules first-run setup asks about. */
-export const FIRST_RUN_LIMIT = 2
+/** How many modules first-run setup asks about: one, so onboarding stays
+ * within 8 screens (docs/27 fix 5). The rest are offered the first time
+ * their screen opens. */
+export const FIRST_RUN_LIMIT = 1
 
 /** Set at sign-up from the onboarding draft: the ticked modules, most
  * wanted first. Kept on this phone: setup runs right after sign-up here. */

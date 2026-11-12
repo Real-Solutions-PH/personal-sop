@@ -23,6 +23,7 @@ import {
   TextLink,
   useSubmit,
 } from "../auth-kit"
+import { companionStore } from "../companion/store"
 import { go, replace } from "../navigation"
 import {
   AuthError,
@@ -176,6 +177,7 @@ function ChooseUsername({ refused }: { refused: string }) {
  * as it exists (completeSignUp). */
 export function AccountForm({ onBack }: { onBack: () => void }) {
   const t = useTheme()
+  const fern = companionStore.use((s) => s.name)
   const [name, setName] = useState("")
   const [username, setUsername] = useState("")
   const [email, setEmail] = useState("")
@@ -275,11 +277,9 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
     <AuthScreen
       onBack={onBack}
       title="Create your account"
-      subtitle={
-        liveMode
-          ? "Last step. Your plan is saved to your account and syncs."
-          : "Last step. Your plan stays on this device."
-      }
+      subtitle={`First, so ${fern} can answer your first log right away.${
+        liveMode ? " It syncs across your devices." : ""
+      }`}
       footer={
         <SwitchPrompt
           question="Already have an account?"
@@ -290,6 +290,18 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
     >
       {submit.error && !emailTaken && (
         <ErrorBanner message={submit.error} shakeKey={submit.shakeKey} />
+      )}
+      {/* One tap first (docs/27 K8). Live mode has no Apple or Google
+          sign-in configured yet, so there the form is the only way. */}
+      {!liveMode && (
+        <Rise i={1}>
+          <SocialButtons
+            busy={social}
+            onPress={onSocial}
+            disabled={submit.busy}
+          />
+          <OrDivider label="or with email" />
+        </Rise>
       )}
       <Rise i={1}>
         <AuthField
@@ -448,12 +460,6 @@ export function AccountForm({ onBack }: { onBack: () => void }) {
         </AuthButton>
       </Rise>
       <Rise i={7}>
-        <OrDivider label="or sign up with" />
-        <SocialButtons
-          busy={social}
-          onPress={onSocial}
-          disabled={submit.busy}
-        />
         <DemoTip>
           “taken@example.com” is already registered, and @kai or @admin are
           taken usernames.

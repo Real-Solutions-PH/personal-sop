@@ -1,8 +1,9 @@
 // Onboarding's first Fern capture: a misheard voice transcript lands in a
-// field the person can correct before it is sent, and what they type is
-// never overwritten by the recogniser.
+// field the person can correct before it is sent, what they type is never
+// overwritten by the recogniser, and once sent Fern's answer shows on the
+// same screen.
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
-import { type ReactNode, useState } from "react"
+import type { ReactNode } from "react"
 import { Pressable, Text } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
@@ -51,13 +52,16 @@ const fire = (name: string, e: unknown) =>
   act(() => mockListeners[name](e as never))
 
 let lastHeld: Held | null = null
+const { firstCaptureStore } =
+  require("../first-capture") as typeof import("../first-capture")
+const { captureStore } =
+  require("@domain/capture/store") as typeof import("@domain/capture/store")
 function Harness() {
-  const [held, setHeld] = useState<Held | null>(null)
-  lastHeld = held
   return (
     <FirstCaptureStep
-      held={held}
-      onHold={setHeld}
+      onSend={(c) => {
+        lastHeld = c
+      }}
       onNext={() => {}}
       button={(label: string, press: () => void, _q, disabled) => (
         <Pressable
@@ -82,6 +86,7 @@ const field = () => screen.getByLabelText("One thing from today")
 beforeEach(() => {
   jest.clearAllMocks()
   lastHeld = null
+  firstCaptureStore.set({ pending: null, sentId: null })
 })
 
 test("a misheard transcript can be corrected while dictating, and the recogniser does not type over the fix", async () => {
@@ -110,24 +115,33 @@ test("a misheard transcript can be corrected while dictating, and the recogniser
   expect(lastHeld).toEqual({ text: "spent 150 on lunch", source: "voice" })
 })
 
-test("once logged, the words go back into the field for editing, not cleared", async () => {
+test("once sent, Fern's answer shows here with Next", () => {
   show()
-  await act(async () => {
-    fireEvent.press(screen.getByLabelText("Dictate"))
-  })
-  fire("result", { isFinal: true, results: [{ transcript: "ran 5 cave" }] })
-  fire("end", null)
-  fireEvent.press(screen.getByText("Log it"))
-  expect(screen.getByText("Got it — your first log is ready")).toBeTruthy()
-  // Tapping the held words, or Edit, reopens the field with them in it.
-  fireEvent.press(screen.getByLabelText("Edit “ran 5 cave”"))
-  expect(lastHeld).toBeNull()
-  expect(field().props.value).toBe("ran 5 cave")
   fireEvent.changeText(field(), "ran 5k")
   fireEvent.press(screen.getByText("Log it"))
-  expect(lastHeld).toEqual({ text: "ran 5k", source: "voice" })
-  fireEvent.press(screen.getByText("Edit what I said"))
-  expect(field().props.value).toBe("ran 5k")
+  expect(lastHeld).toEqual({ text: "ran 5k", source: "text" })
+  // The send went through the capture path (first-capture.ts).
+  act(() => {
+    captureStore.set((st) => ({
+      ...st,
+      captures: [
+        {
+          id: "c1",
+          at: new Date().toISOString(),
+          source: "text",
+          text: "ran 5k",
+          status: "processing" as const,
+          clientUuid: "u-c1",
+        },
+        ...st.captures,
+      ],
+    }))
+    firstCaptureStore.set({ pending: null, sentId: "c1" })
+  })
+  expect(screen.getByText("Fern is logging it…")).toBeTruthy()
+  expect(screen.getByText("“ran 5k”")).toBeTruthy()
+  expect(screen.getByText("Next")).toBeTruthy()
+  expect(screen.queryByLabelText("One thing from today")).toBeNull()
 })
 
 test("dictating again after a correction picks up from the corrected words", async () => {

@@ -17,22 +17,20 @@ const ORDER: ModuleKey[] = [
   "tasks",
 ]
 
-test("the priority list's first two, in its order, not setup's", () => {
+test("the priority list's first one only, not setup's order", () => {
   expect(firstRunSteps(ORDER, ["nutrition", "habits", "finance"])).toEqual([
     "nutrition",
-    "habits",
   ])
 })
 
 test("a priority module setup has no step for is passed over", () => {
   expect(firstRunSteps(["habits", "tasks"], ["screen", "tasks"])).toEqual([
     "tasks",
-    "habits",
   ])
 })
 
 test("without a priority list, setup's own order", () => {
-  expect(firstRunSteps(ORDER, [])).toEqual(["finance", "habits"])
+  expect(firstRunSteps(ORDER, [])).toEqual(["finance"])
   expect(firstRunSteps(["focus"], [])).toEqual(["focus"])
 })
 

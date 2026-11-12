@@ -6316,12 +6316,12 @@ export const FunnelEventInSchema = {
     properties: {
         event: {
             type: 'string',
-            enum: ['step_view', 'step_complete', 'step_skip', 'module_toggle', 'module_choice'],
+            enum: ['step_view', 'step_complete', 'step_skip', 'module_toggle', 'module_choice', 'first_log'],
             title: 'Event'
         },
         step: {
             type: 'string',
-            enum: ['identity', 'about', 'modules', 'capture', 'targets', 'when', 'building', 'pledge', 'account', 'notifications', 'done', 'setup'],
+            enum: ['welcome', 'identity', 'about', 'modules', 'capture', 'targets', 'when', 'building', 'pledge', 'account', 'notifications', 'done', 'setup', 'tour_fern', 'tour_tick', 'tour_plan', 'tour_stats', 'tour_remind', 'app'],
             title: 'Step'
         },
         module: {

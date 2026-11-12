@@ -65,6 +65,7 @@ import {
   useSetUp,
 } from "../setup-plan"
 import { AccentContext, fonts, useTheme } from "../theme"
+import { queueTour } from "../tour/store"
 import { Button } from "../ui"
 import { FinanceSetup } from "./finance-setup"
 import { PlanForm, PlanNotes } from "./nutrition-plan"
@@ -186,9 +187,11 @@ export function Setup() {
     // opened (FirstOpenSetup); done or skipped, it goes back there.
     params = useLocalSearchParams<{ step?: ModuleKey; return?: string }>(),
     single = !!params.return,
-    [step, setStep] = useState<ModuleKey | null>(
+    [picked, setPicked] = useState<ModuleKey | null>(
       params.step && ORDER.includes(params.step) ? params.step : null,
     ),
+    // First run opens straight on its step; Back from it shows the list.
+    [hub, setHub] = useState(false),
     enabled = dashStore.use((s) => s.enabled),
     skipped = dashStore.use((s) => s.setupSkipped),
     // The last part of onboarding asks about only the one or two modules
@@ -204,7 +207,13 @@ export function Setup() {
     ),
     steps = firstRun ? firstRunSteps(all, first) : all,
     pending = steps.filter((k) => !has[k]),
-    allDone = (firstRun || steps.length > 0) && !pending.length
+    allDone = (firstRun || steps.length > 0) && !pending.length,
+    step =
+      picked ?? (firstRun && !single && !hub ? (pending[0] ?? null) : null),
+    setStep = (k: ModuleKey | null) => {
+      if (k === null) setHub(true)
+      setPicked(k)
+    }
   // The funnel: each setup step shown, finished or skipped.
   useEffect(() => {
     if (step) logFunnel({ event: "step_view", step: "setup", module: step })
@@ -215,6 +224,8 @@ export function Setup() {
   }
   const finishOnboarding = () => {
     setOnboarded(true)
+    // The guided tour starts once Today shows.
+    queueTour()
     replace("/today")
   }
   const advance = (k: ModuleKey) => {
@@ -264,21 +275,25 @@ export function Setup() {
         }}
       >
         <Line style={{ height: 56, gap: 12 }}>
-          <IconTap
-            size={44}
-            icon={step || firstRun ? ArrowLeft : X}
-            label={step ? "Back to setup" : firstRun ? "Back" : "Close"}
-            color={t.text}
-            onPress={() =>
-              single
-                ? back(params.return)
-                : step
-                  ? setStep(null)
-                  : firstRun
-                    ? back("/onboarding")
+          {/* First run's list has no way back: onboarding's answers are
+              already the account's, so its steps are done. */}
+          {firstRun && !step && !single ? (
+            <View style={{ width: 44 }} />
+          ) : (
+            <IconTap
+              size={44}
+              icon={step || firstRun ? ArrowLeft : X}
+              label={step ? "Back to setup" : "Close"}
+              color={t.text}
+              onPress={() =>
+                single
+                  ? back(params.return)
+                  : step
+                    ? setStep(null)
                     : go("/today")
-            }
-          />
+              }
+            />
+          )}
           {step && (
             <>
               {/* The progress bar is onboarding's: a module set up later
