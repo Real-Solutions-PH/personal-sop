@@ -802,7 +802,8 @@ describe("Journal turned off sends no journal reminders", () => {
 describe("the running app rebuilds when Journal is switched", () => {
   test("hiding Journal cancels its pending reminders without another change", async () => {
     jest.useFakeTimers({ now: NOW })
-    let pending: string[] = []
+    // Left from before the update: the retired 20:30 at-risk reminder.
+    let pending: string[] = ["streak-at-risk"]
     const N = {
       setNotificationHandler: () => {},
       addNotificationResponseReceivedListener: () => ({ remove() {} }),

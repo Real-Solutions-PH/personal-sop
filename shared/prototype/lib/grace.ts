@@ -58,3 +58,16 @@ export function walkRun(
     graceDays: held ? [...grace, held] : grace,
   }
 }
+
+/** A rest day is ready: a run is going and no grace day was used in the
+ * last ``GRACE_GAP_DAYS``, so a lone miss today would be bridged. The
+ * streak chip's "rest day ready"; ``grace_ready`` in grace.py is its port. */
+export function graceReady(
+  current: number,
+  graceDays: string[],
+  today: string,
+): boolean {
+  if (current <= 0) return false
+  const last = graceDays[graceDays.length - 1]
+  return !last || daysApart(last, today) >= GRACE_GAP_DAYS
+}

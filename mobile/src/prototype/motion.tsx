@@ -581,7 +581,8 @@ export function StreakChip({
   /** The run that ended on yesterday's miss and the days missed (shown
    * while ``streak`` is 0, for that day only): its cost, never a loss. */
   miss?: { missed: number; run: number } | null
-  /** What a live streak rests on: "grace day used", "paused 3 days". */
+  /** What a live streak rests on: "rest day ready", "rest day used",
+   * "paused 3 days". */
   note?: string | null
 }) {
   const t = useTheme()

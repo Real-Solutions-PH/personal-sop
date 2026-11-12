@@ -2763,6 +2763,17 @@ export type NotifUpdate = {
     test_sent_at?: (string | null);
 };
 
+/**
+ * What Settings shows for "Nudges from Fern".
+ */
+export type NudgeSettings = {
+    mode: 'daily' | 'weekly' | 'off';
+    pinned: (string | null);
+    usual: (string | null);
+};
+
+export type mode2 = 'daily' | 'weekly' | 'off';
+
 export type NutritionDayOut = {
     day: string;
     totals: MacrosOut;
@@ -3212,6 +3223,9 @@ export type ProfilePublic = {
     push_evening: (string | null);
     push_review: boolean;
     push_checkin?: (string | null);
+    push_permission_changed_at?: (string | null);
+    nudge_mode?: 'daily' | 'weekly' | 'off';
+    nudge_time?: (string | null);
     fern_eval_consent: boolean;
     fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
@@ -3230,6 +3244,8 @@ export type ProfilePublic = {
 export type appearance = 'system' | 'light' | 'dark';
 
 export type push_permission = 'default' | 'granted' | 'denied';
+
+export type nudge_mode = 'daily' | 'weekly' | 'off';
 
 /**
  * Every field optional: also the sync payload (field-level LWW).
@@ -3254,6 +3270,8 @@ export type ProfileUpdate = {
     push_evening?: (string | null);
     push_review?: (boolean | null);
     push_checkin?: (string | null);
+    nudge_mode?: ('daily' | 'weekly' | 'off' | null);
+    nudge_time?: (string | null);
     fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
@@ -3476,7 +3494,7 @@ export type Recurrence = {
     mode?: 'fixed' | 'after';
 };
 
-export type mode2 = 'fixed' | 'after';
+export type mode3 = 'fixed' | 'after';
 
 export type Reestimate = {
     hint?: (string | null);
@@ -4656,12 +4674,12 @@ export type UsageBatch = {
 };
 
 export type UsageEventIn = {
-    kind: 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored';
+    kind: 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
     at: string;
     detail?: (string | null);
 };
 
-export type kind18 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored';
+export type kind18 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
 
 export type UsageOut = {
     month: string;
@@ -7033,6 +7051,8 @@ export type RbacRemovePermissionData = {
 };
 
 export type RbacRemovePermissionResponse = (Message);
+
+export type RetentionGetNudgeResponse = (NudgeSettings);
 
 export type RolesReadRolesData = {
     limit?: number;

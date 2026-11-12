@@ -12007,6 +12007,42 @@ export const NotificationsOutSchema = {
     title: 'NotificationsOut'
 } as const;
 
+export const NudgeSettingsSchema = {
+    properties: {
+        mode: {
+            type: 'string',
+            enum: ['daily', 'weekly', 'off'],
+            title: 'Mode'
+        },
+        pinned: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Pinned'
+        },
+        usual: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Usual'
+        }
+    },
+    type: 'object',
+    required: ['mode', 'pinned', 'usual'],
+    title: 'NudgeSettings',
+    description: 'What Settings shows for "Nudges from Fern".'
+} as const;
+
 export const NutritionDayOutSchema = {
     properties: {
         day: {
@@ -14473,6 +14509,35 @@ export const ProfilePublicSchema = {
             ],
             title: 'Push Checkin'
         },
+        push_permission_changed_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Push Permission Changed At'
+        },
+        nudge_mode: {
+            type: 'string',
+            enum: ['daily', 'weekly', 'off'],
+            title: 'Nudge Mode',
+            default: 'daily'
+        },
+        nudge_time: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nudge Time'
+        },
         fern_eval_consent: {
             type: 'boolean',
             title: 'Fern Eval Consent'
@@ -14825,6 +14890,30 @@ export const ProfileUpdateSchema = {
                 }
             ],
             title: 'Push Checkin'
+        },
+        nudge_mode: {
+            anyOf: [
+                {
+                    type: 'string',
+                    enum: ['daily', 'weekly', 'off']
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nudge Mode'
+        },
+        nudge_time: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 5
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Nudge Time'
         },
         fern_eval_consent: {
             anyOf: [
@@ -22314,7 +22403,7 @@ export const UsageEventInSchema = {
     properties: {
         kind: {
             type: 'string',
-            enum: ['app_open', 'app_close', 'share_card', 'paywall_shown', 'purchase_started', 'restored'],
+            enum: ['app_open', 'app_close', 'share_card', 'paywall_shown', 'purchase_started', 'restored', 'push_open'],
             title: 'Kind'
         },
         at: {

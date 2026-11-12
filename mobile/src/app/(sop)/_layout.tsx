@@ -46,7 +46,6 @@ import { startRunTracker } from "@/prototype/run-tracker"
 import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
 import { sessionStore } from "@/prototype/session"
-import { AtRiskWatcher } from "@/prototype/streak-at-risk"
 import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 import { TrophyWatcher } from "@/prototype/trophy-overlay"
@@ -393,7 +392,6 @@ export default function PrototypeLayout() {
               <SurfacesBridge />
               <TrophyWatcher hidden={focus} />
               <FinishWatcher hidden={focus} />
-              <AtRiskWatcher />
               <DayMomentWatcher hidden={focus} />
             </LaggingReads.Provider>
           </>

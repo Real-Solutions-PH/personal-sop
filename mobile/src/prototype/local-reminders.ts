@@ -33,6 +33,7 @@ import { tasksStore } from "@domain/tasks/store"
 import { Platform } from "react-native"
 import { extrasStore } from "./extras"
 import {
+  notePushOpen,
   openNotification,
   routeLaunchNotification,
   showsBanner,
@@ -584,73 +585,13 @@ export async function scheduleEatBackReminder(
   })
 }
 
-/** The evening nudge when the on-target streak is about to break. */
-export const AT_RISK_ID = "streak-at-risk"
-export const AT_RISK_TIME = { hour: 20, minute: 30 }
+/** The retired 20:30 "streak at risk" reminder (docs/26-retention-algorithms.md
+ * D2): the server's best-time nudge replaced it, with no loss-aversion copy.
+ * A phone that scheduled one before the update cancels it on launch. */
+export const RETIRED_AT_RISK_ID = "streak-at-risk"
 
-export interface AtRisk {
-  /** Today's due habits and tasks, and how many are done. */
-  due: number
-  done: number
-  /** Share of due items that puts a day on target (Settings). */
-  threshold: number
-  /** On-target days in a row before today. */
-  streak: number
-  /** The evening wrap-up push time; empty = evening pushes off. */
-  evening: string
-  quiet?: { start: string; end: string }
-}
-
-/** Tonight's "streak at risk" reminder, or null: only while today is below
- * target with an on-target streak to lose, evening pushes on, 20:30 still
- * ahead and outside quiet hours. Pure. */
-export function atRiskPlan(r: AtRisk, now: Date) {
-  if (r.streak <= 0 || r.due <= 0 || !r.evening) return null
-  const need = Math.ceil(r.threshold * r.due - 1e-9) - r.done
-  if (need <= 0) return null
-  const at = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    AT_RISK_TIME.hour,
-    AT_RISK_TIME.minute,
-  )
-  if (now >= at || inQuiet(at, r.quiet)) return null
-  const days = r.streak === 1 ? "1-day" : `${r.streak}-day`
-  return {
-    at,
-    title: `🔥 Your ${days} streak is at risk`,
-    body: `${r.done} of ${r.due} done today. ${need} more ${need === 1 ? "keeps" : "keep"} it going.`,
-    href: "/",
-  }
-}
-
-/** Set or clear tonight's at-risk reminder. Its id is outside ``OURS``, so
- * rebuilding task and habit reminders keeps it. */
-export async function scheduleAtRiskReminder(
-  r: AtRisk,
-  N: Notifications = load(),
-  now: Date = new Date(),
-) {
-  if (Platform.OS === "web") return
-  if ((await N.getPermissionsAsync()).status !== "granted") return
-  await N.cancelScheduledNotificationAsync(AT_RISK_ID).catch(() => {})
-  const plan = atRiskPlan(r, now)
-  if (!plan) return
-  await N.scheduleNotificationAsync({
-    identifier: AT_RISK_ID,
-    content: {
-      title: plan.title,
-      body: plan.body,
-      data: { href: plan.href },
-      sound: SOUND,
-    },
-    trigger: {
-      type: N.SchedulableTriggerInputTypes.DATE,
-      date: plan.at,
-      channelId: CHANNEL,
-    },
-  })
+export async function cancelRetiredReminders(N: Notifications = load()) {
+  await N.cancelScheduledNotificationAsync(RETIRED_AT_RISK_ID).catch(() => {})
 }
 
 /** A real notification a few seconds from now, to see reminders work. */
@@ -707,9 +648,11 @@ export function startReminders() {
       importance: N.AndroidImportance.HIGH,
       sound: SOUND,
     }).catch(() => {})
-  N.addNotificationResponseReceivedListener((r) =>
-    openNotification(r.notification.request.content.data),
-  )
+  void cancelRetiredReminders(N).catch(() => {})
+  N.addNotificationResponseReceivedListener((r) => {
+    notePushOpen(r.notification.request)
+    openNotification(r.notification.request.content.data)
+  })
   routeLaunchNotification(N)
   let timer: ReturnType<typeof setTimeout> | null = null
   const soon = () => {
