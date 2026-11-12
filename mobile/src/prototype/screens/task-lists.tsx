@@ -1,7 +1,6 @@
 import * as A from "@domain/tasks/actions"
 import type { ListColor, ListIcon, TaskList } from "@domain/tasks/data"
 import * as L from "@domain/tasks/logic"
-import { parseTask } from "@domain/tasks/parse"
 import { tasksStore } from "@domain/tasks/store"
 import {
   ArrowDown,
@@ -37,6 +36,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
+import { QuickChips, quickInputProps, useQuickAdd } from "../quick-add-field"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, PinnedFooter, Screen, Sheet, Toggle } from "../ui"
 import { LockedPreview } from "./locked-preview"
@@ -436,7 +436,8 @@ export function TaskListPage({ id }: { id: string }) {
     [sort, setSort] = useState("due"),
     [showDone, setShowDone] = useState(false),
     [edit, setEdit] = useState(false),
-    [text, setText] = useState(""),
+    quick = useQuickAdd(s.lists),
+    text = quick.text,
     input = useRef<TextInputInstance>(null),
     mine = s.tasks.filter((task) =>
       id === "inbox"
@@ -467,23 +468,25 @@ export function TaskListPage({ id }: { id: string }) {
         : id === "starred"
           ? "Starred"
           : (list?.name ?? "List")
-  const add = () => {
-    if (!text.trim()) return
-    const p = parseTask(text)
+  const add = (line = text) => {
+    if (!line.trim()) return
+    const p = quick.parseOf(line)
     A.createTask(
       shopping
-        ? { title: text.trim(), listId: id }
+        ? { title: line.trim(), listId: id }
         : {
-            title: p.title,
-            listId: smart ? null : id,
+            // A line that is only syntax ("tomorrow !high") keeps its words.
+            title: p.title || line.trim(),
+            listId: p.listId ?? (smart ? null : id),
             dueDate: p.dueDate,
             dueTime: p.dueTime,
             recurrence: p.recurrence,
             remind: !!p.dueTime,
+            priority: p.priority ?? undefined,
             starred: id === "starred",
           },
     )
-    setText("")
+    quick.reset()
     input.current?.focus()
   }
   if (!smart && !list)
@@ -543,14 +546,27 @@ export function TaskListPage({ id }: { id: string }) {
         <TextInput
           ref={input}
           accessibilityLabel={shopping ? "Add item" : "Add task"}
-          value={text}
-          onChangeText={setText}
-          onSubmitEditing={add}
+          {...(shopping
+            ? { value: text }
+            : quickInputProps(t, text, quick.parsed, s.lists))}
+          // Return in the wrapping field adds rather than breaking the line
+          // (the web ignores submitBehavior).
+          onChangeText={(next) =>
+            /\n/.test(next)
+              ? add(next.replace(/\s*\n+\s*/g, " ").trim())
+              : quick.setText(next)
+          }
+          onSubmitEditing={() => add()}
           returnKeyType="done"
+          // Wraps a long title instead of scrolling it out of sight; Return
+          // still adds.
+          multiline
+          submitBehavior="submit"
           placeholder={shopping ? "Add item" : `Add to ${title}`}
           placeholderTextColor={t.muted}
           style={{
-            height: 48,
+            minHeight: 48,
+            paddingVertical: 12,
             flex: 1,
             fontFamily: fonts.body,
             fontSize: 16,
@@ -558,13 +574,16 @@ export function TaskListPage({ id }: { id: string }) {
           }}
         />
         {!!text && (
-          <Tap onPress={add}>
+          <Tap onPress={() => add()}>
             <Copy size={14} weight="semibold" style={{ color: t.primary }}>
               Add
             </Copy>
           </Tap>
         )}
       </Line>
+      {!shopping && (
+        <QuickChips parsed={quick.parsed} onKeep={quick.keep} lists={s.lists} />
+      )}
       {!shopping && open.length > 0 && (
         <Segmented
           value={sort}
