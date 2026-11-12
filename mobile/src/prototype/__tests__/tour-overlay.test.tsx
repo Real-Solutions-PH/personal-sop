@@ -156,7 +156,7 @@ test("a tick Fern files from a message does not finish the tick step", () => {
   view.rerender(<TourWatcher path="/today" />)
   tickHabit()
   expect(tourOf().tour.index).toBe(1)
-  // Fern done, drawer closed: the person's own tick counts.
+  // Fern done, drawer closed: a record filed right after is still Fern's.
   act(() =>
     captureStore.set((s) => ({
       ...s,
@@ -166,6 +166,12 @@ test("a tick Fern files from a message does not finish the tick step", () => {
     })),
   )
   tickHabit()
+  expect(tourOf().tour.index).toBe(1)
+  // A moment later, the person's own tick counts.
+  const later = Date.now() + 5000
+  jest.spyOn(Date, "now").mockReturnValue(later)
+  tickHabit()
+  jest.restoreAllMocks()
   expect(tourOf().tour.done).toEqual(["fern", "tick"])
 })
 

@@ -132,8 +132,15 @@ describe("the account comes first", () => {
     render(<Welcome />, { wrapper })
     fireEvent.press(screen.getByText("Get started"))
     expect(router.push).toHaveBeenCalledWith("/get-started")
+    const F = require("../funnel") as typeof import("../funnel")
+    F.setFunnelSender(async () => {})
+    F.funnelStore.set({ installId: "", queue: [] })
     render(<Onboarding phase="pre" />, { wrapper })
     expect(screen.getByText("Create your account")).toBeTruthy()
+    expect(F.funnelStore.get().queue).toContainEqual(
+      expect.objectContaining({ event: "step_view", step: "account" }),
+    )
+    F.setFunnelSender(null)
     expect(screen.getByLabelText("Continue with Apple")).toBeTruthy()
     expect(screen.getByText("or with email")).toBeTruthy()
   })

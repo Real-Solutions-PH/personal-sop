@@ -141,8 +141,16 @@ function sendAbout(d: OnboardingDraft) {
 
 /** `/get-started` is the account step; `/onboarding` is the rest. */
 export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
-  if (phase === "pre") return <AccountForm onBack={() => back("/welcome")} />
+  if (phase === "pre") return <AccountStep />
   return <AfterAccount />
+}
+
+/** The account form, counted as the funnel's account step. */
+function AccountStep() {
+  useEffect(() => {
+    logFunnel({ event: "step_view", step: "account" })
+  }, [])
+  return <AccountForm onBack={() => back("/welcome")} />
 }
 
 function AfterAccount() {

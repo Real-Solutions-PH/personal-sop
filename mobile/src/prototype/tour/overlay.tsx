@@ -111,7 +111,10 @@ export function stepCopy(
 }
 
 const PAD = 6
-/** Room the card needs (title, two lines, the Skip row) at 375 pt. */
+/** After Fern finishes, how long its filed records are still Fern's. */
+const FERN_GRACE_MS = 2000
+/** Room the card needs before it has been measured (title, two lines,
+ * the Skip row at 375 pt); larger text measures taller. */
 const CARD_ROOM = 190
 /** How long Today gets to show something to tick before the step passes. */
 const TICK_GRACE_MS = 1500
@@ -160,7 +163,10 @@ function TourCard({
   index,
   target,
   compact,
+  onHeight,
 }: {
+  /** Reports the card's laid-out height, for placing it on screen. */
+  onHeight?: (h: number) => void
   step: TourStepId
   index: number
   target: TargetId
@@ -173,6 +179,7 @@ function TourCard({
   const fade = useFadeIn(`${step}:${target}:${compact ? 1 : 0}`)
   return (
     <Animated.View
+      onLayout={(e) => onHeight?.(e.nativeEvent.layout.height)}
       accessibilityViewIsModal={!compact}
       accessibilityLiveRegion="polite"
       style={[
@@ -301,6 +308,7 @@ export function TourLayer({
   const step = currentStep(tour)
   const target = step ? targetFor(step, path) : null
   const [rect, setRect] = useState<Rect | null>(null)
+  const [cardH, setCardH] = useState(CARD_ROOM)
 
   // First run's end or a replay: the tour starts once Today shows.
   useEffect(() => {
@@ -413,18 +421,23 @@ export function TourLayer({
             ? {
                 top: Math.min(
                   rect.y + rect.height + PAD + 12,
-                  height - roomBottom - CARD_ROOM,
+                  height - roomBottom - cardH,
                 ),
               }
             : {
                 bottom: Math.min(
                   height - rect.y + PAD + 12,
-                  height - roomTop - CARD_ROOM,
+                  height - roomTop - cardH,
                 ),
               }),
         }}
       >
-        <TourCard step={step} index={index} target={target} />
+        <TourCard
+          step={step}
+          index={index}
+          target={target}
+          onHeight={(h) => setCardH((old) => (Math.abs(old - h) < 1 ? old : h))}
+        />
       </View>
     </View>
   )
@@ -463,6 +476,9 @@ export function TourWatcher({
   )
   const index = useTour().tour.index
   const seen = useRef({ captures, habitTicks, taskTicks, granted })
+  // When Fern last had the drawer open or a reply in progress.
+  const fernAt = useRef(0)
+  if (drawerOpen || fernBusy) fernAt.current = Date.now()
   const pathRef = useRef(path)
   pathRef.current = path
 
@@ -479,7 +495,11 @@ export function TourWatcher({
     const signals: TourSignal[] = []
     if (captures > was.captures) signals.push({ kind: "logged" })
     const ticked = habitTicks > was.habitTicks || taskTicks > was.taskTicks
-    if (ticked && !drawerOpen && !fernBusy) signals.push({ kind: "ticked" })
+    // Fern may file its reply's records just after it finishes or the
+    // drawer closes: those are not the person ticking either.
+    const fernRecently = Date.now() - fernAt.current < FERN_GRACE_MS
+    if (ticked && !drawerOpen && !fernBusy && !fernRecently)
+      signals.push({ kind: "ticked" })
     // Still a log for the funnel, whoever filed it.
     else if (ticked && !returning) noteFirstLog(firstLogStep(pathRef.current))
     if (granted && !was.granted) signals.push({ kind: "reminders" })
