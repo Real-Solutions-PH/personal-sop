@@ -24,6 +24,11 @@ def test_task_runners_run_without_error() -> None:
     assert mobile.run_task_digests() >= 0
 
 
+def test_retention_runners_run_without_error() -> None:
+    assert mobile.run_retention_nightly() >= 0
+    assert mobile.run_retention_nudges() >= 0
+
+
 def test_capture_maintenance_runner_runs() -> None:
     out = mobile.run_capture_maintenance()
     assert set(out) == {"purged", "resumed"}
@@ -39,6 +44,8 @@ def test_worker_loads_every_scheduled_task() -> None:
         "mobile.tasks.digests",
         "mobile.finance.auto_log",
         "mobile.capture.maintenance",
+        "mobile.retention.nightly",
+        "mobile.retention.nudges",
         "stats.recompute_day",
         "stats.seal",
     } <= names

@@ -31,6 +31,20 @@ def run_task_digests(now: datetime | None = None) -> int:
         return run_digests(session, now=now or datetime.now(timezone.utc))
 
 
+def run_retention_nightly(now: datetime | None = None) -> int:
+    from app.modules.retention.jobs import run_nightly
+
+    with Session(engine) as session:
+        return run_nightly(session, now=now or datetime.now(timezone.utc))
+
+
+def run_retention_nudges(now: datetime | None = None) -> int:
+    from app.modules.retention.sender import run_nudges
+
+    with Session(engine) as session:
+        return run_nudges(session, now=now or datetime.now(timezone.utc))
+
+
 def run_finance_auto_log(now: datetime | None = None) -> int:
     from app.modules.finance.services import auto_log_due
 

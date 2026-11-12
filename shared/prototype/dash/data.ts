@@ -147,6 +147,11 @@ export interface DashState {
     checkin: string
     /** The business day a check-in was last sent; this device only. */
     lastCheckin: string
+    /** Engagement nudges from Fern: daily, weekly or off. Syncs; absent on
+     * a store saved before it existed (= daily). */
+    nudge?: "daily" | "weekly" | "off"
+    /** A pinned nudge time (HH:MM); empty = the usual time. Syncs. */
+    nudgeTime?: string
   }
   targetThreshold: number
   eveningStart: string

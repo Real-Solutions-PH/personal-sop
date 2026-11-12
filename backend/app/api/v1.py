@@ -20,6 +20,7 @@ from app.modules.nutrition.main import router as nutrition_router
 # Mobile API domain modules.
 from app.modules.profile.main import router as profile_router
 from app.modules.realtime.main import router as realtime_router
+from app.modules.retention.main import router as retention_router
 from app.modules.social.main import router as social_router
 from app.modules.stats.main import router as stats_router
 from app.modules.sync.main import router as sync_router
@@ -50,6 +51,7 @@ v1_router.include_router(companion_router)
 v1_router.include_router(social_router)
 v1_router.include_router(weather_router)
 v1_router.include_router(usage_router)
+v1_router.include_router(retention_router)
 v1_router.include_router(billing_router)
 v1_router.include_router(media_router)
 v1_router.include_router(sync_router)
