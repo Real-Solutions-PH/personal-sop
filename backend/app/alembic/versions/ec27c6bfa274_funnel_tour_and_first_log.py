@@ -1,7 +1,7 @@
 """funnel: tour steps and first_log
 
 Revision ID: ec27c6bfa274
-Revises: 5cf0aa4a327d
+Revises: a7c3e9f1b2d4
 Create Date: 2026-11-12 12:00:00.000000
 
 The funnel gains the Welcome screen, the five guided-tour steps and "app"
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "ec27c6bfa274"
-down_revision = "5cf0aa4a327d"
+down_revision = "a7c3e9f1b2d4"
 branch_labels = None
 depends_on = None
 
