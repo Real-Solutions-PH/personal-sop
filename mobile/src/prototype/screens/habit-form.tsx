@@ -5,7 +5,7 @@ import {
   ICONS,
   type ScheduleSlot,
 } from "@domain/habits/data"
-import { scheduleLabel } from "@domain/habits/logic"
+import { scheduleLabel, tidySchedule } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { screenStore } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
@@ -98,9 +98,16 @@ export function HabitForm({
     ),
     [maxMin, setMaxMin] = useState(h?.rule?.maxMin || 30),
     [scheduleOpen, setScheduleOpen] = useState(false),
+    // The Reminder switch was turned on with no time: the schedule opens
+    // asking for one.
+    [askTime, setAskTime] = useState(false),
     // Editing shows what blocks a save at once: there is no Save to press.
     [tried, setTried] = useState(!!old),
     [failed, setFailed] = useState(p.state === "save-error")
+  // A reminder fires at a slot's time, so the switch is on only once a
+  // time is set; turned on before that, it is remembered and asks for one.
+  const timed = schedule.some((s) => s.days.length > 0 && !!s.time),
+    reminderOn = reminder && timed
   const inputStyle = {
     height: 48,
     borderRadius: 12,
@@ -154,7 +161,9 @@ export function HabitForm({
     const common = {
       name: name.trim(),
       icon,
-      schedule: schedule.filter((s) => s.days.length),
+      schedule: tidySchedule(schedule),
+      // The intent is kept: a reminder turned on before a time was set
+      // starts once one is. Nothing is scheduled for an untimed slot.
       reminder,
     }
     if (routine) {
@@ -188,7 +197,7 @@ export function HabitForm({
           unit: type === "count" ? unit || undefined : undefined,
           step: type === "count" ? Number(step) || 1 : undefined,
           linkWorkout: linked,
-          nagEveryMin: reminder ? nag : null,
+          nagEveryMin: reminderOn ? nag : null,
           // Turning the option off makes the habit manual again from today.
           ...(h?.rule ? { rule: undefined } : {}),
         }
@@ -456,32 +465,30 @@ export function HabitForm({
         <Frame style={{ padding: 16, gap: 16 }}>
           {toggle(
             "Reminder",
-            routine
-              ? "Opens the player ready to start"
-              : "Push at the scheduled time",
-            reminder,
+            !timed
+              ? "Set a time to get a reminder"
+              : routine
+                ? "Opens the player ready to start"
+                : "Push at each scheduled time",
+            reminderOn,
             (on: boolean) => {
               setReminder(on)
-              if (on) void askForReminders()
+              if (!on) return
+              void askForReminders()
+              if (!timed) {
+                setAskTime(true)
+                setScheduleOpen(true)
+              }
             },
           )}
-          {reminder && (
+          {reminderOn && (
             <Copy size={12} muted>
-              Arrives as a notification on this phone at the scheduled time,
+              Arrives as a notification on this phone at each scheduled time,
               even offline.
             </Copy>
           )}
-          {reminder && !routine && !auto && (
-            <KeepReminding
-              accent="hab"
-              value={nag}
-              onChange={setNag}
-              unavailable={
-                schedule.some((slot) => slot.time)
-                  ? undefined
-                  : "Set a time in the schedule first: repeats start once that time passes."
-              }
-            />
+          {reminderOn && !routine && !auto && (
+            <KeepReminding accent="hab" value={nag} onChange={setNag} />
           )}
           {!routine &&
             !auto &&
@@ -537,10 +544,24 @@ export function HabitForm({
       <Sheet
         title="Schedule"
         open={scheduleOpen}
-        onClose={() => setScheduleOpen(false)}
+        onClose={() => {
+          setScheduleOpen(false)
+          setAskTime(false)
+        }}
       >
+        {askTime && !timed && (
+          <Copy size={14} weight="medium" style={{ color: t.hab }}>
+            Pick a time for the reminder.
+          </Copy>
+        )}
         <Schedule value={schedule} onChange={setSchedule} />
-        <Button icon={Check} onPress={() => setScheduleOpen(false)}>
+        <Button
+          icon={Check}
+          onPress={() => {
+            setScheduleOpen(false)
+            setAskTime(false)
+          }}
+        >
           Done
         </Button>
       </Sheet>
