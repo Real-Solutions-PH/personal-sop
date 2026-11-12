@@ -17,8 +17,18 @@ import {
   SNAP_MIN,
   snapMinutes,
 } from "@domain/schedule/logic"
+import { tickOf } from "@domain/schedule/ticks"
 import { Check, Undo2 } from "lucide-react-native"
-import { useContext, useEffect, useRef, useState } from "react"
+import {
+  type ComponentRef,
+  createContext,
+  type ReactNode,
+  type RefObject,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
 import { Pressable, useWindowDimensions, View } from "react-native"
 import { Gesture, GestureDetector } from "react-native-gesture-handler"
 import Animated, {
@@ -36,6 +46,12 @@ import { Copy, Line, Tap } from "../native-kit"
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { PageNudge, ScrollLock } from "../ui"
+import { PlanCheck } from "./plan-day"
+
+/** The hour grid on the page, for a row dragged onto it from outside (the
+ * Anytime list): where its first hour sits on screen. Null with no grid. */
+export type GridRef = RefObject<ComponentRef<typeof View> | null>
+export const GridAnchor = createContext<GridRef | null>(null)
 
 /** Points per minute: an hour row is 64 pt, a quarter hour 16. */
 const PX = 64 / 60
@@ -110,6 +126,7 @@ export function DayGrid({
   nowMin?: number
 }) {
   const t = useTheme()
+  const anchor = useContext(GridAnchor)
   const [width, setWidth] = useState(0)
   const placed = layout(items)
   const from = DAY_FROM,
@@ -121,6 +138,7 @@ export function DayGrid({
   const lane = width ? width - GUTTER - 4 : 0
   return (
     <View
+      ref={anchor ?? undefined}
       testID="plan-day-grid"
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
       style={{ height: (to - from) * PX + 8, marginTop: 4 }}
@@ -216,6 +234,7 @@ function Block({
   const { item, min } = placed
   const accent = t[AREA[item.module].accent]
   const canMove = movable(item)
+  const tickable = tickOf(item) !== null
   const y = useSharedValue(top)
   const lifted = useSharedValue(0)
   const scale = useSharedValue(1)
@@ -392,6 +411,7 @@ function Block({
       <View
         style={{
           flexGrow: 1,
+          flexDirection: "row",
           minHeight: BLOCK_MIN_H,
           borderRadius: 8,
           borderLeftWidth: 3,
@@ -399,79 +419,86 @@ function Block({
           backgroundColor: `${accent}26`,
         }}
       >
-        <GestureDetector gesture={pan}>
-          {/* One pressable carries the open tap, the drag and the screen
+        <View style={{ flex: 1 }}>
+          <GestureDetector gesture={pan}>
+            {/* One pressable carries the open tap, the drag and the screen
             reader's actions: a button inside a button is invalid on web. */}
-          <Pressable
-            cssInterop={false}
-            accessibilityRole={canMove ? "adjustable" : "button"}
-            accessibilityLabel={`${item.title}, ${timeLabel(min)}${
-              movedFrom !== undefined ? ", moved for this day" : ""
-            }`}
-            accessibilityHint={
-              canMove
-                ? "Hold and drag to move it. Swipe up or down to move it 15 minutes."
-                : undefined
-            }
-            accessibilityActions={
-              canMove
-                ? [
-                    { name: "increment", label: "15 minutes later" },
-                    { name: "decrement", label: "15 minutes earlier" },
-                    { name: "activate", label: "Open" },
-                  ]
-                : [{ name: "activate", label: "Open" }]
-            }
-            onAccessibilityAction={(e) => {
-              const a = e.nativeEvent.actionName
-              if (a === "increment") step(1)
-              else if (a === "decrement") step(-1)
-              else go(item.href)
-            }}
-            onPressIn={() => {
-              dragged.current = false
-            }}
-            onPress={() => {
-              if (!dragged.current) go(item.href)
-            }}
-          >
-            <Line
-              style={{
-                gap: 6,
-                alignItems: "flex-start",
-                paddingVertical: 4,
-                paddingLeft: 6,
-                paddingRight: 4,
+            <Pressable
+              cssInterop={false}
+              accessibilityRole={canMove ? "adjustable" : "button"}
+              accessibilityLabel={`${item.title}, ${timeLabel(min)}${
+                movedFrom !== undefined ? ", moved for this day" : ""
+              }`}
+              accessibilityHint={
+                canMove
+                  ? "Hold and drag to move it. Swipe up or down to move it 15 minutes."
+                  : undefined
+              }
+              accessibilityActions={
+                canMove
+                  ? [
+                      { name: "increment", label: "15 minutes later" },
+                      { name: "decrement", label: "15 minutes earlier" },
+                      { name: "activate", label: "Open" },
+                    ]
+                  : [{ name: "activate", label: "Open" }]
+              }
+              onAccessibilityAction={(e) => {
+                const a = e.nativeEvent.actionName
+                if (a === "increment") step(1)
+                else if (a === "decrement") step(-1)
+                else go(item.href)
+              }}
+              onPressIn={() => {
+                dragged.current = false
+              }}
+              onPress={() => {
+                if (!dragged.current) go(item.href)
               }}
             >
-              <View style={{ flex: 1, gap: 1 }}>
-                <Copy
-                  size={12}
-                  weight="medium"
-                  style={{
-                    color: item.done ? t.muted : t.text,
-                    textDecorationLine: item.done ? "line-through" : "none",
-                  }}
-                >
-                  {item.title}
-                </Copy>
-                {target !== null && (
-                  <Copy size={12} weight="semibold" style={{ color: accent }}>
-                    {timeLabel(target)}
+              <Line
+                style={{
+                  gap: 6,
+                  alignItems: "flex-start",
+                  paddingVertical: 4,
+                  paddingLeft: 6,
+                  paddingRight: 4,
+                }}
+              >
+                <View style={{ flex: 1, gap: 1 }}>
+                  <Copy
+                    size={12}
+                    weight="medium"
+                    style={{
+                      color: item.done ? t.muted : t.text,
+                      textDecorationLine: item.done ? "line-through" : "none",
+                    }}
+                  >
+                    {item.title}
                   </Copy>
+                  {target !== null && (
+                    <Copy size={12} weight="semibold" style={{ color: accent }}>
+                      {timeLabel(target)}
+                    </Copy>
+                  )}
+                </View>
+                {item.done && !tickable && (
+                  <Check size={14} color={t.good} style={{ marginTop: 1 }} />
                 )}
-              </View>
-              {item.done && (
-                <Check size={14} color={t.good} style={{ marginTop: 1 }} />
-              )}
-            </Line>
-          </Pressable>
-        </GestureDetector>
-        {/* Beside the pressable, never inside it (no button in a button). */}
-        {movedFrom !== undefined && target === null && (
-          <View style={{ paddingLeft: 4, paddingBottom: 4 }}>
-            <MovedMark item={item} from={movedFrom} />
-          </View>
+              </Line>
+            </Pressable>
+          </GestureDetector>
+          {/* Beside the pressable, never inside it (no button in a button). */}
+          {movedFrom !== undefined && target === null && (
+            <View style={{ paddingLeft: 4, paddingBottom: 4 }}>
+              <MovedMark item={item} from={movedFrom} />
+            </View>
+          )}
+        </View>
+        {/* Ticks off where it sits; outside the drag, so a press on the
+            check never lifts the block. */}
+        {tickable && target === null && (
+          <PlanCheck item={item} color={accent} size={22} />
         )}
       </View>
     </Animated.View>
@@ -512,5 +539,233 @@ export function MovedMark({
         </Copy>
       )}
     </Tap>
+  )
+}
+
+/** The next quarter hour from now on the business day, else 9 AM: where a
+ * screen reader's "give it a time" puts an Anytime item. */
+function nextSlot(day: string, today: string) {
+  if (day !== today) return 9 * 60
+  const now = new Date()
+  const min = dayMinutes(
+    `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+  )
+  return Math.min(DAY_LAST_MIN, Math.ceil(min / SNAP_MIN) * SNAP_MIN)
+}
+
+/**
+ * A row of the Anytime list that can be long-pressed and dragged onto the
+ * hour grid below it, landing at the quarter hour under the finger: a habit
+ * or routine gets a time for that day only, a task its due time. Above the
+ * grid it springs back. Without a grid on the page (the day parts view) it
+ * is the row as it is. ``children`` gets whether the press that just ended
+ * was a drag, so the row's own tap does not open the item then.
+ */
+export function DragToGrid({
+  item,
+  today,
+  children,
+}: {
+  item: CalendarItem
+  today: string
+  children: (wasDrag: () => boolean) => ReactNode
+}) {
+  const t = useTheme()
+  const grid = useContext(GridAnchor)
+  const lock = useContext(ScrollLock)
+  const nudge = useContext(PageNudge)
+  const reduced = useReducedMotion()
+  const screen = useWindowDimensions().height
+  const insets = useSafeAreaInsets()
+  const topZone = insets.top + HEADER + EDGE,
+    bottomZone = screen - insets.bottom - TAB_BAR - EDGE
+  const canMove = Boolean(grid) && movable(item)
+  const ty = useSharedValue(0)
+  const lifted = useSharedValue(0)
+  const scale = useSharedValue(1)
+  // Where the grid's first hour was on screen at the lift, and how far the
+  // page has scrolled since; -1 while the finger is above the grid.
+  const at = useRef({ gridTop: 0, scrolled: 0, travel: 0, absY: 0, slot: -1 })
+  const [target, setTarget] = useState<number | null>(null)
+  const dragged = useRef(false)
+  const edge = useRef<{
+    dir: number
+    speed: number
+    timer?: ReturnType<typeof setInterval>
+  }>({ dir: 0, speed: 0 })
+  useEffect(
+    () => () => {
+      if (edge.current.timer) clearInterval(edge.current.timer)
+    },
+    [],
+  )
+  /** The quarter hour under the finger, or -1 above the grid. */
+  const aim = () => {
+    const a = at.current
+    const y = a.absY - (a.gridTop - a.scrolled)
+    const next =
+      y < 0
+        ? -1
+        : Math.min(
+            DAY_LAST_MIN,
+            Math.max(
+              DAY_FIRST_MIN,
+              Math.round((DAY_FROM + y / PX) / SNAP_MIN) * SNAP_MIN,
+            ),
+          )
+    if (next === a.slot) return
+    a.slot = next
+    feel.select()
+    setTarget(next < 0 ? null : next)
+  }
+  const setEdge = (depth: number) => {
+    const dir = Math.sign(depth)
+    edge.current.speed = 2 + Math.abs(depth) * 6
+    if (dir === edge.current.dir) return
+    edge.current.dir = dir
+    if (edge.current.timer) clearInterval(edge.current.timer)
+    edge.current.timer = undefined
+    if (!dir) return
+    edge.current.timer = setInterval(() => {
+      const moved = nudge(dir * edge.current.speed)
+      if (!moved) return
+      at.current.scrolled += moved
+      ty.value = at.current.travel + at.current.scrolled
+      aim()
+    }, 16)
+  }
+  const lift = (absY: number) => {
+    dragged.current = true
+    lock(true)
+    feel.impact()
+    at.current = { gridTop: 1e9, scrolled: 0, travel: 0, absY, slot: -1 }
+    grid?.current?.measureInWindow((_x, y) => {
+      at.current.gridTop = y
+      aim()
+    })
+  }
+  const follow = (absY: number, travel: number) => {
+    at.current.absY = absY
+    at.current.travel = travel
+    ty.value = travel + at.current.scrolled
+    const depth =
+      absY < topZone
+        ? -Math.min(1, (topZone - absY) / EDGE)
+        : absY > bottomZone
+          ? Math.min(1, (absY - bottomZone) / EDGE)
+          : 0
+    setEdge(depth)
+    aim()
+  }
+  const back = () => {
+    ty.value = reduced ? 0 : withTiming(0, { duration: 160 })
+  }
+  // On web the release that ends a drag is also a click on the row; it
+  // comes at once, so the flag clears just after.
+  const settle = () => {
+    setTimeout(() => {
+      dragged.current = false
+    }, 350)
+  }
+  const drop = () => {
+    setEdge(0)
+    lock(false)
+    setTarget(null)
+    settle()
+    const to = at.current.slot
+    if (to < 0) {
+      back()
+      return
+    }
+    const outcome = moveItem(item, clockOf(to))
+    if (outcome === "fixed") {
+      feel.warning()
+      back()
+      return
+    }
+    // Landed: it leaves this list for its block on the grid.
+    feel.impact()
+    ty.value = 0
+    if (!reduced)
+      scale.value = withSequence(
+        withTiming(1.04, { duration: 90 }),
+        withSpring(1, MOTION.spring),
+      )
+  }
+  const pan = Gesture.Pan()
+    .enabled(canMove)
+    .activateAfterLongPress(300)
+    .onStart((e) => {
+      lifted.value = 1
+      runOnJS(lift)(e.absoluteY)
+    })
+    .onUpdate((e) => {
+      runOnJS(follow)(e.absoluteY, e.translationY)
+    })
+    .onEnd(() => {
+      lifted.value = 0
+      runOnJS(drop)()
+    })
+    .onFinalize((_e, ok) => {
+      if (ok) return
+      lifted.value = 0
+      runOnJS(setEdge)(0)
+      runOnJS(lock)(false)
+      runOnJS(setTarget)(null)
+      runOnJS(back)()
+      runOnJS(settle)()
+    })
+  const style = useAnimatedStyle(() => ({
+    zIndex: lifted.value ? 20 : 1,
+    shadowOpacity: lifted.value ? 0.22 : 0,
+    backgroundColor: lifted.value ? t.card : "transparent",
+    transform: [
+      { translateY: ty.value },
+      { scale: lifted.value && !reduced ? 1.03 : scale.value },
+    ],
+  }))
+  if (!canMove) return <>{children(() => false)}</>
+  const accent = t[AREA[item.module].accent]
+  return (
+    <GestureDetector gesture={pan}>
+      <Animated.View
+        accessibilityActions={[{ name: "increment", label: "Give it a time" }]}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === "increment")
+            moveItem(item, clockOf(nextSlot(item.day, today)))
+        }}
+        style={[
+          {
+            flex: 1,
+            borderRadius: 12,
+            shadowColor: "#000",
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 4 },
+          },
+          style,
+        ]}
+      >
+        {children(() => dragged.current)}
+        {/* Over the row, out of its flow: growing the row would push the
+            grid down mid-drag and the time would land late. */}
+        {target !== null && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              right: 4,
+              top: -22,
+              paddingHorizontal: 6,
+              borderRadius: 8,
+              backgroundColor: t.card,
+            }}
+          >
+            <Copy size={12} weight="semibold" style={{ color: accent }}>
+              {timeLabel(target)}
+            </Copy>
+          </View>
+        )}
+      </Animated.View>
+    </GestureDetector>
   )
 }

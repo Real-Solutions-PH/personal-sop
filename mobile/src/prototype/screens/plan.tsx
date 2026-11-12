@@ -1,12 +1,14 @@
 import type { CalendarItem, ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
 import { useAllCalendar, useEnabled } from "@domain/dash/hooks"
+import * as FA from "@domain/finance/actions"
 import * as N from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { dayMinutes } from "@domain/schedule/logic"
+import { tickOf } from "@domain/schedule/ticks"
 import * as A from "@domain/tasks/actions"
 import type { Task } from "@domain/tasks/data"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
@@ -21,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  CircleDashed,
   Clock,
   CloudSun,
   Flame,
@@ -38,7 +41,7 @@ import {
   Sunrise,
   TriangleAlert,
 } from "lucide-react-native"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { View } from "react-native"
 import { ScrollView as GHScrollView } from "react-native-gesture-handler"
 import Animated, {
@@ -57,6 +60,7 @@ import {
   MOTION,
   SwipeSegments,
   SwipeStep,
+  TickRow,
   useDayMoment,
   usePopIn,
 } from "../motion"
@@ -77,8 +81,16 @@ import { useTheme } from "../theme"
 import { Button, confirm, Screen, Sheet } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
+import { DueSheet } from "./finance-planned"
 import { LockedPreview } from "./locked-preview"
-import { DayGrid, MovedMark } from "./plan-grid"
+import { BillRow, PlanCheck } from "./plan-day"
+import {
+  DayGrid,
+  DragToGrid,
+  GridAnchor,
+  type GridRef,
+  MovedMark,
+} from "./plan-grid"
 import { StarterLists } from "./task-lists"
 import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
@@ -123,6 +135,8 @@ export function ClearRing({
     </Animated.View>
   )
 }
+/** Undated tasks shown in the Today view before a link to the rest. */
+const ANYTIME_ROWS = 5
 export function TaskPlanPanel({
   statsInline = false,
 }: {
@@ -139,6 +153,7 @@ export function TaskPlanPanel({
       params.filter === "overdue" ? "overdue" : "today",
     ),
     [done, setDone] = useState(false),
+    [allAnytime, setAllAnytime] = useState(false),
     [triage, setTriage] = useState(false)
   const count = d.due.length + d.doneDueToday.length + d.overdue.length
   const clear = useDayMoment(
@@ -282,6 +297,24 @@ export function TaskPlanPanel({
             <Copy muted style={{ padding: 20, textAlign: "center" }}>
               All clear for today
             </Copy>
+          )}
+          {d.anytime.length > 0 && (
+            <>
+              <SectionHeading>Anytime · {d.anytime.length}</SectionHeading>
+              {d.anytime
+                .slice(0, allAnytime ? undefined : ANYTIME_ROWS)
+                .map((task) => row(task, false))}
+              {!allAnytime && d.anytime.length > ANYTIME_ROWS && (
+                <Tap
+                  onPress={() => setAllAnytime(true)}
+                  style={{ paddingHorizontal: 4, paddingVertical: 8 }}
+                >
+                  <Copy size={14} muted>
+                    +{d.anytime.length - ANYTIME_ROWS} more with no date
+                  </Copy>
+                </Tap>
+              )}
+            </>
           )}
           {d.doneToday.length > 0 && (
             <>
@@ -736,13 +769,8 @@ export function HabitPlanPanel() {
       </SectionHeading>
       <Frame style={{ padding: 4 }}>
         {items.length ? (
-          items.map((item, i) => (
-            <View key={item.id}>
-              {i === 0 || item.time !== items[i - 1].time ? (
-                <Copy size={12} muted style={{ padding: 8 }}>
-                  {H.fmtTime(item.time)}
-                </Copy>
-              ) : null}
+          items.map((item, i) => {
+            const open = (
               <Tap
                 onPress={() =>
                   go(
@@ -752,42 +780,27 @@ export function HabitPlanPanel() {
                   )
                 }
                 style={{
-                  paddingHorizontal: 12,
+                  flex: 1,
+                  paddingHorizontal: item.routine ? 12 : 4,
                   paddingVertical: item.routine ? 10 : 8,
                   borderRadius: 12,
                   backgroundColor: item.routine ? t.soft : "transparent",
                 }}
               >
                 <Line>
-                  {item.habit && (
-                    <View
-                      style={{
-                        height: 20,
-                        width: 20,
-                        borderRadius: 10,
-                        borderWidth: 2,
-                        borderColor:
-                          idx.get(H.lk(item.id, sel))?.status === "done"
-                            ? t.hab
-                            : `${t.muted}4d`,
-                        backgroundColor:
-                          idx.get(H.lk(item.id, sel))?.status === "done"
-                            ? t.hab
-                            : "transparent",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      {idx.get(H.lk(item.id, sel))?.status === "done" && (
-                        <Check size={12} color={t.onPrimary} />
-                      )}
-                    </View>
-                  )}
                   <Copy>{item.habit?.icon ?? item.routine?.icon}</Copy>
                   <View style={{ flex: 1 }}>
                     <Copy
                       size={item.routine ? 16 : 14}
                       weight={item.routine ? "medium" : "body"}
+                      style={
+                        idx.get(H.lk(item.id, sel))?.status === "done"
+                          ? {
+                              color: t.muted,
+                              textDecorationLine: "line-through",
+                            }
+                          : undefined
+                      }
                     >
                       {item.habit?.name ?? item.routine?.name}
                     </Copy>
@@ -800,8 +813,48 @@ export function HabitPlanPanel() {
                   </View>
                 </Line>
               </Tap>
-            </View>
-          ))
+            )
+            return (
+              <View key={item.id}>
+                {i === 0 || item.time !== items[i - 1].time ? (
+                  <Copy size={12} muted style={{ padding: 8 }}>
+                    {H.fmtTime(item.time)}
+                  </Copy>
+                ) : null}
+                <TickRow>
+                  {/* The check sits beside the row's button, never in it. */}
+                  {item.habit ? (
+                    <PlanCheck
+                      color={t.hab}
+                      size={24}
+                      item={{
+                        id: `habit-${item.id}-${sel}`,
+                        day: sel,
+                        title: item.habit.name,
+                        module: "habits",
+                        href: `/habits/${item.id}`,
+                        done: idx.get(H.lk(item.id, sel))?.status === "done",
+                      }}
+                    >
+                      {(check, step) => (
+                        <Line style={{ gap: 4 }}>
+                          <View style={{ minWidth: 44, alignItems: "center" }}>
+                            {check}
+                          </View>
+                          {open}
+                          {step && (
+                            <View style={{ paddingRight: 8 }}>{step}</View>
+                          )}
+                        </Line>
+                      )}
+                    </PlanCheck>
+                  ) : (
+                    open
+                  )}
+                </TickRow>
+              </View>
+            )
+          })
         ) : (
           <Copy muted style={{ padding: 24, textAlign: "center" }}>
             Nothing scheduled — rest day.
@@ -847,15 +900,8 @@ const MONEY_MARK = {
   expense: { icon: Minus, tone: "bad", label: "Bill", sign: "−" },
   transfer: { icon: ArrowLeftRight, tone: "fin", label: "Transfer", sign: "" },
 } as const
-const OCC_LABEL = {
-  paid: "Paid",
-  overdue: "Overdue",
-  due: "Due",
-  upcoming: "Scheduled",
-  skipped: "Skipped",
-} as const
 
-function CalendarPanel() {
+export function CalendarPanel() {
   const t = useTheme(),
     enabled = useEnabled(),
     today = dayKey(),
@@ -866,6 +912,15 @@ function CalendarPanel() {
     // The selected day as Morning / Afternoon / Night, or as hour rows to
     // time-block by dragging.
     [dayView, setDayView] = useState<"Day parts" | "Hours">("Day parts"),
+    // A bill being recorded, and the dates paid or skipped from here just
+    // now: those keep their row with an Undo.
+    [settling, setSettling] = useState<{
+      id: string
+      day: string
+      key: string
+    } | null>(null),
+    [acted, setActed] = useState<string[]>([]),
+    grid: GridRef = useRef(null),
     fin = finStore.use((s) => s),
     money = useMoney()
   const anchor = new Date(`${today}T12:00:00`)
@@ -879,7 +934,9 @@ function CalendarPanel() {
     ),
     all = useAllCalendar(days[0], days.at(-1)!),
     items = all.filter((i) => !hidden.includes(i.module)),
-    selected = items.filter((i) => i.day === sel),
+    // Bills come from their occurrences below, with their actions.
+    selected = items.filter((i) => i.day === sel && i.module !== "finance"),
+    untimed = selected.filter((i) => !i.time),
     currentHour = hour(new Date().toTimeString().slice(0, 5)),
     nowMin = dayMinutes(new Date().toTimeString().slice(0, 5)),
     // Scheduled money across the visible days: marked on each cell, and the
@@ -888,10 +945,24 @@ function CalendarPanel() {
       (o) => o.status !== "skipped",
     ),
     showFin = enabled.finance && !hidden.includes("finance"),
-    due = occ.filter((o) => o.day === sel)
-  const itemRow = (i: CalendarItem) => (
-    <Line key={i.id} style={{ gap: 8 }}>
-      <Tap onPress={() => go(i.href)} style={{ flex: 1, paddingVertical: 8 }}>
+    occKey = (o: N.Occurrence) => `${o.item.id}-${o.orig}`,
+    bills = showFin
+      ? N.occurrencesIn(fin, days[0], days.at(-1)!).filter(
+          (o) =>
+            o.day === sel &&
+            (o.status !== "skipped" || acted.includes(occKey(o))),
+        )
+      : [],
+    total = selected.length + bills.length
+  const accentOf = (i: CalendarItem) => t[AREA[i.module].accent]
+  const itemRow = (i: CalendarItem, anytime = false) => {
+    const row = (wasDrag: () => boolean) => (
+      <Tap
+        onPress={() => {
+          if (!wasDrag()) go(i.href)
+        }}
+        style={{ flex: 1, paddingVertical: 8 }}
+      >
         <Line style={{ gap: 8, alignItems: "flex-start" }}>
           {i.time && (
             <Copy size={12} muted style={{ width: 42, marginTop: 2 }}>
@@ -904,7 +975,7 @@ function CalendarPanel() {
               height: 6,
               marginTop: 7,
               borderRadius: 3,
-              backgroundColor: t[AREA[i.module].accent],
+              backgroundColor: accentOf(i),
             }}
           />
           <Copy
@@ -917,15 +988,94 @@ function CalendarPanel() {
           >
             {i.title}
           </Copy>
-          {i.done && (
+          {i.done && !tickOf(i) && (
             <Check size={14} color={t.good} style={{ marginTop: 3 }} />
           )}
         </Line>
       </Tap>
-      {/* Moved for this day: beside the row, never inside its button. */}
-      {i.movedFrom !== undefined && <MovedMark item={i} from={i.movedFrom} />}
-    </Line>
-  )
+    )
+    return (
+      <TickRow key={i.id}>
+        <Line style={{ gap: 8 }}>
+          {anytime ? (
+            <DragToGrid item={i} today={today}>
+              {row}
+            </DragToGrid>
+          ) : (
+            row(() => false)
+          )}
+          {/* Moved for this day: beside the row, never inside its button. */}
+          {i.movedFrom !== undefined && (
+            <MovedMark item={i} from={i.movedFrom} />
+          )}
+          <PlanCheck item={i} color={accentOf(i)} />
+        </Line>
+      </TickRow>
+    )
+  }
+  const settled = (id: string, day: string) =>
+    finStore
+      .get()
+      .records.filter((r) => r.plannedId === id && r.plannedOn === day)
+  const billRow = (o: N.Occurrence) => {
+    const key = occKey(o),
+      m = MONEY_MARK[o.item.type]
+    return (
+      <BillRow
+        key={key}
+        occ={o}
+        icon={fin.categories.find((c) => c.id === o.item.categoryId)?.icon}
+        amount={`${m.sign}${money(o.amount)}`}
+        acted={acted.includes(key)}
+        onOpen={() => go(`/finance/planned/${o.item.id}`)}
+        onPay={() => setSettling({ id: o.item.id, day: o.orig, key })}
+        onSkip={() => {
+          FA.skipOccurrence(o.item.id, o.orig)
+          feel.select()
+          setActed((a) => [...a, key])
+        }}
+        onUndo={() => {
+          if (o.status === "paid")
+            FA.deleteRecords(settled(o.item.id, o.orig).map((r) => r.id))
+          else FA.unskipOccurrence(o.item.id, o.orig)
+          feel.select()
+          setActed((a) => a.filter((k) => k !== key))
+        }}
+      />
+    )
+  }
+  // What has no time comes first in the day: habits and tasks to fit in
+  // anywhere, and the day's bills and paydays.
+  const anytimeFrame =
+    untimed.length || bills.length ? (
+      // Above the grid and unclipped: a row lifted from here is dragged
+      // over the hours below.
+      <Frame style={{ padding: 12, overflow: "visible", zIndex: 2 }}>
+        <Line style={{ gap: 8, marginBottom: 4 }}>
+          <CircleDashed size={16} color={t.muted} />
+          <Copy size={14} weight="semibold">
+            Anytime
+          </Copy>
+          <View testID="anytime-count" style={{ marginLeft: "auto" }}>
+            <Copy size={12} muted>
+              {`${
+                untimed.filter((i) => i.done).length +
+                bills.filter(
+                  (o) => o.status === "paid" || o.status === "skipped",
+                ).length
+              }/${untimed.length + bills.length}`}
+            </Copy>
+          </View>
+        </Line>
+        {dayView === "Hours" && untimed.some((i) => tickOf(i) || !i.done) && (
+          <Copy size={12} muted style={{ marginBottom: 4 }}>
+            Hold one and drag it onto the hours to give it a time.
+          </Copy>
+        )}
+        {untimed.map((i) => itemRow(i, true))}
+        {bills.map(billRow)}
+      </Frame>
+    ) : null
   return (
     <View>
       <Line style={{ gap: 8, marginBottom: 12 }}>
@@ -1141,167 +1291,97 @@ function CalendarPanel() {
             />
           </View>
         }
-      >{`${sel === today ? "Today" : dateLabel(sel)} · ${selected.length}`}</SectionHeading>
-      <View style={{ gap: 12 }}>
-        {selected.length && dayView === "Hours" ? (
-          <>
-            {selected.some((i) => i.time) && (
+      >{`${sel === today ? "Today" : dateLabel(sel)} · ${total}`}</SectionHeading>
+      <GridAnchor.Provider value={dayView === "Hours" ? grid : null}>
+        <View style={{ gap: 12 }}>
+          {total && dayView === "Hours" ? (
+            <>
+              {anytimeFrame}
               <Frame style={{ padding: 12 }}>
                 <DayGrid
                   items={selected}
                   nowMin={sel === today ? nowMin : undefined}
                 />
               </Frame>
-            )}
-            {selected.some((i) => !i.time) && (
-              <Frame style={{ padding: 12 }}>
-                <Copy size={14} weight="semibold">
-                  Anytime
-                </Copy>
-                {selected.filter((i) => !i.time).map(itemRow)}
-              </Frame>
-            )}
-          </>
-        ) : selected.length ? (
-          <>
-            {PARTS.map((part) => {
-              const list = selected
-                  .filter(
-                    (i) =>
-                      i.time &&
-                      hour(i.time) >= part.from &&
-                      hour(i.time) < part.to,
-                  )
-                  .sort((a, b) => hour(a.time!) - hour(b.time!)),
-                current =
-                  sel === today &&
-                  currentHour >= part.from &&
-                  currentHour < part.to
-              return (
-                <Frame
-                  key={part.label}
-                  style={{
-                    padding: 12,
-                    borderColor: current ? `${t.primary}99` : undefined,
-                  }}
-                >
-                  <Line style={{ gap: 8, marginBottom: 4 }}>
-                    <part.icon
-                      size={16}
-                      color={current ? t.primary : t.muted}
-                    />
-                    <Copy size={14} weight="semibold">
-                      {part.label}
-                    </Copy>
-                    <Copy size={12} muted>
-                      {part.range}
-                    </Copy>
-                    {current && (
-                      <Copy size={12} style={{ color: t.primary }}>
-                        NOW
+            </>
+          ) : total ? (
+            <>
+              {anytimeFrame}
+              {PARTS.map((part) => {
+                const list = selected
+                    .filter(
+                      (i) =>
+                        i.time &&
+                        hour(i.time) >= part.from &&
+                        hour(i.time) < part.to,
+                    )
+                    .sort((a, b) => hour(a.time!) - hour(b.time!)),
+                  current =
+                    sel === today &&
+                    currentHour >= part.from &&
+                    currentHour < part.to
+                return (
+                  <Frame
+                    key={part.label}
+                    style={{
+                      padding: 12,
+                      borderColor: current ? `${t.primary}99` : undefined,
+                    }}
+                  >
+                    <Line style={{ gap: 8, marginBottom: 4 }}>
+                      <part.icon
+                        size={16}
+                        color={current ? t.primary : t.muted}
+                      />
+                      <Copy size={14} weight="semibold">
+                        {part.label}
+                      </Copy>
+                      <Copy size={12} muted>
+                        {part.range}
+                      </Copy>
+                      {current && (
+                        <Copy size={12} style={{ color: t.primary }}>
+                          NOW
+                        </Copy>
+                      )}
+                      <Copy size={12} muted style={{ marginLeft: "auto" }}>
+                        {list.length
+                          ? `${list.filter((i) => i.done).length}/${list.length}`
+                          : ""}
+                      </Copy>
+                    </Line>
+                    {list.length ? (
+                      list.map((i) => itemRow(i))
+                    ) : (
+                      <Copy size={12} muted>
+                        Nothing planned
                       </Copy>
                     )}
-                    <Copy size={12} muted style={{ marginLeft: "auto" }}>
-                      {list.length
-                        ? `${list.filter((i) => i.done).length}/${list.length}`
-                        : ""}
-                    </Copy>
-                  </Line>
-                  {list.length ? (
-                    list.map(itemRow)
-                  ) : (
-                    <Copy size={12} muted>
-                      Nothing planned
-                    </Copy>
-                  )}
-                </Frame>
-              )
-            })}
-            {selected.some((i) => !i.time) && (
-              <Frame style={{ padding: 12 }}>
-                <Copy size={14} weight="semibold">
-                  Anytime
-                </Copy>
-                {selected.filter((i) => !i.time).map(itemRow)}
-              </Frame>
-            )}
-          </>
-        ) : (
-          <Frame style={{ padding: 24 }}>
-            <Copy weight="semibold">Nothing scheduled</Copy>
-            <Copy size={14} muted>
-              Free day — add a task or let it breathe.
-            </Copy>
-          </Frame>
-        )}
-      </View>
-      {enabled.finance && (
-        <>
-          <SectionHeading
-            action={
-              <Tap onPress={() => go("/finance/planned")}>
-                <Copy size={12} style={{ color: t.fin }}>
-                  All scheduled
-                </Copy>
-              </Tap>
-            }
-          >
-            {`Bills & paydays · ${sel === today ? "Today" : dateLabel(sel)}`}
-          </SectionHeading>
-          <Frame style={{ paddingHorizontal: 16, paddingVertical: 4 }}>
-            {due.map((o) => {
-              const m = MONEY_MARK[o.item.type]
-              const icon = fin.categories.find(
-                (c) => c.id === o.item.categoryId,
-              )?.icon
-              return (
-                <Tap
-                  key={`${o.item.id}-${o.orig}`}
-                  onPress={() => go(`/finance/planned/${o.item.id}`)}
-                  style={{ paddingVertical: 12 }}
-                >
-                  <Line style={{ gap: 12 }}>
-                    <View style={{ width: 28, alignItems: "center" }}>
-                      {icon ? (
-                        <Copy>{icon}</Copy>
-                      ) : (
-                        <m.icon size={18} color={t.muted} />
-                      )}
-                    </View>
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <Copy size={14} lines={2}>
-                        {o.item.name}
-                      </Copy>
-                      <Copy
-                        size={12}
-                        muted={o.status !== "overdue"}
-                        style={
-                          o.status === "overdue" ? { color: t.bad } : undefined
-                        }
-                      >
-                        {OCC_LABEL[o.status]}
-                      </Copy>
-                    </View>
-                    <Copy
-                      size={14}
-                      weight="medium"
-                      style={{
-                        color: o.item.type === "income" ? t.good : t.text,
-                      }}
-                    >
-                      {`${m.sign}${money(o.amount)}`}
-                    </Copy>
-                  </Line>
-                </Tap>
-              )
-            })}
-            {!due.length && (
-              <Copy size={14} muted style={{ paddingVertical: 12 }}>
-                {`Nothing to pay or receive ${sel === today ? "today" : `on ${dateLabel(sel)}`}.`}
+                  </Frame>
+                )
+              })}
+            </>
+          ) : (
+            <Frame style={{ padding: 24 }}>
+              <Copy weight="semibold">Nothing scheduled</Copy>
+              <Copy size={14} muted>
+                Free day — add a task or let it breathe.
               </Copy>
-            )}
-          </Frame>
-        </>
+            </Frame>
+          )}
+        </View>
+      </GridAnchor.Provider>
+      {settling && (
+        <DueSheet
+          id={settling.id}
+          day={settling.day}
+          record
+          onClose={() => {
+            const { id, day, key } = settling
+            setSettling(null)
+            if (settled(id, day).length) setActed((a) => [...a, key])
+          }}
+        />
       )}
     </View>
   )
