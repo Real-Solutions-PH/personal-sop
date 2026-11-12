@@ -1056,12 +1056,16 @@ export function CalendarPanel() {
           <Copy size={14} weight="semibold">
             Anytime
           </Copy>
-          <Copy size={12} muted style={{ marginLeft: "auto" }}>
-            {`${
-              untimed.filter((i) => i.done).length +
-              bills.filter((o) => o.status === "paid").length
-            }/${untimed.length + bills.length}`}
-          </Copy>
+          <View testID="anytime-count" style={{ marginLeft: "auto" }}>
+            <Copy size={12} muted>
+              {`${
+                untimed.filter((i) => i.done).length +
+                bills.filter(
+                  (o) => o.status === "paid" || o.status === "skipped",
+                ).length
+              }/${untimed.length + bills.length}`}
+            </Copy>
+          </View>
         </Line>
         {dayView === "Hours" && untimed.some((i) => tickOf(i) || !i.done) && (
           <Copy size={12} muted style={{ marginBottom: 4 }}>

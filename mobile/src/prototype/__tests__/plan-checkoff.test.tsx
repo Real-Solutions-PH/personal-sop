@@ -13,7 +13,13 @@ import { dayKey } from "@domain/lib/day"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
-import { act, fireEvent, render, screen } from "@testing-library/react-native"
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
@@ -234,6 +240,10 @@ describe("Calendar segment", () => {
       dayKey(),
     ])
     expect(screen.getByText("Electric bill")).toBeTruthy()
+    // Skipped is settled: nothing is left to do in Anytime.
+    expect(
+      within(screen.getByTestId("anytime-count")).getByText("1/1"),
+    ).toBeTruthy()
     fireEvent.press(screen.getByLabelText("Undo skip of Electric bill"))
     expect(finStore.get().planned.find((x) => x.id === p.id)?.skipped).toEqual(
       [],

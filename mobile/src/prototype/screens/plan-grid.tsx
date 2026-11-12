@@ -746,14 +746,24 @@ export function DragToGrid({
         ]}
       >
         {children(() => dragged.current)}
+        {/* Over the row, out of its flow: growing the row would push the
+            grid down mid-drag and the time would land late. */}
         {target !== null && (
-          <Copy
-            size={12}
-            weight="semibold"
-            style={{ color: accent, paddingLeft: 8, paddingBottom: 6 }}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              right: 4,
+              top: -22,
+              paddingHorizontal: 6,
+              borderRadius: 8,
+              backgroundColor: t.card,
+            }}
           >
-            {timeLabel(target)}
-          </Copy>
+            <Copy size={12} weight="semibold" style={{ color: accent }}>
+              {timeLabel(target)}
+            </Copy>
+          </View>
         )}
       </Animated.View>
     </GestureDetector>
