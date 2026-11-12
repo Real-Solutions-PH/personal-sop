@@ -33,12 +33,23 @@ class AskIn(BaseModel):
     # The chat it belongs to; the device mints a new chat's id. Omitted: the
     # most recent chat (an app from before chats).
     thread_id: uuid.UUID | None = None
+    # The person tapped Retry on this message: one that failed runs again.
+    # Any other resend of a failed message (a reconnect, a network retry)
+    # leaves it failed, since running it again could record something twice.
+    retry: bool = False
 
     @model_validator(mode="after")
     def _something(self) -> "AskIn":
         if not self.text.strip() and not self.media_ids:
             raise ValueError("Type a message or attach a photo")
         return self
+
+
+class AskQueued(BaseModel):
+    """A message the server keeps until Fern has answered it."""
+
+    id: uuid.UUID
+    status: Literal["queued", "running", "done", "failed"]
 
 
 class MessagePublic(BaseModel):
@@ -107,11 +118,14 @@ class AllowanceOut(BaseModel):
 
 class ReplyOut(BaseModel):
     """Where the reply to a question stands, for an app that lost its
-    stream: ``done`` with the stored question and reply (or the capture a
-    log became), ``running`` while the turn is still being written, or
-    ``failed`` when it ended with nothing stored."""
+    stream: ``queued`` while it waits its turn on the server, ``running``
+    while the turn is being written, ``done`` with the stored question and
+    reply (or the capture a log became), or ``failed`` when it ended without
+    a reply (``error`` says why: ``interrupted`` when it stopped after
+    recording something, so it is never run again unasked)."""
 
-    status: Literal["running", "done", "failed"]
+    status: Literal["queued", "running", "done", "failed"]
+    error: str | None = None
     messages: list[MessagePublic] = Field(default_factory=list)
     capture: dict[str, Any] | None = None
 

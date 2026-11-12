@@ -920,11 +920,24 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       messages: withMessages(s.messages, ms),
     }))
 
-  const markAsk = (id: string, status: Msg["status"]) =>
+  const markAsk = (id: string, status: Msg["status"], error?: string) =>
+    companionStore.set((s) => ({
+      ...s,
+      messages: s.messages.map((m) => {
+        if (m.id !== id || m.role !== "me") return m
+        // Queued again or failed: the server's copy is not waiting any more
+        // (a Retry is handed over afresh).
+        const { error: _was, held: _held, ...rest } = m
+        return { ...rest, status, ...(error ? { error } : {}) }
+      }),
+    }))
+  const markHeld = (id: string) =>
     companionStore.set((s) => ({
       ...s,
       messages: s.messages.map((m) =>
-        m.id === id && m.role === "me" ? { ...m, status } : m,
+        m.id === id && m.role === "me" && m.status === "queued"
+          ? { ...m, held: true }
+          : m,
       ),
     }))
   const dropAsk = (id: string) =>
@@ -935,6 +948,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   /** A reply whose stream dropped while the device was online: read back
    * from the server until it is stored (or the turn is known to have
    * failed), at most one read loop per question. */
+  /** Questions the person tapped Retry on, until the server has them: only
+   * those ask the server to run a failed message again (``retry``). A
+   * resend of anything else never re-runs a turn that stopped after
+   * recording something. */
+  const retrying = new Set<string>()
   const resuming = new Map<string, Promise<void>>()
   function resume(meId: string): Promise<void> {
     const running = resuming.get(meId)
@@ -998,8 +1016,21 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
               if (!msgs.some((m) => m.id === meId)) dropAsk(meId)
             })
           }
-          if (r.status === "failed") return finish(failed)
-          if (r.status === "running") lastRead = Date.now()
+          if (r.status === "failed")
+            return finish(() => {
+              if (companionStore.get().messages.some((m) => m.id === meId))
+                markAsk(
+                  meId,
+                  "failed",
+                  typeof r.error === "string" ? r.error : undefined,
+                )
+              toast.error(
+                `${companionName()} couldn't finish that reply. Tap Retry to ask again.`,
+              )
+            })
+          // Waiting its turn on the server, or being written: both alive.
+          if (r.status === "running" || r.status === "queued")
+            lastRead = Date.now()
         } catch (error) {
           if (
             error instanceof ApiError &&
@@ -1101,6 +1132,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       // RUN_FINISHED or RUN_ERROR seen.
       ended: false,
       failed: false,
+      // The RUN_ERROR's code (``interrupted``, ``reply_failed``, ``fern_*``).
+      code: undefined as string | undefined,
     }
     const solId = derivedId("companion-reply", meId, "sol")
     const readAloud = takeVoiceTurn()
@@ -1186,6 +1219,12 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           solText = joinSegments()
           return sol()
         }
+        case "retry":
+          // The server runs the turn again after a failed try: what that try
+          // showed gives way to the new one.
+          reset()
+          thinking.setState({ on: true })
+          return sol()
         case "changes":
           // What a tool just wrote, committed: on every screen now, not when
           // the reply ends (Kai, 2026-11-12: a logged meal reached Nutrition
@@ -1306,6 +1345,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         case "RUN_ERROR":
           v.ended = true
           v.failed = true
+          v.code = typeof d.code === "string" ? d.code : undefined
           // The allowance ran out while the message was on its way.
           if (typeof d.code === "string") noteRefusal(d.code, undefined)
           stopThinking()
@@ -1378,7 +1418,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     const how = await follow(meId, view)
     if (how === "ended") {
       if (view.failed) {
-        if (!view.echoed) markAsk(meId, "failed")
+        // The server keeps a failed message: Retry runs it again (once,
+        // whatever the device sends), so it is offered even once stored.
+        markAsk(meId, "failed", view.code)
         toast.error(`${companionName()} couldn't finish that reply.`)
       }
       return
@@ -1423,6 +1465,25 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     }
   }
 
+  /** A question's photos uploaded (ids derived from the question's, so a
+   * second upload of the same photo is the same media). */
+  const uploadPhotos = (meId: string, photos: string[]) =>
+    Promise.all(
+      photos.map(
+        async (uri, i) =>
+          (
+            await uploadMedia(
+              {
+                kind: "image",
+                uri,
+                id: derivedId("ask-media", meId, String(i)),
+              },
+              deps,
+            )
+          ).id,
+      ),
+    )
+
   async function runAsk(
     text: string,
     hint: string | undefined,
@@ -1453,21 +1514,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       thinking.setState({ on: true })
       let mediaIds: string[] = []
       try {
-        mediaIds = await Promise.all(
-          photos.map(
-            async (uri, i) =>
-              (
-                await uploadMedia(
-                  {
-                    kind: "image",
-                    uri,
-                    id: derivedId("ask-media", meId, String(i)),
-                  },
-                  deps,
-                )
-              ).id,
-          ),
-        )
+        mediaIds = await uploadPhotos(meId, photos)
       } catch {
         fail()
         toast.error("Couldn't upload the photos. Tap Retry to send them again.")
@@ -1480,7 +1527,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           ...(hint ? { hint: hint.slice(0, 20) } : {}),
           ...(mediaIds.length ? { media_ids: mediaIds } : {}),
           thread_id: threadId,
+          ...(retrying.has(meId) ? { retry: true } : {}),
         })
+        if (res.ok) retrying.delete(meId)
         if (res.status === 401) {
           // Signed in, but the session could not be renewed just now (the
           // auth server unreachable for a moment after the app slept). The
@@ -1511,7 +1560,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
         await readSse(res, view.onEvent)
         if (!view.ended) throw new NetworkError("stream ended early")
         if (view.failed) {
-          fail()
+          if (view.code?.startsWith("fern_")) fail()
+          else markAsk(meId, "failed", view.code)
           toast.error(`${companionName()} couldn't finish that reply.`)
         }
       } catch (_error) {
@@ -1588,10 +1638,55 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     // One reply at a time: a question sent while Fern is still answering
     // waits, queued, and goes when the reply ends (or at once on Send now).
     if (replying.getState().id) {
-      putAsk(newId(), text, hint, photos ?? [], "queued", threadForSend())
+      const id = newId()
+      putAsk(id, text, hint, photos ?? [], "queued", threadForSend())
+      // Kept on the server at once: answered there even if the app closes.
+      void handOver()
       return
     }
     void runAsk(text, hint, photos)
+  }
+
+  /** Hand every queued question the server does not hold yet to the
+   * server's queue, oldest first, one request at a time (so it keeps their
+   * order). Idempotent by id: one sent twice is kept once. A question that
+   * does not get through stays queued for the next reconnect. */
+  let handing: Promise<void> | null = null
+  function handOver(): Promise<void> {
+    if (handing) return handing.then(() => handOver())
+    handing = (async () => {
+      for (;;) {
+        if (!deps.online()) return
+        const next = companionStore
+          .get()
+          .messages.filter(
+            (m) => m.role === "me" && m.status === "queued" && !m.held,
+          )
+          .sort((a, b) => a.at - b.at)[0]
+        if (!next) return
+        let mediaIds: string[]
+        try {
+          mediaIds = await uploadPhotos(next.id, photosOf(next))
+          const res = await deps.post("/companion/messages", {
+            text: (next.text ?? "").slice(0, 4000),
+            id: next.id,
+            ...(mediaIds.length ? { media_ids: mediaIds } : {}),
+            ...(next.threadId ? { thread_id: next.threadId } : {}),
+            ...(retrying.has(next.id) ? { retry: true } : {}),
+          })
+          // Refused (an allowance, a session not renewed): the live send
+          // says why when its turn comes.
+          if (!res.ok) return
+          retrying.delete(next.id)
+        } catch {
+          return
+        }
+        markHeld(next.id)
+      }
+    })().finally(() => {
+      handing = null
+    })
+    return handing
   }
 
   /** "Send now": the reply being written stops at its next step. */
@@ -1608,6 +1703,10 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   function flushAsks(): Promise<void> {
     if (flushing) return flushing
     flushing = (async () => {
+      // Everything waiting goes to the server's queue, oldest first, so it
+      // is answered even if the app closes before its turn here. Not
+      // awaited: a slow hand-over never holds up the reply followed here.
+      void handOver()
       for (;;) {
         // One reply at a time: what waits goes when this reply ends.
         if (!deps.online() || replying.getState().id) return
@@ -1629,6 +1728,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   const retry = (id: string) => {
     const m = companionStore.get().messages.find((x) => x.id === id)
     if (m?.role !== "me" || m.status !== "failed") return
+    retrying.add(id)
     if (!deps.online()) {
       markAsk(id, "queued")
       toast.warning(`${companionName()} will answer when you're back online.`)
@@ -1640,6 +1740,8 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     // the person sent their message again.
     if (replying.getState().id) {
       markAsk(id, "queued")
+      // Kept on the server at once, like any message sent meanwhile.
+      void handOver()
       return
     }
     void runAsk(m.text ?? "", m.hint, photosOf(m), id)
@@ -1655,14 +1757,15 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
     if (m.role === "me" && m.status === "resuming" && m.id !== was?.id)
       void resume(m.id)
   // A question still "sending" when the app last stopped may or may not
-  // have reached the server: offer a Retry (a pull replaces it if it did).
+  // have reached the server. The server keeps a message by its id, so it
+  // is simply sent again: it runs once, or reads the reply it already has.
   companionStore.set((s) =>
     s.messages.some((m) => m.status === "sending" && m.id !== was?.id)
       ? {
           ...s,
           messages: s.messages.map((m) =>
             m.status === "sending" && m.id !== was?.id
-              ? { ...m, status: "failed" }
+              ? { ...m, status: "queued" }
               : m,
           ),
         }

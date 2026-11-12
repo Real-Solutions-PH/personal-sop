@@ -576,6 +576,9 @@ class TurnStream(capture.LoopHooks):
     # now, not when the reply ends.
     after_tool: Callable[[], None] = lambda: None
     before_tool: Callable[[], None] = lambda: None
+    # Hears each tool's name as it starts (the queue notes a write, so a
+    # turn that dies after one is never run again unasked).
+    on_tool: Callable[[str], None] = lambda name: None
     _stopped: bool = False
     _checked_at: float = 0.0
     # The model's thinking being shown: its message id, what is gathered
@@ -774,6 +777,7 @@ class TurnStream(capture.LoopHooks):
         self.sink(StepFinishedEvent(step_name=f"think:{turn}"))
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
+        self.on_tool(name)
         self.before_tool()
         self._args[call_id] = args
         self.log.append({"id": call_id, "tool": name, "args": _cut(args, LOG_ARGS)})

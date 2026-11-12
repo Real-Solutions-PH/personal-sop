@@ -275,3 +275,60 @@ class FernReview(OwnedRow, table=True):
     fingerprint: str = Field(max_length=64)
     body: dict[str, Any] = Field(default_factory=dict, sa_type=JSONB)
     model: str = Field(default="", max_length=200)
+
+
+ASK_STATUSES = ("queued", "running", "done", "failed")
+
+
+class CompanionAsk(OwnedRow, table=True):
+    """One message the app handed to Fern, kept until it is answered (the
+    server-side queue, ``companion.queue``).
+
+    The id is the question's own id, minted by the phone: a resend (a retry
+    after a dropped connection, the outbox flushing twice) finds this row
+    and never runs a second turn. A person's rows are answered oldest first,
+    one turn at a time, by whichever API task or worker claims the next one.
+    Not synced to devices: the question and its reply reach them as
+    ``companion_message`` rows; the app asks after a row's state with
+    ``GET /companion/messages/{id}/reply``."""
+
+    __tablename__ = "companion_ask"
+    __table_args__ = (
+        enum_check("status", ASK_STATUSES, name="ck_companion_ask_status"),
+        CheckConstraint("attempts >= 0", name="ck_companion_ask_attempts"),
+        Index("ix_companion_ask_owner_status", "owner_id", "status", "created_at"),
+        # The minute sweep reads only messages still open.
+        Index(
+            "ix_companion_ask_open",
+            "status",
+            postgresql_where=text_sql("status IN ('queued', 'running')"),
+        ),
+    )
+
+    # The chat it was sent in (the phone mints a new chat's id, so the chat
+    # may not exist yet: no foreign key). None: the most recent chat.
+    thread_id: uuid.UUID | None = Field(default=None)
+    text: str = Field(default="", max_length=4000)
+    media_ids: list[str] = Field(default_factory=list, sa_type=JSONB)
+    status: str = Field(
+        default="queued",
+        sa_type=String(8),  # type: ignore
+        sa_column_kwargs={"server_default": "queued"},
+    )
+    # Turns started for it; bounded by ``queue.MAX_ATTEMPTS``.
+    attempts: int = Field(
+        default=0, sa_type=SmallInteger, sa_column_kwargs={"server_default": "0"}
+    )
+    # A tool that writes (a task, a meal, an expense) ran in some attempt:
+    # running the turn again could record it twice, so a turn that dies
+    # after this asks the person (Retry) instead of running again.
+    wrote: bool = Field(default=False, sa_column_kwargs={"server_default": "false"})
+    # Why it failed (``interrupted``, ``reply_failed``, a ``fern_*`` code).
+    error: str | None = Field(default=None, max_length=40)
+    # Backoff: not claimed before this.
+    not_before: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    # A running turn renews this every heartbeat; once it lapses the turn's
+    # task is known to be gone and the row is recovered.
+    lease_until: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    started_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    finished_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
