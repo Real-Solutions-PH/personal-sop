@@ -24,7 +24,9 @@ import { undo } from "../ui"
 
 /** A title without the leading emoji, for what a screen reader says. */
 export const spoken = (title: string) =>
-  title.replace(/^[\p{Extended_Pictographic}\u{FE0F}\u{200D}\s]+/u, "").trim()
+  title
+    .replace(/^(?:\p{Extended_Pictographic}|\u{FE0F}|\u{200D}|\s)+/u, "")
+    .trim()
 
 /**
  * The check for a habit or task row, and a count habit's +step: nothing for
@@ -52,7 +54,7 @@ export function PlanCheck({
   const habits = habitsStore.use((s) => s.habits)
   const [stepped, setStepped] = useState(0)
   const tick = tickOf(item)
-  if (!tick) return children ? <>{children(null, null)}</> : null
+  if (!tick) return children ? children(null, null) : null
   const progress = tickProgress(item),
     done = Boolean(item.done) || progress >= 1,
     name = spoken(item.title)
@@ -112,7 +114,7 @@ export function PlanCheck({
       celebrate={stepped}
     />
   )
-  if (children) return <>{children(check, stepButton || null)}</>
+  if (children) return children(check, stepButton || null)
   return (
     <Line style={{ gap: 4 }}>
       {stepButton}
