@@ -66,6 +66,11 @@ them by region and by test, so treat them as approximate.
 | Logly | Activity log, with AI questions on Pro | Logging only; no money, food or training records |
 | Voice expense apps (Finny, WalletGPT, Vocash) | Expenses by voice | Money only |
 | GhostFit | Workouts and meals by voice | Fitness only |
+| LifesOS | All-area AI logging; Pro $29.99 a year with 10 AI entries a day | Closest rival on scope and price; listed in the 2026-11-07 pricing study |
+| LogAI | Food, fitness, finance, meds and ideas from text, voice or screenshots | Same scope; no visible traction (13 views on its Product Hunt launch) |
+| VoiceLog (EdgeFirst) | Health, expenses and plans from voice notes; $99.99 a year | Same idea; too few ratings to show |
+| Todai | Habits, budget and voice AI chat; $39.99 | Same idea; no ratings |
+| Omnii | Meals, workouts and body metrics through one AI chat; $69.99 a year | Fitness and food only; 5 ratings |
 | ChatGPT or another general assistant | Anything you type | Keeps no structured records: no charts, no streaks, no totals you can trust |
 
 ### Where Unfurl sits
@@ -77,12 +82,13 @@ Two questions place every competitor:
 
 | | One sentence per entry | Forms and screens per entry |
 |---|---|---|
-| **Whole life** | **Unfurl** (open) | Notion templates, Life OS, Lifehub |
+| **Whole life** | **Unfurl**, LifesOS, LogAI, VoiceLog, Todai | Notion templates, Life OS, Lifehub |
 | **One area** | Cal AI, voice expense apps, GhostFit | YNAB, MacroFactor, Strong, Todoist, Habitify |
 
-The top-left box is empty. Chat-first apps exist, and all-in-one apps exist,
-but no app found in this scan does both with structured records the user can
-chart and query.
+The top-left box is not empty. A 2026-11-07 check found at least four apps
+that log several areas of life from one sentence or voice note, none yet with
+visible traction. Unfurl does not claim to be the only one, in any copy. It has
+to win on what happens after you stop, which is the next section.
 
 ### The real competitor: stopping
 
@@ -424,6 +430,7 @@ against each vendor's own pricing page before quoting them publicly.
 - Todoist and TickTick: [Todoist vs TickTick 2026](https://www.asianefficiency.com/task-management/todoist-vs-ticktick/), [TickTick pricing](https://lifestack.ai/blog/ticktick-pricing)
 - Habitify and Streaks: [Toolradar Habitify pricing](https://toolradar.com/tools/habitify/pricing), [Habitify on the App Store](https://apps.apple.com/us/app/habitify-habit-tracker/id1111447047)
 - All-in-one apps: [Life OS on Google Play](https://play.google.com/store/apps/details?id=app.lifeos.track&hl=en_US), [habit tracker roundup covering Lifehub](https://applifehub.com/blog/best-habit-tracker-apps), [Logly](https://getlogly.app/blog/best-personal-activity-log-apps/)
+- Chat-first all-in-one apps (checked 2026-11-07): [LogAI on Product Hunt](https://www.producthunt.com/p/undefined/the-future-of-self-tracking-starts-here-meet-logai), [VoiceLog](https://apps.apple.com/us/app/id6760629822), [Todai](https://apps.apple.com/us/app/-/id6760108289), [Omnii](https://apps.apple.com/app/id6762669852); LifesOS prices from the 2026-11-07 pricing study
 - Voice loggers: [Finny on voice expense trackers](https://getfinny.app/blog/best-voice-expense-tracker-apps-2026), [GhostFit](https://play.google.com/store/apps/details?id=com.fytlog.app&hl=en)
 - Notion AI and Rosebud: [Life Note comparison](https://blog.mylifenote.ai/the-8-best-ai-journaling-apps-in-2026/)
 - Name checks: [Fern: Goal & Habit Tracker](https://apps.apple.com/us/app/fern-goal-habit-tracker/id6757623670), [Fern: ADHD Journal & Diary](https://apps.apple.com/us/app/fern-adhd-journal-diary/id6753620811), [FERN HEALTH trademark](https://trademarks.justia.com/997/78/fern-99778685.html), [Ferndesk](https://ferndesk.com), [Kept: Task & Habit Tracker](https://apps.apple.com/gb/app/id6760225477), [Tally - Habit Tracker](https://apps.apple.com/us/app/tally-habit-tracker/id6758336788), [Koru habit tracker](https://mwm.ai/apps/koru-mobile/6753133508), [Mylo AI](https://apps.apple.com/app/id6469645973), [Frond on Product Hunt](https://www.producthunt.com/products/frond/alternatives), [One Log clinical app](https://apps.apple.com/py/app/one-log/id1550102878?l=en-GB), [UNFURL trademark (food goods)](https://www.trademarkelite.com/trademark/trademark-detail/97093937/UNFURL), [Unfurl text expander](https://getunfurl.app)
