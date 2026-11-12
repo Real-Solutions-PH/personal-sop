@@ -35,7 +35,7 @@ services:
     # MinIO no longer publishes free images (Docker Hub and quay.io both refuse
     # anonymous pulls); Chainguard's build is public. Its free tier only tags
     # `latest`, so it is pinned by digest. It has no curl: health uses `mc`.
-    image: cgr.dev/chainguard/minio:latest@sha256:32c504bea4574d8f29d719b37bc0dad920ecf3e22b81dc5cea0bb105af2ce10f
+    image: cgr.dev/chainguard/minio:latest@sha256:db3f583fa49121942168bd6383a773b2cde3384c9a99bf7193560b9a0f3a28fd
     restart: always
     command: server /data --console-address ":9001"
     env_file:
