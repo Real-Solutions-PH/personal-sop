@@ -6,6 +6,7 @@ import { finStore } from "@domain/finance/store"
 import * as H from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
+import { dayMinutes } from "@domain/schedule/logic"
 import * as A from "@domain/tasks/actions"
 import type { Task } from "@domain/tasks/data"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
@@ -20,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  Clock,
   CloudSun,
   Flame,
   History,
@@ -28,6 +30,7 @@ import {
   Minus,
   Moon,
   Plus,
+  Rows3,
   Search,
   Settings2,
   Star,
@@ -75,6 +78,7 @@ import { Button, confirm, Screen, Sheet } from "../ui"
 import { Ring } from "../visual"
 import { useMoney } from "./finance"
 import { LockedPreview } from "./locked-preview"
+import { DayGrid, MovedMark } from "./plan-grid"
 import { StarterLists } from "./task-lists"
 import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
@@ -859,6 +863,9 @@ function CalendarPanel() {
     [offset, setOffset] = useState(0),
     [sel, setSel] = useState(today),
     [hidden, setHidden] = useState<ModuleKey[]>([]),
+    // The selected day as Morning / Afternoon / Night, or as hour rows to
+    // time-block by dragging.
+    [dayView, setDayView] = useState<"Day parts" | "Hours">("Day parts"),
     fin = finStore.use((s) => s),
     money = useMoney()
   const anchor = new Date(`${today}T12:00:00`)
@@ -874,6 +881,7 @@ function CalendarPanel() {
     items = all.filter((i) => !hidden.includes(i.module)),
     selected = items.filter((i) => i.day === sel),
     currentHour = hour(new Date().toTimeString().slice(0, 5)),
+    nowMin = dayMinutes(new Date().toTimeString().slice(0, 5)),
     // Scheduled money across the visible days: marked on each cell, and the
     // selected day's list under the calendar.
     occ = N.occurrencesIn(fin, days[0], days.at(-1)!).filter(
@@ -882,35 +890,41 @@ function CalendarPanel() {
     showFin = enabled.finance && !hidden.includes("finance"),
     due = occ.filter((o) => o.day === sel)
   const itemRow = (i: CalendarItem) => (
-    <Tap key={i.id} onPress={() => go(i.href)} style={{ paddingVertical: 8 }}>
-      <Line style={{ gap: 8, alignItems: "flex-start" }}>
-        {i.time && (
-          <Copy size={12} muted style={{ width: 42, marginTop: 2 }}>
-            {i.time}
+    <Line key={i.id} style={{ gap: 8 }}>
+      <Tap onPress={() => go(i.href)} style={{ flex: 1, paddingVertical: 8 }}>
+        <Line style={{ gap: 8, alignItems: "flex-start" }}>
+          {i.time && (
+            <Copy size={12} muted style={{ width: 42, marginTop: 2 }}>
+              {i.time}
+            </Copy>
+          )}
+          <View
+            style={{
+              width: 6,
+              height: 6,
+              marginTop: 7,
+              borderRadius: 3,
+              backgroundColor: t[AREA[i.module].accent],
+            }}
+          />
+          <Copy
+            size={14}
+            style={{
+              flex: 1,
+              color: i.done ? t.muted : t.text,
+              textDecorationLine: i.done ? "line-through" : "none",
+            }}
+          >
+            {i.title}
           </Copy>
-        )}
-        <View
-          style={{
-            width: 6,
-            height: 6,
-            marginTop: 7,
-            borderRadius: 3,
-            backgroundColor: t[AREA[i.module].accent],
-          }}
-        />
-        <Copy
-          size={14}
-          style={{
-            flex: 1,
-            color: i.done ? t.muted : t.text,
-            textDecorationLine: i.done ? "line-through" : "none",
-          }}
-        >
-          {i.title}
-        </Copy>
-        {i.done && <Check size={14} color={t.good} style={{ marginTop: 3 }} />}
-      </Line>
-    </Tap>
+          {i.done && (
+            <Check size={14} color={t.good} style={{ marginTop: 3 }} />
+          )}
+        </Line>
+      </Tap>
+      {/* Moved for this day: beside the row, never inside its button. */}
+      {i.movedFrom !== undefined && <MovedMark item={i} from={i.movedFrom} />}
+    </Line>
   )
   return (
     <View>
@@ -1111,9 +1125,44 @@ function CalendarPanel() {
           })}
         </Line>
       )}
-      <SectionHeading>{`${sel === today ? "Today" : dateLabel(sel)} · ${selected.length}`}</SectionHeading>
+      <SectionHeading
+        action={
+          <View style={{ width: 104 }}>
+            <Segmented
+              value={dayView}
+              onChange={setDayView}
+              options={[
+                {
+                  value: "Day parts",
+                  label: <Rows3 size={16} color={t.text} />,
+                },
+                { value: "Hours", label: <Clock size={16} color={t.text} /> },
+              ]}
+            />
+          </View>
+        }
+      >{`${sel === today ? "Today" : dateLabel(sel)} · ${selected.length}`}</SectionHeading>
       <View style={{ gap: 12 }}>
-        {selected.length ? (
+        {selected.length && dayView === "Hours" ? (
+          <>
+            {selected.some((i) => i.time) && (
+              <Frame style={{ padding: 12 }}>
+                <DayGrid
+                  items={selected}
+                  nowMin={sel === today ? nowMin : undefined}
+                />
+              </Frame>
+            )}
+            {selected.some((i) => !i.time) && (
+              <Frame style={{ padding: 12 }}>
+                <Copy size={14} weight="semibold">
+                  Anytime
+                </Copy>
+                {selected.filter((i) => !i.time).map(itemRow)}
+              </Frame>
+            )}
+          </>
+        ) : selected.length ? (
           <>
             {PARTS.map((part) => {
               const list = selected
