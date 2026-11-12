@@ -44,6 +44,12 @@ REPEATS = int(os.environ.get("FERN_EVAL_REPEATS", "1"))
 PROVIDER = os.environ.get("FERN_EVAL_PROVIDER", "")
 MODEL = os.environ.get("FERN_EVAL_MODEL", "")
 EFFORT = os.environ.get("FERN_EVAL_REASONING_EFFORT", "")
+# "1" asks the provider to cache the prompt prefix: a top-level
+# ``cache_control: {type: ephemeral}``, which OpenRouter passes to Anthropic
+# as automatic caching (measured 2026-11-12: the second identical call read
+# the whole prefix from cache). Providers that cache on their own (Nebius)
+# need nothing.
+CACHE = os.environ.get("FERN_EVAL_CACHE") == "1"
 # A case still running after this many seconds is stopped and recorded as
 # errored, so one hung model call cannot stall the whole run.
 CASE_TIMEOUT = int(os.environ.get("FERN_EVAL_CASE_TIMEOUT", "600"))
@@ -69,15 +75,42 @@ def _use_model(monkeypatch: pytest.MonkeyPatch) -> None:
     if MODEL:
         field = "OPENROUTER_MODEL" if PROVIDER == "openrouter" else "NEBIUS_MODEL"
         monkeypatch.setattr(settings, field, MODEL)
+    extra: dict[str, Any] = {}
     if EFFORT:
+        extra["reasoning"] = {"effort": EFFORT}
+    if CACHE:
+        extra["cache_control"] = {"type": "ephemeral"}
+    if extra:
         build = ai_public.model_factory
 
-        def with_effort(resolved: Any) -> Any:
+        def with_extra(resolved: Any) -> Any:
             m: Any = build(resolved)
-            extra = {**(m.extra_body or {}), "reasoning": {"effort": EFFORT}}
-            return m.model_copy(update={"extra_body": extra})
+            return m.model_copy(
+                update={"extra_body": {**(m.extra_body or {}), **extra}}
+            )
 
-        monkeypatch.setattr(ai_public, "model_factory", with_effort)
+        monkeypatch.setattr(ai_public, "model_factory", with_extra)
+
+
+def _keep_cache_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The loop's per-call usage keeps only input and output tokens; the
+    eval also wants the prompt-cache reads the provider reported (the
+    largest figure across a call's chunks, as for the other counts)."""
+    from app.modules.capture import agent
+
+    plain = agent._stream_usage
+
+    def with_cache(chunks_usage: list[dict[str, Any]]) -> dict[str, Any] | None:
+        usage = plain(chunks_usage)
+        if usage is None:
+            return None
+        read = max(
+            int((u.get("input_token_details") or {}).get("cache_read") or 0)
+            for u in chunks_usage
+        )
+        return {**usage, "input_token_details": {"cache_read": read}}
+
+    monkeypatch.setattr(agent, "_stream_usage", with_cache)
 
 
 def _run_with_timeout(
@@ -106,6 +139,7 @@ def test_replay(
     # The server's key answers, as it does for Kai in production.
     monkeypatch.setattr(settings, "AI_SERVER_FALLBACK", True)
     _use_model(monkeypatch)
+    _keep_cache_reads(monkeypatch)
     runs = []
     for n in range(REPEATS):
         # Each case in its own tenant: the food library is unique per tenant.
@@ -143,6 +177,7 @@ def test_replay(
                 "model": _model_name(),
                 "provider": settings.DEFAULT_LLM_PROVIDER,
                 "reasoning_effort": EFFORT or None,
+                "prompt_cache": CACHE,
                 "judge_model": JUDGE_MODEL,
                 "arch": os.environ.get("FERN_ARCH", "baseline"),
                 "passed": passed,
