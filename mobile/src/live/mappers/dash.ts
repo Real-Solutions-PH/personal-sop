@@ -194,6 +194,7 @@ const HM = /^([01]\d|2[0-3]):[0-5]\d$/
 const DEFAULT_REVIEW = "Sun 19:00"
 const APPEARANCES = ["system", "light", "dark"] as const
 const PERMISSIONS = ["default", "granted", "denied"] as const
+const NUDGE_MODES = ["daily", "weekly", "off"] as const
 
 const pick = <T extends string>(all: readonly T[], v: unknown, cur: T): T =>
   all.includes(v as T) ? (v as T) : cur
@@ -261,6 +262,11 @@ export function profileToServer(v: ProfileState): Payload {
     intro_dismissed: d.intro.dismissed,
     enabled_extras: extrasToServer(v.extras),
   }
+  // Each nudge field goes only once this phone has a value for it (set
+  // here or pulled), so an untouched phone leaves the account's alone.
+  if (d.push.nudge) out.nudge_mode = d.push.nudge
+  if (d.push.nudgeTime !== undefined)
+    out.nudge_time = HM.test(d.push.nudgeTime) ? d.push.nudgeTime : null
   // Never edited: leave the account's as it is (another phone's may stand).
   if (v.homeLayout) out.home_layout = v.homeLayout
   const name = d.profile.name.trim()
@@ -321,6 +327,13 @@ export function profileFromServer(
         evening: str(row.push_evening) ?? "",
         review: row.push_review ? d.push.review || DEFAULT_REVIEW : "",
         checkin: str(row.push_checkin) ?? "",
+        // A server from before nudges sends neither: keep the phone's.
+        ...(row.nudge_mode === undefined
+          ? {}
+          : {
+              nudge: pick(NUDGE_MODES, row.nudge_mode, d.push.nudge ?? "daily"),
+              nudgeTime: str(row.nudge_time) ?? "",
+            }),
       },
       seenTrophies: Array.isArray(row.seen_trophies)
         ? row.seen_trophies.map(String)

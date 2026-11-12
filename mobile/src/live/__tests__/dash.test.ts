@@ -253,6 +253,39 @@ test("the daily check-in time syncs; off is null; lastCheckin stays local", () =
   ).toBeNull()
 })
 
+test("nudges from Fern sync: the mode and a pinned time, null when unpinned", () => {
+  const cur = () => ({
+    dash: dashStore.get(),
+    appearance: appearanceStore.get(),
+    privacy: privacyStore.get(),
+    currency: currencyStore.get(),
+    extras: extrasStore.get(),
+    homeLayout: homeLayoutStore.get(),
+  })
+  // Never touched on this phone: the account's choice is left alone.
+  setPush({ nudge: undefined, nudgeTime: undefined })
+  expect(profileToServer(cur())).not.toHaveProperty("nudge_mode")
+  expect(profileToServer(cur())).not.toHaveProperty("nudge_time")
+  // Only the time changed: it still goes, and the mode stays the account's.
+  setPush({ nudgeTime: "08:30" })
+  const timeOnly = profileToServer(cur())
+  expect(timeOnly.nudge_time).toBe("08:30")
+  expect(timeOnly).not.toHaveProperty("nudge_mode")
+  setPush({ nudge: "weekly", nudgeTime: "08:30" })
+  const row = profileToServer(cur())
+  expect(row).toMatchObject({ nudge_mode: "weekly", nudge_time: "08:30" })
+  setPush({ nudgeTime: "" })
+  expect(profileToServer(cur()).nudge_time).toBeNull()
+  const back = profileFromServer(
+    { ...row, nudge_mode: "off", nudge_time: null },
+    cur(),
+  )
+  expect(back.dash.push.nudge).toBe("off")
+  expect(back.dash.push.nudgeTime).toBe("")
+  const odd = profileFromServer({ ...row, nudge_mode: "hourly" }, cur())
+  expect(odd.dash.push.nudge).toBe("weekly")
+})
+
 test("a pulled currency the device does not know keeps the device's", () => {
   const cur = {
     dash: dashStore.get(),

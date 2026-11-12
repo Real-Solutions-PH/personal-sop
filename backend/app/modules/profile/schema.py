@@ -25,6 +25,7 @@ IntroKey = Literal[
 ]
 Appearance = Literal["system", "light", "dark"]
 PushPermission = Literal["default", "granted", "denied"]
+NudgeMode = Literal["daily", "weekly", "off"]
 Occupation = Literal[
     "student", "employed", "self_employed", "business_owner", "between_jobs", "other"
 ]
@@ -108,6 +109,9 @@ class ProfilePublic(BaseModel):
     push_evening: str | None
     push_review: bool
     push_checkin: str | None = None
+    push_permission_changed_at: datetime | None = None
+    nudge_mode: NudgeMode = "daily"
+    nudge_time: str | None = None
     fern_eval_consent: bool
     fern_eval_consent_at: datetime | None
     seen_trophies: list[str]
@@ -153,6 +157,9 @@ class ProfileUpdate(BaseModel):
     push_evening: str | None = None
     push_review: bool | None = None
     push_checkin: str | None = None
+    nudge_mode: NudgeMode | None = None
+    # A pinned nudge time; "" unpins (back to the usual time).
+    nudge_time: str | None = Field(default=None, max_length=5)
     # When it changes the server stamps fern_eval_consent_at.
     fern_eval_consent: bool | None = None
     seen_trophies: list[str] | None = Field(default=None, max_length=500)
@@ -178,6 +185,17 @@ class ProfileUpdate(BaseModel):
     @classmethod
     def _hms(cls, v: str | None) -> str | None:
         return _hm(v)
+
+    @field_validator("nudge_time")
+    @classmethod
+    def _nudge_time(cls, v: str | None) -> str | None:
+        """Inside the hours a nudge may go out (07:00-21:30), or "" to unpin."""
+        if v is None or v == "":
+            return v
+        _hm(v)
+        if not ("07:00" <= v <= "21:30"):
+            raise ValueError("a nudge time is between 07:00 and 21:30")
+        return v
 
     @field_validator("handle")
     @classmethod

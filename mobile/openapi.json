@@ -19089,6 +19089,32 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
+    "/api/v1/retention/nudge": {
+      "get": {
+        "tags": ["retention"],
+        "summary": "Get Nudge",
+        "operationId": "retention-get_nudge",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NudgeSettings" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
     "/api/v1/billing/plan": {
       "get": {
         "tags": ["billing"],
@@ -27483,6 +27509,27 @@
         "required": ["data", "count", "unread"],
         "title": "NotificationsOut"
       },
+      "NudgeSettings": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": ["daily", "weekly", "off"],
+            "title": "Mode"
+          },
+          "pinned": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Pinned"
+          },
+          "usual": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Usual"
+          }
+        },
+        "type": "object",
+        "required": ["mode", "pinned", "usual"],
+        "title": "NudgeSettings",
+        "description": "What Settings shows for \"Nudges from Fern\"."
+      },
       "NutritionDayOut": {
         "properties": {
           "day": { "type": "string", "format": "date", "title": "Day" },
@@ -29095,6 +29142,23 @@
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Push Checkin"
           },
+          "push_permission_changed_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Push Permission Changed At"
+          },
+          "nudge_mode": {
+            "type": "string",
+            "enum": ["daily", "weekly", "off"],
+            "title": "Nudge Mode",
+            "default": "daily"
+          },
+          "nudge_time": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Nudge Time"
+          },
           "fern_eval_consent": {
             "type": "boolean",
             "title": "Fern Eval Consent"
@@ -29357,6 +29421,17 @@
           "push_checkin": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Push Checkin"
+          },
+          "nudge_mode": {
+            "anyOf": [
+              { "type": "string", "enum": ["daily", "weekly", "off"] },
+              { "type": "null" }
+            ],
+            "title": "Nudge Mode"
+          },
+          "nudge_time": {
+            "anyOf": [{ "type": "string", "maxLength": 5 }, { "type": "null" }],
+            "title": "Nudge Time"
           },
           "fern_eval_consent": {
             "anyOf": [{ "type": "boolean" }, { "type": "null" }],
@@ -34388,7 +34463,8 @@
               "share_card",
               "paywall_shown",
               "purchase_started",
-              "restored"
+              "restored",
+              "push_open"
             ],
             "title": "Kind"
           },

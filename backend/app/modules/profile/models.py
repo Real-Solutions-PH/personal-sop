@@ -27,6 +27,7 @@ EXTRA_KEYS = ("journal", "social", "weather", "calendar")
 INTRO_KEYS = (*MODULE_KEYS, "journal", "social")
 LIVE_KINDS = ("timer", "routine", "workout")
 PUSH_PERMISSIONS = ("default", "granted", "denied")
+NUDGE_MODES = ("daily", "weekly", "off")
 APPEARANCE = ("system", "light", "dark")
 # Sign-up's "about you" answers, written once by complete-signup.
 OCCUPATIONS = (
@@ -68,6 +69,7 @@ class UserProfile(OwnedRow, table=True):
             "push_permission", PUSH_PERMISSIONS, name="ck_user_profile_push_perm"
         ),
         enum_check("currency", CODES, name="ck_user_profile_currency"),
+        enum_check("nudge_mode", NUDGE_MODES, name="ck_user_profile_nudge_mode"),
         enum_check("occupation", OCCUPATIONS, name="ck_user_profile_occupation"),
         enum_check(
             "referral_source", REFERRAL_SOURCES, name="ck_user_profile_referral"
@@ -104,6 +106,18 @@ class UserProfile(OwnedRow, table=True):
     push_review: bool = True
     # The daily Fern check-in time (HH:MM); NULL means off.
     push_checkin: str | None = Field(default=None, max_length=5)
+    # When push_permission last changed, set by the server (opt-out rate).
+    push_permission_changed_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    # Engagement nudges from Fern (docs/26-retention-algorithms.md §3.5):
+    # daily, weekly or off. Reminders the person set are separate.
+    nudge_mode: str = Field(
+        default="daily",
+        sa_type=String(8),  # type: ignore
+        sa_column_kwargs={"server_default": "daily"},
+    )
+    # A time the person pinned for the nudge (HH:MM, 07:00-21:30); NULL
+    # means the usual time the nightly job finds.
+    nudge_time: str | None = Field(default=None, max_length=5)
     # Opt-in, off by default: anonymised copies of this person's chats may
     # be used to test Fern, kept in a private store and never published
     # (ADR-0034). When it was last turned on or off, set by the server.

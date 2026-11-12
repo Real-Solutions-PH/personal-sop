@@ -1,5 +1,6 @@
 """App usage events: when the app comes to the foreground or leaves it,
-when a share card is shared, and the Unfurl Plus moments (the paywall shown,
+when a share card is shared, when a notification is tapped (push_open), and
+the Unfurl Plus moments (the paywall shown,
 a purchase started, purchases restored on the phone; purchased, cancelled
 and refunded as RevenueCat reports them to the server). They answer what
 the record tables cannot: how often people open Unfurl, how long they stay,
@@ -28,6 +29,7 @@ PHONE_KINDS = (
     "paywall_shown",
     "purchase_started",
     "restored",
+    "push_open",
 )
 # Written only by the server, from RevenueCat webhooks.
 SERVER_KINDS = ("purchased", "cancelled", "refunded")
@@ -35,7 +37,7 @@ KINDS = (*PHONE_KINDS, *SERVER_KINDS)
 KIND_MAX = 16
 DETAIL_MAX = 40
 DETAIL_RULE = (
-    "(kind <> 'share_card' OR detail IS NOT NULL)"
+    "(kind NOT IN ('share_card', 'push_open') OR detail IS NOT NULL)"
     " AND (kind NOT IN ('app_open', 'app_close') OR detail IS NULL)"
 )
 
@@ -51,5 +53,7 @@ class UsageEvent(OwnedRow, table=True):
     kind: str = Field(sa_type=String(KIND_MAX))  # type: ignore
     # When it happened on the phone; created_at is when the server got it.
     at: datetime = Field(sa_type=tstz())  # type: ignore
-    # share_card: which card (required); a Plus kind: which product.
+    # share_card: which card (required); a Plus kind: which product;
+    # push_open (required): the server notification's id for a push the
+    # server sent (a nudge among them), else the local reminder's category.
     detail: str | None = Field(default=None, sa_type=String(DETAIL_MAX))  # type: ignore
