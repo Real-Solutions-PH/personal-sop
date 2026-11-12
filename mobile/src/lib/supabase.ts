@@ -27,7 +27,7 @@ let client: SupabaseClient | null = null
 function createSupabaseClient(): SupabaseClient {
   const url =
     process.env.EXPO_PUBLIC_SUPABASE_URL ??
-    (__DEV__ ? "http://127.0.0.1:54321" : undefined)
+    (__DEV__ ? "http://127.0.0.1:24321" : undefined)
   const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !anonKey) {

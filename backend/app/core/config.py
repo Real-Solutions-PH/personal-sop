@@ -165,7 +165,7 @@ class Settings(BaseSettings):
 
     # Supabase Auth. Defaults target the local CLI stack
     # (`make supabase-up`); hosted projects override all of these.
-    SUPABASE_URL: str = "http://127.0.0.1:54321"
+    SUPABASE_URL: str = "http://127.0.0.1:24321"
     SUPABASE_ANON_KEY: str = ""
     # Secret, backend-only: full GoTrue admin access.
     SUPABASE_SERVICE_ROLE_KEY: str = ""

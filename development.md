@@ -5,13 +5,13 @@
 Authentication is Supabase (GoTrue) — the backend validates Supabase JWTs and has no password endpoints of its own (ADR-0005). Local development and tests need the Supabase CLI local stack running:
 
 ```bash
-make supabase-up     # GoTrue + JWKS on http://127.0.0.1:54321, Mailpit on :54324
+make supabase-up     # GoTrue + JWKS on http://127.0.0.1:24321, Mailpit on :24324
 make supabase-down   # stop it (drops its data)
 ```
 
 The CLI is installed via `brew install supabase/tap/supabase`. `supabase/config.toml` disables the services this template doesn't use (Studio, Realtime, Storage — object storage stays MinIO). The `SUPABASE_*` values in `.env.example` are the CLI's public local demo keys. App tables stay in the compose `db` service; only auth lives in the Supabase stack.
 
-Recovery/confirmation emails from local Supabase land in Mailpit: <http://127.0.0.1:54324>.
+Recovery/confirmation emails from local Supabase land in Mailpit: <http://127.0.0.1:24324>.
 
 ## Docker Compose
 
