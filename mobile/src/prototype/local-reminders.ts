@@ -2,7 +2,8 @@
 // reminder time, and each habit that has reminders on, at its scheduled
 // time on its days. What's already done today is not reminded today. Local notifications need no push service or paid
 // Apple account, and fire offline. The plan is rebuilt whenever tasks or
-// habits change; iOS keeps at most 64 pending, so the soonest win.
+// habits change; iOS keeps at most 64 pending, so what fires in the next
+// day wins, then the soonest.
 // Bills (planned expenses and transfers) get one reminder a day for the
 // week before they're due and each day they're overdue, until paid or
 // skipped.
@@ -194,6 +195,22 @@ const hm = (t: string) => {
     : null
 }
 
+/** A habit reminder's text: the habit's name and the day's target, and for
+ * a count habit part-way there today, how far (``value``). Facts only, no
+ * loss or streak words (docs/26-retention-algorithms.md §6). */
+export function habitBody(h: Habit, value?: number) {
+  const unit = h.unit ? ` ${h.unit}` : ""
+  if (h.type === "count") {
+    const target = h.target ?? 1
+    return value !== undefined
+      ? `${h.name}: ${value} of ${target}${unit} done. Tap to log the next.`
+      : `${h.name}: ${target}${unit} today. Tap to log one.`
+  }
+  if (h.type === "duration" && h.target)
+    return `${h.name}: ${h.target} min today. Tap to start.`
+  return `Time for ${h.name}. Tap to check it off.`
+}
+
 /** The slot that day's occurrence uses (the calendar's ``slotFor``: the
  * first slot on that weekday); a move replaces it alone. */
 const firstSlot = <T extends { days: number[] }>(
@@ -201,7 +218,8 @@ const firstSlot = <T extends { days: number[] }>(
   wd: number,
 ) => schedule.find((s) => s.days.includes(wd))
 
-/** What to schedule, soonest first, capped at ``MAX_PENDING``. Pure. */
+/** What to schedule, capped at ``MAX_PENDING`` with the next day's first
+ * (see the end). Pure. */
 export function planReminders(
   allTasks: readonly Task[],
   allHabits: readonly Habit[],
@@ -317,7 +335,12 @@ export function planReminders(
     if (!h.reminder || h.status !== "active") continue
     const log = more.logs?.find((l) => l.habitId === h.id && l.day === today),
       // Done or skipped; a count habit part-way there still needs the nudge.
-      doneToday = !!log && (log.status !== "partial" || h.type === "check")
+      doneToday = !!log && (log.status !== "partial" || h.type === "check"),
+      // Part-way there today: today's later pushes say how far.
+      partial =
+        !doneToday && h.type === "count" && log?.value !== undefined
+          ? log.value
+          : undefined
     if (h.nagEveryMin)
       for (let n = doneToday ? 1 : 0; n < NAG_DAYS; n++) {
         const wd = (weekday(today) + n) % 7
@@ -348,26 +371,35 @@ export function planReminders(
         const text = {
           id: `habit-${h.id}-${day}-${slot.time}`,
           title: `${h.icon} ${h.name}`,
-          body: "Time for this one. Tap to check it off.",
+          body: habitBody(h),
           href: `/habits/${h.id}`,
         }
         const n = ahead(day),
           done = doneToday && n === 0,
+          // Today, part-way there: a weekly push can't carry today's count.
+          progress = n === 0 && partial !== undefined,
           // The move is the occurrence the calendar shows (its first slot);
           // another slot that day keeps its own reminder.
           moved =
             slot === firstSlot(h.schedule, day)
               ? movedTo("habit", h.id, n)
               : null
-        if (!done && !moved) {
+        if (!done && !moved && !progress) {
           habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
           continue
         }
-        // Moved for that day (and not already done): that day at the
-        // moved time; its own time again from the week after.
-        const at = moved && !done ? onDayAt(n, moved) : null
+        // Moved for that day, or part-way there today (and not already
+        // done): that day at its time, saying how far; its own time again
+        // from the week after (the next rebuild puts the weekly one back).
+        const at = done ? null : moved ? onDayAt(n, moved) : onDay(n, time)
+        const body = progress ? habitBody(h, partial) : text.body
         if (at && at > now)
-          habitPlans.push({ ...text, id: `${text.id}-moved-${n}`, at })
+          habitPlans.push({
+            ...text,
+            body,
+            id: moved ? `${text.id}-moved-${n}` : `${text.id}-today`,
+            at,
+          })
         habitPlans.push({ ...text, at: onDay(n + 7, time) })
       }
     }
@@ -450,14 +482,50 @@ export function planReminders(
       })
     }
   }
-  const time = (p: Planned) => ("at" in p ? p.at.getTime() : 0)
-  // Recurring habit reminders first (few, and they repeat), then the
-  // soonest dated bill and task reminders in the room left.
-  const habitsKept = habitPlans.slice(0, MAX_PENDING)
-  const dated = [...billPlans, ...taskPlans, ...nagPlans].sort(
-    (a, b) => time(a) - time(b),
+  const all = [...habitPlans, ...billPlans, ...taskPlans, ...nagPlans]
+  if (all.length <= MAX_PENDING) return all
+  // Over the cap: everything due in the next day first (repeats after the
+  // first reminders), then the soonest after that. A repeating trigger
+  // counts by its next firing; whatever is left out is planned again at
+  // the next rebuild (any change or app open).
+  const nags = new Set(nagPlans)
+  const dayAhead = now.getTime() + 86_400_000
+  const rank = (p: Planned) => {
+    const at = nextFiring(p, now)
+    return { tier: at <= dayAhead ? (nags.has(p) ? 1 : 0) : 2, at }
+  }
+  const ranked = all.map((p, i) => ({ p, i, ...rank(p) }))
+  const kept = new Set(
+    [...ranked]
+      .sort((a, b) => a.tier - b.tier || a.at - b.at || a.i - b.i)
+      .slice(0, MAX_PENDING)
+      .map((r) => r.i),
   )
-  return [...habitsKept, ...dated.slice(0, MAX_PENDING - habitsKept.length)]
+  return ranked.filter((r) => kept.has(r.i)).map((r) => r.p)
+}
+
+/** When a planned reminder next fires, in ms: its date, or the next
+ * matching day and time after ``now`` for a weekly or daily one. */
+export function nextFiring(p: Planned, now: Date): number {
+  if ("at" in p) return p.at.getTime()
+  const t = "weekly" in p ? p.weekly : p.daily
+  const plus = "weekly" in p ? (p.weekly.weekday - 1 - now.getDay() + 7) % 7 : 0
+  let at = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + plus,
+    t.hour,
+    t.minute,
+  )
+  if (at <= now)
+    at = new Date(
+      at.getFullYear(),
+      at.getMonth(),
+      at.getDate() + ("weekly" in p ? 7 : 1),
+      t.hour,
+      t.minute,
+    )
+  return at.getTime()
 }
 
 /** When a task counts as overdue: its reminder, else its due time, else

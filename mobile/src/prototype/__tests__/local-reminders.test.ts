@@ -92,7 +92,9 @@ test("future task reminders and habit slots are planned; the rest are not", () =
   })
 })
 
-test("never more than iOS allows, soonest tasks kept", () => {
+test("never more than iOS allows, soonest kept", () => {
+  // One an hour from 09:00; the habit's next push is Monday 06:30, 94.5 h
+  // away, behind the first 60 tasks.
   const many = Array.from({ length: 100 }, (_, i) =>
     task(
       String(i),
@@ -101,7 +103,9 @@ test("never more than iOS allows, soonest tasks kept", () => {
   )
   const plan = planReminders(many, [habit()], NOW)
   expect(plan).toHaveLength(MAX_PENDING)
-  expect(plan.at(-1)?.id).toBe(`task-${MAX_PENDING - 3}`)
+  expect(plan.map((p) => p.id)).toEqual(
+    Array.from({ length: MAX_PENDING }, (_, i) => `task-${i}`),
+  )
 })
 
 test("a sync replaces only this app's reminders, and needs permission", async () => {
@@ -184,14 +188,28 @@ describe("reminders skip what's already done today", () => {
     }
   })
 
-  test("a count habit only part-way there still gets today's reminder", () => {
+  test("a count habit only part-way there still gets today's reminder, saying how far", () => {
     const plan = planReminders(
       [],
       [{ ...thursdayEvening, type: "count", target: 8 } as Habit],
       now,
       { logs: [log({ status: "partial", value: 3 })] },
     )
-    expect(plan.every((p) => "weekly" in p)).toBe(true)
+    expect(plan).toEqual([
+      expect.objectContaining({
+        id: "habit-h1-2-18:00",
+        weekly: { weekday: 3, hour: 18, minute: 0 },
+      }),
+      expect.objectContaining({
+        id: "habit-h1-4-18:00-today",
+        at: new Date(2026, 9, 22, 18, 0),
+        body: "Stretch: 3 of 8 done. Tap to log the next.",
+      }),
+      expect.objectContaining({
+        id: "habit-h1-4-18:00",
+        at: new Date(2026, 9, 29, 18, 0),
+      }),
+    ])
   })
 
   test("another day's log changes nothing", () => {

@@ -337,10 +337,22 @@ export function daysLabel(days: number[]) {
   if (s.join() === "0,1,2,3,4") return "Sun–Thu"
   return s.map((d) => WEEKDAY_SHORT[d]).join(" ")
 }
+/** "Every day · 8:00 AM, 8:00 PM": slots on the same days share one
+ * label, their times in order; other days follow after "+". */
 export function scheduleLabel(schedule: ScheduleSlot[]) {
-  return schedule
-    .filter((s) => s.days.length)
-    .map((s) => `${daysLabel(s.days)} · ${fmtTime(s.time)}`)
+  const groups = new Map<string, { days: number[]; times: string[] }>()
+  for (const s of schedule) {
+    if (!s.days.length) continue
+    const key = [...s.days].sort().join(",")
+    const g = groups.get(key) ?? { days: s.days, times: [] }
+    g.times.push(s.time ?? "")
+    groups.set(key, g)
+  }
+  return [...groups.values()]
+    .map((g) => {
+      const times = [...new Set(g.times)].sort()
+      return `${daysLabel(g.days)} · ${times.map((t) => fmtTime(t || undefined)).join(", ")}`
+    })
     .join("  +  ")
 }
 export function targetLabel(h: Habit) {
