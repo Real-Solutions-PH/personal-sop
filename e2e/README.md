@@ -50,7 +50,7 @@ a thin wrapper over `cypress/included` whose tag is pinned in lockstep with the
 |---------|--------|---------|
 | `baseUrl` | `FRONTEND_HOST` | `http://localhost:3000` |
 | `API_URL` | `API_URL` | `http://localhost:8000` |
-| `MAILPIT_HOST` | `MAILPIT_HOST` | `http://127.0.0.1:54324` |
+| `MAILPIT_HOST` | `MAILPIT_HOST` | `http://127.0.0.1:24324` |
 | `FIRST_SUPERUSER` / `FIRST_SUPERUSER_PASSWORD` | `.env` | — |
 
 Any OS-level `CYPRESS_*` variable (`CYPRESS_BASE_URL`, `CYPRESS_API_URL`,

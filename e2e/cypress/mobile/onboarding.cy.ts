@@ -97,7 +97,7 @@ function signUpLive(prefix: string, name: string, handle: string) {
       return cy
         .request({
           method: "POST",
-          url: "http://127.0.0.1:54321/auth/v1/admin/generate_link",
+          url: "http://127.0.0.1:24321/auth/v1/admin/generate_link",
           headers: { apikey: key, Authorization: `Bearer ${key}` },
           body: { type: "signup", email, password },
         })

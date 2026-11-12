@@ -93,7 +93,7 @@ jobs:
         docker compose logs frontend --no-color | tail -150
         docker compose logs backend --no-color | tail -60
         echo "--- reachability from the frontend container ---"
-        docker compose exec -T frontend sh -c 'wget -q -O- http://host.docker.internal:54321/auth/v1/health || echo UNREACHABLE'
+        docker compose exec -T frontend sh -c 'wget -q -O- http://host.docker.internal:24321/auth/v1/health || echo UNREACHABLE'
     - run: docker compose down -v --remove-orphans
     - name: Upload screenshots of failures
       if: ${{ failure() }}
