@@ -925,7 +925,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
       ...s,
       messages: s.messages.map((m) => {
         if (m.id !== id || m.role !== "me") return m
-        const { error: _was, ...rest } = m
+        // Queued again or failed: the server's copy is not waiting any more
+        // (a Retry is handed over afresh).
+        const { error: _was, held: _held, ...rest } = m
         return { ...rest, status, ...(error ? { error } : {}) }
       }),
     }))
@@ -946,6 +948,11 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   /** A reply whose stream dropped while the device was online: read back
    * from the server until it is stored (or the turn is known to have
    * failed), at most one read loop per question. */
+  /** Questions the person tapped Retry on, until the server has them: only
+   * those ask the server to run a failed message again (``retry``). A
+   * resend of anything else never re-runs a turn that stopped after
+   * recording something. */
+  const retrying = new Set<string>()
   const resuming = new Map<string, Promise<void>>()
   function resume(meId: string): Promise<void> {
     const running = resuming.get(meId)
@@ -1520,7 +1527,9 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           ...(hint ? { hint: hint.slice(0, 20) } : {}),
           ...(mediaIds.length ? { media_ids: mediaIds } : {}),
           thread_id: threadId,
+          ...(retrying.has(meId) ? { retry: true } : {}),
         })
+        if (res.ok) retrying.delete(meId)
         if (res.status === 401) {
           // Signed in, but the session could not be renewed just now (the
           // auth server unreachable for a moment after the app slept). The
@@ -1663,10 +1672,12 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
             id: next.id,
             ...(mediaIds.length ? { media_ids: mediaIds } : {}),
             ...(next.threadId ? { thread_id: next.threadId } : {}),
+            ...(retrying.has(next.id) ? { retry: true } : {}),
           })
           // Refused (an allowance, a session not renewed): the live send
           // says why when its turn comes.
           if (!res.ok) return
+          retrying.delete(next.id)
         } catch {
           return
         }
@@ -1717,6 +1728,7 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
   const retry = (id: string) => {
     const m = companionStore.get().messages.find((x) => x.id === id)
     if (m?.role !== "me" || m.status !== "failed") return
+    retrying.add(id)
     if (!deps.online()) {
       markAsk(id, "queued")
       toast.warning(`${companionName()} will answer when you're back online.`)

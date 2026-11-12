@@ -263,6 +263,7 @@ export type app__modules__companion__schema__AskIn = {
     hint?: (string | null);
     media_ids?: Array<(string)>;
     thread_id?: (string | null);
+    retry?: boolean;
 };
 
 export type app__modules__companion__schema__MessagePublic = {

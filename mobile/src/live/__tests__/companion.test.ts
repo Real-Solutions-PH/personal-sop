@@ -1027,7 +1027,9 @@ test("a reply cut short after Fern recorded something offers Retry", async () =>
   expect([m.status, m.error]).toEqual(["failed", "interrupted"])
   retryAsk(m.id)
   await flush()
-  expect(post.mock.calls.at(-1)?.[1]).toMatchObject({ id: m.id })
+  // Only the person's Retry asks the server to run it again.
+  expect(post.mock.calls.at(-1)?.[1]).toMatchObject({ id: m.id, retry: true })
+  expect(post.mock.calls[0][1].retry).toBeUndefined()
 })
 
 test("Send now stops the reply being written", async () => {

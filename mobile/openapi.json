@@ -35808,7 +35808,8 @@
               { "type": "null" }
             ],
             "title": "Thread Id"
-          }
+          },
+          "retry": { "type": "boolean", "title": "Retry", "default": false }
         },
         "type": "object",
         "title": "AskIn"

@@ -61,6 +61,9 @@ MAX_ATTEMPTS = 3
 BACKOFF_SECONDS: tuple[float, ...] = (2.0, 10.0, 30.0)
 # A running turn's claim lapses this long after its last heartbeat.
 LEASE_SECONDS = 90
+# A turn that runs longer than this stops renewing its lease (a model or a
+# tool that hangs): it ends at its next step and recovery takes over.
+MAX_TURN_SECONDS = 15 * 60
 HEARTBEAT_SECONDS = runs.HEARTBEAT_SECONDS
 # The worker's backstop drain runs this long after a message is queued:
 # by then the API task's own drain has normally answered it.
@@ -90,7 +93,9 @@ def enqueue(ctx: Ctx, data: AskIn, *, replay: bool = False) -> CompanionAsk:
     """Keep the message ``data`` for Fern to answer; idempotent by its id.
 
     A resend of a message still waiting or running changes nothing. One
-    that failed is queued again (the person's Retry). ``replay`` (the
+    that failed is queued again only on the person's Retry (``retry``): an
+    automatic resend never runs a turn that stopped after recording
+    something. ``replay`` (the
     streaming route) also queues a finished message whose events are no
     longer kept, so its stored reply is read back to the stream. 409 when
     the id is another person's."""
@@ -119,7 +124,7 @@ def enqueue(ctx: Ctx, data: AskIn, *, replay: bool = False) -> CompanionAsk:
         ctx.session.rollback()
         raise HTTPException(status_code=409, detail="Message id already used")
     fresh = res.first() is not None
-    again = row.status == "failed" or (
+    again = (row.status == "failed" and data.retry) or (
         replay and row.status == "done" and not runs.exists(ctx.user_id, str(row.id))
     )
     if again:
@@ -127,12 +132,15 @@ def enqueue(ctx: Ctx, data: AskIn, *, replay: bool = False) -> CompanionAsk:
         row.error, row.not_before, row.finished_at = None, None, None
         row.updated_at = ctx.now
         ctx.session.add(row)
-    ctx.commit()
     if fresh or again:
+        # The stream starts clean before the row can be claimed (the
+        # commit): reset after it, a drain could already have written the
+        # turn's first events, or all of them.
         sink = runs.open_events(ctx.user_id, str(row.id), fresh=True)
         ahead = _ahead(ctx.user_id, row)
         if ahead:
             sink(CustomEvent(name="queued", value={"behind": ahead}))
+    ctx.commit()
     return row
 
 
@@ -397,16 +405,43 @@ def _update(ask_id: uuid.UUID, **values: Any) -> None:
         s.commit()
 
 
-def _renew(ask_id: uuid.UUID) -> None:
+def _finish(claim: Claim, **values: Any) -> bool:
+    """Move the claimed row on (done, failed, queued again), only while this
+    claim still owns it: running, at this attempt. A turn whose lease lapsed
+    and was taken over must not overwrite the new owner's state. False when
+    the claim no longer owns the row."""
     with Session(engine) as s:
-        s.execute(
+        row = s.exec(
+            select(CompanionAsk).where(CompanionAsk.id == claim.id).with_for_update()
+        ).first()
+        if row is None or row.status != "running" or row.attempts != claim.attempts:
+            s.rollback()
+            return False
+        for k, v in values.items():
+            setattr(row, k, v)
+        row.lease_until = None
+        row.updated_at = utcnow()
+        s.add(row)
+        s.commit()
+        return True
+
+
+def _renew(claim: Claim) -> bool:
+    """Renew the claim's lease; False once the claim no longer owns it."""
+    with Session(engine) as s:
+        res = s.execute(
             sql(
                 "UPDATE companion_ask SET lease_until = :until "
-                "WHERE id = :id AND status = 'running'"
+                "WHERE id = :id AND status = 'running' AND attempts = :n"
             ),
-            {"id": ask_id, "until": utcnow() + timedelta(seconds=LEASE_SECONDS)},
+            {
+                "id": claim.id,
+                "n": claim.attempts,
+                "until": utcnow() + timedelta(seconds=LEASE_SECONDS),
+            },
         )
         s.commit()
+    return bool(getattr(res, "rowcount", 0))
 
 
 def _run(claim: Claim) -> bool:
@@ -415,12 +450,23 @@ def _run(claim: Claim) -> bool:
     sink = runs.open_events(owner, run_id, fresh=False)
     runs.alive(owner, run_id)
     done = threading.Event()
+    # Set once this turn must stop: its claim was taken over (the lease
+    # lapsed while it still ran), or it ran past MAX_TURN_SECONDS. The turn
+    # ends at its next step; the queue's recovery decides what happens next.
+    lost = threading.Event()
+    began = time.monotonic()
 
     def beat() -> None:
         while not done.wait(HEARTBEAT_SECONDS):
+            if time.monotonic() - began > MAX_TURN_SECONDS:
+                log.warning("companion turn ran too long; its lease is let go")
+                lost.set()
+                return
             try:
                 runs.alive(owner, run_id)
-                _renew(claim.id)
+                if not _renew(claim):
+                    lost.set()
+                    return
             except Exception:  # noqa: BLE001 - a missed beat never ends the turn
                 log.warning("companion heartbeat failed", exc_info=True)
 
@@ -437,15 +483,13 @@ def _run(claim: Claim) -> bool:
         with Session(engine) as s:
             user = s.get(User, owner)
         if user is None:
-            _update(
-                claim.id, status="failed", error="reply_failed", finished_at=utcnow()
-            )
+            _finish(claim, status="failed", error="reply_failed", finished_at=utcnow())
             runs.end(owner, run_id)
             return False
         sessions = get_tenant_scoped_session(user)
         ctx = make_ctx(next(sessions), user)
         try:
-            code = _turn(ctx, claim, sink, on_tool)
+            code = _turn(ctx, claim, sink, on_tool, lost)
         finally:
             sessions.close()
     except Exception:  # noqa: BLE001 - recovered below, reported as an event
@@ -456,6 +500,8 @@ def _run(claim: Claim) -> bool:
         gate.clear_stop(owner, run_id)
     if code is None:
         return True
+    if code == "lost":
+        return False
     return _after_failure(claim, code, sink, wrote[0])
 
 
@@ -464,7 +510,15 @@ def _after_failure(claim: Claim, code: str, sink: runs.Sink, wrote: bool) -> boo
     with Session(engine) as s:
         row = s.get(CompanionAsk, claim.id)
         wrote = wrote or bool(row and row.wrote)
+        # It broke after its reply was stored (sending the end, marking it
+        # done): the message is answered, never reported as failed.
+        answered = row is not None and _answered(s, row)
     now = utcnow()
+    if answered:
+        if _finish(claim, status="done", finished_at=now):
+            runs.end(owner, run_id)
+            publish(owner, "companion.reply", {"message_id": run_id})
+        return True
     final: str | None = None
     if code.startswith("fern_"):
         final = code  # the allowance ran out: asking again will not help
@@ -473,36 +527,34 @@ def _after_failure(claim: Claim, code: str, sink: runs.Sink, wrote: bool) -> boo
     elif claim.attempts >= MAX_ATTEMPTS:
         final = "reply_failed"
     if final is not None:
-        _update(
-            claim.id, status="failed", error=final, finished_at=now, lease_until=None
-        )
+        if not _finish(claim, status="failed", error=final, finished_at=now):
+            return False
         if not final.startswith("fern_"):
             sink(RunErrorEvent(message=ERRORS[final], code=final))
         runs.end(owner, run_id)
         publish(owner, "companion.reply", {"message_id": run_id, "failed": True})
         return False
     wait = _backoff(claim.attempts)
-    _update(
-        claim.id,
-        status="queued",
-        lease_until=None,
-        not_before=now + timedelta(seconds=wait),
-    )
+    if not _finish(claim, status="queued", not_before=now + timedelta(seconds=wait)):
+        return False
     sink(CustomEvent(name="retry", value={"attempt": claim.attempts + 1}))
     runs.resting(owner, run_id)
     return False
 
 
-def _turn(ctx: Ctx, claim: Claim, sink: runs.Sink, on_tool: Any) -> str | None:
+def _turn(
+    ctx: Ctx, claim: Claim, sink: runs.Sink, on_tool: Any, lost: threading.Event
+) -> str | None:
     """The turn itself, on the person's own session. None when the reply is
-    stored; else the failure's code."""
+    stored; ``lost`` when the claim was taken over; else the failure's
+    code."""
     run_id = str(claim.id)
     stream = turn.TurnStream(
         ctx,
         thread_id=f"companion:{ctx.user_id}",
         run_id=run_id,
         sink=sink,
-        stop_check=lambda: gate.stop_requested(ctx.user_id, run_id),
+        stop_check=lambda: lost.is_set() or gate.stop_requested(ctx.user_id, run_id),
     )
     stream.on_tool = on_tool
     # A message already answered (a resend whose events were dropped, or one
@@ -550,11 +602,14 @@ def _turn(ctx: Ctx, claim: Claim, sink: runs.Sink, on_tool: Any) -> str | None:
             "reply_id": str(sol.id) if sol else None,
         },
     )
+    if not _finish(claim, status="done", finished_at=utcnow()):
+        # Taken over after its lease lapsed: the new owner reports it.
+        log.warning("companion turn finished after losing its claim")
+        return "lost"
     if not already:
         # A person who left the app hears that the reply is ready; one
         # still in the app sees it arrive.
         notify.reply_pushed(ctx, out, asked_at=claim.created_at)
-    _update(claim.id, status="done", finished_at=utcnow(), lease_until=None)
     if not already:
         # The reply is out: what the turn teaches is learned now. A failure
         # here is logged and never reaches the finished reply.

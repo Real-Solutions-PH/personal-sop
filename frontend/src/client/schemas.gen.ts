@@ -24324,6 +24324,11 @@ export const app__modules__companion__schema__AskInSchema = {
                 }
             ],
             title: 'Thread Id'
+        },
+        retry: {
+            type: 'boolean',
+            title: 'Retry',
+            default: false
         }
     },
     type: 'object',

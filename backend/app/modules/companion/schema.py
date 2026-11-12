@@ -33,6 +33,10 @@ class AskIn(BaseModel):
     # The chat it belongs to; the device mints a new chat's id. Omitted: the
     # most recent chat (an app from before chats).
     thread_id: uuid.UUID | None = None
+    # The person tapped Retry on this message: one that failed runs again.
+    # Any other resend of a failed message (a reconnect, a network retry)
+    # leaves it failed, since running it again could record something twice.
+    retry: bool = False
 
     @model_validator(mode="after")
     def _something(self) -> "AskIn":

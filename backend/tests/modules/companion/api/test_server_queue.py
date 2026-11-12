@@ -294,6 +294,7 @@ def test_messages_sent_then_the_app_closed_are_all_answered_and_pushed(
         enqueue(client, api, text, me, thread)
 
     wait_for(lambda: all(status_of(db, i) == "done" for i in ids))
+    wait_for(lambda: len(pushes.sent) == 3)
     assert [r.text for r in replies(db, owner)] == [
         "Added buy milk.",
         "Added call mom.",
@@ -473,8 +474,25 @@ def test_a_turn_that_died_after_a_write_asks_before_running_again(
     out = api.get(f"/companion/messages/{me}/reply")
     assert (out["status"], out["error"]) == ("failed", "interrupted")
 
-    # Retry: the person sends it again (same id).
+    # A resend that is not the person's Retry (a reconnect re-sending what
+    # was in flight) leaves it failed: it could record the task twice.
     enqueue(client, api, "add buy milk", me, thread)
+    time.sleep(0.3)
+    assert status_of(db, me) == "failed"
+    assert model.calls == 0
+
+    # Retry: the person taps it (same id, ``retry``).
+    r = client.post(
+        f"{API}/companion/messages",
+        headers=api.h,
+        json={
+            "text": "add buy milk",
+            "id": str(me),
+            "thread_id": str(thread),
+            "retry": True,
+        },
+    )
+    assert r.status_code == 202
     wait_for(lambda: status_of(db, me) == "done")
     assert [r.text for r in replies(db, owner)] == ["Retried."]
 
@@ -806,3 +824,65 @@ def test_a_turn_that_died_after_its_reply_was_stored_is_done_not_failed(
     queue.drain(owner)
     row = asks(db, owner)[0]
     assert (row.status, row.error) == ("done", None)
+
+
+def test_a_turn_whose_claim_was_taken_over_never_overwrites_the_new_owner(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    pushes: Pushes,  # noqa: ARG001
+) -> None:
+    """Drain A's lease lapsed while its turn still ran; drain B recovered
+    and claimed the message again. A's late "done" must not land."""
+    api = chat_user(client, db)
+    owner = uid(api)
+    monkeypatch.setattr(queue, "kick", lambda o, delay=0.0: None)
+    me = uuid.uuid4()
+    enqueue(client, api, "hello", me, uuid.uuid4())
+    a, _ = queue._claim(owner)
+    assert a is not None
+    row = db.get(CompanionAsk, me)
+    assert row is not None
+    db.refresh(row)
+    row.lease_until = utcnow() - timedelta(seconds=1)
+    db.add(row)
+    db.commit()
+    b, _ = queue._claim(owner)
+    assert b is not None and b.attempts == a.attempts + 1
+    assert queue._renew(a) is False
+    assert queue._finish(a, status="done") is False
+    assert status_of(db, me) == "running"
+    assert queue._renew(b) is True
+    assert queue._finish(b, status="done") is True
+    assert status_of(db, me) == "done"
+
+
+def test_the_event_stream_is_reset_before_the_message_can_be_claimed(
+    client: TestClient,
+    db: Session,
+    monkeypatch: pytest.MonkeyPatch,
+    pushes: Pushes,  # noqa: ARG001
+) -> None:
+    """Reset after the commit, a drain could already have written the
+    turn's events, and the reset would wipe them."""
+    from app.modules.companion import runs
+
+    api = chat_user(client, db)
+    monkeypatch.setattr(queue, "kick", lambda o, delay=0.0: None)
+    real = runs.open_events
+    seen: list[str | None] = []
+
+    def watched(user_id: uuid.UUID, run_id: str, *, fresh: bool) -> runs.Sink:
+        if fresh:
+            seen.append(queue_status(uuid.UUID(run_id)))
+        return real(user_id, run_id, fresh=fresh)
+
+    def queue_status(ask_id: uuid.UUID) -> str | None:
+        with Session(queue.engine) as s:
+            got = s.get(CompanionAsk, ask_id)
+            return got.status if got else None
+
+    monkeypatch.setattr(runs, "open_events", watched)
+    enqueue(client, api, "hello", uuid.uuid4(), uuid.uuid4())
+    # Not yet visible to a drain when the stream was reset.
+    assert seen == [None]
