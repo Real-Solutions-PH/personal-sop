@@ -337,10 +337,42 @@ export function daysLabel(days: number[]) {
   if (s.join() === "0,1,2,3,4") return "Sun–Thu"
   return s.map((d) => WEEKDAY_SHORT[d]).join(" ")
 }
-export function scheduleLabel(schedule: ScheduleSlot[]) {
+/** A schedule as saved: an untimed slot dropped where timed slots already
+ * cover its days, each (day, time) kept once (a later slot at the same time
+ * loses the days an earlier one has, so one push fires, not two), slots
+ * left with no days dropped, sorted by time (untimed last) so the first
+ * slot of a day is its earliest. */
+export function tidySchedule(schedule: ScheduleSlot[]): ScheduleSlot[] {
+  const timed = new Set(schedule.filter((s) => s.time).flatMap((s) => s.days))
+  const claimed = new Map<string, Set<number>>()
   return schedule
-    .filter((s) => s.days.length)
-    .map((s) => `${daysLabel(s.days)} · ${fmtTime(s.time)}`)
+    .filter((s) => s.time || !s.days.every((d) => timed.has(d)))
+    .map((s) => {
+      const key = s.time ?? ""
+      const taken = claimed.get(key) ?? new Set<number>()
+      claimed.set(key, taken)
+      const days = s.days.filter((d) => !taken.has(d))
+      for (const d of days) taken.add(d)
+      return days.length === s.days.length ? s : { ...s, days }
+    })
+    .filter((s) => s.days.length > 0)
+    .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"))
+}
+/** "Every day · 8:00 AM, 8:00 PM": slots on the same days share one
+ * label, their times in order; other days follow after "+". */
+export function scheduleLabel(schedule: ScheduleSlot[]) {
+  const groups = new Map<string, { days: number[]; times: string[] }>()
+  for (const s of tidySchedule(schedule)) {
+    const key = [...s.days].sort().join(",")
+    const g = groups.get(key) ?? { days: s.days, times: [] }
+    g.times.push(s.time ?? "")
+    groups.set(key, g)
+  }
+  return [...groups.values()]
+    .map((g) => {
+      const times = [...new Set(g.times)].sort()
+      return `${daysLabel(g.days)} · ${times.map((t) => fmtTime(t || undefined)).join(", ")}`
+    })
     .join("  +  ")
 }
 export function targetLabel(h: Habit) {

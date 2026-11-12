@@ -68,6 +68,21 @@ import {
   useRuleState,
 } from "./screen-card"
 
+/** The most slots a schedule holds: the server's limit (habits schema). */
+const MAX_SLOTS = 7
+/** Every slot on ``days``, each keeping its own time; slots that end up
+ * the same (days and time) collapse to one. */
+function onDays(slots: ScheduleSlot[], days: number[]): ScheduleSlot[] {
+  const seen = new Set<string>()
+  return slots
+    .map((s) => ({ ...s, days: [...days] }))
+    .filter((s) => {
+      const key = s.time ?? ""
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+}
 export function Schedule({
   value,
   onChange,
@@ -75,11 +90,24 @@ export function Schedule({
   value: ScheduleSlot[]
   onChange: (slots: ScheduleSlot[]) => void
 }) {
+  const t = useTheme()
   return (
     <Card>
       <Title>Schedule</Title>
       {value.map((slot, index) => (
-        <View key={index}>
+        <View
+          key={index}
+          style={
+            index > 0
+              ? {
+                  borderTopWidth: 1,
+                  borderColor: t.line,
+                  paddingTop: 16,
+                  marginTop: 8,
+                }
+              : undefined
+          }
+        >
           <Actions>
             {WEEKDAY_SHORT.map((name, day) => (
               <Button
@@ -96,7 +124,7 @@ export function Schedule({
                               ? s.days.filter((d) => d !== day)
                               : [...s.days, day],
                           }
-                        : { ...s, days: s.days.filter((d) => d !== day) },
+                        : s,
                     ),
                   )
                 }
@@ -130,18 +158,26 @@ export function Schedule({
         </View>
       ))}
       <Actions>
-        <Button tone="quiet" onPress={() => onChange([{ days: EVERY_DAY }])}>
+        {/* Shortcuts set the days of every slot and keep the times picked. */}
+        <Button tone="quiet" onPress={() => onChange(onDays(value, EVERY_DAY))}>
           Every day
         </Button>
         <Button
           tone="quiet"
-          onPress={() => onChange([{ days: [1, 2, 3, 4, 5] }])}
+          onPress={() => onChange(onDays(value, [1, 2, 3, 4, 5]))}
         >
           Weekdays
         </Button>
-        <Button tone="quiet" onPress={() => onChange([...value, { days: [] }])}>
-          Different time on some days
-        </Button>
+        {value.length < MAX_SLOTS && (
+          <Button
+            tone="quiet"
+            onPress={() =>
+              onChange([...value, { days: [...(value.at(-1)?.days ?? [])] }])
+            }
+          >
+            Add another time
+          </Button>
+        )}
       </Actions>
     </Card>
   )
