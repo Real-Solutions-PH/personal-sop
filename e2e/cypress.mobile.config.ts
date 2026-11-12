@@ -14,7 +14,7 @@ import { Client } from "pg"
 
 dotenv.config({ path: path.join(__dirname, "../.env") })
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:54321"
+const SUPABASE_URL = process.env.SUPABASE_URL || "http://127.0.0.1:24321"
 
 function assertLocal(url: string, what: string) {
   const host = new URL(url).hostname
@@ -102,7 +102,7 @@ export default defineConfig({
         },
         /** The newest Mailpit message to an address (sign-up / reset codes). */
         async latestMail(to: string) {
-          const host = process.env.MAILPIT_HOST || "http://127.0.0.1:54324"
+          const host = process.env.MAILPIT_HOST || "http://127.0.0.1:24324"
           const list = await fetch(
             `${host}/api/v1/search?query=to:${encodeURIComponent(to)}`,
           )
