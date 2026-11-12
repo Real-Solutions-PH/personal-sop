@@ -149,6 +149,13 @@ export type Msg = {
    * waiting for a connection (sent on reconnect), or failed (Retry). The
    * server's copy (same id) replaces it and clears this. */
   status?: "sending" | "queued" | "failed" | "resuming"
+  /** Device-only: the server holds this queued question and answers it
+   * whether or not the app stays open (``POST /companion/messages``).
+   * Unset on a question still waiting for a connection. */
+  held?: boolean
+  /** Device-only, on a failed question: why (``interrupted``: Fern stopped
+   * after recording something, so it only runs again on Retry). */
+  error?: string
   /** The question's capture hint, kept so a queued or retried ask sends it. */
   hint?: string
   /** The chat it belongs to; absent on messages from before chats. */
