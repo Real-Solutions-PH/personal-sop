@@ -20,6 +20,7 @@ from sqlmodel import Session, col, select
 from app.modules.dashboard import public as dashboard
 from app.modules.iam.users.models import User
 from app.modules.profile import public as profile_public
+from app.modules.schedule import services as schedule
 from app.modules.tasks import logic, repo
 from app.modules.tasks.models import Task, TaskSettings
 from app.shared import owned_repo
@@ -162,17 +163,19 @@ def send_reminders(ctx: Ctx) -> int:
     if not _tasks_on(ctx):
         return 0
     settings = repo.settings_or_default(ctx)
+    # Wide enough for an occurrence moved on the Plan tab: its reminder is
+    # shifted by the move before the look-back window is applied.
     rows = owned_repo.list_rows(
         ctx,
         Task,
         col(Task.status) == "open",
         col(Task.remind_at).is_not(None),
-        col(Task.remind_at) <= ctx.now,
-        col(Task.remind_at) >= ctx.now - LOOKBACK,
+        col(Task.remind_at) <= ctx.now + schedule.MAX_SHIFT,
+        col(Task.remind_at) >= ctx.now - LOOKBACK - schedule.MAX_SHIFT,
     )
     sent = 0
     for r in reminders_due(
-        [repo.task_view(t) for t in rows],
+        schedule.moved_task_reminders(ctx, [repo.task_view(t) for t in rows]),
         now=ctx.now,
         quiet_start=settings.quiet_start,
         quiet_end=settings.quiet_end,
@@ -239,8 +242,9 @@ def run_reminders(session: Session, *, now: datetime) -> int:
             Task.status == "open",
             col(Task.deleted_at).is_(None),
             col(Task.remind_at).is_not(None),
-            col(Task.remind_at) <= now,
-            col(Task.remind_at) >= now - LOOKBACK,
+            # A moved occurrence's reminder can be up to a day off its row's.
+            col(Task.remind_at) <= now + schedule.MAX_SHIFT,
+            col(Task.remind_at) >= now - LOOKBACK - schedule.MAX_SHIFT,
         )
         .distinct()
     ).all()

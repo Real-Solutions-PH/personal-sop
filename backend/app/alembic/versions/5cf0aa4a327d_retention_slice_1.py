@@ -3,7 +3,7 @@ nudge decision, and the person's nudge settings
 (docs/26-retention-algorithms.md §4.2), and ``push_open`` usage events.
 
 Revision ID: 5cf0aa4a327d
-Revises: e9af4348ea3f
+Revises: b7d2e4f6a813
 Create Date: 2026-11-12
 
 """
@@ -13,7 +13,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "5cf0aa4a327d"
-down_revision = "e9af4348ea3f"
+down_revision = "b7d2e4f6a813"
 branch_labels = None
 depends_on = None
 
