@@ -74,3 +74,28 @@ def retention_nudges(timestamp: int) -> int:
 
     del timestamp
     return run_retention_nudges()
+
+
+# --- Fern's server-side queue (bodies in app.modules.companion.queue) ------
+
+
+@jobs_app.task(name="companion.drain")
+def companion_drain(owner_id: str) -> int:
+    """Backstop drain for one person's Fern messages, deferred a minute after
+    each is queued (the API task's own drain normally answers first)."""
+    import uuid
+
+    from app.modules.companion.queue import drain
+
+    return drain(uuid.UUID(owner_id))
+
+
+@jobs_app.periodic(cron="* * * * *")
+@jobs_app.task(name="companion.sweep", queueing_lock="companion.sweep")
+def companion_sweep(timestamp: int) -> int:
+    """Restart any Fern queue a dead task left: a message waiting with
+    nothing running, or a turn whose lease lapsed."""
+    from app.modules.companion.queue import sweep
+
+    del timestamp
+    return sweep()

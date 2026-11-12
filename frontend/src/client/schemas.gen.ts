@@ -1545,6 +1545,25 @@ export const AskOutSchema = {
 became (the chat shows captures in line with messages).`
 } as const;
 
+export const AskQueuedSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        status: {
+            type: 'string',
+            enum: ['queued', 'running', 'done', 'failed'],
+            title: 'Status'
+        }
+    },
+    type: 'object',
+    required: ['id', 'status'],
+    title: 'AskQueued',
+    description: 'A message the server keeps until Fern has answered it.'
+} as const;
+
 export const AssignmentInSchema = {
     properties: {
         credential_id: {
@@ -16426,8 +16445,19 @@ export const ReplyOutSchema = {
     properties: {
         status: {
             type: 'string',
-            enum: ['running', 'done', 'failed'],
+            enum: ['queued', 'running', 'done', 'failed'],
             title: 'Status'
+        },
+        error: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Error'
         },
         messages: {
             items: {
@@ -16453,9 +16483,11 @@ export const ReplyOutSchema = {
     required: ['status'],
     title: 'ReplyOut',
     description: `Where the reply to a question stands, for an app that lost its
-stream: \`\`done\`\` with the stored question and reply (or the capture a
-log became), \`\`running\`\` while the turn is still being written, or
-\`\`failed\`\` when it ended with nothing stored.`
+stream: \`\`queued\`\` while it waits its turn on the server, \`\`running\`\`
+while the turn is being written, \`\`done\`\` with the stored question and
+reply (or the capture a log became), or \`\`failed\`\` when it ended without
+a reply (\`\`error\`\` says why: \`\`interrupted\`\` when it stopped after
+recording something, so it is never run again unasked).`
 } as const;
 
 export const ReplyPublicSchema = {
@@ -24381,6 +24413,11 @@ export const app__modules__companion__schema__AskInSchema = {
                 }
             ],
             title: 'Thread Id'
+        },
+        retry: {
+            type: 'boolean',
+            title: 'Retry',
+            default: false
         }
     },
     type: 'object',

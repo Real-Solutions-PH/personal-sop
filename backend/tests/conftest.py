@@ -74,6 +74,16 @@ _TEST_KEK = SecretStr(base64.b64encode(secrets.token_bytes(32)).decode())
 
 
 @pytest.fixture(autouse=True)
+def quick_fern_retries(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A Fern turn that fails is retried after a short wait (the queue's
+    backoff, seconds in production); tests that read a failed turn's end
+    would otherwise wait it out. Tests about backoff set their own."""
+    from app.modules.companion import queue
+
+    monkeypatch.setattr(queue, "BACKOFF_SECONDS", (0.0, 0.0, 0.0))
+
+
+@pytest.fixture(autouse=True)
 def credentials_key(monkeypatch: pytest.MonkeyPatch) -> None:
     kek = settings.AI_CREDENTIALS_KEK
     if kek is None or not kek.get_secret_value():

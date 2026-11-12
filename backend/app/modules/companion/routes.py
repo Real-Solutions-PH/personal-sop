@@ -4,26 +4,27 @@ blocks."""
 
 import logging
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response, StreamingResponse
 
 from app.modules.ai_providers import public as ai
 from app.modules.companion import (
     feedback,
     gate,
-    memory,
-    notify,
+    queue,
     review,
     runs,
     services,
-    turn,
 )
 from app.modules.companion.schema import (
     AllowanceOut,
     AskIn,
     AskOut,
+    AskQueued,
     CompanionState,
     FeedbackIn,
     FeedbackPublic,
@@ -49,14 +50,10 @@ from app.modules.iam.deps import (
     release_connection,
     require_permission,
 )
-from app.modules.profile import public as profile
-from app.modules.sync import written
-from app.shared.context import Ctx, CtxDep, make_ctx
-from app.shared.events import publish
+from app.shared.context import Ctx, CtxDep
 from app.shared.pagination import PaginationDep
 from app.shared.rate_limit import guarded, rate_limited
 from app.shared.schema import Message
-from app.shared.tenant_session import get_tenant_scoped_session
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/companion", tags=["companion"])
@@ -161,191 +158,47 @@ def ask_stream(
     # A message past today's allowance is refused before the stream opens,
     # as a 402 the app reads (``fern_daily_allowance_reached``).
     services.check_allowance(ctx, data.id)
-    run_id = str(data.id or uuid.uuid4())
-    thread = str(data.thread_id or "latest")
-    user = ctx.user
-    uid = ctx.user_id
-
-    def work(sink: turn.Sink) -> None:
-        # The turn owns its database session and outlives this request: the
-        # phone drops the stream when the app leaves the chat or goes to the
-        # background, and the reply still finishes and is stored.
-        sessions = get_tenant_scoped_session(user)
-        own = make_ctx(next(sessions), user)
-        try:
-            _turn(own, sink)
-        finally:
-            sessions.close()
-
-    def _turn(ctx: Ctx, sink: turn.Sink) -> None:
-        stream = turn.TurnStream(
-            ctx,
-            thread_id=f"companion:{ctx.user_id}",
-            run_id=run_id,
-            sink=sink,
-            stop_check=lambda: gate.stop_requested(ctx.user_id, run_id),
-        )
-        stream.started()
-        # One reply at a time in a chat: a message sent while Fern is still
-        # answering waits here ("queued"), then reads the finished reply.
-        # While it runs, an app that lost the stream reads "running".
-        try:
-            with (
-                gate.running(ctx.user_id, run_id),
-                gate.turn_slot(
-                    ctx.user_id,
-                    thread,
-                    run_id,
-                    on_wait=lambda ahead: stream.custom("queued", {"behind": ahead}),
-                ),
-                written.tracking(ctx.session) as wrote,
-            ):
-                # Each tool's own rows: what the turn wrote before it rides
-                # on the finished reply.
-                stream.before_tool = lambda: wrote.fresh.clear()
-                stream.after_tool = lambda: _send_written(ctx, stream, wrote)
-                out = services.ask(
-                    ctx,
-                    text=data.text,
-                    message_id=data.id,
-                    stream=stream,
-                    media_ids=data.media_ids,
-                    thread_id=data.thread_id,
-                )
-                ctx.commit()
-        except gate.Busy:
-            stream.failed("busy", "Still answering your last message. Try again.")
-            return
-        except HTTPException as exc:
-            # The allowance ran out between the check above and the turn
-            # (another device): the app reads the code and shows the limit.
-            detail: dict[str, Any] = exc.detail if isinstance(exc.detail, dict) else {}
-            code = str(detail.get("code") or "")
-            if exc.status_code != 402 or not code.startswith("fern_"):
-                raise
-            ctx.session.rollback()
-            stream.failed(code, str(detail.get("message") or ""))
-            return
-        # What the turn recorded rides on the finished reply: a pull may hold
-        # it back while this or another turn's transaction is still open.
-        out = out.model_copy(update={"changes": written.changes(ctx, wrote)})
-        stream.finished(out.model_dump(mode="json"))
-        # Whether or not the phone still holds the stream: one in the app
-        # fetches the reply at once instead of at its next sync.
-        sol = next((m for m in out.messages if m.role == "sol"), None)
-        publish(
-            ctx.user_id,
-            "companion.reply",
-            {
-                "thread_id": str(data.thread_id) if data.thread_id else None,
-                # The question's id, which the app knows the reply by.
-                "message_id": run_id,
-                "reply_id": str(sol.id) if sol else None,
-            },
-        )
-        # A person who left the app (the phone dropped this stream) hears
-        # that the reply is ready; one still in the app sees it arrive.
-        notify.reply_pushed(ctx, out)
-        # The reply is out: what the turn teaches is learned now. A failure
-        # here is logged and never reaches the finished reply.
-        try:
-            me = next((m for m in out.messages if m.role == "me"), None)
-            if me is not None:
-                _after_reply(ctx, data.text, me.id, stream, data.thread_id)
-        except Exception as exc:  # noqa: BLE001 - after the reply, best effort
-            ctx.session.rollback()
-            log.warning("companion learn failed: %s", type(exc).__name__)
-
-    # A resend of the same question (the app retrying after a dropped
-    # connection) reads the reply already being written.
-    runs.start(
-        uid, run_id, work, on_heartbeat=lambda: gate.refresh_run(uid, run_id, thread)
-    )
-    # The stream needs nothing from the request's session: hand its
-    # connection back now, not when a reply minutes long ends.
+    data = data.model_copy(update={"id": data.id or uuid.uuid4()})
+    assert data.id is not None
+    # Kept on the server first: the turn runs from the queue whether or not
+    # this stream stays open, and a resend of the same id reads it.
+    row = queue.enqueue(ctx, data, replay=True)
+    uid, ask_id = ctx.user_id, row.id
     release_connection(ctx.session)
+    queue.kick(uid)
     return StreamingResponse(
-        runs.tail(uid, run_id, last_event_id),
+        runs.tail(uid, str(ask_id), last_event_id, pending=_pending(uid, ask_id)),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
 
 
-def _send_written(ctx: Ctx, stream: turn.TurnStream, wrote: written.Wrote) -> None:
-    """Send the synced rows a tool just wrote, committed, as a ``changes``
-    event, and tell the person's other devices to pull.
+def _pending(uid: uuid.UUID, ask_id: uuid.UUID) -> Callable[[], Awaitable[bool]]:
+    async def check() -> bool:
+        return await run_in_threadpool(queue.pending, uid, ask_id)
 
-    Kai, 2026-11-12: a meal Fern logged showed as saved in the chat but
-    reached the Nutrition screen only when the reply ended, 1-12 s later
-    (the model still writing). The commit is the one the next model call
-    makes anyway (``capture.agent.call_model``), made a moment earlier so
-    the app never shows a row that is not stored. Inside a batch or a
-    savepoint (a capture interpreting) nothing is committed or sent: those
-    rows ride on the finished reply as before."""
-    if ctx.in_batch or ctx.session.in_nested_transaction():
-        return
-    ctx.session.flush()
-    fresh = wrote.take_fresh()
-    if not fresh:
-        return
-    release_connection(ctx.session)
-    rows = written.changes(ctx, fresh)
-    if not rows:
-        return
-    stream.custom("changes", {"changes": [r.model_dump(mode="json") for r in rows]})
-    publish(ctx.user_id, "sync.changed", {"cursor": rows[-1].version})
+    return check
 
 
-def _after_reply(
-    ctx: Ctx,
-    text: str,
-    me_id: uuid.UUID,
-    stream: turn.TurnStream,
-    thread_id: uuid.UUID | None,
-) -> None:
-    """Learning that waits until the reply is out (none of it delays a word):
-
-    1. the message's pushback on the reply before it, and cards the person
-       undid, become feedback signals (``feedback``);
-    2. lasting facts and preferences in the message are kept, also on a
-       turn that logged something (``services.learn``);
-    3. waiting thumbs-down notes are learned from, for the person and, de-
-       identified, for every Fern (``feedback.digest``);
-    4. memories still without an embedding are embedded for recall, and
-       older messages are folded into the chat's summary.
-    """
-    signal = feedback.record_turn_signal(ctx, me_id, text)
-    feedback.record_undos(ctx, me_id)
-    services.learn(
-        ctx,
-        text,
-        # A memory saved this turn (asked for, or by the reply) has used
-        # the message already; a write (a task, a meal) has not: a habit
-        # said while logging is still worth keeping.
-        already=any(s.ok and s.name == "remember_fact" for s in stream.steps),
-        wrote=any(s.ok and s.name in services.WRITE_TOOLS for s in stream.steps),
-        follows=signal[1].text if signal else None,
-        pushback=signal is not None,
-    )
-    mems = " ".join(m.text for m in memory.live(ctx))
-    feedback.digest(
-        ctx,
-        private=" ".join(
-            [
-                ctx.user.full_name or "",
-                ctx.user.email,
-                profile.get_profile(ctx).name or "",
-                mems,
-                text,
-            ]
-        ),
-        learn=lambda words, reply: services.learn(
-            ctx, words, already=False, follows=reply, pushback=True
-        ),
-    )
-    memory.backfill(ctx, limit=20)
-    ctx.commit()
-    services.summarise_later(ctx, thread_id)
+# The general write limit, not the AI one: storing a message runs no model,
+# and the queue runs one turn at a time per person (the allowance bounds
+# how many). Under the AI limit a burst of queued messages handed over at
+# once (20 a minute in production) was refused.
+@router.post("/messages", response_model=AskQueued, status_code=202, dependencies=WRITE)
+def send_message(ctx: CtxDep, data: AskIn) -> Any:
+    """Hand a message to Fern: it is kept on the server and answered there,
+    in order, one at a time, whether or not the app stays open (a push says
+    when the reply is ready and the app is away). Idempotent by ``id``: a
+    resend changes nothing, a resend of a failed message asks again (Retry).
+    Follow the reply live with ``GET /messages/{id}/events``. 402 past the
+    allowance; 409 when the id is someone else's."""
+    services.check_allowance(ctx, data.id)
+    data = data.model_copy(update={"id": data.id or uuid.uuid4()})
+    row = queue.enqueue(ctx, data)
+    out = AskQueued(id=row.id, status=row.status)  # type: ignore[arg-type]
+    if row.status == "queued":
+        queue.kick(ctx.user_id)
+    return out
 
 
 @router.put(
@@ -402,11 +255,18 @@ def reply_events(
     after ``Last-Event-ID``), then each new one live, the same frames as
     ``/ask/stream``. 404 once the reply's events are no longer kept (about
     an hour after it ended); ``/messages/{id}/reply`` still has it."""
-    if not runs.exists(ctx.user_id, str(message_id)):
+    if not runs.exists(ctx.user_id, str(message_id)) and not queue.pending(
+        ctx.user_id, message_id
+    ):
         raise HTTPException(status_code=404, detail="Reply not found")
     release_connection(ctx.session)
     return StreamingResponse(
-        runs.tail(ctx.user_id, str(message_id), last_event_id),
+        runs.tail(
+            ctx.user_id,
+            str(message_id),
+            last_event_id,
+            pending=_pending(ctx.user_id, message_id),
+        ),
         media_type="text/event-stream",
         headers=SSE_HEADERS,
     )
@@ -425,11 +285,15 @@ def stop_reply(ctx: CtxDep, message_id: uuid.UUID) -> Response:
 def get_reply(ctx: CtxDep, message_id: uuid.UUID) -> Any:
     """Where the reply to the question ``message_id`` stands, for an app
     whose stream dropped: ``done`` with the stored messages once the reply is
-    stored, ``running`` while its turn runs, else ``failed``. 404 when no
+    stored, ``queued`` while it waits on the server, ``running`` while its
+    turn runs, else ``failed``. 404 when no
     such question of the caller's exists or runs."""
     done = services.stored_reply(ctx, message_id)
     if done is not None:
         return done
+    row = queue.status(ctx, message_id)
+    if row is not None and row.status in ("queued", "running", "failed"):
+        return ReplyOut(status=row.status, error=row.error)  # type: ignore[arg-type]
     if gate.is_running(ctx.user_id, str(message_id)):
         return ReplyOut(status="running")
     if services.question_stored(ctx, message_id):
