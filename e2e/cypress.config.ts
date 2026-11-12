@@ -24,8 +24,8 @@ export default defineConfig({
     FIRST_SUPERUSER: process.env.FIRST_SUPERUSER,
     FIRST_SUPERUSER_PASSWORD: process.env.FIRST_SUPERUSER_PASSWORD,
     // Mailpit ships with the local Supabase stack (make supabase-up) —
-    // GoTrue delivers auth emails there; web UI and API on port 54324.
-    MAILPIT_HOST: process.env.MAILPIT_HOST || "http://127.0.0.1:54324",
+    // GoTrue delivers auth emails there; web UI and API on port 24324.
+    MAILPIT_HOST: process.env.MAILPIT_HOST || "http://127.0.0.1:24324",
     API_URL: process.env.API_URL || "http://localhost:8000",
   },
   retries: {

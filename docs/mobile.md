@@ -107,7 +107,7 @@ Homebrew's `android-commandlinetools`):
 ```sh
 cd mobile
 export EXPO_PUBLIC_APP_MODE=live EXPO_PUBLIC_API_URL=http://192.168.1.250:8765 \
-  EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.250:54321 \
+  EXPO_PUBLIC_SUPABASE_URL=http://192.168.1.250:24321 \
   EXPO_PUBLIC_SUPABASE_ANON_KEY=<SUPABASE_ANON_KEY from .env.example> \
   SENTRY_DISABLE_AUTO_UPLOAD=true
 bunx expo prebuild --platform android --clean --no-install
