@@ -263,6 +263,7 @@ export type app__modules__companion__schema__AskIn = {
     hint?: (string | null);
     media_ids?: Array<(string)>;
     thread_id?: (string | null);
+    retry?: boolean;
 };
 
 export type app__modules__companion__schema__MessagePublic = {
@@ -694,6 +695,16 @@ export type AskOut = {
 export type kind4 = 'reply' | 'capture';
 
 export type engine = 'ai' | 'rules';
+
+/**
+ * A message the server keeps until Fern has answered it.
+ */
+export type AskQueued = {
+    id: string;
+    status: 'queued' | 'running' | 'done' | 'failed';
+};
+
+export type status = 'queued' | 'running' | 'done' | 'failed';
 
 export type AssignmentIn = {
     credential_id: string;
@@ -1480,7 +1491,7 @@ export type FernRuleDecision = {
     text?: (string | null);
 };
 
-export type status = 'proposed' | 'approved' | 'rejected';
+export type status2 = 'proposed' | 'approved' | 'rejected';
 
 /**
  * A rule learned for every Fern: its text and how much stands behind
@@ -1705,7 +1716,7 @@ export type GoalProgressOut = {
     hidden?: boolean;
 };
 
-export type status2 = 'active' | 'archived';
+export type status3 = 'active' | 'archived';
 
 export type GoalPublic = {
     id: string;
@@ -1874,7 +1885,7 @@ export type HandleAvailability = {
     status: 'available' | 'taken' | 'invalid';
 };
 
-export type status3 = 'available' | 'taken' | 'invalid';
+export type status4 = 'available' | 'taken' | 'invalid';
 
 export type HandleCheck = {
     handle: string;
@@ -2763,6 +2774,17 @@ export type NotifUpdate = {
     test_sent_at?: (string | null);
 };
 
+/**
+ * What Settings shows for "Nudges from Fern".
+ */
+export type NudgeSettings = {
+    mode: 'daily' | 'weekly' | 'off';
+    pinned: (string | null);
+    usual: (string | null);
+};
+
+export type mode2 = 'daily' | 'weekly' | 'off';
+
 export type NutritionDayOut = {
     day: string;
     totals: MacrosOut;
@@ -2789,7 +2811,7 @@ export type OccurrenceOut = {
     record_id: (string | null);
 };
 
-export type status4 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
+export type status5 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
 
 export type OccurrenceRef = {
     planned_id: string;
@@ -2882,7 +2904,7 @@ export type OverdueTask = {
 
 export type priority = 'none' | 'low' | 'medium' | 'high';
 
-export type status5 = 'open' | 'done' | 'deleted';
+export type status6 = 'open' | 'done' | 'deleted';
 
 export type parse_state = 'parsed' | 'pending';
 
@@ -2993,7 +3015,7 @@ export type PhaseOut = {
     item: (ItemRef | null);
 };
 
-export type status6 = 'running' | 'paused' | 'waiting' | 'ended';
+export type status7 = 'running' | 'paused' | 'waiting' | 'ended';
 
 export type kind15 = 'focus' | 'break';
 
@@ -3212,6 +3234,9 @@ export type ProfilePublic = {
     push_evening: (string | null);
     push_review: boolean;
     push_checkin?: (string | null);
+    push_permission_changed_at?: (string | null);
+    nudge_mode?: 'daily' | 'weekly' | 'off';
+    nudge_time?: (string | null);
     fern_eval_consent: boolean;
     fern_eval_consent_at: (string | null);
     seen_trophies: Array<(string)>;
@@ -3230,6 +3255,8 @@ export type ProfilePublic = {
 export type appearance = 'system' | 'light' | 'dark';
 
 export type push_permission = 'default' | 'granted' | 'denied';
+
+export type nudge_mode = 'daily' | 'weekly' | 'off';
 
 /**
  * Every field optional: also the sync payload (field-level LWW).
@@ -3254,6 +3281,8 @@ export type ProfileUpdate = {
     push_evening?: (string | null);
     push_review?: (boolean | null);
     push_checkin?: (string | null);
+    nudge_mode?: ('daily' | 'weekly' | 'off' | null);
+    nudge_time?: (string | null);
     fern_eval_consent?: (boolean | null);
     seen_trophies?: (Array<(string)> | null);
     enabled_extras?: (Array<('journal' | 'social' | 'weather' | 'calendar')> | null);
@@ -3476,7 +3505,7 @@ export type Recurrence = {
     mode?: 'fixed' | 'after';
 };
 
-export type mode2 = 'fixed' | 'after';
+export type mode3 = 'fixed' | 'after';
 
 export type Reestimate = {
     hint?: (string | null);
@@ -3496,19 +3525,20 @@ export type ReplaceExercise = {
 
 /**
  * Where the reply to a question stands, for an app that lost its
- * stream: ``done`` with the stored question and reply (or the capture a
- * log became), ``running`` while the turn is still being written, or
- * ``failed`` when it ended with nothing stored.
+ * stream: ``queued`` while it waits its turn on the server, ``running``
+ * while the turn is being written, ``done`` with the stored question and
+ * reply (or the capture a log became), or ``failed`` when it ended without
+ * a reply (``error`` says why: ``interrupted`` when it stopped after
+ * recording something, so it is never run again unasked).
  */
 export type ReplyOut = {
-    status: 'running' | 'done' | 'failed';
+    status: 'queued' | 'running' | 'done' | 'failed';
+    error?: (string | null);
     messages?: Array<app__modules__companion__schema__MessagePublic>;
     capture?: ({
     [key: string]: unknown;
 } | null);
 };
-
-export type status7 = 'running' | 'done' | 'failed';
 
 export type ReplyPublic = {
     id: string;
@@ -4656,12 +4686,12 @@ export type UsageBatch = {
 };
 
 export type UsageEventIn = {
-    kind: 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored';
+    kind: 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
     at: string;
     detail?: (string | null);
 };
 
-export type kind18 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored';
+export type kind18 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
 
 export type UsageOut = {
     month: string;
@@ -5278,6 +5308,21 @@ export type CompanionAskStreamData = {
 
 export type CompanionAskStreamResponse = (unknown);
 
+export type CompanionSendMessageData = {
+    requestBody: app__modules__companion__schema__AskIn;
+};
+
+export type CompanionSendMessageResponse = (AskQueued);
+
+export type CompanionListMessagesData = {
+    limit?: number;
+    skip?: number;
+};
+
+export type CompanionListMessagesResponse = (app__modules__companion__schema__MessagesPublic);
+
+export type CompanionClearConversationResponse = (Message);
+
 export type CompanionRateReplyData = {
     messageId: string;
     requestBody: FeedbackIn;
@@ -5316,15 +5361,6 @@ export type CompanionGetReplyData = {
 };
 
 export type CompanionGetReplyResponse = (ReplyOut);
-
-export type CompanionListMessagesData = {
-    limit?: number;
-    skip?: number;
-};
-
-export type CompanionListMessagesResponse = (app__modules__companion__schema__MessagesPublic);
-
-export type CompanionClearConversationResponse = (Message);
 
 export type CompanionUpsertTrackerData = {
     metric: 'life' | 'habits' | 'tasks' | 'spend' | 'spendCats' | 'netWorth' | 'workouts' | 'weight' | 'nutrition';
@@ -7033,6 +7069,8 @@ export type RbacRemovePermissionData = {
 };
 
 export type RbacRemovePermissionResponse = (Message);
+
+export type RetentionGetNudgeResponse = (NudgeSettings);
 
 export type RolesReadRolesData = {
     limit?: number;

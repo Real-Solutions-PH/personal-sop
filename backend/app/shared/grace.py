@@ -7,7 +7,7 @@ or has not come yet; two misses in a row, or a second lone miss within
 ``broken`` keeps ended runs of three days or more.
 """
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -62,3 +62,12 @@ def walk_run(
         broken=broken,
         grace_days=[*grace, held] if held is not None else grace,
     )
+
+
+def grace_ready(current: int, grace_days: Sequence[date], today: date) -> bool:
+    """A rest day is ready: a run is going and no grace day was used in the
+    last ``GRACE_GAP_DAYS``, so a lone miss today would be bridged. The
+    streak chip's "rest day ready"; port of ``graceReady`` in grace.ts."""
+    if current <= 0:
+        return False
+    return not grace_days or (today - grace_days[-1]).days >= GRACE_GAP_DAYS

@@ -21,7 +21,7 @@ claim, so a Retry does ask again.
 import logging
 import threading
 import uuid
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator, Awaitable, Callable
 
 import redis
 import redis.asyncio as aioredis
@@ -143,6 +143,49 @@ def start(
     return True
 
 
+def open_events(user_id: uuid.UUID, run_id: str, *, fresh: bool) -> Sink:
+    """The sink a queued turn writes its events to (``queue``). ``fresh``
+    starts a clean stream (a message just queued, or one asked again after
+    it failed); otherwise events append to what readers already hold (a
+    retry of a turn that died, or a message that waited)."""
+    r = _redis()
+    key = _events(user_id, run_id)
+    # Held for as long as the events are kept, so a resend reads them.
+    r.set(_claim(user_id, run_id), "1", ex=EVENTS_SECONDS)
+    if fresh:
+        r.delete(key)
+
+    def sink(event: BaseEvent) -> None:
+        pipe = r.pipeline()
+        pipe.xadd(key, {"e": _encode(event)}, maxlen=MAX_EVENTS, approximate=True)
+        pipe.expire(key, EVENTS_SECONDS)
+        pipe.execute()
+
+    return sink
+
+
+def alive(user_id: uuid.UUID, run_id: str) -> None:
+    """Say the turn ``run_id`` is being written (renewed each heartbeat)."""
+    _redis().set(_alive(user_id, run_id), "1", ex=ALIVE_SECONDS)
+
+
+def end(user_id: uuid.UUID, run_id: str) -> None:
+    """The reply's events are complete: readers stop here. Written before
+    the alive mark goes, so no reader takes the gap for a dead task."""
+    r = _redis()
+    key = _events(user_id, run_id)
+    r.xadd(key, {"end": "1"}, maxlen=MAX_EVENTS, approximate=True)
+    r.expire(key, EVENTS_SECONDS)
+    r.delete(_alive(user_id, run_id))
+
+
+def resting(user_id: uuid.UUID, run_id: str) -> None:
+    """The turn stopped for now and will run again (backoff): readers keep
+    waiting on the queue (``tail``'s ``pending``) rather than the alive
+    mark."""
+    _redis().delete(_alive(user_id, run_id))
+
+
 def exists(user_id: uuid.UUID, run_id: str) -> bool:
     """Whether this reply's events are still kept (running or recent)."""
     return bool(_redis().exists(_events(user_id, run_id)))
@@ -158,12 +201,17 @@ async def tail(
     after: str | None = None,
     *,
     heartbeat_s: float = HEARTBEAT_SECONDS,
+    pending: Callable[[], Awaitable[bool]] | None = None,
 ) -> AsyncIterator[str]:
     """The reply's events after ``after`` (a stream id from ``Last-Event-ID``;
     none replays from the start), then each new one as it is written, as
     SSE frames whose ``id`` resumes the read. A ping after every
     ``heartbeat_s`` without one. Ends when the turn ends, or with a
-    ``RUN_ERROR`` once a turn that stopped saying it is alive is gone."""
+    ``RUN_ERROR`` once a turn that stopped saying it is alive is gone.
+
+    ``pending`` says whether the server's queue still holds the message
+    (queued behind another, or waiting to run again): while it does, a
+    missing alive mark means "not started yet", not "gone"."""
     key = _events(user_id, run_id)
     client = aioredis.Redis.from_url(settings.REDIS_URL, decode_responses=True)
     cursor = after or "0-0"
@@ -174,6 +222,9 @@ async def tail(
             )
             if not got:
                 if not await client.exists(_alive(user_id, run_id)):
+                    if pending is not None and await pending():
+                        yield PING
+                        continue
                     # Nothing new and nobody writing: the run's task is gone.
                     yield frame(cursor, _encode(FAILED))
                     await client.delete(_claim(user_id, run_id))

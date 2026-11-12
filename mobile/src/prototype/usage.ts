@@ -1,5 +1,5 @@
 // App usage events: the app came to the foreground, left it, a share card
-// was shared, or an Unfurl Plus moment (the paywall shown, a purchase
+// was shared, a notification was tapped, or an Unfurl Plus moment (the paywall shown, a purchase
 // started, purchases restored). They measure app opens, time in app and share cards
 // (docs/25-retention-kpis.md); the record tables cannot. Signed-in, live
 // mode only. Each event carries the kind, the moment and, for a share, the
@@ -14,6 +14,9 @@ export type UsageEvent =
   | { kind: "share_card"; detail: string }
   // Unfurl Plus: which product the person tapped.
   | { kind: "purchase_started"; detail: string }
+  // A notification tapped: the server notification's id, or the local
+  // reminder's category (notifications.ts ``pushOpenDetail``).
+  | { kind: "push_open"; detail: string }
 
 /** ``account``: whose session it was logged in, so a queue left from one
  * account is never sent as another's. Stays on the phone. */
@@ -70,7 +73,9 @@ export function logUsage(e: UsageEvent, opts: { now?: boolean } = {}) {
   const who = account()
   if (!send || !who) return
   const ev =
-    e.kind === "share_card" ? { ...e, detail: cardKey(e.detail) } : { ...e }
+    e.kind === "share_card" || e.kind === "push_open"
+      ? { ...e, detail: cardKey(e.detail) }
+      : { ...e }
   usageStore.set((s) => ({
     queue: [
       ...s.queue,

@@ -349,11 +349,11 @@ describe("StreakChip", () => {
     expect(screen.getByText("1 day missed · run of 5 ended")).toBeTruthy()
   })
   it("adds the grace day or the way-back pause to a live streak", () => {
-    const view = render(<StreakChip streak={12} note="grace day used" />, {
+    const view = render(<StreakChip streak={12} note="rest day used" />, {
       wrapper,
     })
-    expect(screen.getByText("· grace day used")).toBeTruthy()
-    expect(screen.getByLabelText("12-day streak, grace day used")).toBeTruthy()
+    expect(screen.getByText("· rest day used")).toBeTruthy()
+    expect(screen.getByLabelText("12-day streak, rest day used")).toBeTruthy()
     view.rerender(<StreakChip streak={12} note="paused 3 days" />)
     expect(screen.getByText("· paused 3 days")).toBeTruthy()
   })
@@ -385,7 +385,7 @@ describe("Today strips", () => {
     mockDay.misses = 1
     render(<YesterdayStrip />, { wrapper })
     expect(
-      screen.getByText("Yesterday: off target · grace day used"),
+      screen.getByText("Yesterday: off target · rest day used"),
     ).toBeTruthy()
     expect(screen.queryByText(/ended/)).toBeNull()
   })

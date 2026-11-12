@@ -23,14 +23,17 @@ import { fitStore } from "@domain/fitness/store"
 import type { Habit, HabitLog, Routine } from "@domain/habits/data"
 import { isPausedOn } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
-import { dayKey, weekday } from "@domain/lib/day"
+import { DAY_START_HOUR, dayKey, weekday } from "@domain/lib/day"
 import { money } from "@domain/lib/money"
 import { privacyStore } from "@domain/lib/privacy"
+import type { OverrideKind, ScheduleOverride } from "@domain/schedule/data"
+import { scheduleStore } from "@domain/schedule/store"
 import type { Task } from "@domain/tasks/data"
 import { tasksStore } from "@domain/tasks/store"
 import { Platform } from "react-native"
 import { extrasStore } from "./extras"
 import {
+  notePushOpen,
   openNotification,
   routeLaunchNotification,
   showsBanner,
@@ -92,6 +95,9 @@ export interface MoreReminders {
   /** The daily Fern check-in: HH:MM (empty = off) and the day one was last
    * sent, which moves today's ask to tomorrow. */
   checkin?: { at: string; lastCheckin: string | null }
+  /** Items moved on the Plan tab for one day: that day's reminder fires at
+   * the moved time, and the item's other days keep their own time. */
+  overrides?: readonly ScheduleOverride[]
 }
 
 /** A habit that stands for journaling: the same rule the server uses to
@@ -188,6 +194,13 @@ const hm = (t: string) => {
     : null
 }
 
+/** The slot that day's occurrence uses (the calendar's ``slotFor``: the
+ * first slot on that weekday); a move replaces it alone. */
+const firstSlot = <T extends { days: number[] }>(
+  schedule: readonly T[],
+  wd: number,
+) => schedule.find((s) => s.days.includes(wd))
+
 /** What to schedule, soonest first, capped at ``MAX_PENDING``. Pure. */
 export function planReminders(
   allTasks: readonly Task[],
@@ -253,19 +266,50 @@ export function planReminders(
         })
     else habitPlans.push({ id: "checkin", ...checkinText, daily: checkin })
   }
+  // The coming date (today through six days ahead) on a weekday, and the
+  // time an item was moved to on it, if it was.
+  const ahead = (wd: number) => (wd - weekday(today) + 7) % 7
+  const movedTo = (kind: OverrideKind, id: string, plus: number) => {
+    const o = more.overrides?.find(
+      (x) =>
+        x.kind === kind &&
+        x.refId === id &&
+        x.day === dayKey(onDay(plus, { hour: 12, minute: 0 })),
+    )
+    return o ? hm(o.time) : null
+  }
+  // A moved time before the day start is the small hours after that day.
+  const onDayAt = (plus: number, t: { hour: number; minute: number }) =>
+    onDay(plus + (t.hour < DAY_START_HOUR ? 1 : 0), t)
   for (const r of more.routines ?? []) {
     if (!r.reminder || r.status !== "active" || !r.steps.length) continue
     for (const slot of r.schedule) {
       const time = slot.time ? hm(slot.time) : null
       if (!time) continue
-      for (const day of slot.days)
-        habitPlans.push({
+      for (const day of slot.days) {
+        const text = {
           id: `routine-${r.id}-${day}-${slot.time}`,
           title: `${r.icon} ${r.name}`,
           body: `${r.steps.length} steps. Tap to start.`,
           href: `/habits/routines/${r.id}`,
-          weekly: { weekday: day + 1, ...time },
-        })
+        }
+        const n = ahead(day),
+          moved =
+            slot === firstSlot(r.schedule, day)
+              ? movedTo("routine", r.id, n)
+              : null
+        if (!moved) {
+          habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
+          continue
+        }
+        // A repeating trigger can't skip the moved day: that day at the
+        // moved time, then dated ones at its own time (the next rebuild
+        // puts the weekly one back).
+        const at = onDayAt(n, moved)
+        if (at > now)
+          habitPlans.push({ ...text, id: `${text.id}-moved-${n}`, at })
+        habitPlans.push({ ...text, at: onDay(n + 7, time) })
+      }
     }
   }
   const nagPlans: Planned[] = []
@@ -278,9 +322,14 @@ export function planReminders(
       for (let n = doneToday ? 1 : 0; n < NAG_DAYS; n++) {
         const wd = (weekday(today) + n) % 7
         for (const slot of h.schedule) {
-          const time = slot.time ? hm(slot.time) : null
-          if (!time || !slot.days.includes(wd)) continue
-          const due = onDay(n, time)
+          const own = slot.time ? hm(slot.time) : null
+          if (!own || !slot.days.includes(wd)) continue
+          // The move is the occurrence the calendar shows: its first slot.
+          const moved =
+            slot === firstSlot(h.schedule, wd)
+              ? movedTo("habit", h.id, n)
+              : null
+          const due = moved ? onDayAt(n, moved) : onDay(n, own)
           if (isPausedOn(h, dayKey(due))) continue
           for (const at of nagTimes(due, h.nagEveryMin, now, more.quiet))
             nagPlans.push({
@@ -302,18 +351,57 @@ export function planReminders(
           body: "Time for this one. Tap to check it off.",
           href: `/habits/${h.id}`,
         }
-        habitPlans.push(
-          doneToday && day === weekday(today)
-            ? { ...text, at: onDay(7, time) }
-            : { ...text, weekly: { weekday: day + 1, ...time } },
-        )
+        const n = ahead(day),
+          done = doneToday && n === 0,
+          // The move is the occurrence the calendar shows (its first slot);
+          // another slot that day keeps its own reminder.
+          moved =
+            slot === firstSlot(h.schedule, day)
+              ? movedTo("habit", h.id, n)
+              : null
+        if (!done && !moved) {
+          habitPlans.push({ ...text, weekly: { weekday: day + 1, ...time } })
+          continue
+        }
+        // Moved for that day (and not already done): that day at the
+        // moved time; its own time again from the week after.
+        const at = moved && !done ? onDayAt(n, moved) : null
+        if (at && at > now)
+          habitPlans.push({ ...text, id: `${text.id}-moved-${n}`, at })
+        habitPlans.push({ ...text, at: onDay(n + 7, time) })
       }
     }
   }
   const end = now.getTime() + HORIZON_DAYS * 86_400_000
+  // A recurring task's occurrence moved for its day: its reminder moves by
+  // as much, and it reads the moved time.
+  const shifted = (t: Task) => {
+    const o =
+      t.dueDate &&
+      more.overrides?.find(
+        (x) => x.kind === "task" && x.refId === t.id && x.day === t.dueDate,
+      )
+    if (!o) return null
+    const to = mins(o.time),
+      from = mins(t.dueTime ?? o.time)
+    if (to === null || from === null) return null
+    // Only a reminder tied to the occurrence moves with it (at or before its
+    // own due time); a snooze, set after, already says when.
+    const own = taskDue({ ...t, remindAt: null }, more.defaultRemindTime)
+    if (t.remindAt && own && new Date(t.remindAt) > own)
+      return { time: o.time, by: 0 }
+    const dayMin = (m: number) => (m < DAY_START_HOUR * 60 ? m + 1440 : m)
+    return { time: o.time, by: (dayMin(to) - dayMin(from)) * 60_000 }
+  }
   const taskPlans: Planned[] = tasks
     .filter((t) => t.status === "open" && t.remindAt)
-    .map((t) => ({ t, at: new Date(t.remindAt as string) }))
+    .map((t) => {
+      const sh = shifted(t)
+      const at = new Date(
+        new Date(t.remindAt as string).getTime() + (sh?.by ?? 0),
+      )
+      return { t: sh ? { ...t, dueTime: sh.time } : t, at }
+    })
     .filter(({ at }) => at.getTime() > now.getTime() && at.getTime() <= end)
     .sort((a, b) => a.at.getTime() - b.at.getTime())
     .map(({ t, at }) => ({
@@ -325,7 +413,9 @@ export function planReminders(
     }))
   for (const t of tasks) {
     if (t.status !== "open" || !t.nagEveryMin) continue
-    const due = taskDue(t, more.defaultRemindTime)
+    const sh = shifted(t)
+    const own = taskDue(t, more.defaultRemindTime)
+    const due = own && sh ? new Date(own.getTime() + sh.by) : own
     if (!due) continue
     for (const at of nagTimes(due, t.nagEveryMin, now, more.quiet))
       nagPlans.push({
@@ -427,6 +517,7 @@ export async function syncReminders(
         at: dashStore.get().push.checkin ?? "",
         lastCheckin: dashStore.get().push.lastCheckin || null,
       },
+      overrides: scheduleStore.get().overrides,
     },
   )
   for (const p of plan)
@@ -494,73 +585,13 @@ export async function scheduleEatBackReminder(
   })
 }
 
-/** The evening nudge when the on-target streak is about to break. */
-export const AT_RISK_ID = "streak-at-risk"
-export const AT_RISK_TIME = { hour: 20, minute: 30 }
+/** The retired 20:30 "streak at risk" reminder (docs/26-retention-algorithms.md
+ * D2): the server's best-time nudge replaced it, with no loss-aversion copy.
+ * A phone that scheduled one before the update cancels it on launch. */
+export const RETIRED_AT_RISK_ID = "streak-at-risk"
 
-export interface AtRisk {
-  /** Today's due habits and tasks, and how many are done. */
-  due: number
-  done: number
-  /** Share of due items that puts a day on target (Settings). */
-  threshold: number
-  /** On-target days in a row before today. */
-  streak: number
-  /** The evening wrap-up push time; empty = evening pushes off. */
-  evening: string
-  quiet?: { start: string; end: string }
-}
-
-/** Tonight's "streak at risk" reminder, or null: only while today is below
- * target with an on-target streak to lose, evening pushes on, 20:30 still
- * ahead and outside quiet hours. Pure. */
-export function atRiskPlan(r: AtRisk, now: Date) {
-  if (r.streak <= 0 || r.due <= 0 || !r.evening) return null
-  const need = Math.ceil(r.threshold * r.due - 1e-9) - r.done
-  if (need <= 0) return null
-  const at = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    AT_RISK_TIME.hour,
-    AT_RISK_TIME.minute,
-  )
-  if (now >= at || inQuiet(at, r.quiet)) return null
-  const days = r.streak === 1 ? "1-day" : `${r.streak}-day`
-  return {
-    at,
-    title: `🔥 Your ${days} streak is at risk`,
-    body: `${r.done} of ${r.due} done today. ${need} more ${need === 1 ? "keeps" : "keep"} it going.`,
-    href: "/",
-  }
-}
-
-/** Set or clear tonight's at-risk reminder. Its id is outside ``OURS``, so
- * rebuilding task and habit reminders keeps it. */
-export async function scheduleAtRiskReminder(
-  r: AtRisk,
-  N: Notifications = load(),
-  now: Date = new Date(),
-) {
-  if (Platform.OS === "web") return
-  if ((await N.getPermissionsAsync()).status !== "granted") return
-  await N.cancelScheduledNotificationAsync(AT_RISK_ID).catch(() => {})
-  const plan = atRiskPlan(r, now)
-  if (!plan) return
-  await N.scheduleNotificationAsync({
-    identifier: AT_RISK_ID,
-    content: {
-      title: plan.title,
-      body: plan.body,
-      data: { href: plan.href },
-      sound: SOUND,
-    },
-    trigger: {
-      type: N.SchedulableTriggerInputTypes.DATE,
-      date: plan.at,
-      channelId: CHANNEL,
-    },
-  })
+export async function cancelRetiredReminders(N: Notifications = load()) {
+  await N.cancelScheduledNotificationAsync(RETIRED_AT_RISK_ID).catch(() => {})
 }
 
 /** A real notification a few seconds from now, to see reminders work. */
@@ -617,9 +648,11 @@ export function startReminders() {
       importance: N.AndroidImportance.HIGH,
       sound: SOUND,
     }).catch(() => {})
-  N.addNotificationResponseReceivedListener((r) =>
-    openNotification(r.notification.request.content.data),
-  )
+  void cancelRetiredReminders(N).catch(() => {})
+  N.addNotificationResponseReceivedListener((r) => {
+    notePushOpen(r.notification.request)
+    openNotification(r.notification.request.content.data)
+  })
   routeLaunchNotification(N)
   let timer: ReturnType<typeof setTimeout> | null = null
   const soon = () => {
@@ -631,6 +664,7 @@ export function startReminders() {
   fitStore.subscribe(soon)
   finStore.subscribe(soon)
   privacyStore.subscribe(soon)
+  scheduleStore.subscribe(soon)
   // A module switched off or on: rebuild only when a switch moved, not on
   // every other dash change.
   const watched = () => {

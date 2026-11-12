@@ -11,7 +11,7 @@ import { configureStorage, resetAll } from "@domain/lib/store"
 import { budgetHits, goalsReached, hitLine, withDraft } from "../budget-alerts"
 import { finishedSets, newlyFinished } from "../focus-live"
 import { type GoalNote, missedGoals, noteGoals, periodOf } from "../goal-ledger"
-import { AT_RISK_TIME, type AtRisk, atRiskPlan } from "../local-reminders"
+import { cancelRetiredReminders, RETIRED_AT_RISK_ID } from "../local-reminders"
 import { claimOnce, levelStep, momentsSeen, noteLevel } from "../moments-seen"
 
 // The set-end chime is not under test here.
@@ -211,44 +211,22 @@ describe("level gating", () => {
   })
 })
 
-describe("atRiskPlan", () => {
-  const base: AtRisk = {
-    due: 8,
-    done: 3,
-    threshold: 0.8,
-    streak: 5,
-    evening: "21:00",
-  }
-  const afternoon = new Date(2026, 10, 10, 15)
-
-  it("plans 20:30 tonight while below target with a streak to lose", () => {
-    const p = atRiskPlan(base, afternoon)
-    expect(p?.at).toEqual(
-      new Date(2026, 10, 10, AT_RISK_TIME.hour, AT_RISK_TIME.minute),
-    )
-    expect(p?.title).toBe("🔥 Your 5-day streak is at risk")
-    // 80% of 8 is 6.4: 7 done keeps it, so 4 more.
-    expect(p?.body).toBe("3 of 8 done today. 4 more keep it going.")
-  })
-  it("is off with no streak, at or over target, or nothing due", () => {
-    expect(atRiskPlan({ ...base, streak: 0 }, afternoon)).toBeNull()
-    expect(atRiskPlan({ ...base, done: 7 }, afternoon)).toBeNull()
-    expect(atRiskPlan({ ...base, due: 0, done: 0 }, afternoon)).toBeNull()
-  })
-  it("respects evening pushes off, quiet hours and the hour passed", () => {
-    expect(atRiskPlan({ ...base, evening: "" }, afternoon)).toBeNull()
-    expect(
-      atRiskPlan(
-        { ...base, quiet: { start: "20:00", end: "07:00" } },
-        afternoon,
-      ),
-    ).toBeNull()
-    expect(atRiskPlan(base, new Date(2026, 10, 10, 20, 31))).toBeNull()
-  })
-  it("a threshold met exactly is on target", () => {
-    expect(
-      atRiskPlan({ ...base, due: 10, done: 8, threshold: 0.8 }, afternoon),
-    ).toBeNull()
+describe("the retired streak-at-risk reminder", () => {
+  it("is cancelled, not scheduled", async () => {
+    const cancelled: string[] = []
+    const scheduled: string[] = []
+    const N = {
+      cancelScheduledNotificationAsync: async (id: string) => {
+        cancelled.push(id)
+      },
+      scheduleNotificationAsync: async (r: { identifier: string }) => {
+        scheduled.push(r.identifier)
+      },
+    } as unknown as Parameters<typeof cancelRetiredReminders>[0]
+    await cancelRetiredReminders(N)
+    expect(cancelled).toEqual(["streak-at-risk"])
+    expect(RETIRED_AT_RISK_ID).toBe("streak-at-risk")
+    expect(scheduled).toEqual([])
   })
 })
 

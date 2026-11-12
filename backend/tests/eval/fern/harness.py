@@ -314,6 +314,14 @@ class Trace:
     # Turns whose last model call still asked for tools: the step or tool
     # budget ended them, not the model.
     cut_off: int = 0
+    # Latency as the person feels it, per message: seconds from send to the
+    # first thing the app shows (thinking, text or a tool card) and to the
+    # first word of the reply; and each model call's own duration.
+    first_event_s: list[float | None] = field(default_factory=list)
+    first_text_s: list[float | None] = field(default_factory=list)
+    call_seconds: list[float] = field(default_factory=list)
+    # Input tokens the provider served from its prompt cache.
+    cache_read_tokens: int = 0
     error: str | None = None
 
     def names(self) -> list[str]:
@@ -344,8 +352,20 @@ class Trace:
             "turn_seconds": [round(x, 2) for x in self.turn_seconds],
             "rounds": self.rounds,
             "cut_off": self.cut_off,
+            "first_event_s": [_r(x) for x in self.first_event_s],
+            "first_text_s": [_r(x) for x in self.first_text_s],
+            "call_seconds": [round(x, 2) for x in self.call_seconds],
+            "cache_read_tokens": self.cache_read_tokens,
             "error": self.error,
         }
+
+
+def _r(x: float | None) -> float | None:
+    return None if x is None else round(x, 2)
+
+
+# AG-UI events that put something in front of the person.
+_VISIBLE = ("CONTENT", "TOOL_CALL_START")
 
 
 @dataclass
@@ -356,9 +376,38 @@ class RecordingStream(TurnStream):
     turn_no: int = 0
     # Tool calls the model asked for in each of its calls (0: it answered).
     rounds: list[int] = field(default_factory=list)
+    t0: float = field(default_factory=time.monotonic)
+    first_event: float | None = None
+    first_text: float | None = None
+    call_seconds: list[float] = field(default_factory=list)
+    cache_read: int = 0
+    _call_t: float = 0.0
+
+    def __post_init__(self) -> None:
+        inner = self.sink
+
+        def timed(event: Any) -> None:
+            kind = str(getattr(event, "type", ""))
+            if any(k in kind for k in _VISIBLE):
+                at = time.monotonic() - self.t0
+                if self.first_event is None:
+                    self.first_event = at
+                if self.first_text is None and "TEXT_MESSAGE_CONTENT" in kind:
+                    self.first_text = at
+            inner(event)
+
+        self.sink = timed
+
+    def model_started(self, turn: int) -> None:
+        self._call_t = time.monotonic()
+        super().model_started(turn)
 
     def model_finished(self, turn: int, message: Any) -> None:
         self.rounds.append(len(getattr(message, "tool_calls", None) or []))
+        self.call_seconds.append(time.monotonic() - self._call_t)
+        usage = getattr(message, "usage_metadata", None) or {}
+        details = usage.get("input_token_details") or {}
+        self.cache_read += int(details.get("cache_read") or 0)
         super().model_finished(turn, message)
 
     def tool_started(self, call_id: str, name: str, args: dict[str, Any]) -> None:
@@ -424,6 +473,10 @@ def run_case(session: Session, user: User, case: Case) -> Trace:
             break
         trace.turn_seconds.append(time.monotonic() - turn_started)
         trace.rounds.extend(stream.rounds)
+        trace.first_event_s.append(stream.first_event)
+        trace.first_text_s.append(stream.first_text)
+        trace.call_seconds.extend(stream.call_seconds)
+        trace.cache_read_tokens += stream.cache_read
         trace.cut_off += bool(stream.rounds and stream.rounds[-1])
         trace.calls.extend(stream.calls)
         for m in out.messages:

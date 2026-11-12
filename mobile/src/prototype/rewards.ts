@@ -5,7 +5,7 @@
 import type { Habit, HabitLog } from "@domain/habits/data"
 import { addDays, cellFor, daysBetween } from "@domain/habits/logic"
 import { dayKey } from "@domain/lib/day"
-import { walkRun } from "@domain/lib/grace"
+import { graceReady, walkRun } from "@domain/lib/grace"
 import { createStore } from "@domain/lib/store"
 import { WAY_BACK } from "@domain/way-back"
 
@@ -58,7 +58,8 @@ export function streakMiss(
 }
 
 /** What the live streak chip adds: the way-back pause it is resting on
- * (until the habit is next done), else a grace day used this week. */
+ * (until the habit is next done), else whether this week's rest day (the
+ * grace day that bridges a lone miss) is still ready or already used. */
 export function streakNote(
   h: Habit,
   idx: Map<string, HabitLog>,
@@ -82,8 +83,9 @@ export function streakNote(
       return `paused ${n} day${n === 1 ? "" : "s"}`
     }
   }
-  const last = st.graceDays[st.graceDays.length - 1]
-  return last && last >= addDays(today, -7) ? "grace day used" : null
+  return graceReady(st.current, st.graceDays, today)
+    ? "rest day ready"
+    : "rest day used"
 }
 
 export type DayStanding = "perfect" | "target" | "below" | "free"

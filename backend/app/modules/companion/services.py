@@ -482,7 +482,12 @@ def ask(
     stream: TurnStream | None = None,
     media_ids: list[uuid.UUID] | None = None,
     thread_id: uuid.UUID | None = None,
+    resume: bool = False,
 ) -> AskOut:
+    """Answer ``text``. A stored question returns its stored reply; with
+    ``resume`` (the server queue running a turn again after one died before
+    its reply was stored), a stored question without a reply is answered,
+    reusing the question already kept."""
     token = _THREAD.set(thread_for(ctx, thread_id))
     try:
         return _ask(
@@ -491,6 +496,7 @@ def ask(
             message_id=message_id,
             stream=stream,
             media_ids=media_ids,
+            resume=resume,
         )
     finally:
         _THREAD.reset(token)
@@ -503,6 +509,7 @@ def _ask(
     message_id: uuid.UUID | None,
     stream: TurnStream | None,
     media_ids: list[uuid.UUID] | None,
+    resume: bool = False,
 ) -> AskOut:
     me_id = message_id or uuid.uuid4()
     photos = list(dict.fromkeys(media_ids or []))
@@ -510,7 +517,13 @@ def _ask(
         stream = TurnStream(ctx, thread_id=str(ctx.user_id), run_id=str(me_id))
     sol_id = derived_id("companion-reply", me_id, "sol")
     existing = owned_repo.get(ctx, CompanionMessage, me_id, include_deleted=True)
-    if existing is not None:
+    resuming = (
+        resume
+        and existing is not None
+        and existing.deleted_at is None
+        and stored_reply(ctx, me_id) is None
+    )
+    if existing is not None and not resuming:
         reply = owned_repo.get(ctx, CompanionMessage, sol_id)
         msgs = [_pub(ctx, existing)] + ([_pub(ctx, reply)] if reply else [])
         return AskOut(kind="reply", engine="rules", messages=msgs)
@@ -521,7 +534,8 @@ def _ask(
         # The free allowance and Plus fair use count messages answered on
         # the server's key, once per question id (a resend was answered
         # above). Refused here, before anything of the turn is stored.
-        allowed = ai.check_fern_turn(ctx)
+        # A resumed turn was counted when it was first asked.
+        allowed = ai.allowance(ctx) if resuming else ai.check_fern_turn(ctx)
         ai.count_fern_turn(ctx, me_id, allowed)
     if resolved is not None:
         try:
@@ -594,6 +608,11 @@ def stored_reply(ctx: Ctx, message_id: uuid.UUID) -> ReplyOut | None:
     if cap is not None:
         return ReplyOut(status="done", capture=cap)
     return None
+
+
+def stored_question(ctx: Ctx, message_id: uuid.UUID) -> CompanionMessage | None:
+    """The question ``message_id`` as stored, tombstone included."""
+    return owned_repo.get(ctx, CompanionMessage, message_id, include_deleted=True)
 
 
 def question_stored(ctx: Ctx, message_id: uuid.UUID) -> bool:
@@ -2901,9 +2920,10 @@ def _ask_ai(
             ),
         )
 
-    rows = _window_rows(ctx, history_budget(resolved))
+    # A resumed turn's question is already stored: never in its own history.
+    rows = [r for r in _window_rows(ctx, history_budget(resolved)) if r.id != me_id]
     history = _history(ctx, rows)
-    me = _message(
+    me = owned_repo.get(ctx, CompanionMessage, me_id) or _message(
         ctx,
         "me",
         text,

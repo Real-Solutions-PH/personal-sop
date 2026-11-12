@@ -144,6 +144,11 @@ function install(
   return { post: spy, kick }
 }
 
+/** The live sends (``/companion/ask/stream``), leaving out the hand-over of
+ * waiting questions to the server's queue (``/companion/messages``). */
+const streamed = (post: jest.Mock) =>
+  post.mock.calls.filter(([p]) => p === "/companion/ask/stream")
+
 const flush = async () => {
   for (let i = 0; i < 30; i++) await new Promise((r) => setImmediate(r))
 }
@@ -489,8 +494,8 @@ test("a queued question is sent on reconnect, with its id, and answered", async 
   online = true
   reconnect()
   await flush()
-  expect(post).toHaveBeenCalledTimes(1)
-  expect(post.mock.calls[0][1]).toMatchObject({
+  expect(streamed(post)).toHaveLength(1)
+  expect(streamed(post)[0][1]).toMatchObject({
     text: "how am I doing?",
     id: queued.id,
   })
@@ -502,7 +507,7 @@ test("a queued question is sent on reconnect, with its id, and answered", async 
   // a second reconnect has nothing left to send
   reconnect()
   await flush()
-  expect(post).toHaveBeenCalledTimes(1)
+  expect(streamed(post)).toHaveLength(1)
 })
 
 test("an online question shows before the server answers", async () => {
@@ -574,19 +579,19 @@ test("Retry while Fern is answering waits its turn and never hides the reply in 
   expect(
     companionStore.get().messages.find((m) => m.id === old.id)?.status,
   ).toBe("queued")
-  expect(post).toHaveBeenCalledTimes(2)
+  expect(streamed(post)).toHaveLength(2)
   expect(replying.getState().id).toBe(now?.id)
   expect(thinking.getState().on).toBe(true)
   // A reconnect meanwhile does not send it either.
   reconnect()
   await flush()
-  expect(post).toHaveBeenCalledTimes(2)
+  expect(streamed(post)).toHaveLength(2)
 
   // The reply ends; the waiting message goes next.
   answers[0](sseResponse([ended]))
   await flush()
-  expect(post).toHaveBeenCalledTimes(3)
-  expect(post.mock.calls[2][1]).toMatchObject({
+  expect(streamed(post)).toHaveLength(3)
+  expect(streamed(post)[2][1]).toMatchObject({
     id: old.id,
     text: "old message",
   })
@@ -892,6 +897,141 @@ test("a question sent while Fern is answering waits, then goes when the reply en
   await flush()
 })
 
+test("a question sent while Fern is answering is handed to the server at once", async () => {
+  // Kai, 2026-11-12: queued messages waited on the phone and were answered
+  // only once the app was open again. Each now goes to the server queue
+  // the moment it is sent; the app can close.
+  const answers: ((r: Response) => void)[] = []
+  const { post } = install((path) =>
+    path === "/companion/ask/stream"
+      ? new Promise<Response>((done) => answers.push(done))
+      : Promise.resolve({ ok: true, status: 202 } as Response),
+  )
+  ask("first")
+  await flush()
+  ask("second")
+  ask("third")
+  await flush()
+  const sent = post.mock.calls.filter(([p]) => p === "/companion/messages")
+  const [, second, third] = companionStore.get().messages
+  const streams0 = (q: jest.Mock) => streamed(q)[0][1].id
+  expect(sent.map(([, b]) => [b.id, b.text])).toEqual([
+    [second.id, "second"],
+    [third.id, "third"],
+  ])
+  expect(sent[0][1].thread_id).toBe(second.threadId)
+  // Kept by the server: shown queued, not "waiting for a connection".
+  expect([second.status, second.held, third.status, third.held]).toEqual([
+    "queued",
+    true,
+    "queued",
+    true,
+  ])
+  const first = streams0(post)
+  answers[0](sseResponse([ended]))
+  await flush()
+  // The live stream follows the next one, by the same id.
+  expect(streamed(post).map(([, b]) => b.id)).toEqual([first, second.id])
+  answers[1](sseResponse([ended]))
+  await flush()
+  answers[2]?.(sseResponse([ended]))
+  await flush()
+})
+
+test("a question the server did not take stays queued and goes on reconnect", async () => {
+  let up = false
+  const answers: ((r: Response) => void)[] = []
+  const { post } = install((path) =>
+    path === "/companion/ask/stream"
+      ? new Promise<Response>((done) => answers.push(done))
+      : up
+        ? Promise.resolve({ ok: true, status: 202 } as Response)
+        : Promise.reject(new NetworkError("offline")),
+  )
+  ask("first")
+  await flush()
+  ask("second")
+  await flush()
+  const second = companionStore.get().messages[1]
+  expect([second.status, second.held]).toEqual(["queued", undefined])
+  up = true
+  reconnect()
+  await flush()
+  const sent = post.mock.calls.filter(([p]) => p === "/companion/messages")
+  expect(sent.at(-1)?.[1]).toMatchObject({ id: second.id, text: "second" })
+  expect(companionStore.get().messages[1].held).toBe(true)
+  answers[0](sseResponse([ended]))
+  await flush()
+  answers[1]?.(sseResponse([ended]))
+  await flush()
+})
+
+test("a question still sending when the app stopped is sent again, never failed", async () => {
+  // The server keeps a message by its id, so sending it again is safe: it
+  // either runs once or reads the reply it already has.
+  const id = "5b0c3f2e-1a2b-4c3d-8e9f-001122334455"
+  companionStore.set({
+    ...blank(),
+    messages: [
+      {
+        id,
+        role: "me",
+        at: 1,
+        text: "log lunch",
+        status: "sending",
+        threadId: "t1",
+      },
+    ],
+  })
+  const { post } = install(async (_p, body) =>
+    sseResponse(replayAsk(REC.ask_reply, body)),
+  )
+  await flush()
+  expect(streamed(post)[0][0]).toBe("/companion/ask/stream")
+  expect(streamed(post)[0][1]).toMatchObject({ id, text: "log lunch" })
+  expect(companionStore.get().messages.some((m) => m.status === "failed")).toBe(
+    false,
+  )
+})
+
+test("a reply cut short after Fern recorded something offers Retry", async () => {
+  const { post } = install(async (_p, body) =>
+    sseResponse([
+      [
+        "message",
+        {
+          type: "CUSTOM",
+          name: "message",
+          value: {
+            id: body.id,
+            role: "me",
+            text: "add buy milk",
+            blocks: [],
+            created_at: "2026-11-12T01:00:00Z",
+          },
+        },
+      ],
+      [
+        "message",
+        {
+          type: "RUN_ERROR",
+          code: "interrupted",
+          message: "Couldn't finish that reply. Tap Retry to run it again.",
+        },
+      ],
+    ]),
+  )
+  ask("add buy milk")
+  await flush()
+  const [m] = companionStore.get().messages
+  expect([m.status, m.error]).toEqual(["failed", "interrupted"])
+  retryAsk(m.id)
+  await flush()
+  // Only the person's Retry asks the server to run it again.
+  expect(post.mock.calls.at(-1)?.[1]).toMatchObject({ id: m.id, retry: true })
+  expect(post.mock.calls[0][1].retry).toBeUndefined()
+})
+
 test("Send now stops the reply being written", async () => {
   const { post } = install((path) =>
     path === "/companion/ask/stream"
@@ -922,12 +1062,12 @@ test("an ask refused 401 (the session not renewed yet) waits, then goes once it 
   expect(toasts).toEqual([])
   expect(thinking.getState().on).toBe(false)
   expect(replying.getState().id).toBeNull()
-  const tries = post.mock.calls.length
+  const tries = streamed(post).length
   renewed = true
   reconnect() // the session renewed
   await flush()
-  expect(post).toHaveBeenCalledTimes(tries + 1)
-  expect(post.mock.calls.at(-1)?.[1]).toMatchObject({ id: waiting.id })
+  expect(streamed(post)).toHaveLength(tries + 1)
+  expect(streamed(post).at(-1)?.[1]).toMatchObject({ id: waiting.id })
   expect(companionStore.get().messages.map((m) => [m.role, m.status])).toEqual([
     ["me", undefined],
     ["sol", undefined],
@@ -1020,12 +1160,12 @@ test("a photo sent offline waits in the chat as a question, then goes to Fern wi
   online = true
   reconnect()
   await flush()
-  const [path, body] = post.mock.calls[0] as unknown as [string, Row]
+  const [path, body] = streamed(post)[0] as unknown as [string, Row]
   expect(path).toBe("/companion/ask/stream")
   expect(body).toMatchObject({
     text: "log this receipt",
     id: queued.id,
-    media_ids: uploads,
+    media_ids: [...new Set(uploads)],
     thread_id: queued.threadId,
   })
 })

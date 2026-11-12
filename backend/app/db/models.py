@@ -29,6 +29,7 @@ from app.modules.capture.models import (  # noqa: F401
 )
 from app.modules.companion.models import (  # noqa: F401
     Companion,
+    CompanionAsk,
     CompanionMessage,
     Memory,
     Tracker,
@@ -109,6 +110,8 @@ from app.modules.profile.models import (  # noqa: F401
     SetupSkip,
     UserProfile,
 )
+from app.modules.retention.models import Nudge, RetentionProfile  # noqa: F401
+from app.modules.schedule.models import ScheduleOverride  # noqa: F401
 from app.modules.screen.models import (  # noqa: F401
     ScreenDay,
     ScreenGroup,

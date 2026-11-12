@@ -52,3 +52,50 @@ def capture_maintenance(timestamp: int) -> dict[str, int]:
 
     del timestamp
     return run_capture_maintenance()
+
+
+@jobs_app.periodic(cron="7 * * * *")
+@jobs_app.task(
+    name="mobile.retention.nightly", queueing_lock="mobile.retention.nightly"
+)
+def retention_nightly(timestamp: int) -> int:
+    """Each person's retention profile, in their local 03:00 hour."""
+    from app.modules.jobs.mobile import run_retention_nightly
+
+    del timestamp
+    return run_retention_nightly()
+
+
+@jobs_app.periodic(cron="*/5 * * * *")
+@jobs_app.task(name="mobile.retention.nudges", queueing_lock="mobile.retention.nudges")
+def retention_nudges(timestamp: int) -> int:
+    """At most one engagement nudge per person per day, at their usual time."""
+    from app.modules.jobs.mobile import run_retention_nudges
+
+    del timestamp
+    return run_retention_nudges()
+
+
+# --- Fern's server-side queue (bodies in app.modules.companion.queue) ------
+
+
+@jobs_app.task(name="companion.drain")
+def companion_drain(owner_id: str) -> int:
+    """Backstop drain for one person's Fern messages, deferred a minute after
+    each is queued (the API task's own drain normally answers first)."""
+    import uuid
+
+    from app.modules.companion.queue import drain
+
+    return drain(uuid.UUID(owner_id))
+
+
+@jobs_app.periodic(cron="* * * * *")
+@jobs_app.task(name="companion.sweep", queueing_lock="companion.sweep")
+def companion_sweep(timestamp: int) -> int:
+    """Restart any Fern queue a dead task left: a message waiting with
+    nothing running, or a turn whose lease lapsed."""
+    from app.modules.companion.queue import sweep
+
+    del timestamp
+    return sweep()

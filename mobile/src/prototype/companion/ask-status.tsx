@@ -2,9 +2,10 @@ import { Pressable, Text } from "react-native"
 import { fonts, useTheme } from "../theme"
 import { type Msg, replying, retryAsk, stopReply } from "./store"
 
-/** Under a question the server has not stored yet: it waits behind the
- * reply being written (Send now stops that reply), waits for a connection
- * (sent on reconnect), or it failed and can be sent again. */
+/** Under a question not answered yet: queued (the server holds it and
+ * answers it in order, even with the app closed; Send now stops the reply
+ * ahead of it), waiting for a connection (handed over on reconnect), or
+ * failed and can be sent again. */
 export function AskStatus({ m }: { m: Msg }) {
   const t = useTheme()
   const busy = replying((s) => s.id !== null)
@@ -33,21 +34,24 @@ export function AskStatus({ m }: { m: Msg }) {
       <Text
         style={{ color: t.muted, fontFamily: fonts.semibold, fontSize: 11 }}
       >
-        Waiting for a connection
+        {m.held ? "Queued" : "Waiting for a connection"}
       </Text>
     )
   if (m.status !== "failed") return null
+  // Stopped after recording something: running it again is the person's
+  // call (it could record twice), so it says it did not finish.
+  const cut = m.error === "interrupted" || m.error === "reply_failed"
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Not sent. Retry"
+      accessibilityLabel={cut ? "Couldn't finish. Retry" : "Not sent. Retry"}
       onPress={() => retryAsk(m.id)}
       hitSlop={8}
     >
       <Text
         style={{ color: t.muted, fontFamily: fonts.semibold, fontSize: 11 }}
       >
-        Not sent ·{" "}
+        {cut ? "Couldn't finish" : "Not sent"} ·{" "}
         <Text style={{ color: t.primary, fontFamily: fonts.semibold }}>
           Retry
         </Text>

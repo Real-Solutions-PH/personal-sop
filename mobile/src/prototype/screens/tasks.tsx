@@ -9,11 +9,18 @@ import {
   ArrowRight,
   CalendarCheck,
   CalendarClock,
+  CalendarPlus,
+  CalendarX,
   Check,
+  CopyPlus,
   Ellipsis,
+  FolderInput,
   type LucideIcon,
   Plus,
   Repeat,
+  RotateCcw,
+  Star,
+  Trash2,
 } from "lucide-react-native"
 import { useRef, useState } from "react"
 import { Pressable, Text, View } from "react-native"
@@ -131,6 +138,177 @@ function QuickActions({
         </Tap>
       ))}
     </Line>
+  )
+}
+/** One action in the task sheet: an icon over a short word, coloured by
+ * what it does, sharing its row's width. The word is a name, not a
+ * sentence; the full name goes to screen readers. */
+function ActionTile({
+  icon: Icon,
+  word,
+  label,
+  color,
+  filled = false,
+  onPress,
+}: {
+  icon: LucideIcon
+  word: string
+  label: string
+  color: string
+  filled?: boolean
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Tap
+      label={label}
+      onPress={onPress}
+      style={{
+        flex: 1,
+        minHeight: 64,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: t.line,
+        backgroundColor: t.card,
+      }}
+    >
+      <Icon size={20} color={color} fill={filled ? color : "none"} />
+      <Copy
+        size={12}
+        weight="medium"
+        maxScale={1.2}
+        style={{ color, textAlign: "center" }}
+      >
+        {word}
+      </Copy>
+    </Tap>
+  )
+}
+
+/** The task sheet's actions, grouped by meaning: what happens to the task
+ * (done, starred, copied, moved), then when it is due — every date action
+ * in one colour — and Delete on its own below a rule. */
+export function TaskActionGrid({
+  task,
+  onDone,
+  onToggle,
+  onToday,
+  onTomorrow,
+  onMove,
+}: {
+  task: Task
+  /** Closes the sheet after an action that finishes there. */
+  onDone: () => void
+  onToggle: () => void
+  onToday: () => void
+  onTomorrow: () => void
+  onMove: () => void
+}) {
+  const t = useTheme()
+  const done = task.status === "done"
+  const act = (fn: () => void) => () => {
+    fn()
+    onDone()
+  }
+  return (
+    <View style={{ gap: 8, marginVertical: 8 }}>
+      <Line style={{ gap: 8, alignItems: "stretch" }}>
+        <ActionTile
+          icon={done ? RotateCcw : Check}
+          word={done ? "Reopen" : "Done"}
+          label={done ? "Reopen" : "Complete"}
+          color={done ? t.text : t.good}
+          onPress={act(onToggle)}
+        />
+        <ActionTile
+          icon={Star}
+          word={task.starred ? "Unstar" : "Star"}
+          label={task.starred ? "Unstar" : "Star"}
+          color={t.warn}
+          filled={task.starred}
+          onPress={act(() => A.updateTask(task.id, { starred: !task.starred }))}
+        />
+        <ActionTile
+          icon={CopyPlus}
+          word="Copy"
+          label="Duplicate"
+          color={t.text}
+          onPress={act(() => A.duplicateTask(task.id))}
+        />
+        <ActionTile
+          icon={FolderInput}
+          word="Move"
+          label="Move to list"
+          color={t.text}
+          onPress={onMove}
+        />
+      </Line>
+      <Line style={{ gap: 8, alignItems: "stretch" }}>
+        <ActionTile
+          icon={AlarmClock}
+          word="+1 hour"
+          label="Snooze 1 hour"
+          color={t.tsk}
+          onPress={act(() => A.snoozeTask(task.id))}
+        />
+        {/* Only a late task: moving a later or undated one to today would
+            count a push (or set an original date) that never happened. */}
+        {L.isOverdue(task) && (
+          <ActionTile
+            icon={CalendarCheck}
+            word="Today"
+            label="Today"
+            color={t.tsk}
+            onPress={act(onToday)}
+          />
+        )}
+        <ActionTile
+          icon={CalendarPlus}
+          word="Tomorrow"
+          label="Tomorrow"
+          color={t.tsk}
+          onPress={act(onTomorrow)}
+        />
+        {!!task.dueDate && (
+          <ActionTile
+            icon={CalendarX}
+            word="No date"
+            label="Remove date"
+            color={t.tsk}
+            // No date means no schedule: a repeat would bring one back
+            // on the next completion.
+            onPress={act(() => {
+              A.setDue(task.id, null, null, null)
+              if (task.recurrence) A.updateTask(task.id, { recurrence: null })
+            })}
+          />
+        )}
+      </Line>
+      <View style={{ height: 1, backgroundColor: t.line, marginVertical: 4 }} />
+      <Tap
+        label="Delete"
+        onPress={act(() => A.deleteTask(task.id))}
+        style={{
+          minHeight: 48,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          borderRadius: 12,
+          backgroundColor: `${t.bad}26`,
+        }}
+      >
+        <Trash2 size={18} color={t.bad} />
+        <Copy size={14} weight="semibold" style={{ color: t.bad }}>
+          Delete
+        </Copy>
+      </Tap>
+    </View>
   )
 }
 export function TaskRow({
@@ -545,75 +723,14 @@ export function TaskRow({
             </Tap>
           </View>
         ) : (
-          <Actions>
-            <Button
-              onPress={() => {
-                toggle()
-                setOpen(false)
-              }}
-            >
-              {task.status === "done" ? "Reopen" : "Complete"}
-            </Button>
-            <Button
-              tone="quiet"
-              onPress={() => {
-                A.snoozeTask(task.id)
-                setOpen(false)
-              }}
-            >
-              Snooze 1 hour
-            </Button>
-            {L.isOverdue(task) && (
-              <Button
-                tone="quiet"
-                onPress={() => {
-                  toToday()
-                  setOpen(false)
-                }}
-              >
-                Today
-              </Button>
-            )}
-            <Button
-              tone="quiet"
-              onPress={() => {
-                toTomorrow()
-                setOpen(false)
-              }}
-            >
-              Tomorrow
-            </Button>
-            <Button tone="quiet" onPress={() => setMoving(true)}>
-              Move to list…
-            </Button>
-            <Button
-              tone="quiet"
-              onPress={() => {
-                A.updateTask(task.id, { starred: !task.starred })
-                setOpen(false)
-              }}
-            >
-              {task.starred ? "Unstar" : "Star"}
-            </Button>
-            <Button
-              tone="quiet"
-              onPress={() => {
-                A.duplicateTask(task.id)
-                setOpen(false)
-              }}
-            >
-              Duplicate
-            </Button>
-            <Button
-              tone="danger"
-              onPress={() => {
-                A.deleteTask(task.id)
-                setOpen(false)
-              }}
-            >
-              Delete
-            </Button>
-          </Actions>
+          <TaskActionGrid
+            task={task}
+            onDone={() => setOpen(false)}
+            onToggle={toggle}
+            onToday={toToday}
+            onTomorrow={toTomorrow}
+            onMove={() => setMoving(true)}
+          />
         )}
       </Sheet>
       {making && (

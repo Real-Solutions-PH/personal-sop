@@ -46,7 +46,8 @@ The KPIs in [25-retention-kpis.md](25-retention-kpis.md) come from `scripts/rete
 
 1. Run it as a one-off task on the API's task definition, exactly like the Fern eval export above, with `--overrides '{"containerOverrides":[{"name":"api","command":["python","scripts/retention_report.py"]}]}'`. Add `"--today","YYYY-MM-DD"` to fix the report day, `"--include-superusers"` to count Kai's account.
 2. Read the `KPI` line from the task's log stream (`api/api/<task id>` in the API log group).
-3. Before the image that contains the script is deployed, the same file can be passed inline: `["python","-c","<the file, gzipped and base64, decoded and exec'd>"]` (about 7 KB, under the 8 KB override limit).
+3. Its `nudges` section (once the `nudge` table exists) gives engagement nudges over the last 28 days: sent, opened, open rate and logs within 2 h of a send, by kind and by arm (`holdout` vs `treated`), and held-back decisions by reason ([26-retention-algorithms.md](26-retention-algorithms.md) §5).
+4. Before the image that contains the script is deployed, the same file can be passed inline: `["python","-c","<the file, gzipped and base64, decoded and exec'd>"]` (about 7 KB, under the 8 KB override limit).
 
 ## Unfurl Plus (RevenueCat)
 
