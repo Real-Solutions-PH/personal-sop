@@ -72,7 +72,7 @@ import { confirmSignOut } from "../sign-out-flow"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { queueTour, resetTips, TIPS, useTour } from "../tour/store"
-import { useTourTarget } from "../tour/targets"
+import { TourTarget } from "../tour/target-view"
 import { confirm, Screen } from "../ui"
 export function Me() {
   const t = useTheme(),
@@ -91,8 +91,7 @@ export function Me() {
     memories = companionStore.use((s) => s.memories),
     shown = extrasStore.use((s) => s),
     plan = planStore.use((s) => s),
-    tipsSeen = useTour().tips.length,
-    notificationsTarget = useTourTarget("me-notifications")
+    tipsSeen = useTour().tips.length
   const planDetail = planLine(plan)
   const canBuy = purchases() !== null
   // Turning it on asks first, in plain words; turning it off is immediate
@@ -351,7 +350,7 @@ export function Me() {
             icon={Scale}
             href="/me/settings"
           />
-          <View ref={notificationsTarget} collapsable={false}>
+          <TourTarget id="me-notifications">
             <LinkRow
               title="Notifications"
               detail={
@@ -364,7 +363,7 @@ export function Me() {
               icon={Bell}
               href="/me/settings"
             />
-          </View>
+          </TourTarget>
           <LinkRow
             title="Day & time"
             detail={`Day starts ${String(DAY_START_HOUR).padStart(2, "0")}:00 · Evening ${eveningStart} · Asia/Manila`}

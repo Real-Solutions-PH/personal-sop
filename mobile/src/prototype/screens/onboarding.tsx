@@ -66,12 +66,12 @@ import { FirstCaptureStep } from "./onboarding-capture"
 //
 // Screens before Today: Welcome, account, (email code, when the server asks
 // for one), these four, one setup step: 7, or 8 with the code.
-export const ONBOARDING_STEPS: readonly ("modules" | "capture" | "about" | "when")[] = [
-  "modules",
-  "capture",
-  "about",
-  "when",
-]
+export const ONBOARDING_STEPS: readonly (
+  | "modules"
+  | "capture"
+  | "about"
+  | "when"
+)[] = ["modules", "capture", "about", "when"]
 // Steps a person can skip from the header.
 const SKIPPABLE: readonly MobileStep[] = ["capture", "about"]
 
@@ -141,8 +141,7 @@ function sendAbout(d: OnboardingDraft) {
 
 /** `/get-started` is the account step; `/onboarding` is the rest. */
 export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
-  if (phase === "pre")
-    return <AccountForm onBack={() => back("/welcome")} />
+  if (phase === "pre") return <AccountForm onBack={() => back("/welcome")} />
   return <AfterAccount />
 }
 
@@ -227,7 +226,10 @@ function AfterAccount() {
     )
   }
   const configs: Partial<
-      Record<MobileStep, { icon: typeof LayoutGrid; title: string; body: string }>
+      Record<
+        MobileStep,
+        { icon: typeof LayoutGrid; title: string; body: string }
+      >
     > = {
       modules: {
         icon: LayoutGrid,
@@ -359,7 +361,7 @@ function AfterAccount() {
             {c.body}
           </Copy>
         </View>
-        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <View style={{ flex: 1 }}>
           {step === "modules" && (
             <>
               <View style={{ gap: 8, marginBottom: 16 }}>

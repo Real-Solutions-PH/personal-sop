@@ -46,8 +46,8 @@ import {
 import {
   hasTarget,
   measureTarget,
-  nudgeTarget,
   type Rect,
+  revealTarget,
   type TargetId,
   useTargetsVersion,
 } from "./targets"
@@ -313,14 +313,15 @@ export function TourLayer({
       return
     }
     let live = true
-    let nudged = false
+    // A page still laying out can stop a scroll short: try a few times.
+    let tries = 0
     const tick = async () => {
       const r = await measureTarget(target)
       if (!live) return
       const floor = height - barHeight - 24
-      if (r && !nudged && r.y + r.height > floor) {
-        nudged = true
-        nudgeTarget(target, r.y + r.height - floor + 140)
+      if (r && tries < 5 && (r.y < 0 || r.y + r.height > floor)) {
+        tries++
+        revealTarget(target, r.y < 0 ? r.y - 140 : r.y + r.height - floor + 140)
       }
       setRect((old) =>
         old &&
@@ -342,6 +343,7 @@ export function TourLayer({
   }, [target, version, height, barHeight])
 
   // Nothing to tick today: the step passes instead of waiting forever.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: version re-checks when targets change
   useEffect(() => {
     if (step !== "tick" || path !== "/today" || hasTarget("today-plan")) return
     const id = setTimeout(() => {
@@ -353,8 +355,11 @@ export function TourLayer({
 
   if (!step || !target) return null
   const index = tour.index
-  // Fern's drawer is open: the person is typing, so only the words stay.
-  if (step === "fern" && drawerOpen)
+  // Fern's drawer is open. Later steps wait until it closes, so Fern's
+  // answer stays in view and the drawer can be closed.
+  if (drawerOpen && step !== "fern") return null
+  // The person is typing to Fern, so only the words stay.
+  if (drawerOpen)
     return (
       <View
         pointerEvents="box-none"
@@ -368,8 +373,10 @@ export function TourLayer({
         <TourCard step={step} index={index} target={target} compact />
       </View>
     )
-  // The control is off this page: say what to do, without blocking.
-  if (!rect)
+  // The control is off this page, or still off screen: say what to do,
+  // without blocking.
+  const visible = rect !== null && rect.y >= 0 && rect.y + rect.height <= height
+  if (!rect || !visible)
     return (
       <View
         pointerEvents="box-none"
@@ -498,9 +505,7 @@ export function FirstTip({
   const name = companionStore.use((s) => s.name)
   const id = tipFor(path)
   // The tip on show, held for its page even after it counts as seen.
-  const [active, setActive] = useState<{ id: TipId; path: string } | null>(
-    null,
-  )
+  const [active, setActive] = useState<{ id: TipId; path: string } | null>(null)
   const quiet = tour.status !== "running" && !queued
   useEffect(() => {
     setActive(id && quiet && !tipSeen(id) ? { id, path } : null)

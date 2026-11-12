@@ -5,7 +5,6 @@ import type { TextInputInstance } from "react-native"
 import { Text, View } from "react-native"
 import { toast } from "sonner-native"
 import { liveMode } from "@/live/config"
-import { companionStore } from "../companion/store"
 import {
   AuthButton,
   AuthField,
@@ -24,6 +23,7 @@ import {
   TextLink,
   useSubmit,
 } from "../auth-kit"
+import { companionStore } from "../companion/store"
 import { go, replace } from "../navigation"
 import {
   AuthError,

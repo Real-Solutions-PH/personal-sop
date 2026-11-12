@@ -10,7 +10,13 @@ import { SafeAreaProvider } from "react-native-safe-area-context"
 import { funnelStore, setFunnelSender } from "../funnel"
 import { sessionStore } from "../session"
 import { TourLayer, TourWatcher, targetFor, tipFor } from "../tour/overlay"
-import { queueTour, startQueuedTour, tourOf, tourStore } from "../tour/store"
+import {
+  dispatchTour,
+  queueTour,
+  startQueuedTour,
+  tourOf,
+  tourStore,
+} from "../tour/store"
 
 jest.mock("react-native-reanimated", () => ({
   __esModule: true,
@@ -67,7 +73,8 @@ const addCapture = (id: string) =>
           at: new Date().toISOString(),
           source: "text",
           text: "ran 5k",
-          status: "processing",
+          status: "processing" as const,
+          clientUuid: "u-c1",
         },
         ...s.captures,
       ],
@@ -155,6 +162,20 @@ test("while Fern's drawer is open only the words stay, still skippable", () => {
   render(<TourLayer path="/today" drawerOpen barHeight={80} />, { wrapper })
   expect(screen.getByText(/Type or say anything/)).toBeTruthy()
   expect(screen.getByLabelText("Skip tour")).toBeTruthy()
+})
+
+test("later steps wait while Fern's drawer is open, so its answer shows", () => {
+  queueTour()
+  startQueuedTour()
+  dispatchTour({ type: "signal", signal: { kind: "logged" } })
+  const view = render(
+    <TourLayer path="/today" drawerOpen barHeight={80} />,
+    { wrapper },
+  )
+  expect(screen.queryByText("Tick it off")).toBeNull()
+  expect(screen.queryByLabelText("Skip tour")).toBeNull()
+  view.rerender(<TourLayer path="/today" drawerOpen={false} barHeight={80} />)
+  expect(screen.getByText("Tick it off")).toBeTruthy()
 })
 
 test("a queued tour starts when Today shows, not before", () => {

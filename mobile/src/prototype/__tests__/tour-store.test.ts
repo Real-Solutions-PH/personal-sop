@@ -39,8 +39,7 @@ afterEach(() => {
   setFunnelSender(null)
 })
 
-const steps = () =>
-  funnelStore.get().queue.map((q) => `${q.event}:${q.step}`)
+const steps = () => funnelStore.get().queue.map((q) => `${q.event}:${q.step}`)
 
 test("a queued tour starts once, on the first step", () => {
   queueTour()

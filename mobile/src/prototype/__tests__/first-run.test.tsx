@@ -2,6 +2,8 @@
 // Until onboarding is finished the app is onboarding and nothing else; only
 // finishing setup marks the person onboarded and queues the guided tour.
 // "Run setup again" is setup alone.
+
+import { captureStore } from "@domain/capture/store"
 import { dashStore } from "@domain/dash/store"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -12,7 +14,6 @@ import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { syncReady } from "@/live/ready"
-import { captureStore } from "@domain/capture/store"
 import { firstCaptureStore } from "../first-capture"
 import { editDraft, getDraft } from "../onboarding-draft"
 import { requestScreenTime } from "../screen-time"

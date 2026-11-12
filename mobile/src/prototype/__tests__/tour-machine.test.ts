@@ -1,9 +1,9 @@
 import {
   completes,
   IDLE,
+  TOUR_STEPS,
   type TourEvent,
   type TourState,
-  TOUR_STEPS,
   tourReducer,
 } from "../tour/machine"
 
@@ -91,9 +91,9 @@ describe("tourReducer", () => {
     expect(state.ended).toBe("completed")
     expect(state.done).toEqual([...TOUR_STEPS])
     expect(state.skipped).toEqual([])
-    expect(notes.filter((n) => n.outcome === "done").map((n) => n.step)).toEqual(
-      [...TOUR_STEPS],
-    )
+    expect(
+      notes.filter((n) => n.outcome === "done").map((n) => n.step),
+    ).toEqual([...TOUR_STEPS])
     expect(notes.filter((n) => n.outcome === "view")).toHaveLength(
       TOUR_STEPS.length,
     )
@@ -130,9 +130,9 @@ describe("tourReducer", () => {
     expect(state.ended).toBe("skipped")
     expect(state.done).toEqual(["fern"])
     expect(state.skipped).toEqual(["tick", "plan", "stats", "remind"])
-    expect(notes.filter((n) => n.outcome === "skip").map((n) => n.step)).toEqual(
-      ["tick", "plan", "stats", "remind"],
-    )
+    expect(
+      notes.filter((n) => n.outcome === "skip").map((n) => n.step),
+    ).toEqual(["tick", "plan", "stats", "remind"])
   })
 
   it("a step with nothing to act on is passed over as skipped", () => {
@@ -167,7 +167,10 @@ describe("tourReducer", () => {
     expect(idle.state).toEqual(IDLE)
     expect(idle.notes).toEqual([])
     const finished = run([{ type: "start" }, { type: "skipTour" }]).state
-    const after = run([{ type: "signal", signal: { kind: "logged" } }], finished)
+    const after = run(
+      [{ type: "signal", signal: { kind: "logged" } }],
+      finished,
+    )
     expect(after.state).toEqual(finished)
     expect(after.notes).toEqual([])
   })

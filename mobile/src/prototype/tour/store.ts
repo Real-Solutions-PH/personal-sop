@@ -55,8 +55,10 @@ function edit(f: (u: UserTour) => UserTour) {
   }))
 }
 
-const FUNNEL: Record<TourNote["outcome"], "step_view" | "step_complete" | "step_skip"> =
-  { view: "step_view", done: "step_complete", skip: "step_skip" }
+const FUNNEL: Record<
+  TourNote["outcome"],
+  "step_view" | "step_complete" | "step_skip"
+> = { view: "step_view", done: "step_complete", skip: "step_skip" }
 
 export function dispatchTour(e: TourEvent) {
   const { state, notes } = tourReducer(tourOf().tour, e)
