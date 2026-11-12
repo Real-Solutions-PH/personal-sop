@@ -28,6 +28,7 @@ import { fitnessMappers } from "./mappers/fitness"
 import { focusMappers } from "./mappers/focus"
 import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
+import { scheduleMappers } from "./mappers/schedule"
 import { screenMappers } from "./mappers/screen"
 import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
@@ -49,6 +50,8 @@ const factories: MapperFactory[] = [
   screenMappers,
   habitsMappers,
   tasksMappers,
+  // After tasks and habits: a moved occurrence names one of them.
+  scheduleMappers,
   // After tasks and habits: a session names one of them.
   focusMappers,
   captureMappers,

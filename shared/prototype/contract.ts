@@ -22,6 +22,9 @@ export interface CalendarItem {
   module: ModuleKey
   done?: boolean
   href: string
+  /** Moved on the Plan tab for this day only: the time it had before (null:
+   * it had none). Absent when the item sits at its own time. */
+  movedFrom?: string | null
 }
 export interface Miss {
   id: string
