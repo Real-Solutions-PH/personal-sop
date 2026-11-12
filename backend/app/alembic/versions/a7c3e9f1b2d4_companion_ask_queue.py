@@ -7,7 +7,7 @@ Not synced to devices, so no sync-version trigger; tenant-isolated by RLS
 like every owned table.
 
 Revision ID: a7c3e9f1b2d4
-Revises: e9af4348ea3f
+Revises: b7d2e4f6a813
 Create Date: 2026-11-12 09:30:00.000000
 
 """
@@ -19,7 +19,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = "a7c3e9f1b2d4"
-down_revision = "e9af4348ea3f"
+down_revision = "b7d2e4f6a813"
 branch_labels = None
 depends_on = None
 
