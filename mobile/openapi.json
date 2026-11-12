@@ -15593,6 +15593,118 @@
         }
       }
     },
+    "/api/v1/companion/messages": {
+      "post": {
+        "tags": ["companion"],
+        "summary": "Send Message",
+        "description": "Hand a message to Fern: it is kept on the server and answered there,\nin order, one at a time, whether or not the app stays open (a push says\nwhen the reply is ready and the app is away). Idempotent by ``id``: a\nresend changes nothing, a resend of a failed message asks again (Retry).\nFollow the reply live with ``GET /messages/{id}/events``. 402 past the\nallowance; 409 when the id is someone else's.",
+        "operationId": "companion-send_message",
+        "security": [{ "HTTPBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__companion__schema__AskIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AskQueued" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "get": {
+        "tags": ["companion"],
+        "summary": "List Messages",
+        "operationId": "companion-list_messages",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 0,
+              "default": 100,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/app__modules__companion__schema__MessagesPublic"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["companion"],
+        "summary": "Clear Conversation",
+        "operationId": "companion-clear_conversation",
+        "security": [{ "HTTPBearer": [] }],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/companion/messages/{message_id}/feedback": {
       "put": {
         "tags": ["companion"],
@@ -15817,7 +15929,7 @@
       "get": {
         "tags": ["companion"],
         "summary": "Get Reply",
-        "description": "Where the reply to the question ``message_id`` stands, for an app\nwhose stream dropped: ``done`` with the stored messages once the reply is\nstored, ``running`` while its turn runs, else ``failed``. 404 when no\nsuch question of the caller's exists or runs.",
+        "description": "Where the reply to the question ``message_id`` stands, for an app\nwhose stream dropped: ``done`` with the stored messages once the reply is\nstored, ``queued`` while it waits on the server, ``running`` while its\nturn runs, else ``failed``. 404 when no\nsuch question of the caller's exists or runs.",
         "operationId": "companion-get_reply",
         "security": [{ "HTTPBearer": [] }],
         "parameters": [
@@ -15838,83 +15950,6 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/ReplyOut" }
-              }
-            }
-          },
-          "4XX": {
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
-              }
-            },
-            "description": "Client Error"
-          }
-        }
-      }
-    },
-    "/api/v1/companion/messages": {
-      "get": {
-        "tags": ["companion"],
-        "summary": "List Messages",
-        "operationId": "companion-list_messages",
-        "security": [{ "HTTPBearer": [] }],
-        "parameters": [
-          {
-            "name": "skip",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0,
-              "title": "Skip"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 0,
-              "default": 100,
-              "title": "Limit"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/app__modules__companion__schema__MessagesPublic"
-                }
-              }
-            }
-          },
-          "4XX": {
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
-              }
-            },
-            "description": "Client Error"
-          }
-        }
-      },
-      "delete": {
-        "tags": ["companion"],
-        "summary": "Clear Conversation",
-        "operationId": "companion-clear_conversation",
-        "security": [{ "HTTPBearer": [] }],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -20495,6 +20530,20 @@
         "required": ["kind", "engine"],
         "title": "AskOut",
         "description": "A reply (``me`` + ``sol`` messages) or, for a log, the capture it\nbecame (the chat shows captures in line with messages)."
+      },
+      "AskQueued": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "running", "done", "failed"],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": ["id", "status"],
+        "title": "AskQueued",
+        "description": "A message the server keeps until Fern has answered it."
       },
       "AssignmentIn": {
         "properties": {
@@ -30421,8 +30470,12 @@
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["running", "done", "failed"],
+            "enum": ["queued", "running", "done", "failed"],
             "title": "Status"
+          },
+          "error": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Error"
           },
           "messages": {
             "items": {
@@ -30442,7 +30495,7 @@
         "type": "object",
         "required": ["status"],
         "title": "ReplyOut",
-        "description": "Where the reply to a question stands, for an app that lost its\nstream: ``done`` with the stored question and reply (or the capture a\nlog became), ``running`` while the turn is still being written, or\n``failed`` when it ended with nothing stored."
+        "description": "Where the reply to a question stands, for an app that lost its\nstream: ``queued`` while it waits its turn on the server, ``running``\nwhile the turn is being written, ``done`` with the stored question and\nreply (or the capture a log became), or ``failed`` when it ended without\na reply (``error`` says why: ``interrupted`` when it stopped after\nrecording something, so it is never run again unasked)."
       },
       "ReplyPublic": {
         "properties": {

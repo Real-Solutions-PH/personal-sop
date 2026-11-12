@@ -29,6 +29,7 @@ from app.modules.capture.models import (  # noqa: F401
 )
 from app.modules.companion.models import (  # noqa: F401
     Companion,
+    CompanionAsk,
     CompanionMessage,
     Memory,
     Tracker,

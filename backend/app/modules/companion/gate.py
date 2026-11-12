@@ -94,6 +94,11 @@ def request_stop(user_id: uuid.UUID, run_id: str) -> None:
     _redis().set(_stop(user_id, run_id), "1", ex=SLOT_SECONDS)
 
 
+def clear_stop(user_id: uuid.UUID, run_id: str) -> None:
+    """Forget a stop asked of ``run_id`` (its turn ended)."""
+    _redis().delete(_stop(user_id, run_id))
+
+
 def stop_requested(user_id: uuid.UUID, run_id: str) -> bool:
     return bool(_redis().exists(_stop(user_id, run_id)))
 

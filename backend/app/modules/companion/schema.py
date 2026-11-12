@@ -41,6 +41,13 @@ class AskIn(BaseModel):
         return self
 
 
+class AskQueued(BaseModel):
+    """A message the server keeps until Fern has answered it."""
+
+    id: uuid.UUID
+    status: Literal["queued", "running", "done", "failed"]
+
+
 class MessagePublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID
@@ -107,11 +114,14 @@ class AllowanceOut(BaseModel):
 
 class ReplyOut(BaseModel):
     """Where the reply to a question stands, for an app that lost its
-    stream: ``done`` with the stored question and reply (or the capture a
-    log became), ``running`` while the turn is still being written, or
-    ``failed`` when it ended with nothing stored."""
+    stream: ``queued`` while it waits its turn on the server, ``running``
+    while the turn is being written, ``done`` with the stored question and
+    reply (or the capture a log became), or ``failed`` when it ended without
+    a reply (``error`` says why: ``interrupted`` when it stopped after
+    recording something, so it is never run again unasked)."""
 
-    status: Literal["running", "done", "failed"]
+    status: Literal["queued", "running", "done", "failed"]
+    error: str | None = None
     messages: list[MessagePublic] = Field(default_factory=list)
     capture: dict[str, Any] | None = None
 
