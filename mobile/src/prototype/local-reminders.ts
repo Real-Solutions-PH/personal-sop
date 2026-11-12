@@ -367,6 +367,26 @@ export function planReminders(
     for (const slot of h.schedule) {
       const time = slot.time ? hm(slot.time) : null
       if (!time) continue
+      // Every day with nothing special this week (not done, part-way or
+      // moved on any coming day): one daily trigger instead of seven
+      // weekly ones, so many habits still fit the iOS cap.
+      const plain = (day: number) => {
+        const n = ahead(day)
+        return (
+          !(n === 0 && (doneToday || partial !== undefined)) &&
+          !(slot === firstSlot(h.schedule, day) && movedTo("habit", h.id, n))
+        )
+      }
+      if (new Set(slot.days).size === 7 && slot.days.every(plain)) {
+        habitPlans.push({
+          id: `habit-${h.id}-daily-${slot.time}`,
+          title: `${h.icon} ${h.name}`,
+          body: habitBody(h),
+          href: `/habits/${h.id}`,
+          daily: time,
+        })
+        continue
+      }
       for (const day of slot.days) {
         const text = {
           id: `habit-${h.id}-${day}-${slot.time}`,
@@ -482,7 +502,12 @@ export function planReminders(
       })
     }
   }
-  const all = [...habitPlans, ...billPlans, ...taskPlans, ...nagPlans]
+  // One plan per id: the id is the notification's, and two slots alike
+  // would otherwise both take a seat under the cap for one push.
+  const ids = new Set<string>()
+  const all = [...habitPlans, ...billPlans, ...taskPlans, ...nagPlans].filter(
+    (p) => !ids.has(p.id) && !!ids.add(p.id),
+  )
   if (all.length <= MAX_PENDING) return all
   // Over the cap: everything due in the next day first (repeats after the
   // first reminders), then the soonest after that. A repeating trigger

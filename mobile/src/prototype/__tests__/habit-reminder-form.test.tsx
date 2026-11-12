@@ -3,12 +3,14 @@
 // the times already picked, and the Reminder switch never sits on with no
 // time to fire at.
 
-import { EVERY_DAY, type ScheduleSlot } from "@domain/habits/data"
+import { EVERY_DAY, type Habit, type ScheduleSlot } from "@domain/habits/data"
+import { tidySchedule } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
+import { planReminders } from "../local-reminders"
 import { HabitForm, Schedule } from "../screens/habits"
 
 jest.mock("expo-router", () => ({
@@ -135,6 +137,39 @@ describe("schedule slots", () => {
   })
 })
 
+test("a saved schedule drops an untimed copy and duplicates, earliest first", () => {
+  expect(
+    tidySchedule([
+      { days: EVERY_DAY, time: "20:00" },
+      { days: EVERY_DAY },
+      { days: [1, 2], time: "08:00" },
+      { days: [2, 1], time: "08:00" },
+      { days: [], time: "09:00" },
+    ]),
+  ).toEqual([
+    { days: [1, 2], time: "08:00" },
+    { days: EVERY_DAY, time: "20:00" },
+  ])
+  // Every day and weekdays at 08:00: the weekday copy adds nothing.
+  expect(
+    tidySchedule([
+      { days: EVERY_DAY, time: "08:00" },
+      { days: [1, 2, 3, 4, 5], time: "08:00" },
+      { days: [1, 6], time: "20:00" },
+      { days: [6, 0], time: "20:00" },
+    ]),
+  ).toEqual([
+    { days: EVERY_DAY, time: "08:00" },
+    { days: [1, 6], time: "20:00" },
+    { days: [0], time: "20:00" },
+  ])
+  // An untimed slot on days no time covers stays.
+  expect(tidySchedule([{ days: [1], time: "08:00" }, { days: [6] }])).toEqual([
+    { days: [1], time: "08:00" },
+    { days: [6] },
+  ])
+})
+
 describe("the Reminder switch needs a time", () => {
   test("turning it on with no time opens the schedule and asks for one", () => {
     render(<HabitForm />, { wrapper })
@@ -146,13 +181,21 @@ describe("the Reminder switch needs a time", () => {
     expect(screen.getByText("Pick a time for the reminder.")).toBeTruthy()
   })
 
-  test("a habit saved with no time is saved with the reminder off", () => {
+  test("saved with no time: nothing is scheduled until a time is set, then it starts", () => {
     render(<HabitForm />, { wrapper })
     fireEvent.changeText(screen.getByLabelText("Name"), "Skin care")
     act(() => {
       fireEvent.press(screen.getByText("Create habit"))
     })
-    const h = habitsStore.get().habits.find((x) => x.name === "Skin care")
-    expect(h?.reminder).toBe(false)
+    const h = habitsStore
+      .get()
+      .habits.find((x) => x.name === "Skin care") as Habit
+    const now = new Date(2026, 9, 22, 12, 0)
+    expect(planReminders([], [h], now)).toEqual([])
+    // The intent is kept, so adding a time later is enough.
+    const timed = { ...h, schedule: [{ days: EVERY_DAY, time: "08:00" }] }
+    expect(planReminders([], [timed], now).map((p) => p.id)).toEqual([
+      `habit-${h.id}-daily-08:00`,
+    ])
   })
 })

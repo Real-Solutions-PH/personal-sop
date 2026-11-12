@@ -54,15 +54,58 @@ const dated = (p: Planned[]) =>
   p.filter((x): x is Extract<Planned, { at: Date }> => "at" in x)
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString()
 
-test("two times a day: a push at each, every day", () => {
+test("two times every day: one daily push at each", () => {
   const plan = planReminders([], [skin()], NOW, { logs: [] })
-  for (const d of EVERY_DAY)
-    for (const time of ["08:00", "20:00"])
-      expect(plan.map((p) => p.id)).toContain(`habit-h1-${d}-${time}`)
+  expect(plan).toEqual([
+    expect.objectContaining({
+      id: "habit-h1-daily-08:00",
+      daily: { hour: 8, minute: 0 },
+    }),
+    expect.objectContaining({
+      id: "habit-h1-daily-20:00",
+      daily: { hour: 20, minute: 0 },
+    }),
+  ])
+})
+
+test("two times on some days: a weekly push at each, on each day", () => {
+  const plan = planReminders(
+    [],
+    [
+      skin({
+        schedule: [
+          { days: [1, 6], time: "08:00" },
+          { days: [6], time: "20:00" },
+        ],
+      }),
+    ],
+    NOW,
+    { logs: [] },
+  )
+  expect(plan.map((p) => p.id)).toEqual([
+    "habit-h1-1-08:00",
+    "habit-h1-6-08:00",
+    "habit-h1-6-20:00",
+  ])
   // Saturday at 20:00 is iOS weekday 7.
-  expect(plan.find((p) => p.id === "habit-h1-6-20:00")).toMatchObject({
-    weekly: { weekday: 7, hour: 20, minute: 0 },
-  })
+  expect(plan[2]).toMatchObject({ weekly: { weekday: 7, hour: 20, minute: 0 } })
+})
+
+test("two slots alike plan one push, not two", () => {
+  const plan = planReminders(
+    [],
+    [
+      skin({
+        schedule: [
+          { days: [1], time: "08:00" },
+          { days: [1], time: "08:00" },
+        ],
+      }),
+    ],
+    NOW,
+    { logs: [] },
+  )
+  expect(plan.map((p) => p.id)).toEqual(["habit-h1-1-08:00"])
 })
 
 test("part-way: tonight's push still comes and says how far today is", () => {
@@ -101,8 +144,10 @@ test("the copy names the habit and its target, with no loss words", () => {
   const plan = planReminders([], habits, NOW, { logs: [log()] })
   const body = (id: string) => plan.find((p) => p.id === id)?.body ?? ""
   expect(body("habit-h1-5-08:00")).toBe("Skin care: 2 today. Tap to log one.")
-  expect(body("habit-h2-5-08:00")).toBe("Read: 20 min today. Tap to start.")
-  expect(body("habit-h3-5-08:00")).toBe("Time for Floss. Tap to check it off.")
+  expect(body("habit-h2-daily-08:00")).toBe("Read: 20 min today. Tap to start.")
+  expect(body("habit-h3-daily-08:00")).toBe(
+    "Time for Floss. Tap to check it off.",
+  )
   for (const p of plan) {
     expect(`${p.title} ${p.body}`).not.toMatch(
       /at risk|lose|about to end|don't break|missed again|🔥|💀|😢/i,
@@ -146,13 +191,38 @@ test("fifteen habits three times a day: everything in the next day fits, bills a
   const ids = plan.map((p) => p.id)
   expect(ids).toContain("task-t1")
   expect(ids).toContain("bill-p1-2026-10-22-0")
-  // Today 13:30 and 20:00, tomorrow 08:00: all 45 within a day.
+  // Every day at the same times: one daily trigger per time covers them.
+  for (let i = 0; i < 15; i++)
+    for (const time of ["08:00", "13:30", "20:00"])
+      expect(ids).toContain(`habit-h${i}-daily-${time}`)
+})
+
+test("over the cap: everything in the next day first, then the soonest", () => {
+  // Fifteen habits on six days each (no daily trigger) at three times:
+  // 270 weekly pushes, far past the cap.
+  const days = [0, 1, 2, 3, 4, 5]
+  const habits = Array.from({ length: 15 }, (_, i) =>
+    skin({
+      id: `h${i}`,
+      schedule: ["08:00", "13:30", "20:00"].map((time) => ({ days, time })),
+    }),
+  )
+  const task = {
+    id: "t1",
+    title: "Call the dentist",
+    status: "open",
+    remindAt: new Date(2026, 9, 22, 15, 0).toISOString(),
+  } as Task
+  const plan = planReminders([task], habits, NOW, { logs: [] })
+  expect(plan).toHaveLength(MAX_PENDING)
+  const ids = plan.map((p) => p.id)
+  expect(ids).toContain("task-t1")
   for (let i = 0; i < 15; i++) {
     expect(ids).toContain(`habit-h${i}-4-13:30`)
     expect(ids).toContain(`habit-h${i}-4-20:00`)
     expect(ids).toContain(`habit-h${i}-5-08:00`)
   }
-  // The room left goes to the soonest after that: Friday 13:30, not Sunday.
-  expect(ids).toContain("habit-h0-5-13:30")
+  // The room left (14) goes to the soonest after that: Friday 13:30.
+  expect(ids.filter((id) => id.endsWith("-5-13:30"))).toHaveLength(14)
   expect(ids.some((id) => id.endsWith("-0-08:00"))).toBe(false)
 })

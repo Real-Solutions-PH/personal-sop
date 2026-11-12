@@ -5,7 +5,7 @@ import {
   ICONS,
   type ScheduleSlot,
 } from "@domain/habits/data"
-import { scheduleLabel } from "@domain/habits/logic"
+import { scheduleLabel, tidySchedule } from "@domain/habits/logic"
 import { habitsStore } from "@domain/habits/store"
 import { screenStore } from "@domain/screen/store"
 import { useLocalSearchParams } from "expo-router"
@@ -161,8 +161,10 @@ export function HabitForm({
     const common = {
       name: name.trim(),
       icon,
-      schedule: schedule.filter((s) => s.days.length),
-      reminder: reminderOn,
+      schedule: tidySchedule(schedule),
+      // The intent is kept: a reminder turned on before a time was set
+      // starts once one is. Nothing is scheduled for an untimed slot.
+      reminder,
     }
     if (routine) {
       if (r) {

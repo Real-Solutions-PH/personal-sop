@@ -808,12 +808,13 @@ describe("Journal turned off sends no journal reminders", () => {
         DAILY: "daily",
       },
     } as unknown as typeof import("expo-notifications")
-    expect(await syncReminders(N, NOW)).toBe(7)
+    // Every day at 21:00: one daily trigger.
+    expect(await syncReminders(N, NOW)).toBe(1)
     setShown("journal", false)
     expect(await syncReminders(N, NOW)).toBe(0)
     expect(pending).toEqual([])
     setShown("journal", true)
-    expect(await syncReminders(N, NOW)).toBe(7)
+    expect(await syncReminders(N, NOW)).toBe(1)
   })
 })
 
