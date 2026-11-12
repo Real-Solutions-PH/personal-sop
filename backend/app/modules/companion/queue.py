@@ -315,6 +315,7 @@ def _claim(owner: uuid.UUID) -> tuple[Claim | None, datetime | None]:
             if _answered(s, r):
                 # It died after the reply was stored: done, nothing to redo.
                 r.status, r.finished_at, r.lease_until = "done", now, None
+                ended.append((r.id, "done"))
             elif r.wrote:
                 _fail(r, "interrupted", now)
                 ended.append((r.id, "interrupted"))
@@ -383,7 +384,16 @@ def _fail(row: CompanionAsk, code: str, now: datetime) -> None:
 
 
 def _ended_failed(owner: uuid.UUID, ask_id: uuid.UUID, code: str) -> None:
-    """Tell readers and the app a message failed for good."""
+    """Tell readers and the app a recovered message ended: failed for good,
+    or (``done``) answered before its task died. Readers stop either way,
+    and never take an answered message for a failed one."""
+    if code == "done":
+        try:
+            runs.end(owner, str(ask_id))
+        except Exception:  # noqa: BLE001 - the row says done whatever Redis does
+            log.warning("companion end event not written", exc_info=True)
+        publish(owner, "companion.reply", {"message_id": str(ask_id)})
+        return
     try:
         sink = runs.open_events(owner, str(ask_id), fresh=False)
         sink(RunErrorEvent(message=ERRORS.get(code, ERRORS["reply_failed"]), code=code))
@@ -454,20 +464,37 @@ def _run(claim: Claim) -> bool:
     # lapsed while it still ran), or it ran past MAX_TURN_SECONDS. The turn
     # ends at its next step; the queue's recovery decides what happens next.
     lost = threading.Event()
-    began = time.monotonic()
+    # Set (with ``lost``) when another drain owns the message now: this
+    # turn must not store anything more.
+    taken = threading.Event()
+    began = renewed = time.monotonic()
 
     def beat() -> None:
+        nonlocal renewed
         while not done.wait(HEARTBEAT_SECONDS):
             if time.monotonic() - began > MAX_TURN_SECONDS:
                 log.warning("companion turn ran too long; its lease is let go")
                 lost.set()
                 return
+            # The lease first, on its own: a Redis failure must not cost it.
             try:
-                runs.alive(owner, run_id)
                 if not _renew(claim):
+                    taken.set()
                     lost.set()
                     return
-            except Exception:  # noqa: BLE001 - a missed beat never ends the turn
+                renewed = time.monotonic()
+            except Exception:  # noqa: BLE001 - one missed beat never ends the turn
+                log.warning("companion lease renewal failed", exc_info=True)
+            # Renewals failing until the lease may lapse: stop before another
+            # drain can take the message over and run it beside this turn.
+            if time.monotonic() - renewed > LEASE_SECONDS - 2 * HEARTBEAT_SECONDS:
+                log.warning("companion lease not renewed; the turn stops")
+                taken.set()
+                lost.set()
+                return
+            try:
+                runs.alive(owner, run_id)
+            except Exception:  # noqa: BLE001
                 log.warning("companion heartbeat failed", exc_info=True)
 
     threading.Thread(target=beat, name="companion-beat", daemon=True).start()
@@ -489,7 +516,7 @@ def _run(claim: Claim) -> bool:
         sessions = get_tenant_scoped_session(user)
         ctx = make_ctx(next(sessions), user)
         try:
-            code = _turn(ctx, claim, sink, on_tool, lost)
+            code = _turn(ctx, claim, sink, on_tool, lost, taken)
         finally:
             sessions.close()
     except Exception:  # noqa: BLE001 - recovered below, reported as an event
@@ -543,7 +570,12 @@ def _after_failure(claim: Claim, code: str, sink: runs.Sink, wrote: bool) -> boo
 
 
 def _turn(
-    ctx: Ctx, claim: Claim, sink: runs.Sink, on_tool: Any, lost: threading.Event
+    ctx: Ctx,
+    claim: Claim,
+    sink: runs.Sink,
+    on_tool: Any,
+    lost: threading.Event,
+    taken: threading.Event,
 ) -> str | None:
     """The turn itself, on the person's own session. None when the reply is
     stored; ``lost`` when the claim was taken over; else the failure's
@@ -578,6 +610,11 @@ def _turn(
                 thread_id=claim.thread_id,
                 resume=True,
             )
+            if taken.is_set():
+                # Another drain owns the message now: a reply cut short here
+                # must not be stored beside (or instead of) its reply.
+                ctx.session.rollback()
+                return "lost"
             ctx.commit()
     except HTTPException as exc:
         # The allowance ran out between the send and the turn (another

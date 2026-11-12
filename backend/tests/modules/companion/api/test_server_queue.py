@@ -824,6 +824,12 @@ def test_a_turn_that_died_after_its_reply_was_stored_is_done_not_failed(
     queue.drain(owner)
     row = asks(db, owner)[0]
     assert (row.status, row.error) == ("done", None)
+    # A reader still following it hears the end, not a failure.
+    from app.modules.companion import runs
+
+    entries = runs._redis().xrange(runs._events(owner, str(me)))
+    assert any("end" in fields for _, fields in entries)
+    assert not any("RUN_ERROR" in fields.get("e", "") for _, fields in entries)
 
 
 def test_a_turn_whose_claim_was_taken_over_never_overwrites_the_new_owner(
