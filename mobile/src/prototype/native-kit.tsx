@@ -362,6 +362,7 @@ export function SmallButton({
   quiet,
   icon: Icon,
   small = false,
+  label,
 }: {
   children: ReactNode
   onPress: () => void
@@ -370,11 +371,14 @@ export function SmallButton({
   quiet?: boolean
   icon?: LucideIcon
   small?: boolean
+  /** What a screen reader says when the words alone are not enough. */
+  label?: string
 }) {
   const t = useTheme()
   return (
     <Tap
       onPress={onPress}
+      label={label}
       style={{
         height: small ? 32 : 36,
         paddingHorizontal: small ? 10 : 12,
