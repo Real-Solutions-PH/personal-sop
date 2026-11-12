@@ -115,7 +115,7 @@ test("Move to list moves the task, without a toast", () => {
   const task = A.createTask({ title: "Pay rent", source: "manual" })
   render(<TaskRow task={task} />, { wrapper })
   fireEvent(screen.getByText("Pay rent"), "longPress")
-  fireEvent.press(screen.getByText("Move to list…"))
+  fireEvent.press(screen.getByRole("button", { name: "Move to list" }))
   expect(
     screen.getByRole("radio", { name: "Inbox" }).props.accessibilityState,
   ).toMatchObject({ selected: true })
@@ -129,7 +129,7 @@ test("a list deleted elsewhere while choosing leaves the task where it was", () 
   const task = A.createTask({ title: "Pay rent", source: "manual" })
   render(<TaskRow task={task} />, { wrapper })
   fireEvent(screen.getByText("Pay rent"), "longPress")
-  fireEvent.press(screen.getByText("Move to list…"))
+  fireEvent.press(screen.getByRole("button", { name: "Move to list" }))
   act(() => A.deleteList(life.id, "inbox"))
   // The chooser re-renders without it; a stale press still fails safely.
   expect(screen.queryByRole("radio", { name: "Life" })).toBeNull()
