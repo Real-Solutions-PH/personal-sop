@@ -129,7 +129,12 @@ const habitOf = (id: string) =>
 
 test("an edit saved offline is in the store the moment typing pauses", () => {
   const net = network()
-  const h = A.createHabit({ name: "Walk", icon: "🚶" })
+  // Timed, so the Reminder switch is a plain on/off.
+  const h = A.createHabit({
+    name: "Walk",
+    icon: "🚶",
+    schedule: [{ days: [0, 1, 2, 3, 4, 5, 6], time: "07:00" }],
+  })
   render(<HabitForm id={h.id} />, { wrapper })
   fireEvent.changeText(screen.getByLabelText("Name"), "Long walk")
   fireEvent.press(screen.getByRole("switch", { name: "Reminder" }))
