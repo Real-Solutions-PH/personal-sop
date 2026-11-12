@@ -1,13 +1,11 @@
-// Onboarding's "Say one thing from today", held until the account exists.
-//
-// Decision: the step runs before sign-up, when there is no account for
-// Fern's capture endpoint to write to, so the words are kept in the
-// onboarding draft (on this phone only). Sign-up moves them here
-// (applyDraft), and once live mode has started for the new account they go
+// Onboarding's "Tell me one thing from today". The account already exists
+// (account first), so the step holds the words here and sends them at once
 // through the ordinary capture path, sendCapture: online it streams to the
-// server and Fern logs it; offline the capture is queued and the sync
-// outbox sends it on reconnect, like any other capture. The finish step
-// then shows what Fern saved. Nothing is sent before the account exists.
+// server and Fern answers on the same screen; offline the capture is queued
+// and the sync outbox sends it on reconnect. A capture still held when live
+// mode starts (the app closed mid-send) is sent then; one left from an
+// unfinished sign-up is dropped at sign-up and sign-in, never sent into
+// another account.
 import type { CaptureSource } from "@domain/capture/data"
 import { sendCapture } from "@domain/capture/engine"
 import { createStore } from "@domain/lib/store"

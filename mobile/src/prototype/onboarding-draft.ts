@@ -1,10 +1,9 @@
-// What a new person answers in onboarding before their account exists. The
-// pre-account steps read and write only this draft (on a fresh install the
-// dash store holds the demo seed, and sign-up empties it); right after the
-// account is created, applyDraft writes the answers into it. Sign-up's
-// clearToBlank never touches the draft, and signing in to an existing
-// account discards it, so it never reaches another account.
-
+// What a new person answers in onboarding. The account comes first (docs/27
+// K8), so the steps after it read and write this draft, and its last step
+// writes the answers into the account (applyDraft) before setup. Kept so a
+// restart resumes where the person was. A draft still on the phone at
+// sign-up is from an earlier, unfinished sign-up and is discarded, as it is
+// when signing in to an existing account, so it never reaches another one.
 import type { ModuleKey } from "@domain/contract"
 import { MODULE_KEYS, seed } from "@domain/dash/data"
 import {
