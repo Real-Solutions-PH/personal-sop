@@ -63,7 +63,7 @@ beforeEach(() => {
 })
 afterEach(() => setFunnelSender(null))
 
-const addCapture = (id: string) =>
+const addCapture = (id: string, status: "processing" | "done" = "done") =>
   act(() =>
     captureStore.set((s) => ({
       ...s,
@@ -73,7 +73,7 @@ const addCapture = (id: string) =>
           at: new Date().toISOString(),
           source: "text",
           text: "ran 5k",
-          status: "processing" as const,
+          status,
           clientUuid: "u-c1",
         },
         ...s.captures,
@@ -121,6 +121,7 @@ test("each step finishes on its own action, in order", () => {
 })
 
 test("the first log is recorded once, with where it happened", () => {
+  funnelStore.set({ installId: "", queue: [], sawWelcome: true })
   queueTour()
   startQueuedTour()
   render(<TourWatcher path="/today" />, { wrapper })
@@ -133,12 +134,50 @@ test("the first log is recorded once, with where it happened", () => {
 })
 
 test("a returning account's synced records are not a first log", () => {
+  funnelStore.set({ installId: "", queue: [], sawWelcome: true })
   sessionStore.set((s) => ({ ...s, returning: true }))
   render(<TourWatcher path="/today" />, { wrapper })
   addCapture("c1")
   expect(
     funnelStore.get().queue.filter((q) => q.event === "first_log"),
   ).toEqual([])
+})
+
+test("a tick Fern files from a message does not finish the tick step", () => {
+  queueTour()
+  startQueuedTour()
+  const view = render(<TourWatcher path="/today" drawerOpen />, { wrapper })
+  addCapture("c1", "processing")
+  expect(tourOf().tour.index).toBe(1)
+  // Fern's reply files a done habit while it works, drawer open.
+  tickHabit()
+  expect(tourOf().tour.index).toBe(1)
+  // Drawer closed but Fern still working: still not the person's tick.
+  view.rerender(<TourWatcher path="/today" />)
+  tickHabit()
+  expect(tourOf().tour.index).toBe(1)
+  // Fern done, drawer closed: the person's own tick counts.
+  act(() =>
+    captureStore.set((s) => ({
+      ...s,
+      captures: s.captures.map((c) =>
+        c.id === "c1" ? { ...c, status: "done" as const } : c,
+      ),
+    })),
+  )
+  tickHabit()
+  expect(tourOf().tour.done).toEqual(["fern", "tick"])
+})
+
+test("already on the page a step points at: the step is done on arrival", () => {
+  queueTour()
+  startQueuedTour()
+  dispatchTour({ type: "skipStep" })
+  const view = render(<TourWatcher path="/plan" />, { wrapper })
+  // On Plan while the tick step shows; skipping it reaches Plan's step.
+  act(() => dispatchTour({ type: "skipStep" }))
+  view.rerender(<TourWatcher path="/plan" />)
+  expect(tourOf().tour.done).toEqual(["plan"])
 })
 
 test("with no target on screen the card still shows Skip and Skip tour", () => {
@@ -168,10 +207,9 @@ test("later steps wait while Fern's drawer is open, so its answer shows", () => 
   queueTour()
   startQueuedTour()
   dispatchTour({ type: "signal", signal: { kind: "logged" } })
-  const view = render(
-    <TourLayer path="/today" drawerOpen barHeight={80} />,
-    { wrapper },
-  )
+  const view = render(<TourLayer path="/today" drawerOpen barHeight={80} />, {
+    wrapper,
+  })
   expect(screen.queryByText("Tick it off")).toBeNull()
   expect(screen.queryByLabelText("Skip tour")).toBeNull()
   view.rerender(<TourLayer path="/today" drawerOpen={false} barHeight={80} />)

@@ -275,7 +275,7 @@ describe("onboarding after the account exists", () => {
     // Only promises the code keeps: no "three a day", no "Tap +".
     expect(screen.queryByText(/three a day/)).toBeNull()
     expect(screen.queryByText(/Tap \+/)).toBeNull()
-    expect(screen.getByText(/At most one nudge a day/)).toBeTruthy()
+    expect(screen.getByText(/at most one nudge a day/)).toBeTruthy()
     fireEvent.press(screen.getByText("Steady"))
     fireEvent.press(screen.getByText("Start my day"))
     expect(router.push).toHaveBeenCalledWith("/setup")
@@ -325,6 +325,8 @@ describe("setup", () => {
     render(<Setup />, { wrapper })
     fireEvent.press(screen.getByLabelText("Back to setup"))
     expect(screen.getByText("Bring your life in")).toBeTruthy()
+    // No way back into onboarding: its answers are already the account's.
+    expect(screen.queryByLabelText("Back")).toBeNull()
     fireEvent.press(screen.getByText("I'll finish later"))
     expect(dashStore.get().onboarded).toBe(true)
   })

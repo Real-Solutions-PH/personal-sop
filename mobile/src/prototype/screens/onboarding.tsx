@@ -668,7 +668,7 @@ function PaceStep({
           />
         </Line>
         <Copy size={12} muted>
-          {`At most one nudge a day, near this time. ${fern} learns when you usually log and moves it there.`}
+          {`With notifications on: at most one nudge a day, near this time. ${fern} learns when you usually log and moves it there.`}
         </Copy>
       </Frame>
       {button("Start my day", onDone)}

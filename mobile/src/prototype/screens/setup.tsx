@@ -275,21 +275,25 @@ export function Setup() {
         }}
       >
         <Line style={{ height: 56, gap: 12 }}>
-          <IconTap
-            size={44}
-            icon={step || firstRun ? ArrowLeft : X}
-            label={step ? "Back to setup" : firstRun ? "Back" : "Close"}
-            color={t.text}
-            onPress={() =>
-              single
-                ? back(params.return)
-                : step
-                  ? setStep(null)
-                  : firstRun
-                    ? back("/onboarding")
+          {/* First run's list has no way back: onboarding's answers are
+              already the account's, so its steps are done. */}
+          {firstRun && !step && !single ? (
+            <View style={{ width: 44 }} />
+          ) : (
+            <IconTap
+              size={44}
+              icon={step || firstRun ? ArrowLeft : X}
+              label={step ? "Back to setup" : "Close"}
+              color={t.text}
+              onPress={() =>
+                single
+                  ? back(params.return)
+                  : step
+                    ? setStep(null)
                     : go("/today")
-            }
-          />
+              }
+            />
+          )}
           {step && (
             <>
               {/* The progress bar is onboarding's: a module set up later

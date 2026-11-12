@@ -519,7 +519,7 @@ export default function PrototypeLayout() {
             })}
           </View>
         )}
-        <TourWatcher path={path} />
+        <TourWatcher path={path} drawerOpen={drawer} />
         {!firstRun && (
           <TourLayer
             path={path}

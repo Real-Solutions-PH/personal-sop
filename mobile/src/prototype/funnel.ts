@@ -73,11 +73,17 @@ export const funnelStore = createStore<{
   queue: Queued[]
   /** first_log was recorded for this install. */
   firstLogged?: boolean
+  /** This install opened on the Welcome screen (this build or later), so
+   * its first log has a start to measure from. */
+  sawWelcome?: boolean
 }>("funnel", () => ({ installId: "", queue: [] }))
 
-/** Records first_log once per install; later calls do nothing. */
+/** Records first_log once per install that started at Welcome; later calls
+ * do nothing. An install onboarded before the Welcome view was recorded
+ * never sends one: it would measure from nothing. */
 export function noteFirstLog(step: FunnelStep, at = new Date()) {
-  if (funnelStore.get().firstLogged) return
+  const { firstLogged, sawWelcome } = funnelStore.get()
+  if (firstLogged || !sawWelcome) return
   funnelStore.set((s) => ({ ...s, firstLogged: true }))
   logFunnel({ event: "first_log", step }, at)
 }
@@ -118,6 +124,12 @@ let sending = false
 
 /** Records one event and sends the queue shortly after. */
 export function logFunnel(e: FunnelEvent, at = new Date()) {
+  if (
+    e.event === "step_view" &&
+    e.step === "welcome" &&
+    !funnelStore.get().sawWelcome
+  )
+    funnelStore.set((s) => ({ ...s, sawWelcome: true }))
   if (!liveMode && !post) return
   installId()
   funnelStore.set((s) => ({

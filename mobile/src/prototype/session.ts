@@ -3,7 +3,7 @@ import { createStore } from "@domain/lib/store"
 import { liveMode } from "@/live/config"
 import { forgetFirstCapture, replayFirstCapture } from "./first-capture"
 import { logFunnel } from "./funnel"
-import { aboutOf, applyDraft, discardDraft, getDraft } from "./onboarding-draft"
+import { discardDraft } from "./onboarding-draft"
 
 // Live mode backs these same actions with Supabase + the API server
 // (src/live). Loaded lazily so prototype mode never initialises Supabase.
@@ -218,9 +218,9 @@ export async function signIn({
     rememberedEmail: remember ? address : "",
   }))
 }
-/** Apple or Google. From onboarding's account step (`newAccount`) the
- * answers given so far are written to the account; from sign in, the
- * account is an existing one and the draft is discarded. */
+/** Apple or Google: a new account from onboarding's account step
+ * (`newAccount`), or an existing one from sign in. Either way no onboarding
+ * draft is carried in (account first). */
 export async function continueWith(
   provider: "apple" | "google",
   { newAccount = false } = {},
@@ -230,13 +230,10 @@ export async function continueWith(
       `${provider === "apple" ? "Apple" : "Google"} sign-in isn't available yet. Use your email instead.`,
     )
   await wait()
-  if (newAccount) {
-    applyDraft()
-    replayFirstCapture()
-  } else {
-    discardDraft()
-    forgetFirstCapture()
-  }
+  // Account first: onboarding's answers come after this, so anything left
+  // on the phone is from an earlier, unfinished sign-up and is dropped.
+  discardDraft()
+  forgetFirstCapture()
   sessionStore.set((s) => ({
     ...s,
     signedIn: true,
@@ -311,11 +308,9 @@ export async function completeSignUp() {
   const user = pending ?? claim
   if (!user) return
   if (liveMode) {
-    const about = aboutOf(getDraft())
+    // "About you" comes after the account (onboarding sends it then).
     try {
-      await viaLive(() =>
-        live().completeProfile(user.name, user.username, about ?? {}),
-      )
+      await viaLive(() => live().completeProfile(user.name, user.username, {}))
     } catch (error) {
       if (error instanceof AuthError && error.field === "username")
         sessionStore.set((s) => ({ ...s, pending: null, claim: user }))
@@ -330,10 +325,11 @@ export async function completeSignUp() {
     ).syncReady.setState({ ready: true })
   }
   updateProfile({ name: user.name, handle: `@${user.username}` })
-  // Onboarding's answers so far become the new account's. The sync engine
-  // starts from an empty snapshot for a new account, so its first capture
-  // pushes them as creates.
-  applyDraft()
+  // Account first: onboarding's answers are given after this and written
+  // at its last step, so anything left on the phone is from an earlier,
+  // unfinished sign-up and is dropped, never given to this account.
+  discardDraft()
+  forgetFirstCapture()
   logFunnel({ event: "step_complete", step: "account" })
   sessionStore.set((s) => ({
     ...s,
@@ -344,7 +340,6 @@ export async function completeSignUp() {
     returning: false,
   }))
   if (liveMode) void startLiveSession(true)
-  else replayFirstCapture()
 }
 /** Sign up's second try after the server refused the username. */
 export async function chooseUsername(username: string) {

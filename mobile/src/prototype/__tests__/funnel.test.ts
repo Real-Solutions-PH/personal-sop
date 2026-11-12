@@ -98,8 +98,16 @@ test("with no API client the timed send does nothing and keeps the queue", async
   await jest.runOnlyPendingTimersAsync()
 })
 
+test("first_log needs a Welcome view first: an older install sends none", () => {
+  noteFirstLog("app")
+  expect(funnelStore.get().queue).toEqual([])
+  expect(funnelStore.get().firstLogged).toBeFalsy()
+})
+
 test("first_log is recorded once per install, with where it happened", () => {
   const at = new Date("2026-11-12T01:00:00Z")
+  logFunnel({ event: "step_view", step: "welcome" }, at)
+  funnelStore.set((s) => ({ ...s, queue: [] }))
   noteFirstLog("capture", at)
   noteFirstLog("app", at)
   noteFirstLog("tour_tick", at)

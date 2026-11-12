@@ -111,6 +111,8 @@ export function stepCopy(
 }
 
 const PAD = 6
+/** Room the card needs (title, two lines, the Skip row) at 375 pt. */
+const CARD_ROOM = 190
 /** How long Today gets to show something to tick before the step passes. */
 const TICK_GRACE_MS = 1500
 
@@ -391,6 +393,10 @@ export function TourLayer({
       </View>
     )
   const below = rect.y + rect.height / 2 < height / 2
+  // The card never leaves the screen: with too little room beside the
+  // hole it sits as far as it can and may cover part of the target.
+  const roomTop = safe.top + 8,
+    roomBottom = barHeight + 8
   return (
     <View
       pointerEvents="box-none"
@@ -404,8 +410,18 @@ export function TourLayer({
           left: 16,
           right: 16,
           ...(below
-            ? { top: rect.y + rect.height + PAD + 12 }
-            : { bottom: height - rect.y + PAD + 12 }),
+            ? {
+                top: Math.min(
+                  rect.y + rect.height + PAD + 12,
+                  height - roomBottom - CARD_ROOM,
+                ),
+              }
+            : {
+                bottom: Math.min(
+                  height - rect.y + PAD + 12,
+                  height - roomTop - CARD_ROOM,
+                ),
+              }),
         }}
       >
         <TourCard step={step} index={index} target={target} />
@@ -424,7 +440,15 @@ function firstLogStep(path: string): FunnelStep {
 
 /** Store changes become tour signals; a new account's first one is also
  * its first log. Always mounted, onboarding included. */
-export function TourWatcher({ path }: { path: string }) {
+export function TourWatcher({
+  path,
+  drawerOpen = false,
+}: {
+  path: string
+  /** Fern's drawer: a tick Fern files from a message is not the person
+   * ticking, so ticks while it is open or Fern is working don't count. */
+  drawerOpen?: boolean
+}) {
   const captures = captureStore.use((s) => s.captures.length)
   const habitTicks = habitsStore.use(
     (s) => s.logs.filter((l) => l.status === "done").length,
@@ -434,21 +458,30 @@ export function TourWatcher({ path }: { path: string }) {
   )
   const granted = dashStore.use((s) => s.push.permission === "granted")
   const returning = sessionStore.use((s) => s.returning)
+  const fernBusy = captureStore.use((s) =>
+    s.captures.some((c) => c.status === "processing"),
+  )
+  const index = useTour().tour.index
   const seen = useRef({ captures, habitTicks, taskTicks, granted })
   const pathRef = useRef(path)
   pathRef.current = path
 
+  // Also when a step becomes current: someone already on Plan who reaches
+  // the Plan step has done it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: index re-checks per step
   useEffect(() => {
     dispatchTour({ type: "signal", signal: { kind: "opened", path } })
-  }, [path])
+  }, [path, index])
 
   useEffect(() => {
     const was = seen.current
     seen.current = { captures, habitTicks, taskTicks, granted }
     const signals: TourSignal[] = []
     if (captures > was.captures) signals.push({ kind: "logged" })
-    if (habitTicks > was.habitTicks || taskTicks > was.taskTicks)
-      signals.push({ kind: "ticked" })
+    const ticked = habitTicks > was.habitTicks || taskTicks > was.taskTicks
+    if (ticked && !drawerOpen && !fernBusy) signals.push({ kind: "ticked" })
+    // Still a log for the funnel, whoever filed it.
+    else if (ticked && !returning) noteFirstLog(firstLogStep(pathRef.current))
     if (granted && !was.granted) signals.push({ kind: "reminders" })
     for (const signal of signals) {
       // A returning account's sync is not a first log.
@@ -456,7 +489,15 @@ export function TourWatcher({ path }: { path: string }) {
         noteFirstLog(firstLogStep(pathRef.current))
       dispatchTour({ type: "signal", signal })
     }
-  }, [captures, habitTicks, taskTicks, granted, returning])
+  }, [
+    captures,
+    habitTicks,
+    taskTicks,
+    granted,
+    returning,
+    drawerOpen,
+    fernBusy,
+  ])
   return null
 }
 
