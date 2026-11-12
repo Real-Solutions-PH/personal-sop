@@ -116,6 +116,7 @@ import { streakMiss, streakNote } from "../rewards"
 import { useScreenSetUp } from "../screen-sync"
 import { CommunityButton, CommunityCard } from "../social/today-card"
 import { type Accent, fonts, radius, useTheme } from "../theme"
+import { useTourTarget } from "../tour/targets"
 import { Button, Screen, SwipeRow, undo, useNow } from "../ui"
 import { Ring } from "../visual"
 import { maybeOpenWayBack } from "../way-back-open"
@@ -339,6 +340,8 @@ function TodayPlan() {
     const h = habitOf(i)
     return Boolean((h && !auto.has(h)) || taskOf(i))
   }
+  // The tour's "tick it off" step points here while there is a tick to do.
+  const tourTarget = useTourTarget("today-plan", shown.some(doneable))
   const markDone = (i: CalendarItem) => {
     const h = habitOf(i)
     const k = taskOf(i)
@@ -356,7 +359,7 @@ function TodayPlan() {
             ? t.nut
             : t.fin
   return (
-    <Frame style={{ padding: 16, gap: 8 }}>
+    <Frame ref={tourTarget} style={{ padding: 16, gap: 8 }}>
       <Line style={{ justifyContent: "space-between" }}>
         <Copy size={13} weight="medium" muted>
           Today's plan

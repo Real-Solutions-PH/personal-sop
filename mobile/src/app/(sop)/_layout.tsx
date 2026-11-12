@@ -39,7 +39,6 @@ import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { replace, switchTab } from "@/prototype/navigation"
 import { OfflineNote } from "@/prototype/offline-note"
-import { applyDraft, getDraft } from "@/prototype/onboarding-draft"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { FinishWatcher } from "@/prototype/routine-done"
 import { startRunTracker } from "@/prototype/run-tracker"
@@ -47,6 +46,8 @@ import { startScreenSync } from "@/prototype/screen-sync"
 import { CaptureOverlay } from "@/prototype/screens/capture"
 import { sessionStore } from "@/prototype/session"
 import { stepTab, TAB_ROUTES, tabDirection } from "@/prototype/tab-swipe"
+import { FirstTip, TourLayer, TourWatcher } from "@/prototype/tour/overlay"
+import { useTourTarget } from "@/prototype/tour/targets"
 import { AccentContext, fonts, useTheme } from "@/prototype/theme"
 import { TrophyWatcher } from "@/prototype/trophy-overlay"
 import { wake } from "@/prototype/wake-word"
@@ -252,11 +253,6 @@ export default function PrototypeLayout() {
   useEffect(() => {
     if (ready && !onboarded && returning) setOnboarded(true)
   }, [ready, onboarded, returning])
-  // A new account whose onboarding answers were never written (the app
-  // closed between sign-up and applying them) gets them now, once.
-  useEffect(() => {
-    if (firstRun && getDraft()) applyDraft()
-  }, [firstRun])
   useEffect(() => {
     if (firstRun && !inFirstRun) replace("/onboarding")
   }, [firstRun, inFirstRun])
@@ -276,6 +272,13 @@ export default function PrototypeLayout() {
   const hearing = wake((s) => s.armed)
   const fabPress = useSharedValue(0)
   const [bar, setBar] = useState(0)
+  // The tour points at these tabs (tour/targets.ts).
+  const tabTargets: Record<string, ReturnType<typeof useTourTarget>> = {
+    Fern: useTourTarget("tab-fern"),
+    Plan: useTourTarget("tab-plan"),
+    Stats: useTourTarget("tab-stats"),
+    Me: useTourTarget("tab-me"),
+  }
   // Task and habit reminders as notifications scheduled on this phone.
   useEffect(() => startReminders(), [])
   // The focus timer's Live bar entry, end-of-set notice and catch-up.
@@ -371,6 +374,7 @@ export default function PrototypeLayout() {
               />
             </Stack>
             {/* Floats over the page's bottom edge, above the bar. */}
+            {!firstRun && <FirstTip path={path} barHeight={focus ? 0 : bar} />}
             <OfflineNote
               offline={!online}
               withBar={!focus}
@@ -417,6 +421,7 @@ export default function PrototypeLayout() {
               return (
                 <Pressable
                   key={tab.href}
+                  ref={tab.label === "Fern" ? undefined : tabTargets[tab.label]}
                   accessibilityRole="tab"
                   accessibilityLabel={
                     tab.label === "Fern"
@@ -461,6 +466,7 @@ export default function PrototypeLayout() {
                 >
                   {tab.label === "Fern" ? (
                     <View
+                      ref={tabTargets.Fern}
                       style={{
                         marginTop: -30,
                         width: 72,
@@ -512,6 +518,14 @@ export default function PrototypeLayout() {
               )
             })}
           </View>
+        )}
+        <TourWatcher path={path} />
+        {!firstRun && (
+          <TourLayer
+            path={path}
+            drawerOpen={drawer}
+            barHeight={focus ? inset.bottom : bar}
+          />
         )}
       </View>
     </AccentContext.Provider>

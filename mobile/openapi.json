@@ -23668,13 +23668,15 @@
               "step_complete",
               "step_skip",
               "module_toggle",
-              "module_choice"
+              "module_choice",
+              "first_log"
             ],
             "title": "Event"
           },
           "step": {
             "type": "string",
             "enum": [
+              "welcome",
               "identity",
               "about",
               "modules",
@@ -23686,7 +23688,13 @@
               "account",
               "notifications",
               "done",
-              "setup"
+              "setup",
+              "tour_fern",
+              "tour_tick",
+              "tour_plan",
+              "tour_stats",
+              "tour_remind",
+              "app"
             ],
             "title": "Step"
           },

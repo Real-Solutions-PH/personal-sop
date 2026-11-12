@@ -9,6 +9,7 @@ import { createStore } from "@domain/lib/store"
 import { liveMode } from "@/live/config"
 
 export type FunnelStep =
+  | "welcome"
   | "identity"
   | "about"
   | "modules"
@@ -21,6 +22,14 @@ export type FunnelStep =
   | "notifications"
   | "done"
   | "setup"
+  // The guided tour after onboarding (tour/machine.ts).
+  | "tour_fern"
+  | "tour_tick"
+  | "tour_plan"
+  | "tour_stats"
+  | "tour_remind"
+  // Anywhere in the app after onboarding (first_log only).
+  | "app"
 export type FunnelModule =
   | "habits"
   | "tasks"
@@ -46,6 +55,13 @@ export type FunnelEvent =
       module: FunnelModule
       turned_on: boolean
     }
+  | {
+      /** This install's first log (a message to Fern, a tick, an entry),
+       * once; ``step`` is where it happened. With the first step_view it
+       * gives the time from opening the app to the first log (KPI 6). */
+      event: "first_log"
+      step: FunnelStep
+    }
 
 type Queued = FunnelEvent & { at: string }
 
@@ -55,7 +71,16 @@ const BATCH = 50
 export const funnelStore = createStore<{
   installId: string
   queue: Queued[]
+  /** first_log was recorded for this install. */
+  firstLogged?: boolean
 }>("funnel", () => ({ installId: "", queue: [] }))
+
+/** Records first_log once per install; later calls do nothing. */
+export function noteFirstLog(step: FunnelStep, at = new Date()) {
+  if (funnelStore.get().firstLogged) return
+  funnelStore.set((s) => ({ ...s, firstLogged: true }))
+  logFunnel({ event: "first_log", step }, at)
+}
 
 /** The random id this install sends, made on first use. */
 export function installId(): string {

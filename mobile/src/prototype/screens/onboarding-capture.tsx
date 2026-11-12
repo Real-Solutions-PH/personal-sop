@@ -1,9 +1,11 @@
-// Onboarding's "Say one thing from today" (before the account exists) and
-// what Fern made of it (the finish step, after). See first-capture.ts for
-// how the words are held and sent.
+// Onboarding's "Tell me one thing from today" and what Fern made of it, on
+// the same screen. The account already exists (account first, docs/27 K8),
+// so the words go straight through the ordinary capture path: online Fern
+// answers live, offline the capture queues and Fern answers on reconnect.
+// See first-capture.ts for the send.
 import type { Capture, RecordCard } from "@domain/capture/data"
 import { captureStore } from "@domain/capture/store"
-import { Check, Mic, Pencil, Square } from "lucide-react-native"
+import { Check, Mic, Square } from "lucide-react-native"
 import { type ReactNode, useRef, useState } from "react"
 import { TextInput, View } from "react-native"
 import { FernCelebrates } from "../companion/fern-celebrates"
@@ -19,16 +21,13 @@ const EXAMPLES = [
   "call mum friday",
 ]
 
-/** The pre-account step. ``held`` is the draft's capture; ``onHold`` keeps
- * new words (null clears them to say something else). */
+/** The step: type or dictate, send, and Fern's answer shows here. */
 export function FirstCaptureStep({
-  held,
-  onHold,
+  onSend,
   onNext,
   button,
 }: {
-  held: HeldCapture | null
-  onHold: (c: HeldCapture | null) => void
+  onSend: (c: HeldCapture) => void
   onNext: () => void
   /** Onboarding's own button, so the step looks like the rest. */
   button: (
@@ -39,14 +38,13 @@ export function FirstCaptureStep({
   ) => ReactNode
 }) {
   const t = useTheme(),
-    [text, setText] = useState(held?.text ?? ""),
+    sent = firstCaptureStore.use((s) => s.sentId),
+    [text, setText] = useState(""),
     [spoke, setSpoke] = useState(false),
     [micError, setMicError] = useState(""),
     // Set when the person types while dictation is on: the recogniser stops
     // and nothing it still sends overwrites their correction.
     typed = useRef(false),
-    // No server refine: before the account exists there is no session for
-    // the server's transcription, and the phone's words are enough here.
     dictation = useLiveDictation(
       (v) => {
         if (!typed.current) setText(v)
@@ -56,66 +54,16 @@ export function FirstCaptureStep({
       null,
     ),
     canTalk = canDictateLive()
-  // Back to the field with the words as they were, to correct a misheard
-  // transcript before it is sent.
-  const edit = () => {
-    if (held) setText(held.text)
-    onHold(null)
-  }
-  if (held)
+  if (sent)
     return (
       <View style={{ gap: 16 }}>
-        <Frame style={{ padding: 16, gap: 12, alignItems: "center" }}>
-          <FernCelebrates
-            size={88}
-            badge={<Check size={28} color="#fff" strokeWidth={3} />}
-          />
-          <Copy weight="semibold" style={{ textAlign: "center" }}>
-            Got it — your first log is ready
-          </Copy>
-          <Tap
-            label={`Edit “${held.text}”`}
-            onPress={edit}
-            style={{ alignSelf: "stretch" }}
-          >
-            <Frame
-              style={{
-                padding: 12,
-                backgroundColor: border(t.primary, 0.1),
-                borderColor: border(t.primary, 0.3),
-              }}
-            >
-              <Line style={{ gap: 8, alignItems: "flex-start" }}>
-                <Copy style={{ flex: 1 }}>“{held.text}”</Copy>
-                <Pencil size={16} color={t.primary} />
-              </Line>
-            </Frame>
-          </Tap>
-          <Copy size={14} muted style={{ textAlign: "center" }}>
-            Fern logs it the moment your account exists, so day 1 starts with a
-            win.
-          </Copy>
-        </Frame>
-        <View style={{ gap: 4 }}>
-          {button("Next", onNext)}
-          <Tap
-            label="Edit what I said"
-            onPress={edit}
-            style={{ alignSelf: "center", padding: 8 }}
-          >
-            <Line style={{ gap: 6 }}>
-              <Pencil size={14} color={t.primary} />
-              <Copy size={14} style={{ color: t.primary }}>
-                Edit what I said
-              </Copy>
-            </Line>
-          </Tap>
-        </View>
+        <FirstCaptureResult />
+        {button("Next", onNext)}
       </View>
     )
   const send = () => {
     if (dictation.listening) dictation.stop()
-    onHold({ text: text.trim(), source: spoke ? "voice" : "text" })
+    onSend({ text: text.trim(), source: spoke ? "voice" : "text" })
   }
   return (
     <View style={{ gap: 16 }}>
@@ -235,8 +183,7 @@ const KIND_LABEL: Partial<Record<RecordCard["kind"], string>> = {
 const recordsOf = (c: Capture | undefined) =>
   (c?.reply?.items ?? []).filter((i): i is RecordCard => i.t === "record")
 
-/** On the finish step: what became of the first capture, live. Nothing
- * when there was none. */
+/** What became of the first capture, live. Nothing when there was none. */
 export function FirstCaptureResult() {
   const t = useTheme(),
     id = firstCaptureStore.use((s) => s.sentId),
@@ -249,7 +196,7 @@ export function FirstCaptureResult() {
     waiting = cap.status === "processing" || cap.status === "queued",
     failed = cap.status === "failed"
   return (
-    <Frame style={{ padding: 16, gap: 12, marginBottom: 16 }}>
+    <Frame style={{ padding: 16, gap: 12 }}>
       <Line style={{ gap: 12 }}>
         {saved.length ? (
           <FernCelebrates

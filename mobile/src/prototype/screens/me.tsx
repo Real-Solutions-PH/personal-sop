@@ -21,12 +21,14 @@ import {
   CheckSquare,
   Clock,
   CloudUpload,
+  Compass,
   Dumbbell,
   Eye,
   Flame,
   FlaskConical,
   Gem,
   LayoutGrid,
+  Lightbulb,
   LogOut,
   Pencil,
   RotateCcw,
@@ -61,7 +63,7 @@ import {
   SmallButton,
   Tap,
 } from "../native-kit"
-import { go } from "../navigation"
+import { go, switchTab } from "../navigation"
 import { planStore, plusInForce } from "../plan"
 import { ProfileAvatar } from "../profile-avatar"
 import { enableReminders } from "../reminders"
@@ -69,6 +71,8 @@ import { sessionStore } from "../session"
 import { confirmSignOut } from "../sign-out-flow"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
+import { queueTour, resetTips, TIPS, useTour } from "../tour/store"
+import { useTourTarget } from "../tour/targets"
 import { confirm, Screen } from "../ui"
 export function Me() {
   const t = useTheme(),
@@ -86,7 +90,9 @@ export function Me() {
     companionName = companionStore.use((s) => s.name),
     memories = companionStore.use((s) => s.memories),
     shown = extrasStore.use((s) => s),
-    plan = planStore.use((s) => s)
+    plan = planStore.use((s) => s),
+    tipsSeen = useTour().tips.length,
+    notificationsTarget = useTourTarget("me-notifications")
   const planDetail = planLine(plan)
   const canBuy = purchases() !== null
   // Turning it on asks first, in plain words; turning it off is immediate
@@ -345,18 +351,20 @@ export function Me() {
             icon={Scale}
             href="/me/settings"
           />
-          <LinkRow
-            title="Notifications"
-            detail={
-              permission === "granted"
-                ? "On"
-                : permission === "denied"
-                  ? "Blocked"
-                  : "Not set up"
-            }
-            icon={Bell}
-            href="/me/settings"
-          />
+          <View ref={notificationsTarget} collapsable={false}>
+            <LinkRow
+              title="Notifications"
+              detail={
+                permission === "granted"
+                  ? "On"
+                  : permission === "denied"
+                    ? "Blocked"
+                    : "Not set up"
+              }
+              icon={Bell}
+              href="/me/settings"
+            />
+          </View>
           <LinkRow
             title="Day & time"
             detail={`Day starts ${String(DAY_START_HOUR).padStart(2, "0")}:00 · Evening ${eveningStart} · Asia/Manila`}
@@ -458,6 +466,28 @@ export function Me() {
             icon={Wallet}
             accent="fin"
             href="/finance/settings"
+          />
+        </Frame>
+        <SectionHeading>Help</SectionHeading>
+        <Frame style={{ paddingHorizontal: 8, paddingVertical: 4 }}>
+          <LinkRow
+            title="Replay the tour"
+            detail={`Five steps on Today: ${companionName}, ticks, Plan, Stats, reminders`}
+            icon={Compass}
+            onPress={() => {
+              queueTour()
+              switchTab("/today")
+            }}
+          />
+          <LinkRow
+            title="Show tips again"
+            detail={
+              tipsSeen
+                ? `${tipsSeen} of ${TIPS.length} seen · Finance, Nutrition, habit pages`
+                : "All tips show the next time you open those pages"
+            }
+            icon={Lightbulb}
+            onPress={resetTips}
           />
         </Frame>
         <SectionHeading>App</SectionHeading>

@@ -1,53 +1,41 @@
 import type { ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
-import {
-  IDENTITIES,
-  PACES,
-  PASS_THROUGH,
-  type Pace,
-  STARTERS,
-} from "@domain/dash/onboarding"
-import { dashStore, setPush } from "@domain/dash/store"
+import { PACES, type Pace, STARTERS } from "@domain/dash/onboarding"
+import { dashStore } from "@domain/dash/store"
 import { LinearGradient } from "expo-linear-gradient"
-import { useLocalSearchParams } from "expo-router"
 import {
-  AlarmClock,
   ArrowLeft,
-  BarChart3,
-  Bell,
   BookOpen,
-  CalendarClock,
   Check,
-  Compass,
   Dumbbell,
-  Fingerprint,
+  Gauge,
   LayoutGrid,
   ListChecks,
   MessageCircle,
   Moon,
   Repeat2,
-  Rocket,
   Smartphone,
   Sparkles,
-  Sun,
-  Target,
   Timer,
   UserRound,
   Users,
   Utensils,
   Wallet,
-  Zap,
 } from "lucide-react-native"
-import { useEffect, useRef, useState } from "react"
+import { useEffect } from "react"
 import { Pressable, TextInput, View } from "react-native"
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller"
 import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { firstCaptureStore } from "../first-capture"
+import { liveMode } from "@/live/config"
+import { companionStore } from "../companion/store"
+import { holdFirstCapture, replayFirstCapture } from "../first-capture"
 import { FIELD_CLEARANCE, formScrollProps } from "../form-scroll"
 import { type FunnelStep, logFunnel } from "../funnel"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { back, go, replace } from "../navigation"
 import {
+  aboutOf,
+  applyDraft,
   DETAIL_MAX,
   DRAFT_EXTRAS,
   type DraftExtra,
@@ -61,36 +49,31 @@ import {
   type OnboardingDraft,
   REFERRAL_DETAIL,
   REFERRALS,
-  startersOf,
 } from "../onboarding-draft"
-import { enableReminders } from "../reminders"
 import { screenTimeAvailable } from "../screen-time"
+import { sessionStore } from "../session"
 import { SETUP_TIME } from "../setup-first"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
 import { AccountForm } from "./auth-sign-up"
-import { FirstCaptureResult, FirstCaptureStep } from "./onboarding-capture"
+import { FirstCaptureStep } from "./onboarding-capture"
 
-// Before the account exists (`/get-started`) every answer goes into the
-// onboarding draft, and the last step creates the account. After it
-// (`/onboarding`) only the notification ask and the send-off are left; the
-// web's "install" step and the welcome step (the Welcome slides introduce
-// the app) are not shown on the phone.
-const PRE_ACCOUNT: readonly MobileStep[] = [
-  "identity",
-  "about",
+// Account first (docs/27 K8): Welcome's "Get started" opens the account
+// form (`/get-started`), with Apple and Google one tap beside email. Once
+// the account exists (`/onboarding`) four short steps follow, then one
+// setup step, then Today and the guided tour. Because the account exists
+// before the first capture, Fern answers it live on the same screen.
+//
+// Screens before Today: Welcome, account, (email code, when the server asks
+// for one), these four, one setup step: 7, or 8 with the code.
+export const ONBOARDING_STEPS: readonly ("modules" | "capture" | "about" | "when")[] = [
   "modules",
   "capture",
-  "targets",
+  "about",
   "when",
-  "building",
-  "pledge",
-  "account",
 ]
-const POST_ACCOUNT: readonly MobileStep[] = ["notifications", "done"]
 // Steps a person can skip from the header.
-const SKIPPABLE: readonly MobileStep[] = ["about", "capture"]
-const PASSING: readonly MobileStep[] = PASS_THROUGH
+const SKIPPABLE: readonly MobileStep[] = ["capture", "about"]
 
 const modules = {
   habits: { icon: Repeat2, color: "hab" },
@@ -116,9 +99,9 @@ const EXTRA_ROWS: Record<
     note: "Friends and shared wins · no setup",
   },
 }
-const FUNNEL_STEPS: readonly MobileStep[] = [...PRE_ACCOUNT, ...POST_ACCOUNT]
-const isFunnelStep = (x: MobileStep): x is MobileStep & FunnelStep =>
-  FUNNEL_STEPS.includes(x)
+type Step = "modules" | "capture" | "about" | "when"
+const isFunnelStep = (x: MobileStep): x is Step & FunnelStep =>
+  (ONBOARDING_STEPS as readonly MobileStep[]).includes(x)
 
 /** The funnel's record of finishing a step; the module step also records
  * the final choice of every module, ticked or not. */
@@ -143,94 +126,63 @@ function funnelDone(step: MobileStep, d: OnboardingDraft) {
     })
 }
 
+/** Live mode: the "about you" answers reach the account. Sign-up already
+ * created it, and the server writes each answer only once, so sending the
+ * sign-up call again with them is safe. Best effort: the answers are
+ * optional. */
+function sendAbout(d: OnboardingDraft) {
+  const about = aboutOf(d)
+  const user = sessionStore.get().user
+  if (!liveMode || !about || !Object.keys(about).length || !user?.username)
+    return
+  const live = require("@/live/auth") as typeof import("@/live/auth")
+  void live.completeProfile(user.name, user.username, about).catch(() => {})
+}
+
+/** `/get-started` is the account step; `/onboarding` is the rest. */
 export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
-  const pre = phase === "pre",
-    STEPS = pre ? PRE_ACCOUNT : POST_ACCOUNT,
-    t = useTheme(),
+  if (phase === "pre")
+    return <AccountForm onBack={() => back("/welcome")} />
+  return <AfterAccount />
+}
+
+function AfterAccount() {
+  const t = useTheme(),
     safe = useSafeAreaInsets(),
-    params = useLocalSearchParams<{ step?: MobileStep }>(),
-    s = dashStore.use((s) => s),
-    // Pre-account answers live in the draft (and survive a restart); after
-    // sign-up they are the account's.
+    fern = companionStore.use((s) => s.name),
+    onboarded = dashStore.use((s) => s.onboarded),
     d = draftStore.use((s) => s.draft) ?? newDraft(),
-    [postStep, setPostStep] = useState<MobileStep>(
-      !pre && POST_ACCOUNT.includes(params.step as MobileStep)
-        ? params.step!
-        : "notifications",
-    ),
-    step = pre
-      ? PRE_ACCOUNT.includes(d.step)
-        ? d.step
-        : "identity"
-      : postStep,
-    setStep = (x: MobileStep) =>
-      pre ? editDraft({ step: x }) : setPostStep(x),
-    picked = d.identities,
-    setPicked = (f: (p: string[]) => string[]) =>
-      editDraft({ identities: f(ensureDraft().identities) }),
+    step: Step = isFunnelStep(d.step) ? d.step : "modules",
+    setStep = (x: MobileStep) => editDraft({ step: x }),
     enabled = d.enabled,
     extras = extrasOf(d),
-    pace = d.pace,
-    setPace = (p: Pace | null) => editDraft({ pace: p }),
-    targets = d.targets,
-    setTargets = (
-      f: (
-        old: Record<ModuleKey, number | null>,
-      ) => Record<ModuleKey, number | null>,
-    ) => editDraft({ targets: f(ensureDraft().targets) }),
-    push = pre ? { morning: d.pushMorning, evening: d.pushEvening } : s.push,
-    setTime = (key: "morning" | "evening", v: string) =>
-      pre
-        ? editDraft(key === "morning" ? { pushMorning: v } : { pushEvening: v })
-        : setPush({ [key]: v }),
-    firstSent = firstCaptureStore.use((s) => s.sentId !== null),
-    [building, setBuilding] = useState(0),
-    [holding, setHolding] = useState(false),
-    timer = useRef<ReturnType<typeof setTimeout> | null>(null),
-    index = STEPS.indexOf(step),
-    bar = STEPS.filter((x) => !PASSING.includes(x)),
-    active = startersOf(d),
-    advance = () => setStep(STEPS[Math.min(STEPS.length - 1, index + 1)]),
+    index = ONBOARDING_STEPS.indexOf(step),
+    finish = () => {
+      // The answers become the account's; setup is the last part.
+      applyDraft()
+      go("/setup")
+    },
+    advance = () =>
+      index >= ONBOARDING_STEPS.length - 1
+        ? finish()
+        : setStep(ONBOARDING_STEPS[index + 1]),
     // Leaving a step forward counts as finishing it (Skip says skip).
     next = () => {
       funnelDone(step, d)
+      if (step === "about") sendAbout(d)
       advance()
     }
   // Every step shown counts once per showing, for the funnel.
   useEffect(() => {
-    if (isFunnelStep(step)) logFunnel({ event: "step_view", step })
+    logFunnel({ event: "step_view", step })
   }, [step])
-  // Start (or resume) the draft as soon as onboarding opens.
   useEffect(() => {
-    if (pre) ensureDraft()
-  }, [pre])
+    ensureDraft()
+  }, [])
+  // Onboarding is the first run only; "Run setup again" is /setup.
   useEffect(() => {
-    if (step !== "building") return
-    setBuilding(0)
-    let n = 0
-    const id = setInterval(() => {
-      n++
-      setBuilding(n)
-      if (n > 4) {
-        clearInterval(id)
-        // "building" is a pre-account step: the step lives in the draft.
-        logFunnel({ event: "step_complete", step: "building" })
-        editDraft({ step: "pledge" })
-      }
-    }, 650)
-    return () => clearInterval(id)
-  }, [step])
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current)
-    },
-    [],
-  )
-  // Onboarding is the first run only; "Run setup again" is /setup. Before
-  // sign-up the dash store holds the demo seed, so this is post-account only.
-  useEffect(() => {
-    if (!pre && s.onboarded) replace("/today")
-  }, [pre, s.onboarded])
+    if (onboarded) replace("/today")
+  }, [onboarded])
   const button = (
     label: string,
     press: () => void,
@@ -274,83 +226,36 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
       </View>
     )
   }
-  // The answers were written to the account at sign-up (applyDraft). Setup
-  // is the last part of onboarding; it marks onboarding finished.
-  const finish = () => {
-    logFunnel({ event: "step_complete", step: "done" })
-    go("/setup")
-  }
-  const configs: Record<
-      MobileStep,
-      { icon: typeof Compass; title: string; body: string }
+  const configs: Partial<
+      Record<MobileStep, { icon: typeof LayoutGrid; title: string; body: string }>
     > = {
-      welcome: {
-        icon: Compass,
-        title: "Your life, one dashboard",
-        body: "Habits, tasks, training, food and money — logged in seconds, scored honestly, shareable without leaking a cent.",
+      modules: {
+        icon: LayoutGrid,
+        title: "What do you want to track?",
+        body: "Start with what matters. Add the rest anytime.",
+      },
+      capture: {
+        icon: MessageCircle,
+        title: "Tell me one thing from today",
+        body: `Something you did, ate, spent or need to do. ${fern} sorts it into the right place.`,
       },
       about: {
         icon: UserRound,
         title: "A little about you",
-        body: "Two quick questions so Unfurl fits your days. Both are optional.",
-      },
-      account: { icon: UserRound, title: "Create your account", body: "" },
-      identity: {
-        icon: Fingerprint,
-        title: "Who are you becoming?",
-        body: "Habits stick when they're part of who you are. Pick up to three — we'll build around them.",
-      },
-      modules: {
-        icon: LayoutGrid,
-        title: "What do you want to track?",
-        body: "Ticked from who you're becoming. Each one you add asks a quick setup, so start with what matters. Add the rest anytime.",
-      },
-      capture: {
-        icon: MessageCircle,
-        title: "Say one thing from today",
-        body: "Tell Fern anything you did, ate, spent or need to do, in your own words. Fern sorts it into the right place.",
-      },
-      targets: {
-        icon: Target,
-        title: "Pick your pace",
-        body: "Start smaller than you think. Early wins build the streak; you can raise the bar anytime.",
+        body: "Two quick questions. Both are optional.",
       },
       when: {
-        icon: CalendarClock,
-        title: "When will you check in?",
-        body: "People who decide when and where they'll act follow through far more often than people who just intend to.",
-      },
-      building: { icon: Sparkles, title: "Building your plan…", body: "" },
-      pledge: {
-        icon: Zap,
-        title: "Your plan is ready",
-        body: "Make it official. A promise you commit to is one you're far more likely to keep.",
-      },
-      notifications: {
-        icon: Bell,
-        title: "Protect your plan",
-        body: "Streaks rarely die on hard days — they die on days you simply forgot. We'll nudge you at the times you picked, three a day max.",
-      },
-      install: {
-        icon: Smartphone,
-        title: "Keep your plan one tap away",
-        body: "You're already running the installed app. ✓",
-      },
-      done: {
-        icon: Rocket,
-        title: "Day 1 starts now",
-        body: `It's ${new Date().toLocaleDateString(undefined, { weekday: "long" })} — a clean slate. Tap + anytime and just say what happened: “ran 5k, spent 250 on lunch”.`,
+        icon: Gauge,
+        title: "Set your pace",
+        body: "Start smaller than you think. You can raise it anytime.",
       },
     },
-    c = configs[step],
+    c = configs[step] ?? configs.modules!,
     I = c.icon
-  const goBack = () => {
-    let i = index - 1
-    while (i > 0 && PASSING.includes(STEPS[i])) i--
-    setStep(STEPS[i])
-  }
-  // The account form is its own screen, keyboard handling included.
-  if (step === "account") return <AccountForm onBack={goBack} />
+  const ticked = (k: ModuleKey | DraftExtra) =>
+    k in enabled ? enabled[k as ModuleKey] : extras[k as DraftExtra]
+  const anyTicked =
+    Object.values(enabled).some(Boolean) || Object.values(extras).some(Boolean)
   return (
     <View style={{ flex: 1, backgroundColor: t.bg, paddingTop: safe.top }}>
       <View style={{ paddingHorizontal: 20 }}>
@@ -361,74 +266,50 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
               icon={ArrowLeft}
               label="Back"
               color={t.text}
-              onPress={goBack}
-            />
-          ) : pre ? (
-            <IconTap
-              size={44}
-              icon={ArrowLeft}
-              label="Back"
-              color={t.text}
-              onPress={() => back("/welcome")}
+              onPress={() => setStep(ONBOARDING_STEPS[index - 1])}
             />
           ) : (
             <View style={{ width: 44 }} />
           )}
-          <Line style={{ flex: 1, gap: 6 }}>
-            {bar.map((x) => (
+          <View
+            style={{ flex: 1, flexDirection: "row", gap: 6 }}
+            accessible
+            accessibilityLabel={`Step ${index + 1} of ${ONBOARDING_STEPS.length}`}
+          >
+            {ONBOARDING_STEPS.map((x, i) => (
               <View
                 key={x}
                 style={{
                   height: 6,
                   flex: 1,
                   borderRadius: 3,
-                  backgroundColor:
-                    STEPS.indexOf(x) <= index ? t.primary : t.soft,
+                  backgroundColor: i <= index ? t.primary : t.soft,
                 }}
               />
             ))}
-          </Line>
-          {pre &&
-            SKIPPABLE.includes(step) &&
-            // Once a first capture is held, its own buttons go on.
-            !(step === "capture" && d.firstCapture) && (
-              <Tap
-                onPress={() => {
-                  // Skipping "about you" leaves both answers unanswered;
-                  // skipping the first capture holds nothing.
-                  editDraft(
-                    step === "capture"
-                      ? { firstCapture: null }
-                      : {
-                          occupation: null,
-                          occupationDetail: "",
-                          referralSource: null,
-                          referralDetail: "",
-                        },
-                  )
-                  if (isFunnelStep(step))
-                    logFunnel({ event: "step_skip", step })
-                  advance()
-                }}
-                style={{ padding: 8 }}
-              >
-                <Copy size={14} muted>
-                  Skip
-                </Copy>
-              </Tap>
-            )}
-          {/* Anyone with an account already leaves here; the draft stays
-              until a sign-in succeeds, so Back returns to this step. */}
-          {pre && (
+          </View>
+          {SKIPPABLE.includes(step) ? (
             <Tap
-              label="I already have an account"
-              onPress={() => go("/login")}
-              style={{ padding: 8 }}
+              onPress={() => {
+                // Skipping "about you" leaves both answers unanswered.
+                if (step === "about")
+                  editDraft({
+                    occupation: null,
+                    occupationDetail: "",
+                    referralSource: null,
+                    referralDetail: "",
+                  })
+                logFunnel({ event: "step_skip", step })
+                advance()
+              }}
+              style={{ padding: 8, minHeight: 44, justifyContent: "center" }}
             >
-              <Copy size={14} style={{ color: t.primary }}>
-                Sign in
+              <Copy size={14} muted>
+                Skip
               </Copy>
             </Tap>
+          ) : (
+            <View style={{ width: 44 }} />
           )}
         </Line>
       </View>
@@ -443,10 +324,9 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
       >
         <View
           style={{
-            flex: 1,
             alignItems: "center",
-            justifyContent: "center",
-            paddingVertical: 24,
+            paddingTop: 8,
+            paddingBottom: 24,
           }}
         >
           <LinearGradient
@@ -456,101 +336,130 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
               border(t.fit, 0.2),
             ]}
             style={{
-              width: 80,
-              height: 80,
-              borderRadius: 24,
+              width: 64,
+              height: 64,
+              borderRadius: 20,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <I size={36} color={t.primary} />
+            <I size={30} color={t.primary} />
           </LinearGradient>
           <Copy
             size={24}
             weight="display"
-            style={{ marginTop: 20, letterSpacing: -0.6, textAlign: "center" }}
+            style={{ marginTop: 16, letterSpacing: -0.6, textAlign: "center" }}
           >
             {c.title}
           </Copy>
-          {!!c.body && (
-            <Copy
-              muted
-              style={{ marginTop: 8, maxWidth: 320, textAlign: "center" }}
-            >
-              {c.body}
-            </Copy>
-          )}
+          <Copy
+            muted
+            style={{ marginTop: 8, maxWidth: 320, textAlign: "center" }}
+          >
+            {c.body}
+          </Copy>
         </View>
-        <View>
-          {step === "welcome" && (
-            <>
-              {button("Build my plan", next)}
-              <Copy
-                size={12}
-                muted
-                style={{ marginTop: 8, textAlign: "center" }}
-              >
-                About 90 seconds
-              </Copy>
-            </>
-          )}
-          {step === "identity" && (
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          {step === "modules" && (
             <>
               <View style={{ gap: 8, marginBottom: 16 }}>
-                {IDENTITIES.map((d) => {
-                  const on = picked.includes(d.text),
-                    full = !on && picked.length >= 3
+                {/* Choices only: Screen time's iOS permission is asked for
+                    in setup. */}
+                {MODULE_KEYS.map((k) => (
+                  <ChoiceRow
+                    key={k}
+                    on={ticked(k)}
+                    icon={areaIcon(k, 40)}
+                    label={AREA[k].label}
+                    note={
+                      k !== "screen"
+                        ? `${SETUP_TIME[k]} setup`
+                        : screenTimeAvailable()
+                          ? `${SETUP_TIME[k]} setup · needs Screen Time access`
+                          : "Not in this version of Unfurl yet"
+                    }
+                    onPress={() => {
+                      logFunnel({
+                        event: "module_toggle",
+                        step: "modules",
+                        module: k,
+                        turned_on: !enabled[k],
+                      })
+                      editDraft({ enabled: { ...enabled, [k]: !enabled[k] } })
+                    }}
+                  />
+                ))}
+                {DRAFT_EXTRAS.map((k) => {
+                  const on = extras[k],
+                    X = EXTRA_ROWS[k].icon
                   return (
-                    <Tap
-                      key={d.text}
-                      onPress={() => {
-                        if (!full)
-                          setPicked((p) =>
-                            on ? p.filter((x) => x !== d.text) : [...p, d.text],
-                          )
-                      }}
-                      style={{
-                        padding: 16,
-                        borderRadius: 16,
-                        borderWidth: 1,
-                        borderColor: on ? t.primary : t.line,
-                        backgroundColor: on ? border(t.primary, 0.1) : t.card,
-                        opacity: full ? 0.4 : 1,
-                      }}
-                    >
-                      <Line style={{ gap: 12 }}>
-                        {d.module ? (
-                          areaIcon(d.module)
-                        ) : (
-                          <Sparkles size={24} color={t.muted} />
-                        )}
-                        <Copy weight="medium" style={{ flex: 1 }}>
-                          “{d.text}”
-                        </Copy>
+                    <ChoiceRow
+                      key={k}
+                      on={on}
+                      label={EXTRA_ROWS[k].label}
+                      note={EXTRA_ROWS[k].note}
+                      icon={
                         <View
                           style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 12,
-                            backgroundColor: on ? t.primary : t.soft,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 40 / 3,
+                            backgroundColor: border(t.life, 0.15),
                             alignItems: "center",
                             justifyContent: "center",
                           }}
                         >
-                          {on && <Check size={16} color={t.bg} />}
+                          <X size={20} color={t.life} />
                         </View>
-                      </Line>
-                    </Tap>
+                      }
+                      onPress={() => {
+                        logFunnel({
+                          event: "module_toggle",
+                          step: "modules",
+                          module: k,
+                          turned_on: !on,
+                        })
+                        editDraft({ extras: { ...extras, [k]: !on } })
+                      }}
+                    />
                   )
                 })}
+                <Line
+                  style={{
+                    padding: 16,
+                    gap: 12,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: t.line,
+                  }}
+                >
+                  <Sparkles size={24} color={t.muted} />
+                  <Copy muted style={{ flex: 1 }}>
+                    {fern}: type, talk or snap a photo
+                  </Copy>
+                  <Copy size={12} muted>
+                    always on
+                  </Copy>
+                </Line>
               </View>
               {button(
-                picked.length ? "That's me" : "Pick at least one",
+                anyTicked ? "Next" : "Pick at least one",
                 next,
                 false,
-                !picked.length,
+                !anyTicked,
               )}
             </>
+          )}
+          {step === "capture" && (
+            <FirstCaptureStep
+              onSend={(c) => {
+                holdFirstCapture(c)
+                replayFirstCapture()
+              }}
+              onNext={next}
+              button={button}
+            />
           )}
           {step === "about" && (
             <>
@@ -592,503 +501,176 @@ export function Onboarding({ phase = "post" }: { phase?: "pre" | "post" }) {
               {button("Continue", next)}
             </>
           )}
-          {step === "modules" && (
-            <>
-              <View style={{ gap: 8, marginBottom: 16 }}>
-                {/* Choices only: Screen time's iOS permission is asked for
-                    in setup, once the account exists. */}
-                {MODULE_KEYS.map((k) => (
-                  <Tap
-                    key={k}
-                    onPress={() => {
-                      logFunnel({
-                        event: "module_toggle",
-                        step: "modules",
-                        module: k,
-                        turned_on: !enabled[k],
-                      })
-                      editDraft({ enabled: { ...enabled, [k]: !enabled[k] } })
-                    }}
-                    style={{
-                      padding: 16,
-                      borderRadius: 16,
-                      borderWidth: 1,
-                      borderColor: enabled[k] ? t.primary : t.line,
-                      backgroundColor: enabled[k]
-                        ? border(t.primary, 0.1)
-                        : t.card,
-                    }}
-                  >
-                    <Line style={{ gap: 12 }}>
-                      {areaIcon(k, 40)}
-                      <View style={{ flex: 1 }}>
-                        <Copy weight="semibold">{AREA[k].label}</Copy>
-                        <Copy size={12} muted>
-                          {k !== "screen"
-                            ? `${SETUP_TIME[k]} setup`
-                            : screenTimeAvailable()
-                              ? `${SETUP_TIME[k]} setup · needs Screen Time access`
-                              : "Not in this version of Unfurl yet"}
-                        </Copy>
-                      </View>
-                      <View
-                        style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          backgroundColor: enabled[k] ? t.primary : t.soft,
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        {enabled[k] && <Check size={16} color={t.bg} />}
-                      </View>
-                    </Line>
-                  </Tap>
-                ))}
-                {DRAFT_EXTRAS.map((k) => {
-                  const on = extras[k],
-                    X = EXTRA_ROWS[k].icon
-                  return (
-                    <Tap
-                      key={k}
-                      label={`${EXTRA_ROWS[k].label}${on ? ", on" : ", off"}`}
-                      onPress={() => {
-                        logFunnel({
-                          event: "module_toggle",
-                          step: "modules",
-                          module: k,
-                          turned_on: !on,
-                        })
-                        editDraft({ extras: { ...extras, [k]: !on } })
-                      }}
-                      style={{
-                        padding: 16,
-                        borderRadius: 16,
-                        borderWidth: 1,
-                        borderColor: on ? t.primary : t.line,
-                        backgroundColor: on ? border(t.primary, 0.1) : t.card,
-                      }}
-                    >
-                      <Line style={{ gap: 12 }}>
-                        <View
-                          style={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: 40 / 3,
-                            backgroundColor: border(t.life, 0.15),
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          <X size={20} color={t.life} />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                          <Copy weight="semibold">{EXTRA_ROWS[k].label}</Copy>
-                          <Copy size={12} muted>
-                            {EXTRA_ROWS[k].note}
-                          </Copy>
-                        </View>
-                        <View
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 12,
-                            backgroundColor: on ? t.primary : t.soft,
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
-                          {on && <Check size={16} color={t.bg} />}
-                        </View>
-                      </Line>
-                    </Tap>
-                  )
-                })}
-                <Line
-                  style={{
-                    padding: 16,
-                    gap: 12,
-                    borderRadius: 16,
-                    borderWidth: 1,
-                    borderStyle: "dashed",
-                    borderColor: t.line,
-                  }}
-                >
-                  <Sparkles size={24} color={t.muted} />
-                  <Copy muted style={{ flex: 1 }}>
-                    Capture (chat, voice, photo)
-                  </Copy>
-                  <Copy size={12} muted>
-                    always on
-                  </Copy>
-                </Line>
-              </View>
-              {button(
-                Object.values(enabled).some(Boolean) ||
-                  Object.values(extras).some(Boolean)
-                  ? "Next"
-                  : "Pick at least one",
-                next,
-                false,
-                !Object.values(enabled).some(Boolean) &&
-                  !Object.values(extras).some(Boolean),
-              )}
-            </>
-          )}
-          {step === "capture" && (
-            <FirstCaptureStep
-              held={d.firstCapture ?? null}
-              onHold={(c) => editDraft({ firstCapture: c })}
-              onNext={next}
-              button={button}
-            />
-          )}
-          {step === "targets" && (
-            <>
-              <Line style={{ gap: 8, marginBottom: 12, alignItems: "stretch" }}>
-                {(Object.keys(PACES) as Pace[]).map((p) => (
-                  <Tap
-                    key={p}
-                    onPress={() => {
-                      setPace(p)
-                      setTargets(
-                        (old) =>
-                          Object.fromEntries(
-                            MODULE_KEYS.map((k) => [
-                              k,
-                              old[k] === null ? null : PACES[p].targets[k],
-                            ]),
-                          ) as Record<ModuleKey, number | null>,
-                      )
-                    }}
-                    style={{
-                      flex: 1,
-                      paddingHorizontal: 8,
-                      paddingTop: 16,
-                      paddingBottom: 12,
-                      borderRadius: 16,
-                      borderWidth: 1,
-                      borderColor: pace === p ? t.primary : t.line,
-                      backgroundColor:
-                        pace === p ? border(t.primary, 0.1) : t.card,
-                      alignItems: "center",
-                    }}
-                  >
-                    {p === "gentle" && (
-                      <View
-                        style={{
-                          position: "absolute",
-                          top: -8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                          borderRadius: 12,
-                          backgroundColor: t.primary,
-                        }}
-                      >
-                        <Copy
-                          size={10}
-                          weight="semibold"
-                          style={{ color: t.bg }}
-                        >
-                          Recommended
-                        </Copy>
-                      </View>
-                    )}
-                    <Copy size={14} weight="semibold">
-                      {PACES[p].label}
-                    </Copy>
-                    <Copy size={12} muted>
-                      {PACES[p].note}
-                    </Copy>
-                  </Tap>
-                ))}
-              </Line>
-              <View style={{ gap: 8, marginBottom: 16 }}>
-                {MODULE_KEYS.filter((k) => enabled[k]).map((k) => (
-                  <Frame
-                    key={k}
-                    style={{
-                      padding: 12,
-                      opacity: targets[k] === null ? 0.5 : 1,
-                    }}
-                  >
-                    <Line style={{ gap: 12 }}>
-                      {areaIcon(k)}
-                      <View style={{ flex: 1 }}>
-                        <Copy size={14} weight="medium">
-                          {STARTERS[k].label} ≥
-                        </Copy>
-                        <Copy size={12} muted>
-                          {STARTERS[k].hint} · per {STARTERS[k].period}
-                        </Copy>
-                      </View>
-                      <TextInput
-                        accessibilityLabel={`${STARTERS[k].label} target`}
-                        editable={targets[k] !== null}
-                        value={targets[k] === null ? "" : String(targets[k])}
-                        onChangeText={(v) => {
-                          setPace(null)
-                          setTargets((old) => ({
-                            ...old,
-                            [k]: Number(v.replace(/\D/g, "")) || 0,
-                          }))
-                        }}
-                        keyboardType="number-pad"
-                        style={{
-                          width: 64,
-                          height: 40,
-                          borderRadius: 12,
-                          borderWidth: 1,
-                          borderColor: t.line,
-                          backgroundColor: t.bg,
-                          textAlign: "center",
-                          fontFamily: fonts.semibold,
-                          color: t.text,
-                        }}
-                      />
-                      <Copy size={14} muted style={{ width: 16 }}>
-                        {STARTERS[k].unit}
-                      </Copy>
-                    </Line>
-                    <Tap
-                      onPress={() =>
-                        setTargets((old) => ({
-                          ...old,
-                          [k]:
-                            old[k] === null
-                              ? PACES[pace ?? "gentle"].targets[k]
-                              : null,
-                        }))
-                      }
-                      style={{ marginTop: 4, paddingLeft: 44 }}
-                    >
-                      <Copy size={12} style={{ color: t.primary }}>
-                        {targets[k] === null ? "Use a target" : "Skip this one"}
-                      </Copy>
-                    </Tap>
-                  </Frame>
-                ))}
-              </View>
-              {button("Next", next)}
-            </>
-          )}
           {step === "when" && (
-            <>
-              <Frame style={{ padding: 16, gap: 12, marginBottom: 16 }}>
-                {(
-                  [
-                    { icon: Sun, label: "Plan my day", key: "morning" },
-                    { icon: Moon, label: "Wrap it up", key: "evening" },
-                  ] as const
-                ).map((x) => (
-                  <Line key={x.key}>
-                    <x.icon size={20} color={t.primary} />
-                    <Copy size={14} weight="medium" style={{ flex: 1 }}>
-                      {x.label}
-                    </Copy>
-                    <TimeInput
-                      label={x.label}
-                      value={push[x.key]}
-                      onChange={(v) => setTime(x.key, v)}
-                    />
-                  </Line>
-                ))}
-              </Frame>
-              <Copy
-                size={14}
-                muted
-                style={{ textAlign: "center", marginBottom: 16 }}
-              >
-                “Every day at {push.morning} I'll plan, and at {push.evening}{" "}
-                I'll close the day.”
-              </Copy>
-              {button("Lock these in", next)}
-            </>
-          )}
-          {step === "building" && (
-            <View style={{ gap: 12, paddingBottom: 40 }}>
-              {[
-                "Weighting your Life Score",
-                `Setting ${active.length || "your"} starter target${active.length === 1 ? "" : "s"}`,
-                `Scheduling check-ins at ${push.morning} & ${push.evening}`,
-                "Preparing your first week",
-              ].map((line, i) => (
-                <Line
-                  key={line}
-                  style={{ gap: 12, opacity: i < building ? 1 : 0.3 }}
-                >
-                  <Check size={24} color={t.primary} />
-                  <Copy size={14}>{line}</Copy>
-                </Line>
-              ))}
-            </View>
-          )}
-          {step === "pledge" && (
-            <>
-              <Frame style={{ padding: 16, gap: 12, marginBottom: 16 }}>
-                {!!picked.length && (
-                  <View style={{ gap: 4 }}>
-                    <Copy size={12} muted>
-                      WHO I'M BECOMING
-                    </Copy>
-                    {picked.map((x) => (
-                      <Copy key={x} size={14} weight="medium">
-                        “{x}”
-                      </Copy>
-                    ))}
-                  </View>
-                )}
-                {active.map((k) => (
-                  <Line key={k} style={{ gap: 8 }}>
-                    {areaIcon(k)}
-                    <Copy size={14} style={{ flex: 1 }}>
-                      {STARTERS[k].label}
-                    </Copy>
-                    <Copy size={14} weight="semibold">
-                      ≥ {targets[k]}
-                      {STARTERS[k].unit}
-                    </Copy>
-                    <Copy size={12} muted>
-                      /{STARTERS[k].period}
-                    </Copy>
-                  </Line>
-                ))}
-                <Copy size={14} muted>
-                  Check in at {push.morning} & {push.evening}
-                </Copy>
-              </Frame>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Hold to commit"
-                accessibilityActions={[
-                  { name: "activate", label: "Commit to plan" },
-                ]}
-                onAccessibilityAction={next}
-                onPressIn={() => {
-                  setHolding(true)
-                  timer.current = setTimeout(next, 1200)
-                }}
-                onPressOut={() => {
-                  setHolding(false)
-                  if (timer.current) clearTimeout(timer.current)
-                }}
-                style={{
-                  height: 56,
-                  borderRadius: 12,
-                  backgroundColor: holding ? t.primary : t.soft,
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Line>
-                  <Fingerprint size={20} color={holding ? t.bg : t.text} />
-                  <Copy
-                    weight="semibold"
-                    style={{ color: holding ? t.bg : t.text }}
-                  >
-                    {holding ? "Keep holding…" : "Hold to commit"}
-                  </Copy>
-                </Line>
-              </Pressable>
-            </>
-          )}
-          {step === "notifications" && (
-            <>
-              <Frame style={{ padding: 16, gap: 10, marginBottom: 16 }}>
-                {[
-                  {
-                    icon: Sun,
-                    label: "Morning",
-                    sub: `What's due today · ${push.morning}`,
-                  },
-                  {
-                    icon: Moon,
-                    label: "Evening",
-                    sub: `Wrap up the day · ${push.evening}`,
-                  },
-                  {
-                    icon: BarChart3,
-                    label: "Weekly review",
-                    sub: "Sunday 19:00",
-                  },
-                  {
-                    icon: AlarmClock,
-                    label: "Reminders",
-                    sub: "Tasks and habits you set times for",
-                  },
-                ].map((x) => (
-                  <Line key={x.label}>
-                    <x.icon size={20} color={t.primary} />
-                    <View style={{ flex: 1 }}>
-                      <Copy size={14} weight="semibold">
-                        {x.label}
-                      </Copy>
-                      <Copy size={12} muted>
-                        {x.sub}
-                      </Copy>
-                    </View>
-                  </Line>
-                ))}
-              </Frame>
-              {button(
-                s.push.permission === "granted"
-                  ? "Notifications on ✓ — continue"
-                  : `Remind me at ${push.morning} & ${push.evening}`,
-                () => {
-                  // The system asks; whatever the answer, onboarding goes on.
-                  void enableReminders().finally(next)
-                },
-              )}
-              {button(
-                "Not now",
-                () => {
-                  logFunnel({ event: "step_skip", step: "notifications" })
-                  advance()
-                },
-                true,
-              )}
-            </>
-          )}
-          {step === "done" && (
-            <>
-              <FirstCaptureResult />
-              <Frame style={{ padding: 16, marginBottom: 16 }}>
-                <Line
-                  style={{ justifyContent: "space-between", marginBottom: 8 }}
-                >
-                  <Copy size={14} weight="semibold">
-                    Your first week
-                  </Copy>
-                  <Copy size={12} muted>
-                    Plan set ✓ · 1 of 7
-                  </Copy>
-                </Line>
-                <Line style={{ gap: 6 }}>
-                  {Array.from({ length: 7 }, (_, i) => (
-                    <View
-                      key={i}
-                      style={{
-                        height: 8,
-                        flex: 1,
-                        borderRadius: 4,
-                        backgroundColor: i === 0 ? t.primary : t.soft,
-                      }}
-                    />
-                  ))}
-                </Line>
-                <Copy size={12} muted style={{ marginTop: 8 }}>
-                  {firstSent
-                    ? "Your first log already counts toward day 1."
-                    : "Log one thing today to light up day 1."}
-                </Copy>
-              </Frame>
-              {button("Set up my workspace", finish)}
-            </>
+            <PaceStep
+              d={d}
+              fern={fern}
+              onDone={next}
+              button={button}
+              icon={areaIcon}
+            />
           )}
         </View>
       </KeyboardAwareScrollView>
     </View>
+  )
+}
+
+/** A tickable row: icon, label and note, a check at the end. */
+function ChoiceRow({
+  on,
+  icon,
+  label,
+  note,
+  onPress,
+}: {
+  on: boolean
+  icon: React.ReactNode
+  label: string
+  note: string
+  onPress: () => void
+}) {
+  const t = useTheme()
+  return (
+    <Tap
+      label={`${label}, ${on ? "on" : "off"}`}
+      selected={on}
+      onPress={onPress}
+      style={{
+        padding: 14,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: on ? t.primary : t.line,
+        backgroundColor: on ? border(t.primary, 0.1) : t.card,
+      }}
+    >
+      <Line style={{ gap: 12 }}>
+        {icon}
+        <View style={{ flex: 1 }}>
+          <Copy weight="semibold">{label}</Copy>
+          <Copy size={12} muted>
+            {note}
+          </Copy>
+        </View>
+        <View
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: on ? t.primary : t.soft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {on && <Check size={16} color={t.bg} />}
+        </View>
+      </Line>
+    </Tap>
+  )
+}
+
+/** Pace (the starter targets) and the daily check-in time, on one screen. */
+function PaceStep({
+  d,
+  fern,
+  onDone,
+  button,
+  icon,
+}: {
+  d: OnboardingDraft
+  fern: string
+  onDone: () => void
+  button: (label: string, press: () => void) => React.ReactNode
+  icon: (k: keyof typeof modules, size?: number) => React.ReactNode
+}) {
+  const t = useTheme()
+  const pace = d.pace ?? "gentle"
+  const on = MODULE_KEYS.filter((k) => d.enabled[k])
+  const setPace = (p: Pace) =>
+    editDraft({
+      pace: p,
+      targets: Object.fromEntries(
+        MODULE_KEYS.map((k) => [
+          k,
+          d.targets[k] === null ? null : PACES[p].targets[k],
+        ]),
+      ) as Record<ModuleKey, number | null>,
+    })
+  return (
+    <>
+      <View
+        accessibilityRole="radiogroup"
+        style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}
+      >
+        {(Object.keys(PACES) as Pace[]).map((p) => (
+          <Tap
+            key={p}
+            role="radio"
+            selected={pace === p}
+            label={`${PACES[p].label}, ${PACES[p].note}`}
+            onPress={() => setPace(p)}
+            style={{
+              flex: 1,
+              paddingHorizontal: 8,
+              paddingVertical: 14,
+              borderRadius: 16,
+              borderWidth: 1,
+              borderColor: pace === p ? t.primary : t.line,
+              backgroundColor: pace === p ? border(t.primary, 0.1) : t.card,
+              alignItems: "center",
+              gap: 2,
+            }}
+          >
+            <Copy size={14} weight="semibold">
+              {PACES[p].label}
+            </Copy>
+            <Copy size={12} muted style={{ textAlign: "center" }}>
+              {PACES[p].note}
+            </Copy>
+          </Tap>
+        ))}
+      </View>
+      {on.length > 0 && (
+        <Frame style={{ padding: 12, gap: 8, marginBottom: 12 }}>
+          {on.map((k) => (
+            <Line key={k} style={{ gap: 12 }}>
+              {icon(k, 28)}
+              <Copy size={14} style={{ flex: 1 }}>
+                {STARTERS[k].label}
+              </Copy>
+              <Copy
+                size={14}
+                weight="semibold"
+                style={{ fontFamily: fonts.mono }}
+              >
+                ≥ {PACES[pace].targets[k]}
+                {STARTERS[k].unit}
+              </Copy>
+              <Copy size={12} muted>
+                /{STARTERS[k].period}
+              </Copy>
+            </Line>
+          ))}
+        </Frame>
+      )}
+      <Frame style={{ padding: 16, gap: 8, marginBottom: 16 }}>
+        <Line>
+          <Moon size={20} color={t.primary} />
+          <Copy size={14} weight="medium" style={{ flex: 1 }}>
+            Daily check-in
+          </Copy>
+          <TimeInput
+            label="Daily check-in"
+            value={d.pushEvening}
+            onChange={(v) => editDraft({ pushEvening: v })}
+          />
+        </Line>
+        <Copy size={12} muted>
+          {`At most one nudge a day, near this time. ${fern} learns when you usually log and moves it there.`}
+        </Copy>
+      </Frame>
+      {button("Start my day", onDone)}
+    </>
   )
 }
 

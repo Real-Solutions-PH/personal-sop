@@ -30,6 +30,7 @@ import { fernPalette } from "../companion/brand"
 import { Orb } from "../companion/orb"
 import { companionStore } from "../companion/store"
 import { go, replace } from "../navigation"
+import { logFunnel } from "../funnel"
 import { continueWith } from "../session"
 import { fonts, radius, space, useTheme } from "../theme"
 
@@ -396,6 +397,10 @@ export function Welcome() {
   const [page, setPage] = useState(0)
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState<"apple" | "google" | null>(null)
+  // The funnel's first screen: time to first log counts from here.
+  useEffect(() => {
+    logFunnel({ event: "step_view", step: "welcome" })
+  }, [])
 
   const show = (i: number, animated = !reduced) => {
     setPage(i)

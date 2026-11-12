@@ -141,7 +141,7 @@ export function newDraft(): OnboardingDraft {
     targets: { ...PACES.gentle.targets },
     pushMorning: push.morning,
     pushEvening: push.evening,
-    step: "identity",
+    step: "modules",
   }
 }
 

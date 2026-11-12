@@ -31,3 +31,4 @@ Start new ADRs from [template.md](template.md).
 | [0033](0033-recurring-transactions-generated-by-the-job.md) | Recurring transactions: the 15-minute job creates one record per occurrence, with interval rules and a 60-day catch-up |
 | [0037](0037-revenuecat-for-unfurl-plus.md) | RevenueCat for Unfurl Plus; the server holds the plan, written only from verified webhooks and a refresh |
 | [0038](0038-fern-allowance-and-plus-fair-use.md) | Fern allowance and Plus fair use: a turn ledger, server-key only, every limit in settings |
+| [0039](0039-guided-tour-in-house-overlay.md) | The first-run guided tour is a small in-house overlay (reanimated + measure), not a tour library |

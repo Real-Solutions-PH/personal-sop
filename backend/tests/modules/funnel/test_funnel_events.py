@@ -85,3 +85,44 @@ def test_batch_size_is_bounded(client: TestClient) -> None:
         client.post(API, json={"install_id": install, "events": [one] * 51}).status_code
         == 422
     )
+
+
+def test_tour_steps_and_first_log_are_stored(client: TestClient, db: Session) -> None:
+    install = uuid.uuid4()
+    r = client.post(
+        API,
+        json={
+            "install_id": str(install),
+            "events": [
+                {"event": "step_view", "step": "welcome", "at": AT},
+                {"event": "first_log", "step": "capture", "at": AT},
+                {"event": "step_complete", "step": "tour_fern", "at": AT},
+                {"event": "step_skip", "step": "tour_remind", "at": AT},
+                {"event": "first_log", "step": "app", "at": AT},
+            ],
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == {"accepted": 5}
+    assert sorted((x.event, x.step) for x in _rows(db, install)) == [
+        ("first_log", "app"),
+        ("first_log", "capture"),
+        ("step_complete", "tour_fern"),
+        ("step_skip", "tour_remind"),
+        ("step_view", "welcome"),
+    ]
+
+
+def test_first_log_carries_no_module_tick(client: TestClient, db: Session) -> None:
+    install = uuid.uuid4()
+    r = client.post(
+        API,
+        json={
+            "install_id": str(install),
+            "events": [
+                {"event": "first_log", "step": "app", "turned_on": True, "at": AT}
+            ],
+        },
+    )
+    assert r.status_code == 422
+    assert _rows(db, install) == []

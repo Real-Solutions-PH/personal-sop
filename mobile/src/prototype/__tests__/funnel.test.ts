@@ -6,6 +6,7 @@ import {
   funnelStore,
   installId,
   logFunnel,
+  noteFirstLog,
   setFunnelSender,
 } from "../funnel"
 
@@ -95,4 +96,15 @@ test("with no API client the timed send does nothing and keeps the queue", async
   logFunnel({ event: "step_view", step: "identity" })
   await expect(flushFunnel()).resolves.toBe(0)
   await jest.runOnlyPendingTimersAsync()
+})
+
+test("first_log is recorded once per install, with where it happened", () => {
+  const at = new Date("2026-11-12T01:00:00Z")
+  noteFirstLog("capture", at)
+  noteFirstLog("app", at)
+  noteFirstLog("tour_tick", at)
+  expect(funnelStore.get().queue).toEqual([
+    { event: "first_log", step: "capture", at: at.toISOString() },
+  ])
+  expect(funnelStore.get().firstLogged).toBe(true)
 })

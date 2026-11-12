@@ -1,7 +1,7 @@
-// First run: until onboarding is finished the app is onboarding and nothing
-// else. Onboarding cannot be skipped or left, its last part is setup, and
-// only finishing setup marks the person onboarded. "Run setup again" is
-// setup alone.
+// First run: account first, then four short steps and one setup step.
+// Until onboarding is finished the app is onboarding and nothing else; only
+// finishing setup marks the person onboarded and queues the guided tour.
+// "Run setup again" is setup alone.
 import { dashStore } from "@domain/dash/store"
 import { focusStore } from "@domain/focus/store"
 import { habitsStore } from "@domain/habits/store"
@@ -12,13 +12,16 @@ import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { toast } from "sonner-native"
 import { syncReady } from "@/live/ready"
+import { captureStore } from "@domain/capture/store"
+import { firstCaptureStore } from "../first-capture"
 import { editDraft, getDraft } from "../onboarding-draft"
 import { requestScreenTime } from "../screen-time"
 import { Welcome } from "../screens/auth-welcome"
-import { Onboarding } from "../screens/onboarding"
+import { ONBOARDING_STEPS, Onboarding } from "../screens/onboarding"
 import { Setup } from "../screens/setup"
 import { sessionStore } from "../session"
-import { setSetupFirst } from "../setup-first"
+import { FIRST_RUN_LIMIT, setSetupFirst } from "../setup-first"
+import { tourOf } from "../tour/store"
 
 const params: { step?: string; return?: string } = {}
 let mockPath = "/today"
@@ -121,66 +124,47 @@ beforeEach(() => {
   sessionStore.set((s) => ({ ...s, returning: false }))
 })
 
-describe("onboarding before the account exists", () => {
+describe("the account comes first", () => {
   beforeEach(() => onlyHabits(false))
-  const pre = () => render(<Onboarding phase="pre" />, { wrapper })
 
-  test("Welcome's Get started opens identity, not a sign-up form", () => {
+  test("Welcome's Get started opens the account form, one tap first", () => {
     render(<Welcome />, { wrapper })
     fireEvent.press(screen.getByText("Get started"))
     expect(router.push).toHaveBeenCalledWith("/get-started")
-    pre()
-    expect(screen.getByText("Who are you becoming?")).toBeTruthy()
-    expect(screen.queryByText("Create your account")).toBeNull()
-    expect(getDraft()?.step).toBe("identity")
+    render(<Onboarding phase="pre" />, { wrapper })
+    expect(screen.getByText("Create your account")).toBeTruthy()
+    expect(screen.getByLabelText("Continue with Apple")).toBeTruthy()
+    expect(screen.getByText("or with email")).toBeTruthy()
   })
 
-  test("every step offers Sign in; the draft is kept for Back", () => {
-    pre()
-    for (const label of ["“I show up every day”", "That's me"])
-      fireEvent.press(screen.getByText(label))
-    fireEvent.press(screen.getByLabelText("I already have an account"))
-    expect(router.push).toHaveBeenCalledWith("/login")
-    expect(getDraft()).toMatchObject({
-      step: "about",
-      identities: ["I show up every day"],
-    })
+  test("at most 8 screens before Today, with no forced waits", () => {
+    // Welcome, account, the email code (only when the server asks), the
+    // steps after the account, one setup step.
+    expect(3 + 1 + ONBOARDING_STEPS.length).toBeLessThanOrEqual(8)
+    expect(FIRST_RUN_LIMIT).toBe(1)
+    expect(ONBOARDING_STEPS).not.toContain("building")
+    expect(ONBOARDING_STEPS).not.toContain("pledge")
   })
+})
 
-  test("the about step records both answers", () => {
-    editDraft({ step: "about" })
-    pre()
-    fireEvent.press(screen.getByText("Student"))
-    fireEvent.changeText(
-      screen.getByLabelText("Field of study or line of work"),
-      "Nursing",
-    )
-    fireEvent.press(screen.getByText("TikTok"))
-    // Only "A friend" and "Other" ask for more.
-    expect(screen.queryByLabelText("Who told you? (optional)")).toBeNull()
-    fireEvent.press(screen.getByText("Continue"))
-    expect(getDraft()).toMatchObject({
-      occupation: "student",
-      occupationDetail: "Nursing",
-      referralSource: "tiktok",
-      step: "modules",
-    })
-  })
+describe("onboarding after the account exists", () => {
+  beforeEach(() => onlyHabits(false))
+  const open = () => render(<Onboarding />, { wrapper })
 
-  test("skipping the about step leaves both answers empty", () => {
-    editDraft({ step: "about" })
-    pre()
-    fireEvent.press(screen.getByText("Skip"))
+  test("starts at what to track, with no way out", () => {
+    open()
     expect(screen.getByText("What do you want to track?")).toBeTruthy()
-    expect(getDraft()).toMatchObject({ occupation: null, referralSource: null })
+    expect(screen.getByLabelText("Step 1 of 4")).toBeTruthy()
+    expect(screen.queryByLabelText("Back")).toBeNull()
+    expect(screen.queryByText("Skip")).toBeNull()
   })
 
   test("the funnel records views, ticks, final choices and skips", () => {
     const F = require("../funnel") as typeof import("../funnel")
     F.setFunnelSender(async () => {})
     F.funnelStore.set({ installId: "", queue: [] })
-    editDraft({ identities: ["I'm someone who trains"], step: "modules" })
-    pre()
+    open()
+    fireEvent.press(screen.getByText("Fitness"))
     fireEvent.press(screen.getByText("Journal"))
     fireEvent.press(screen.getByText("Next"))
     fireEvent.press(screen.getByText("Skip"))
@@ -209,108 +193,113 @@ describe("onboarding before the account exists", () => {
         },
         { event: "step_view", step: "capture" },
         { event: "step_skip", step: "capture" },
+        { event: "step_view", step: "about" },
       ]),
     )
     expect(q).not.toContainEqual({ event: "step_complete", step: "capture" })
     F.setFunnelSender(null)
   })
 
-  test("the first capture: typed, held as a win, and skippable", () => {
+  test("the first capture is sent at once and answered on the same screen", () => {
     editDraft({ step: "capture" })
-    pre()
-    expect(screen.getByText("Say one thing from today")).toBeTruthy()
+    open()
+    expect(screen.getByText("Tell me one thing from today")).toBeTruthy()
     expect(screen.getByText("Say one thing first")).toBeTruthy()
     fireEvent.changeText(
       screen.getByLabelText("One thing from today"),
       "spent 250 on lunch",
     )
     fireEvent.press(screen.getByText("Log it"))
-    expect(getDraft()?.firstCapture).toEqual({
-      text: "spent 250 on lunch",
-      source: "text",
-    })
-    expect(screen.getByText("Got it — your first log is ready")).toBeTruthy()
+    const id = firstCaptureStore.get().sentId
+    expect(id).not.toBeNull()
+    expect(captureStore.get().captures.find((c) => c.id === id)?.text).toBe(
+      "spent 250 on lunch",
+    )
+    // Fern's answer shows here, not after more screens.
+    expect(screen.getByText("“spent 250 on lunch”")).toBeTruthy()
     fireEvent.press(screen.getByText("Next"))
-    expect(getDraft()?.step).toBe("targets")
-    // Back, and Skip from the header holds nothing.
-    fireEvent.press(screen.getByLabelText("Back"))
-    expect(getDraft()?.step).toBe("capture")
-    // Held, the header's Skip is gone; clearing it brings Skip back.
-    expect(screen.queryByText("Skip")).toBeNull()
-    fireEvent.press(screen.getByText("Edit what I said"))
-    fireEvent.press(screen.getByText("Skip"))
-    expect(getDraft()?.firstCapture).toBeNull()
-    expect(getDraft()?.step).toBe("targets")
+    expect(getDraft()?.step).toBe("about")
   })
 
-  test("only what the identity picks stand for starts ticked; Screen time only records the choice", () => {
-    editDraft({ identities: ["I'm someone who trains"], step: "modules" })
-    pre()
-    const enabled = getDraft()!.enabled
-    expect(Object.entries(enabled).filter(([, on]) => on)).toEqual([
-      ["fitness", true],
-    ])
-    // Each tick says what setup it asks for; the extras ask none.
-    expect(screen.getAllByText("30 sec setup").length).toBeGreaterThan(0)
-    expect(
-      screen.getByText("1 min setup · needs Screen Time access"),
-    ).toBeTruthy()
-    expect(screen.getByText("Journal")).toBeTruthy()
-    expect(screen.getByText("Community")).toBeTruthy()
-    fireEvent.press(screen.getByText("Screen time"))
-    expect(getDraft()?.enabled.screen).toBe(true)
-    expect(requestScreenTime).not.toHaveBeenCalled()
-    // Nothing is written to the device's account data before sign-up.
-    expect(dashStore.get().enabled.fitness).toBe(false)
+  test("skipping the first capture sends nothing", () => {
+    editDraft({ step: "capture" })
+    open()
+    fireEvent.press(screen.getByText("Skip"))
+    expect(firstCaptureStore.get().sentId).toBeNull()
+    expect(getDraft()?.step).toBe("about")
+  })
+
+  test("the about step records both answers", () => {
+    editDraft({ step: "about" })
+    open()
+    fireEvent.press(screen.getByText("Student"))
+    fireEvent.changeText(
+      screen.getByLabelText("Field of study or line of work"),
+      "Nursing",
+    )
+    fireEvent.press(screen.getByText("TikTok"))
+    // Only "A friend" and "Other" ask for more.
+    expect(screen.queryByLabelText("Who told you? (optional)")).toBeNull()
+    fireEvent.press(screen.getByText("Continue"))
+    expect(getDraft()).toMatchObject({
+      occupation: "student",
+      occupationDetail: "Nursing",
+      referralSource: "tiktok",
+      step: "when",
+    })
+  })
+
+  test("skipping the about step leaves both answers empty", () => {
+    editDraft({ step: "about", occupation: "student" })
+    open()
+    fireEvent.press(screen.getByText("Skip"))
+    expect(screen.getByText("Set your pace")).toBeTruthy()
+    expect(getDraft()).toMatchObject({ occupation: null, referralSource: null })
+  })
+
+  test("the last step writes the answers and leads into setup", () => {
+    editDraft({
+      step: "when",
+      enabled: {
+        habits: true,
+        tasks: false,
+        fitness: true,
+        nutrition: false,
+        focus: false,
+        finance: false,
+        screen: false,
+      },
+    })
+    open()
+    // Only promises the code keeps: no "three a day", no "Tap +".
+    expect(screen.queryByText(/three a day/)).toBeNull()
+    expect(screen.queryByText(/Tap \+/)).toBeNull()
+    expect(screen.getByText(/At most one nudge a day/)).toBeTruthy()
+    fireEvent.press(screen.getByText("Steady"))
+    fireEvent.press(screen.getByText("Start my day"))
+    expect(router.push).toHaveBeenCalledWith("/setup")
+    expect(getDraft()).toBeNull()
+    expect(dashStore.get().enabled.fitness).toBe(true)
+    expect(dashStore.get().onboarded).toBe(false)
   })
 
   test("a reopened onboarding resumes at the saved step with its answers", () => {
-    editDraft({ step: "targets", identities: ["I finish what I start"] })
-    const first = pre()
-    first.unmount()
-    pre()
-    expect(screen.getByText("Pick your pace")).toBeTruthy()
-    expect(getDraft()?.identities).toEqual(["I finish what I start"])
-  })
-
-  test("the pledge leads to the account step, and back returns to it", () => {
-    editDraft({ step: "account" })
-    pre()
-    expect(screen.getByText("Create your account")).toBeTruthy()
-    fireEvent.press(screen.getByLabelText("Back"))
-    expect(getDraft()?.step).toBe("pledge")
-  })
-})
-
-describe("onboarding after the account exists", () => {
-  beforeEach(() => onlyHabits(false))
-
-  test("starts at the notification ask, with no way out", () => {
-    render(<Onboarding />, { wrapper })
-    expect(screen.getByText("Protect your plan")).toBeTruthy()
-    expect(screen.queryByText("Skip")).toBeNull()
-    expect(screen.queryByLabelText("Back")).toBeNull()
-    expect(screen.queryByLabelText("I already have an account")).toBeNull()
-  })
-
-  test("its last step leads into setup without finishing onboarding", () => {
-    params.step = "done"
-    render(<Onboarding />, { wrapper })
-    expect(screen.queryByText("Go to Today")).toBeNull()
-    fireEvent.press(screen.getByText("Set up my workspace"))
-    expect(router.push).toHaveBeenCalledWith("/setup")
-    expect(dashStore.get().onboarded).toBe(false)
+    editDraft({ step: "about", occupation: "employed" })
+    open().unmount()
+    open()
+    expect(screen.getByText("A little about you")).toBeTruthy()
+    expect(getDraft()?.occupation).toBe("employed")
   })
 
   test("someone already onboarded is sent on to Today", () => {
     onlyHabits(true)
-    render(<Onboarding />, { wrapper })
+    open()
     expect(router.replace).toHaveBeenCalledWith("/today")
   })
 })
 
 describe("setup", () => {
-  test("during onboarding it asks about the top two only, each skippable", () => {
+  test("during onboarding it opens straight on the top step, the only one", () => {
     onlyHabits(false)
     dashStore.set((s) => ({
       ...s,
@@ -320,23 +309,21 @@ describe("setup", () => {
     focusStore.set((s) => ({ ...s, sessions: [], settingsSaved: false }))
     render(<Setup />, { wrapper })
     expect(screen.getByText("Your daily focus goal")).toBeTruthy()
-    expect(screen.getByText("A few starter habits")).toBeTruthy()
-    expect(screen.queryByText("Your accounts & balances")).toBeNull()
-    expect(screen.queryByLabelText("Close")).toBeNull()
-    fireEvent.press(screen.getByText("Start"))
-    // Skipping both finishes onboarding: the rest wait for their first open.
+    expect(screen.getByTestId("setup-progress")).toBeTruthy()
+    // Skipping it finishes onboarding; the rest wait for their first open,
+    // and the guided tour waits for Today.
     fireEvent.press(screen.getByLabelText("Skip Focus setup"))
-    fireEvent.press(screen.getByLabelText("Skip Habits setup"))
     expect(dashStore.get().onboarded).toBe(true)
-    expect(dashStore.get().setupSkipped).toEqual(
-      expect.arrayContaining(["focus", "habits"]),
-    )
+    expect(dashStore.get().setupSkipped).toEqual(["focus"])
+    expect(tourOf().queued).toBe(true)
     expect(router.replace).toHaveBeenCalledWith("/today")
   })
 
-  test("during onboarding it can be left for later", () => {
+  test("during onboarding Back shows the list, which can be left for later", () => {
     onlyHabits(false)
     render(<Setup />, { wrapper })
+    fireEvent.press(screen.getByLabelText("Back to setup"))
+    expect(screen.getByText("Bring your life in")).toBeTruthy()
     fireEvent.press(screen.getByText("I'll finish later"))
     expect(dashStore.get().onboarded).toBe(true)
   })
@@ -360,15 +347,7 @@ describe("setup", () => {
     expect(screen.getByLabelText("Close")).toBeTruthy()
     fireEvent.press(screen.getByText("Start"))
     expect(screen.getByText("Skip")).toBeTruthy()
-  })
-
-  // The progress bar belongs to first-run onboarding only.
-  test("during onboarding a step shows the progress bar", () => {
-    onlyHabits(false)
-    render(<Setup />, { wrapper })
-    fireEvent.press(screen.getByText("Start"))
-    expect(screen.getByTestId("setup-progress")).toBeTruthy()
-    expect(screen.queryByText("Set up Habits")).toBeNull()
+    expect(tourOf().queued).toBe(false)
   })
 
   test("run again later, a step has a plain header with Back, no progress bar", () => {
@@ -417,11 +396,11 @@ describe("setup's Screen time step", () => {
       },
     }))
   }
+  // First run opens straight on the step.
   const open = async () => {
     onlyScreen()
     render(<Setup />, { wrapper })
     await act(async () => {})
-    fireEvent.press(screen.getByText("Start"))
   }
 
   test("Connect asks for the permission; approved keeps Screen time on", async () => {
@@ -490,16 +469,13 @@ describe("the app around it", () => {
     expect(dashStore.get().onboarded).toBe(true)
   })
 
-  test("a new account's unapplied onboarding answers are applied once", () => {
+  test("answers in progress stay in the draft until onboarding's last step", () => {
     onlyHabits(false)
-    editDraft({ identities: ["I ship"], pushMorning: "06:30" })
+    editDraft({ step: "about", pushEvening: "20:30" })
     syncReady.setState({ ready: true })
     render(<Layout />, { wrapper })
-    expect(getDraft()).toBeNull()
-    expect(dashStore.get().push.morning).toBe("06:30")
-    expect(dashStore.get().profile.identities.map((i) => i.text)).toEqual([
-      "I ship",
-    ])
+    expect(getDraft()?.step).toBe("about")
+    expect(dashStore.get().push.evening).not.toBe("20:30")
   })
 
   test("once onboarded the bar is back and nothing redirects", () => {

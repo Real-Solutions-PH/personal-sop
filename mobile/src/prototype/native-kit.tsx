@@ -1,11 +1,12 @@
 import * as Haptics from "expo-haptics"
 import { ChevronRight, type LucideIcon, Play } from "lucide-react-native"
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, type Ref, useEffect, useState } from "react"
 import {
   Pressable,
   Text,
   type TextStyle,
   View,
+  type ViewInstance,
   type ViewStyle,
 } from "react-native"
 import Animated, {
@@ -407,10 +408,13 @@ export function Frame({
   children,
   style,
   testID,
+  ref,
 }: {
   children: ReactNode
   style?: ViewStyle
   testID?: string
+  /** The card's view (a tour target, a measure). */
+  ref?: Ref<ViewInstance>
 }) {
   const t = useTheme()
   // A padded card holds content (text, then a button), so its children get
@@ -419,6 +423,7 @@ export function Frame({
   const pad = typeof style?.padding === "number" ? style.padding : 0
   return (
     <View
+      ref={ref}
       testID={testID}
       style={{
         borderRadius: 16,
