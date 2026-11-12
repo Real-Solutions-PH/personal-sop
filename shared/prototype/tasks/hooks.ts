@@ -37,6 +37,9 @@ export interface TodayData {
   later: Task[]
   inbox: Task[]
   starred: Task[]
+  /** Open tasks with no date: they can be done any day, so Today lists
+   * them after what is due. */
+  anytime: Task[]
   shoppingOpen: number
   nextReminder: Task | null
   everHadTasks: boolean
@@ -85,6 +88,7 @@ export function useTodayData(): TodayData {
       doneDueToday,
       upcoming,
       later,
+      anytime: open.filter((t) => !t.dueDate).sort(byDue),
       inbox: open.filter((t) => t.listId === null).sort(byDue),
       starred: open.filter((t) => t.starred).sort(byDue),
       shoppingOpen: tasks.filter(
