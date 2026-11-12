@@ -20,6 +20,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [25-retention-kpis.md](25-retention-kpis.md) | Retention KPIs: north star (weekly active loggers), cohort retention, return after lapse, definitions, source tables, targets; analytics SDK evaluation; day-14 survey spec (2026-11-08) | PM/Backend |
 | [26-retention-algorithms.md](26-retention-algorithms.md) | Proposed: retention algorithms — Duolingo mechanics adapted (rest days, best-time nudge, lapse ladder), archetypes, churn risk, next-best-action, notification budget, goal sizing, Fern openers, ethics guardrails, three-slice build plan (2026-11-12) | PM/Backend |
 | [27-retention-audit.md](27-retention-audit.md) | Retention audit of every page and feature: hooks, problems and severity per page, cross-cutting loops, review of doc 26 and Slice 1, ranked top-10 fix plan, decisions for Kai (2026-11-12) | PM |
+| [28-fern-model-choice.md](28-fern-model-choice.md) | Proposed: Fern chat model — DeepSeek V4.1 Flash, MiniMax, gpt-oss (Nebius) vs Claude Haiku 5.5 / Sonnet 5.5 measured on 80 replay cases (latency, accuracy, cost, caching), cost at 100–10,000 users, recommendation Haiku 5.5 with DeepSeek fallback, rollout (2026-11-12) | Backend |
 | [14-observability.md](14-observability.md) | Logs, metrics, traces, alerts | DevOps |
 | [15-pricing-monetization.md](15-pricing-monetization.md) | Plans, billing, gates | PM/Finance |
 | [16-go-to-market.md](16-go-to-market.md) | Launch, channels, growth loops | Marketing |
