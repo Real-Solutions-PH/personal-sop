@@ -1,5 +1,8 @@
 // "Add task": a plain form that creates one task as entered (ADR-0015).
-// Free text belongs to Fern; this screen never splits or interprets.
+// Free text belongs to Fern; this screen never splits a line into several
+// tasks. Quick-add words in the title ("tomorrow 3pm !high #work") fill
+// the fields below as they are typed. A field set by hand owns its value:
+// words of that kind then stay in the title as text.
 import * as A from "@domain/tasks/actions"
 import type { TaskPriority } from "@domain/tasks/data"
 import * as L from "@domain/tasks/logic"
@@ -16,6 +19,7 @@ import { useMemo, useState } from "react"
 import { View } from "react-native"
 import { Copy } from "../native-kit"
 import { go } from "../navigation"
+import { QuickChips, quickInputProps, useQuickAdd } from "../quick-add-field"
 import {
   Chip,
   ChipRow,
@@ -37,18 +41,43 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
     allLists = tasksStore.use((s) => s.lists),
     lists = useMemo(() => allLists.filter((l) => !l.archivedAt), [allLists]),
     defaultTime = tasksStore.use((s) => s.settings.defaultRemindTime),
-    [title, setTitle] = useState(""),
     [notes, setNotes] = useState(""),
-    [list, setList] = useState(listId ?? ""),
-    [date, setDate] = useState(day ?? ""),
-    [time, setTime] = useState(""),
+    // null: not set by hand, so the title's words decide, then the
+    // screen's preset (the list or day it was opened from).
+    [pickedList, setList] = useState<string | null>(null),
+    [pickedDate, setDate] = useState<string | null>(null),
+    [pickedTime, setTime] = useState<string | null>(null),
     [remind, setRemind] = useState<Remind>("off"),
-    [priority, setPriority] = useState<TaskPriority>("none"),
+    [pickedPriority, setPriority] = useState<TaskPriority | null>(null),
+    skip = useMemo(
+      () =>
+        new Set([
+          ...(pickedDate !== null ? (["date", "when", "repeat"] as const) : []),
+          ...(pickedTime !== null ? (["time", "when"] as const) : []),
+          ...(pickedPriority !== null ? (["priority"] as const) : []),
+          ...(pickedList !== null ? (["list"] as const) : []),
+        ]),
+      [pickedDate, pickedTime, pickedPriority, pickedList],
+    ),
+    quick = useQuickAdd(allLists, skip),
     [errors, setErrors] = useState<{ title?: string; when?: string }>({}),
     [making, setMaking] = useState(false)
 
+  const p = quick.parsed,
+    // A time or repeat word alone implies today in the parser; only a
+    // date word may move the day the screen was opened on.
+    dateWord = p.tokens.some((k) => k.kind === "date" || k.kind === "when"),
+    date = pickedDate ?? (dateWord ? p.dueDate : (day ?? p.dueDate)) ?? "",
+    time = pickedTime ?? p.dueTime ?? "",
+    priority = pickedPriority ?? p.priority ?? "none",
+    list = pickedList ?? p.listId ?? listId ?? ""
+
   function save() {
-    const name = title.replace(/\s+/g, " ").trim()
+    // A line with no syntax saves as typed; one that is only syntax
+    // ("tomorrow !high") keeps its words.
+    const name = (p.tokens.length ? p.title || quick.text : quick.text)
+      .replace(/\s+/g, " ")
+      .trim()
     const next: typeof errors = {}
     if (!name) next.title = "Give the task a name"
     if ((date && !isDay(date)) || (time && !TIME.test(time)))
@@ -70,6 +99,7 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
       dueDate: date || null,
       dueTime: time || null,
       remindAt,
+      recurrence: date ? p.recurrence : null,
       priority,
       source: "manual",
     })
@@ -81,14 +111,15 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
       <View style={{ padding: 16, gap: 8 }}>
         <Field
           label="Task"
-          value={title}
-          onChangeText={setTitle}
-          placeholder="What needs doing?"
+          {...quickInputProps(t, quick.text, quick.parsed, lists)}
+          onChangeText={quick.setText}
+          placeholder="What needs doing? Try “tomorrow 3pm !high”"
           error={errors.title}
           autoFocus
           returnKeyType="done"
           onSubmitEditing={save}
         />
+        <QuickChips parsed={p} onKeep={quick.keep} lists={lists} />
         <Field
           label="Notes (optional)"
           value={notes}
