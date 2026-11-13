@@ -23,10 +23,16 @@ import {
 } from "../budget-alerts"
 import { MoneyInput } from "../money-input"
 import { alpha, feel } from "../motion"
-import { Copy, Line, Segmented, Tap } from "../native-kit"
+import { Copy, Line, Segmented, SmallButton, Tap } from "../native-kit"
 import { Switch } from "../switch"
 import { fonts, useTheme } from "../theme"
 import { TimeInput } from "../time-input"
+import {
+  amountText,
+  overdraws,
+  QUICK_SHARES,
+  quickAmount,
+} from "../transfer-amounts"
 import { Button, Choices, DateField, Field, Sheet } from "../ui"
 import { isDay } from "../validation"
 import { CategoryPicker } from "./finance-category-picker"
@@ -149,6 +155,32 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
     [s, type, amountError, category, date, draftAt, n, account, record?.id],
   )
   const hits = landed.length ? landed : ahead
+  // What each account holds: the same running balance the Accounts screen
+  // shows. An edited record is taken out first, so its own amount isn't
+  // counted against the balance it moves.
+  const bal = useMemo(
+    () =>
+      C.balances(
+        record
+          ? { ...s, records: s.records.filter((r) => r.id !== record.id) }
+          : s,
+      ),
+    [s, record],
+  )
+  const fromAcct = accounts.find((a) => a.id === account),
+    toAcct = accounts.find((a) => a.id === to),
+    fromBal = fromAcct ? bal[fromAcct.id] : undefined,
+    toBal = toAcct ? bal[toAcct.id] : undefined,
+    feeN = Math.max(0, Number(fee) || 0),
+    quick =
+      type === "transfer"
+        ? QUICK_SHARES.flatMap((q) => {
+            const v = quickAmount(fromBal, q.fraction, feeN)
+            return v == null ? [] : [{ ...q, value: v }]
+          })
+        : [],
+    overdrawn =
+      type === "transfer" && !amountError && overdraws(fromBal, n, feeN)
   // A record kept in another currency: fetch today's rate as it opens.
   // biome-ignore lint/correctness/useExhaustiveDependencies: on open only
   useEffect(() => {
@@ -448,6 +480,23 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
                 : `Getting the ${inCur} rate…`}
             </Copy>
           )}
+          {quick.length > 0 && (
+            <Line style={{ gap: 8, marginTop: -4 }}>
+              {quick.map((q) => (
+                <SmallButton
+                  key={q.label}
+                  quiet
+                  label={`${q.label}: ${money(q.value, cur)}`}
+                  onPress={() => {
+                    setAmount(amountText(q.value))
+                    setLanded([])
+                  }}
+                >
+                  {q.label}
+                </SmallButton>
+              ))}
+            </Line>
+          )}
           {/* Next to the amount: the cost is seen while it can still change. */}
           {hits.length > 0 && (
             <BudgetWarning
@@ -469,6 +518,9 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
               {accounts.length ? "Pick an account" : "Add an account first"}
             </Copy>
           )}
+          {type === "transfer" && fromAcct && (
+            <AccountBalance name={fromAcct.name} balance={fromBal} />
+          )}
           {type === "transfer" ? (
             <>
               <Choices
@@ -483,6 +535,9 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
                   Pick a different destination account
                 </Copy>
               )}
+              {toAcct && toAcct.id !== account && (
+                <AccountBalance name={toAcct.name} balance={toBal} small />
+              )}
               {!record && !settles && (
                 <>
                   <MoneyInput
@@ -496,6 +551,24 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
                     isn't spending.
                   </Copy>
                 </>
+              )}
+              {overdrawn && fromAcct && fromBal !== undefined && (
+                <Line style={{ gap: 6, alignItems: "flex-start" }}>
+                  <TriangleAlert
+                    size={14}
+                    color={t.warn}
+                    style={{ marginTop: 2 }}
+                  />
+                  <Copy
+                    size={12}
+                    weight="medium"
+                    style={{ color: t.warn, flex: 1 }}
+                  >
+                    {feeN > 0
+                      ? `${money(n, cur)} + ${money(feeN, cur)} fee is more than the ${money(fromBal, cur)} in ${fromAcct.name}: it will go below zero.`
+                      : `More than the ${money(fromBal, cur)} in ${fromAcct.name}: it will go below zero.`}
+                  </Copy>
+                </Line>
               )}
             </>
           ) : (
@@ -627,6 +700,34 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
 
 /** The budgets a save breaks, in the bad colour (amber when only ahead of
  * pace), above the Save button. */
+/** What an account holds, under its chips. A balance that can't be worked
+ * out says so rather than showing a made-up zero. */
+function AccountBalance({
+  name,
+  balance,
+  small = false,
+}: {
+  name: string
+  balance: number | undefined
+  small?: boolean
+}) {
+  const t = useTheme(),
+    cur = useCurrency(),
+    known = balance !== undefined && Number.isFinite(balance),
+    negative = known && (balance as number) < 0
+  return (
+    <Copy
+      size={small ? 12 : 13}
+      muted={!negative}
+      weight={small ? "body" : "medium"}
+      style={{ marginTop: -4, ...(negative ? { color: t.bad } : {}) }}
+    >
+      {known
+        ? `${name} balance: ${money(balance as number, cur)}`
+        : `${name} balance unavailable`}
+    </Copy>
+  )
+}
 function BudgetWarning({
   hits,
   saved,
