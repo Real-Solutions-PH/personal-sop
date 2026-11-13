@@ -238,7 +238,15 @@ def deepgram_params(
     """The ``/listen`` query. ``tl`` (Taglish) goes as ``multi``, Nova-3's
     code-switching mode: its Tagalog-only ``tl`` model misheard the English
     half, numbers and names (30% word errors against 18%); English as
-    ``en``. Each key term is its own ``keyterm`` parameter."""
+    ``en``. Each key term is its own ``keyterm`` parameter.
+
+    Reviewed 2026-11-14 (owner: "not as accurate as Claude's"): Nova-3 is
+    still Deepgram's newest pre-recorded model (Flux is streaming only) and
+    takes key terms in ``multi`` too; ``smart_format`` already implies
+    punctuation and numerals. ``language_hint=en&language_hint=tl`` was
+    accepted but changed nothing on a small sanity check, so it is not
+    sent. The remaining gap is on the phone (its words show while speaking
+    and stand when this pass is not used): see mobile live-dictation.ts."""
     lang = "multi" if language == "tl" else (language or "en")
     params = [("model", model), ("smart_format", "true"), ("language", lang)]
     return params + [("keyterm", t) for t in keyterms]

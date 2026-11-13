@@ -6,8 +6,8 @@ import type { AppKey } from "./types"
 //
 //   personalsop:///fern?mode=chat|dictate|talk|camera  → Fern's chat
 //
-// ``talk`` (Shortcuts and Back Tap) dictates like ``dictate`` and sends the
-// message by itself when the person stops talking.
+// ``talk`` (Shortcuts and Back Tap) dictates like ``dictate``; a long
+// silence turns the mic off, and nothing sends until the person taps Send.
 //   personalsop:///feature/<key>                  → that app's home
 
 export type FernMode = "chat" | "dictate" | "talk" | "camera"

@@ -91,3 +91,18 @@ This reverses "no cost" and "no audio leaves the phone": each dictation is
 now metered like any server transcription (Deepgram plus its key-term
 add-on, about ₱0.32 a minute), and the recording is uploaded. Nothing is
 stored on the server but the usage row.
+
+## Amendment (2026-11-14): the phone gets contextual strings; nothing auto-sends
+
+The phone's live words still stand whenever the server's pass is not used
+(it failed, or Send was tapped before it returned). The recogniser is now
+started with `contextualStrings`: "Fern", the person's live habit and
+account names, then a short list of Philippine food and brands, at most 100
+(the 19.8% / 79% row above, against 22.6% / 71% without). The server's
+query was reviewed and left as it is: Nova-3 is still Deepgram's newest
+pre-recorded model, and `language_hint` (en, tl) changed nothing on a small
+sanity check.
+
+The Shortcut / Back Tap "Talk to Fern" launch no longer sends by itself
+after a pause. It dictates like any other dictation; a long silence (8 s)
+turns the mic off, and the person taps Send.

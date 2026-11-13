@@ -34,7 +34,7 @@ import { liveMode } from "@/live/config"
 import { fernLaunch, talkLaunch } from "../companion/launch"
 import { Orb } from "../companion/orb"
 import { markVoiceTurn, thinking } from "../companion/store"
-import { useTalkAutoSend } from "../companion/talk"
+import { useTalkIdleStop } from "../companion/talk"
 import { composeDictation, useLiveDictation } from "../live-dictation"
 import { pickPhoto, pickPhotos } from "../media"
 import { border, Copy, Frame, IconTap, Line, Tap } from "../native-kit"
@@ -148,12 +148,12 @@ export function ThreadComposer({
   const live = useLiveDictation(setText, () =>
     toast.error("Dictation stopped. Try again, or type your message."),
   )
-  // Talk to Fern sends by itself when the person stops (companion/talk.ts).
-  const armTalk = useTalkAutoSend({
+  // Talk to Fern turns the mic off after a long silence but never sends:
+  // the person taps Send (companion/talk.ts).
+  const armTalk = useTalkIdleStop({
     text,
     listening: live.listening,
     stop: live.stop,
-    send,
   })
   function send() {
     if (onText) {
