@@ -67,11 +67,25 @@ def test_invalid_habit_bodies_are_422(client: TestClient, db: Session) -> None:
         {"name": "x", "schedule": [{"days": []}]},
         {"name": "x", "schedule": [{"days": [1], "time": "25:00"}]},
         {"name": "x", "schedule": [{"days": [1, 1]}]},
-        {"name": "x", "schedule": [{"days": [1]}, {"days": [1, 2]}]},
         {"name": "x", "type": "weekly"},
         {"name": "x", "target": 0},
     ):
         err(client.post(f"{API}/", headers=h, json=body), 422)
+
+
+def test_a_weekday_can_sit_in_several_reminder_slots(
+    client: TestClient, db: Session
+) -> None:
+    # Reminders at 08:00 and 20:00 every day are two slots on the same days.
+    _, h = signed_in(db)
+    every = [0, 1, 2, 3, 4, 5, 6]
+    schedule = [{"days": every, "time": "08:00"}, {"days": every, "time": "20:00"}]
+    made = ok(
+        client.post(
+            f"{API}/", headers=h, json={"name": "Skin care", "schedule": schedule}
+        )
+    )
+    assert [s["time"] for s in made["schedule"]] == ["08:00", "20:00"]
 
 
 def test_unknown_ids_are_404(client: TestClient, db: Session) -> None:
