@@ -7,6 +7,9 @@ import type {
   ModuleContract,
   ModuleKey,
 } from "../contract"
+import { logIndex } from "../habits/logic"
+import { expandHabitSlots } from "../habits/slots"
+import { habitsStore } from "../habits/store"
 import { dayKey, dayOffset } from "../lib/day"
 import { walkRun } from "../lib/grace"
 import { useSharedMemo } from "../lib/memo"
@@ -395,6 +398,25 @@ export function useLocalCalendar(from: string, to: string): CalendarItem[] {
       ).sort(byDayThenTime),
     [a, b, c, d, enabled, overrides],
   )
+}
+/** A calendar list as timelines show it: a habit with several times that
+ * day once per time, each done by its own share (``habits/slots``). Stats,
+ * rings and the wrap-up keep one item per habit and day. */
+function useSlotted(items: CalendarItem[]): CalendarItem[] {
+  const habits = habitsStore.use((s) => s.habits),
+    logs = habitsStore.use((s) => s.logs)
+  return useMemo(
+    () => expandHabitSlots(items, habits, logIndex(logs)),
+    [items, habits, logs],
+  )
+}
+/** ``useAllCalendar`` for a timeline (Plan calendar, day parts, hours). */
+export function useAllTimeline(from: string, to: string): CalendarItem[] {
+  return useSlotted(useAllCalendar(from, to))
+}
+/** ``useLocalCalendar`` for a timeline (Today's plan). */
+export function useLocalTimeline(from: string, to: string): CalendarItem[] {
+  return useSlotted(useLocalCalendar(from, to))
 }
 export function useAllMisses(from: string, to: string): Miss[] {
   const a = HAB.useMisses(from, to)

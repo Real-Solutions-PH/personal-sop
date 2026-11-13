@@ -47,15 +47,14 @@ class ScheduleSlot(BaseModel):
 
 
 def _check_schedule(slots: list[ScheduleSlot] | None) -> list[ScheduleSlot] | None:
+    """A weekday may sit in several slots: a habit reminded at 08:00 and
+    20:00 every day is two slots on the same days (the phone shows it once
+    per time). Day-level reads use the first slot holding the day
+    (``logic.slot_for``)."""
     if slots is None:
         return None
     if not any(s.days for s in slots):
         raise ValueError("a schedule needs at least one weekday")
-    seen: set[int] = set()
-    for s in slots:
-        if seen & set(s.days):
-            raise ValueError("a weekday can only be in one slot")
-        seen |= set(s.days)
     return slots
 
 
