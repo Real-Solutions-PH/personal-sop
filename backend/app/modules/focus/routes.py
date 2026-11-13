@@ -15,6 +15,7 @@ from app.modules.focus.schema import (
     DayOut,
     DayTotal,
     ExtendIn,
+    FocusLogIn,
     ItemTimeOut,
     RangeOut,
     SessionDetail,
@@ -187,6 +188,24 @@ def switch(ctx: CtxDep, body: SwitchIn) -> Any:
 def stop(ctx: CtxDep, body: StopIn) -> Any:
     """End the session: keep it, or abandon it (``abandon``: counts nowhere)."""
     return svc.detail(ctx, svc.stop(ctx, abandon=body.abandon))
+
+
+# ---------------------------------------------------------------- logged
+
+
+@router.post("/logged", response_model=SessionDetail, dependencies=WRITE)
+def log_session(ctx: CtxDep, body: FocusLogIn) -> Any:
+    """Log a focus block the timer never saw: a start and an end (or a
+    length in minutes), an optional label and task or habit. Refused when
+    it is in the future, longer than 12 hours or overlaps another session."""
+    return svc.detail(ctx, svc.log_session(ctx, body=body))
+
+
+@router.put("/logged/{session_id}", response_model=SessionDetail, dependencies=WRITE)
+def edit_logged(ctx: CtxDep, session_id: uuid.UUID, body: FocusLogIn) -> Any:
+    """Replace a logged session's times, label and item (same checks).
+    Delete one with ``DELETE /focus/sessions/{id}``."""
+    return svc.detail(ctx, svc.log_session(ctx, body=body, session_id=session_id))
 
 
 @router.get("/sessions/{session_id}", response_model=SessionDetail, dependencies=READ)
