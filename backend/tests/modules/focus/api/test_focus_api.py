@@ -472,3 +472,127 @@ def test_a_logged_session_is_over_and_in_the_past(
     )
     assert [r["status"] for r in res] == ["rejected", "rejected"], res
     assert [r["code"] for r in res] == ["focus_logged_future", "focus_logged_open"]
+
+
+# ---------------------------------------------------------------- logged over HTTP
+
+# Each test logs on its own day before DAY, clear of the seeded morning and
+# of the other tests' blocks.
+LOGGED = f"{API}/logged"
+
+
+def code(r: Any, status: int = 422) -> str:
+    assert r.status_code == status, r.text
+    return str(r.json()["code"])
+
+
+def test_a_block_logged_with_a_length_counts_on_its_day(
+    client: TestClient, world: World
+) -> None:
+    start = T0 - timedelta(days=3)
+    body = {"started_at": start.isoformat(), "duration_min": 45, "label": " Reading "}
+    s = ok(client.post(LOGGED, headers=world.h, json=body))
+    # 45 min = 2,700 s, over at 09:45 the same morning.
+    assert s["source"] == "manual"
+    assert s["label"] == "Reading"
+    assert s["mode"] == "stopwatch"
+    assert s["focus_sec"] == 45 * 60
+    assert s["end_reason"] == "completed"
+    assert datetime.fromisoformat(s["ended_at"]) == start + 45 * M
+    assert [g["kind"] for g in s["segments"]] == ["focus"]
+    day = (DAY - timedelta(days=3)).isoformat()
+    assert s["day"] == day
+    d = ok(client.get(f"{API}/day", headers=world.h, params={"day": day}))
+    assert d["focus_sec"] == 45 * 60
+    assert [b["session_id"] for b in d["blocks"]] == [s["id"]]
+
+
+def test_a_block_logged_with_an_end_carries_its_task(
+    client: TestClient, world: World
+) -> None:
+    start = T0 - timedelta(days=4)
+    body: dict[str, Any] = {
+        "started_at": start.isoformat(),
+        "ended_at": (start + 30 * M).isoformat(),
+        "item": {"kind": "task", "id": str(world.task)},
+    }
+    s = ok(client.post(LOGGED, headers=world.h, json=body))
+    assert (s["item_kind"], s["item_title"]) == ("task", "Write the ADR")
+    assert s["segments"][0]["item_title"] == "Write the ADR"
+    assert s["focus_sec"] == 30 * 60
+    # A task that is not the caller's is not found.
+    body["item"] = {"kind": "task", "id": str(uuid.uuid4())}
+    body["started_at"] = (start + 60 * M).isoformat()
+    body["ended_at"] = (start + 90 * M).isoformat()
+    assert client.post(LOGGED, headers=world.h, json=body).status_code == 404
+
+
+def test_a_logged_block_is_checked(client: TestClient, world: World) -> None:
+    start = T0 - timedelta(days=5)
+    now = datetime.now(timezone.utc)
+
+    def post(**body: Any) -> Any:
+        data = {k: (v.isoformat() if isinstance(v, datetime) else v) for k, v in body.items()}  # fmt: skip
+        return client.post(LOGGED, headers=world.h, json=data)
+
+    assert code(post(started_at=start, ended_at=start)) == "focus_range_invalid"
+    assert code(post(started_at=start, ended_at=start - M)) == "focus_range_invalid"
+    assert (
+        code(post(started_at=now - 10 * M, ended_at=now + 60 * M))
+        == "focus_logged_future"
+    )
+    # 12 h is the most; 12 h 1 min is refused.
+    assert (
+        code(post(started_at=start, ended_at=start + (12 * 60 + 1) * M))
+        == "focus_logged_too_long"
+    )
+    # Schema: no end at all, both an end and a length, a length of 0 or
+    # past 12 h, a time without a zone.
+    assert post(started_at=start).status_code == 422
+    assert post(started_at=start, ended_at=start + M, duration_min=5).status_code == 422
+    assert post(started_at=start, duration_min=0).status_code == 422
+    assert post(started_at=start, duration_min=12 * 60 + 1).status_code == 422
+    naive = {"started_at": "2026-10-15T09:00:00", "duration_min": 5}
+    assert client.post(LOGGED, headers=world.h, json=naive).status_code == 422
+    # The seeded Pomodoro morning runs 09:00-10:00 on DAY.
+    r = post(started_at=T0 + 50 * M, duration_min=30)
+    assert code(r) == "focus_logged_overlap"
+    assert r.json()["details"]["session_id"] == str(world.session)
+    # Touching it end to start is not an overlap.
+    ok(post(started_at=T0 - 30 * M, ended_at=T0))
+
+
+def test_a_logged_block_can_be_edited_and_deleted(
+    client: TestClient, world: World
+) -> None:
+    start = T0 - timedelta(days=6)
+    first = {"started_at": start.isoformat(), "duration_min": 20, "label": "Typo"}
+    s = ok(client.post(LOGGED, headers=world.h, json=first))
+    sid = s["id"]
+    old_seg = s["segments"][0]["id"]
+    # Moved an hour later and made longer: 70 min = 4,200 s.
+    moved = {
+        "started_at": (start + 60 * M).isoformat(),
+        "duration_min": 70,
+        "label": "Reading",
+    }
+    e = ok(client.put(f"{LOGGED}/{sid}", headers=world.h, json=moved))
+    assert e["id"] == sid
+    assert e["label"] == "Reading"
+    assert e["focus_sec"] == 70 * 60
+    assert len(e["segments"]) == 1
+    assert e["segments"][0]["id"] != old_seg
+    # Editing does not collide with its own old times.
+    again = {"started_at": (start + 50 * M).isoformat(), "duration_min": 70}
+    ok(client.put(f"{LOGGED}/{sid}", headers=world.h, json=again))
+    later = {"started_at": (start + 200 * M).isoformat(), "duration_min": 5}
+    # A timed session is not edited this way, nor one that does not exist.
+    r = client.put(f"{LOGGED}/{world.session}", headers=world.h, json=later)
+    assert code(r) == "focus_not_logged"
+    r = client.put(f"{LOGGED}/{uuid.uuid4()}", headers=world.h, json=later)
+    assert r.status_code == 404
+    ok(client.delete(f"{API}/sessions/{sid}", headers=world.h))
+    assert client.get(f"{API}/sessions/{sid}", headers=world.h).status_code == 404
+    day = (DAY - timedelta(days=6)).isoformat()
+    d = ok(client.get(f"{API}/day", headers=world.h, params={"day": day}))
+    assert d["blocks"] == []
