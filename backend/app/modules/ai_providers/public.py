@@ -375,6 +375,10 @@ USD_PER_MIN = {"deepgram": 0.0043}
 # Deepgram's keyterm prompting add-on, USD per audio minute (2026-10-23).
 KEYTERM_USD_PER_MIN = {"deepgram": 0.0013}
 USD_PER_MIN_DEFAULT = 0.006
+# The second listener (``capture.seams``, Gemini 3.8 Flash on OpenRouter at
+# minimal reasoning): $0.0042 a minute as billed on 51 minutes of test
+# clips with a person's names in the prompt (2026-11-14), rounded up.
+STT_CHECK_USD_PER_MIN = 0.0045
 # When a model has no catalogue price (a user's own provider), a deliberately
 # generous blended rate in USD per million tokens: the cap should bite early
 # rather than late.
@@ -516,13 +520,16 @@ def speech_model() -> ResolvedModel | None:
 
 
 def transcription_minor(
-    provider: str, seconds: float, *, keyterms: bool = False
+    provider: str, seconds: float, *, keyterms: bool = False, checked: bool = False
 ) -> int:
     """What transcribing ``seconds`` of audio cost, in centavos; with
-    ``keyterms``, the provider's key-term add-on too."""
+    ``keyterms``, the provider's key-term add-on too; with ``checked``, the
+    second listener's pass."""
     rate = USD_PER_MIN.get(provider, USD_PER_MIN_DEFAULT)
     if keyterms:
         rate += KEYTERM_USD_PER_MIN.get(provider, 0.0)
+    if checked:
+        rate += STT_CHECK_USD_PER_MIN
     return _centavos(max(0.0, seconds) / 60 * rate)
 
 
