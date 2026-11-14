@@ -414,7 +414,7 @@ describe("screens", () => {
     expect(screen.getAllByText("13m").length).toBeGreaterThanOrEqual(2)
     // No separate page to open for it any more.
     expect(screen.queryByLabelText("Today's timeline")).toBeNull()
-    expect(screen.getByLabelText("Log a past session")).toBeTruthy()
+    expect(screen.getAllByLabelText("Add focus time").length).toBe(2)
   })
 
   it("steps the page's timeline back a day and not past today", () => {

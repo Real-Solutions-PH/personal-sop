@@ -9012,6 +9012,88 @@
         "security": [{ "HTTPBearer": [] }]
       }
     },
+    "/api/v1/focus/logged": {
+      "post": {
+        "tags": ["focus"],
+        "summary": "Log Session",
+        "description": "Log a focus block the timer never saw: a start and an end (or a\nlength in minutes), an optional label and task or habit. Refused when\nit is in the future, longer than 12 hours or overlaps another session.",
+        "operationId": "focus-log_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FocusLogIn" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionDetail" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/focus/logged/{session_id}": {
+      "put": {
+        "tags": ["focus"],
+        "summary": "Edit Logged",
+        "description": "Replace a logged session's times, label and item (same checks).\nDelete one with ``DELETE /focus/sessions/{id}``.",
+        "operationId": "focus-edit_logged",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/FocusLogIn" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionDetail" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/focus/sessions/{session_id}": {
       "get": {
         "tags": ["focus"],
@@ -23397,6 +23479,53 @@
           "by_payee"
         ],
         "title": "FlowOut"
+      },
+      "FocusLogIn": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Ended At"
+          },
+          "duration_min": {
+            "anyOf": [
+              { "type": "integer", "maximum": 720.0, "minimum": 1.0 },
+              { "type": "null" }
+            ],
+            "title": "Duration Min"
+          },
+          "label": {
+            "anyOf": [
+              { "type": "string", "maxLength": 80 },
+              { "type": "null" }
+            ],
+            "title": "Label"
+          },
+          "item": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/ItemRef" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "required": ["started_at"],
+        "title": "FocusLogIn",
+        "description": "A focus block logged afterwards, because the timer never ran: when it\nstarted and either when it ended or how long it ran. Saved as a\nstopwatch session (``source: \"manual\"``) with one focus segment, so it\ncounts toward the day, the goal and every stat like a timed one."
       },
       "FollowUpAnswerIn": {
         "properties": {
