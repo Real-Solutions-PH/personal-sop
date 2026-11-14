@@ -300,7 +300,7 @@ class ItemArgs(BaseModel):
 
 class ItemEditArgs(BaseModel):
     item: Annotated[str, Field(min_length=1, max_length=120)] = Field(
-        description="The item's current name."
+        description="The item's id from find_fitness_logs, or its current name."
     )
     qty: Annotated[float, Field(gt=0, le=10000)] | None = Field(
         default=None, description="New amount; its macros scale with it."
@@ -345,7 +345,9 @@ class MealEditArgs(BaseModel):
     day: date | None = Field(default=None, description="Move it to this day.")
     add_items: list[ItemArgs] = Field(default_factory=list, max_length=20)
     remove_items: list[Annotated[str, Field(max_length=120)]] = Field(
-        default_factory=list, max_length=20
+        default_factory=list,
+        max_length=20,
+        description="Each item's id from find_fitness_logs, or its name.",
     )
     edit_items: list[ItemEditArgs] = Field(default_factory=list, max_length=20)
     confirmed: bool | None = Field(
@@ -895,6 +897,25 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         wrong: list[dict[str, Any]] = []
 
         def item_id(name: str) -> Any:
+            # An item's id (find_fitness_logs gives them) names one item.
+            # Seen live 2026-11-14: a meal held two "Andok's Litson Manok"
+            # items, the id of the new one was refused twice, and the name
+            # then reached the first, so the 132 g entry was overwritten
+            # with the 70 g one's numbers and both were removed.
+            ref = name.strip().lower()
+            if any(i == ref for i, _ in pairs):
+                return ref
+            same = [it for it in items if it["name"].strip().casefold() == ref]
+            if len(same) > 1:
+                return {
+                    "error": "several_match",
+                    "matches": [
+                        f"{it['name']} · {it['qty']:g} {it['unit']} · "
+                        f"{it['kcal']} kcal · id {it['id']}"
+                        for it in same
+                    ],
+                    "instead": "pass the id of the item you mean",
+                }
             hits = fx.best_matches(name, pairs)
             return _one(hits, "item_in_that_meal", lambda i: dict(pairs)[i])
 

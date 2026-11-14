@@ -1012,8 +1012,11 @@ class MealArgs(BaseModel):
     days_ago: DaysAgo = 0
     eaten_again: bool = Field(
         default=False,
-        description="true only when the person ate a second breakfast, lunch "
-        "or dinner that day; otherwise change the saved one with edit_meal.",
+        description="true when the person ate a second breakfast, lunch or "
+        'dinner that day, or more food after a meal was logged ("another 100 '
+        'g chicken", or a food and amount sent after dinner was logged, '
+        "unless they say to add it to that meal); false when they are fixing "
+        "the saved one, which edit_meal changes.",
     )
 
 

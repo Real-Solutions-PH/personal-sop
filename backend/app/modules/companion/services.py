@@ -537,6 +537,7 @@ def _ask(
         # A resumed turn was counted when it was first asked.
         allowed = ai.allowance(ctx) if resuming else ai.check_fern_turn(ctx)
         ai.count_fern_turn(ctx, me_id, allowed)
+    failed = False
     if resolved is not None:
         try:
             return _ask_ai(
@@ -553,8 +554,13 @@ def _ask(
         except capture.SeamError:
             # The provider failed (metered as a failed call): the router
             # answers instead, reusing the question already stored.
-            pass
+            failed = True
     r = brain.route(text, user_name=user_name, sol_name=sol.name, currency=ctx.currency)
+    if failed and intent.classify(text).kind == "redo":
+        # Seen live 2026-11-10: with the model down, "try again" went to the
+        # capture parser as something to log, and no reply came; Kai asked
+        # again two hours later. Only the model can redo a reply: say so.
+        r = brain.Route("reply", MODEL_DOWN)
     if photos:
         # The router cannot see photos: handed to capture as words, a photo
         # log lost its photo and left nothing of the turn in the chat. The
@@ -913,20 +919,36 @@ SEARCH_WORDS = frozenset(
 )
 
 
+def _plain(word: str) -> str:
+    """A word as compared: lower case, apostrophes and a possessive dropped,
+    so "Andok's" is the "andoks" the person typed."""
+    w = word.lower().replace("’", "'")
+    return re.sub(r"'s$", "s", w).replace("'", "")
+
+
 def own_words(query: str, said: str) -> str:
     """The search query kept to the person's own words plus a few search
     words: seen live, "Classic Savory chicken" was searched as a "chicken
     sandwich" the person never said. Falls back to the model's query when
-    the person's words share nothing with it."""
-    theirs = {w.lower() for w in re.findall(r"[\w'-]+", said)}
+    the person's words share nothing with it, or when only search words
+    would be left: seen live (2026-11-14), "Andok's Litson Manok nutrition
+    facts" went out as "nutrition facts calories protein per serving",
+    because the person had typed "andoks", and found nothing."""
+    theirs = {_plain(w) for w in re.findall(r"[\w'’-]+", said)}
     kept = [
         w
         for w in query.split()
-        if not re.fullmatch(r"[A-Za-z][\w'-]*", w)
-        or w.lower() in theirs
+        if not re.fullmatch(r"[A-Za-z][\w'’-]*", w)
+        or _plain(w) in theirs
         or w.lower() in SEARCH_WORDS
     ]
-    return " ".join(kept) if len(kept) >= 2 else query
+    # A word that names something ("100g" names nothing).
+    named = [
+        w
+        for w in kept
+        if re.search(r"[A-Za-z]{2}", w) and w.lower() not in SEARCH_WORDS
+    ]
+    return " ".join(kept) if len(kept) >= 2 and named else query
 
 
 def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
@@ -948,7 +970,19 @@ def with_day_after(ctx: Ctx, tool: BaseTool) -> BaseTool:
                 for k in ("kcal", "protein", "carbs", "fat"):
                     v = it.get(k) if isinstance(it, dict) else getattr(it, k, 0)
                     eaten[k] = round(eaten.get(k, 0) + float(v or 0), 1)
+        # Every other meal of today still waiting for their OK counts too.
+        # Seen live 2026-11-10: three meals logged in one reply (1,266 kcal)
+        # were reported as "604.5 kcal for the day", the last call's figure,
+        # which counted only that meal on top of what was saved.
+        others = capture.waiting_meals(ctx, ctx.today, skip=[str(res.get("card_id"))])
+        for m in others:
+            for k in capture.MACROS:
+                eaten[k] = round(eaten.get(k, 0) + m[k], 1)
         out: dict[str, Any] = {"eaten_today_with_this_meal": eaten}
+        if others:
+            out["also_waiting_and_counted"] = [
+                {k: v for k, v in m.items() if k != "card_id"} for m in others
+            ]
         if items:
             # The meal's own total, so "lunch, 650 kcal" is a figure a tool
             # returned (the number check) rather than the model's sum.
@@ -1056,6 +1090,92 @@ def recording(run: SolRun, tool: BaseTool) -> BaseTool:
 
     return StructuredTool.from_function(
         func=call,
+        name=tool.name,
+        description=tool.description,
+        args_schema=tool.args_schema,
+    )
+
+
+_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?(?:\s*k\b)?", re.I)
+
+
+def figures_in(text: str) -> set[float]:
+    """Every number written in ``text``, "1,212" as 1212 and "3k" as 3000."""
+    out: set[float] = set()
+    for m in _NUMBER.finditer(text):
+        raw = m.group(0).replace(",", "").strip()
+        thousand = raw.lower().endswith("k")
+        try:
+            v = float(raw.rstrip("kK ").strip())
+        except ValueError:
+            continue
+        out.add(v * 1000 if thousand else v)
+    return out
+
+
+PRICE_SOURCES = frozenset(
+    {
+        "find_transactions",
+        "finance_status",
+        "query_records",
+        "list_scheduled",
+        "web_search",
+    }
+)
+AMOUNT_NOT_GIVEN = {
+    "error": "amount_not_given",
+    "instead": "they never said how much it cost and no tool returned that "
+    "amount: ask them (ask_choice, with what they paid last time from "
+    "find_transactions as an option), never guess a price",
+}
+
+
+def edits_only_when_asked(text: str, tool: BaseTool) -> BaseTool:
+    """``edit_meal`` that refuses to change a logged meal when the message
+    is more food rather than a change (``intent.meal_edit_refusal``)."""
+    inner = tool.func  # type: ignore[attr-defined]
+
+    def edit_meal(**kw: Any) -> Any:
+        why = intent.meal_edit_refusal(
+            text,
+            changes=bool(kw.get("edit_items") or kw.get("remove_items")),
+            adds=bool(kw.get("add_items")),
+        )
+        return why if why is not None else inner(**kw)
+
+    return StructuredTool.from_function(
+        func=edit_meal,
+        name=tool.name,
+        description=tool.description,
+        args_schema=tool.args_schema,
+    )
+
+
+def with_amount_given(run: SolRun, said: str, tool: BaseTool) -> BaseTool:
+    """``log_expense`` that refuses an amount nobody gave: not in what the
+    person said (a photo's reading included) nor in any tool result this
+    turn. Seen live 2026-11-14: "kopiki coffee + record as expense" was
+    saved as ₱25 at 7-Eleven; no price was said, and the last one was ₱29."""
+    inner = tool.func  # type: ignore[attr-defined]
+
+    def log_expense(**kw: Any) -> Any:
+        amount = kw.get("amount")
+        try:
+            value = float(amount)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            return inner(**kw)
+        # A price comes from their words or a money or web lookup; a
+        # nutrition figure ("25 g") is never one.
+        priced = [r for n, r in run.results if n in PRICE_SOURCES]
+        found = figures_in(f"{said}\n{run.said}") | figures_in(
+            json.dumps(priced, ensure_ascii=False, default=str)
+        )
+        if not any(abs(value - f) < 0.005 for f in found):
+            return AMOUNT_NOT_GIVEN
+        return inner(**kw)
+
+    return StructuredTool.from_function(
+        func=log_expense,
         name=tool.name,
         description=tool.description,
         args_schema=tool.args_schema,
@@ -1372,8 +1492,23 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         ):
             run.block({"t": "nutrition", "day": ctx.today.isoformat()})
         # Fresh from the records, so a meal logged earlier in this turn
-        # counts; a meal waiting for the user's OK does not, yet.
-        return fitness.nutrition_today(ctx)
+        # counts; a meal waiting for the user's OK does not, yet, and is
+        # listed apart with the day as it will be once confirmed.
+        out = fitness.nutrition_today(ctx)
+        waiting = capture.waiting_meals(ctx, ctx.today)
+        if waiting:
+            eaten = dict(out.get("eaten") or {})
+            with_them = {
+                k: round(float(eaten.get(k) or 0) + sum(m[k] for m in waiting), 1)
+                for k in capture.MACROS
+            }
+            out = out | {
+                "waiting_for_ok": [
+                    {k: v for k, v in m.items() if k != "card_id"} for m in waiting
+                ],
+                "eaten_once_confirmed": with_them,
+            }
+        return out
 
     def focus_status(**kw: Any) -> dict[str, Any]:
         a = FocusStatusArgs(**kw)
@@ -2175,6 +2310,10 @@ PHOTO_NOT_READ = (
     "I couldn't look at your photo just now, so nothing was logged from it. "
     "Send it again in a moment."
 )
+MODEL_DOWN = (
+    "I can't reach my model right now, so I can't redo that yet. Send it "
+    "again in a few minutes."
+)
 NOT_RECORDED = (
     "I didn't manage to record that, so nothing was saved. Try asking again "
     "in other words, or add it from its tab."
@@ -2963,6 +3102,10 @@ def _ask_ai(
         if t.name == "log_meal"
         else without_duplicate_tasks(ctx, t)
         if t.name == "create_tasks"
+        else with_amount_given(run, "\n".join([*earlier[-3:], text]), t)
+        if t.name == "log_expense"
+        else edits_only_when_asked(text, t)
+        if t.name == "edit_meal"
         else t
         for t in writes
     ]

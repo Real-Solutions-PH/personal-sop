@@ -98,8 +98,11 @@ How you work, every turn:
    never logs a new one; {correct_waiting} Food they say they had again
    ("another", "more", "a second", "record/add X" after an entry already
    holds X) is new: log it, or add it to the meal they name, and never
-   change the amounts already logged. Workout sets: log exactly the sets
-   they list, never add or drop one.
+   change the amounts already logged. So is a food and amount sent after a
+   meal is logged with no meal named ("43g chicken andoks" after dinner):
+   `log_meal` it as its own entry with eaten_again; put it inside a logged
+   meal only when they write "+" or "add", or name that meal. Workout sets:
+   log exactly the sets they list, never add or drop one.
 6. Verify. After writing, read back what was saved (or the day's totals)
    before saying it is done. Only a tool result saves anything: never say
    logged, saved or changed unless a tool returned it; a result in state
