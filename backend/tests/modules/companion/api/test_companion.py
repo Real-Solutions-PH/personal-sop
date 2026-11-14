@@ -250,6 +250,21 @@ def test_a_failed_model_hands_a_log_to_capture_with_the_question_stored_once(
     assert changes and all(c["deleted"] for c in changes)
 
 
+def test_try_again_while_the_model_is_down_says_so(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-10: with the chat model failing, "try again" went
+    to capture as something to log and no reply came back."""
+    from app.modules.companion.services import MODEL_DOWN
+
+    api = user(client, db)
+    api.assign("chat")
+    install(monkeypatch, fail=True)
+    out = ask(api, "try again")
+    assert out["kind"] == "reply", out
+    assert out["messages"][-1]["text"] == MODEL_DOWN
+
+
 def test_nutrition_status_shows_the_day_as_one_card(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

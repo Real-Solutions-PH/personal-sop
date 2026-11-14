@@ -212,6 +212,48 @@ def test_an_expense_with_an_unknown_category_is_sent_back_to_pick_one(
     assert len(live(rows_of(api, FinRecord))) == 1
 
 
+def test_an_expense_amount_nobody_gave_is_refused(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-14: "kopiki coffee + record as expense" was saved
+    as ₱25 at 7-Eleven though no price was said (the last one was ₱29)."""
+    from app.modules.finance.models import FinRecord
+
+    api = user(client, db)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        say("", call("log_expense", amount=25, category="Food", payee="7-Eleven")),
+        say("How much was it?"),
+    )
+    events = stream(api, client, "kopiki coffee + record as expense")
+    assert '"amount_not_given"' in str(model.seen[1])
+    assert live(rows_of(api, FinRecord)) == []
+    [step] = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    assert not step["ok"]
+
+
+def test_an_expense_amount_they_wrote_or_a_tool_found_is_logged(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The amount check reads "1,212" and "3k" as written, and takes a
+    price a tool returned this turn (what they paid last time)."""
+    from app.modules.companion.services import figures_in
+
+    assert {1212.0, 3000.0, 1.0} <= figures_in("3k to maya, paid 1,212 with 1% back")
+    api = user(client, db)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_expense", amount=1212, category="Food", note="fish")),
+        say("Logged."),
+    )
+    events = stream(api, client, "paid 1,212 with maya for fish supplies")
+    [step] = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
+    # Logged: over the ₱1,000 line, so it waits for their OK.
+    assert step["ok"] and step["state"] == "proposed", step
+
+
 def test_tool_calls_past_the_reply_cap_are_refused(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1418,9 +1460,10 @@ def test_the_same_screenshot_sent_twice_does_not_double_the_waiting_expenses(
         receipt,
         say("Those are already waiting."),
     )
-    stream(api, client, "log these")
+    # The amounts as a receipt photo's reading gives them.
+    stream(api, client, "log these: 7-Eleven 275 and 118")
     assert len(_waiting_expenses(api)) == 2
-    events = stream(api, client, "log these")
+    events = stream(api, client, "log these: 7-Eleven 275 and 118")
     assert len(_waiting_expenses(api)) == 2
     items = events[-1]["result"]["messages"][1]["blocks"][0]["items"]
     assert [i["summary"].split(":")[0] for i in items] == [

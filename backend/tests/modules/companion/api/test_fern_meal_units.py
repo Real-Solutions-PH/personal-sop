@@ -102,7 +102,9 @@ def test_an_added_item_with_grams_and_no_unit_is_in_grams(
         api,
         client,
         monkeypatch,
-        "70g chicken andoks",
+        # An explicit add: a bare "70g chicken andoks" after dinner is new
+        # food, logged as its own entry (edit_meal refuses to put it inside).
+        "add 70g chicken andoks to the dinner",
         act("edit_meal", meal_id=meal_id, add_items=[SEVENTY]),
     )
     assert step["ok"], step
