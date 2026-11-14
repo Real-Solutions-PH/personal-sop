@@ -68,6 +68,8 @@ const { dictating } =
   require("../live-dictation") as typeof import("../live-dictation")
 const { launchFern, talkLaunch } =
   require("../companion/launch") as typeof import("../companion/launch")
+const { TALK_IDLE_MS } =
+  require("../companion/talk") as typeof import("../companion/talk")
 const { ThreadComposer } =
   require("../screens/capture-thread") as typeof import("../screens/capture-thread")
 
@@ -282,27 +284,33 @@ describe("the composer", () => {
   })
 
   describe("Talk to Fern (Shortcuts and Back Tap)", () => {
-    test("a pause stops dictating and the message sends by itself", async () => {
+    test("a pause never sends: the words wait in the box for Send", async () => {
+      // Kai, 2026-11-14: sending is the person's decision, not a timer's.
       const onText = jest.fn()
-      render(<ThreadComposer onText={onText} hints={false} wakeTarget />)
+      const view = render(
+        <ThreadComposer onText={onText} hints={false} wakeTarget />,
+      )
       await act(async () => {
         launchFern("talk", "t1")
       })
       expect(mockModule.start).toHaveBeenCalled()
       expect(talkLaunch.getState().at).toBeNull()
       await act(async () => said("how much did I spend today"))
-      await act(async () => jest.advanceTimersByTime(1_799))
+      // A pause to think keeps listening.
+      await act(async () => jest.advanceTimersByTime(5_000))
       expect(mockModule.stop).not.toHaveBeenCalled()
+      await act(async () => said("how much did I spend today on food"))
+      await act(async () => jest.advanceTimersByTime(TALK_IDLE_MS - 1))
+      expect(mockModule.stop).not.toHaveBeenCalled()
+      // A long silence turns the mic off, and only the mic.
       await act(async () => jest.advanceTimersByTime(1))
-      expect(mockModule.stop).toHaveBeenCalled()
+      expect(mockModule.stop).toHaveBeenCalledTimes(1)
       await act(async () => fire("end", null))
+      await act(async () => jest.advanceTimersByTime(60_000))
       expect(onText).not.toHaveBeenCalled()
-      await act(async () => jest.advanceTimersByTime(1_200))
-      expect(onText).toHaveBeenCalledWith(
-        "how much did I spend today",
-        undefined,
-        undefined,
-      )
+      expect(
+        view.getByDisplayValue("how much did I spend today on food"),
+      ).toBeTruthy()
     })
 
     test("saying nothing sends nothing", async () => {

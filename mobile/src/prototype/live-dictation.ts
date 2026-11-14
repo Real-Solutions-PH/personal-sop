@@ -8,11 +8,14 @@
 // kept and, when the person stops, transcribed again on the server (Deepgram
 // with their own habit, food and account names as key terms), and that text
 // replaces the phone's. On 350 test clips the server made 15% word errors
-// and kept 88% of names and numbers; the phone 23% and 71%.
+// and kept 88% of names and numbers; the phone 23% and 71%. The phone is
+// also given the person's names as contextual strings (20% and 79% on the
+// same clips), for the live words and for when the server's pass is not used.
 import { useEffect, useRef, useState } from "react"
 import { create } from "zustand"
 import { liveMode } from "@/live/config"
 import { recognitionModule, stopSpeech } from "@/live/speech"
+import { currentVocabulary } from "./dictation-vocabulary"
 import { releaseWake } from "./wake-word"
 
 /** Whether any composer is dictating right now. The phone has one
@@ -213,6 +216,9 @@ export function useLiveDictation(
       interimResults: true,
       continuous: true,
       addsPunctuation: true,
+      // The person's own names and local words, so the live words (and the
+      // text kept when the server's pass is not used) get them right.
+      contextualStrings: currentVocabulary(),
       volumeChangeEventOptions: { enabled: true, intervalMillis: 120 },
       // The audio the server re-transcribes: 16 kHz 16-bit mono WAV (32 KB
       // a second), which Deepgram reads as well as the phone's 44.1 kHz.

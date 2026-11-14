@@ -32,7 +32,7 @@ const TAPS: {
   {
     taps: "Double tap",
     name: "Talk to Fern",
-    does: "Fern opens listening. Stop talking and it sends.",
+    does: "Fern opens listening. Your words fill the box; tap Send when ready.",
     icon: AudioLines,
   },
   {
