@@ -957,14 +957,18 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                     # screen read "132 serving". A weight makes the item one
                     # in grams; its old values are for a serving, so the
                     # ones for the weight come with it.
-                    need = [k for k in ("kcal", "protein", "carbs", "fat") if k not in spec]
+                    need = [
+                        k for k in ("kcal", "protein", "carbs", "fat") if k not in spec
+                    ]
                     if need:
                         wrong.append(
                             {
                                 "item": e.item,
                                 "problems": [
-                                    {"problem": "send_values_for_the_new_weight",
-                                     "missing": need}
+                                    {
+                                        "problem": "send_values_for_the_new_weight",
+                                        "missing": need,
+                                    }
                                 ],
                             }
                         )
