@@ -1,7 +1,6 @@
-// The Plan tab's hour grid: items laid out at their time, side by side when
-// they overlap; a moved item shows where it was and resets with a tap; the
-// screen-reader adjust actions move it a quarter hour (the drag's
-// alternative).
+// The Plan tab's hour grid (its layout is tested in plan-grid-layout): a
+// moved item shows where it was and resets with a tap; the screen-reader
+// adjust actions move it a quarter hour (the drag's alternative).
 import type { CalendarItem } from "@domain/contract"
 import { configureStorage, resetAll } from "@domain/lib/store"
 import { withOverrides } from "@domain/schedule/logic"
@@ -9,7 +8,7 @@ import { scheduleStore } from "@domain/schedule/store"
 import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
-import { DayGrid, layout } from "../screens/plan-grid"
+import { DayGrid } from "../screens/plan-grid"
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn(), replace: jest.fn(), back: jest.fn() },
@@ -65,19 +64,6 @@ beforeEach(() => {
     removeItem: () => {},
   })
   resetAll()
-})
-
-test("overlapping half hours share the row in lanes", () => {
-  const out = layout([
-    habit("a", "09:00"),
-    habit("b", "09:15"),
-    habit("c", "10:00"),
-  ])
-  expect(out.map((p) => [p.item.title, p.lane, p.lanes])).toEqual([
-    ["Habit a", 0, 2],
-    ["Habit b", 1, 2],
-    ["Habit c", 0, 1],
-  ])
 })
 
 function Grid() {
