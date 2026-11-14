@@ -839,6 +839,30 @@ class StartFocusArgs(BaseModel):
     item: Annotated[str, Field(max_length=160)] | None = None
 
 
+class FocusBlockArgs(BaseModel):
+    start: Annotated[str, Field(pattern=r"^\d{1,2}:\d{2}$")] = Field(
+        description="When it started, HH:MM 24-hour in their time."
+    )
+    end: Annotated[str, Field(pattern=r"^\d{1,2}:\d{2}$")] | None = Field(
+        default=None,
+        description="When it ended, HH:MM 24-hour (past midnight is fine).",
+    )
+    minutes: Annotated[int, Field(ge=1, le=720)] | None = Field(
+        default=None, description="How long it ran, when no end is given."
+    )
+    day: date | None = Field(
+        default=None, description="The day it was on; leave out for today."
+    )
+    label: Annotated[str, Field(max_length=80)] | None = None
+    item: Annotated[str, Field(max_length=160)] | None = Field(
+        default=None, description="The task or habit it was for, if they said."
+    )
+
+
+class LogFocusArgs(BaseModel):
+    blocks: Annotated[list[FocusBlockArgs], Field(min_length=1, max_length=8)]
+
+
 class FocusControlArgs(BaseModel):
     action: Literal["pause", "resume", "skip_break", "next", "switch", "extend"]
     item: Annotated[str, Field(max_length=160)] | None = None
@@ -1514,6 +1538,10 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
         a = FocusStatusArgs(**kw)
         return focus.summary(ctx, days=a.days)
 
+    def log_focus(**kw: Any) -> dict[str, Any]:
+        a = LogFocusArgs(**kw)
+        return focus.log_blocks(ctx, [b.model_dump() for b in a.blocks])
+
     def start_focus(**kw: Any) -> dict[str, Any]:
         a = StartFocusArgs(**kw)
         return focus.start(
@@ -1728,6 +1756,14 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             "How much the user focused (the focus timer) today, or over the "
             "last N days: the total against their daily focus goal, time by "
             "task or habit, the goal streak, and the session running now.",
+        ),
+        (
+            log_focus,
+            LogFocusArgs,
+            'Log focus time they did without the timer ("I focused 9 to 11 '
+            'this morning"): one block per stretch, each a start and an end '
+            "or minutes, today unless they name a day. Each saves or is "
+            "refused on its own (future, overlapping, over 12 h).",
         ),
         (
             start_focus,
@@ -2371,6 +2407,7 @@ WRITE_TOOLS = frozenset(
         "set_macro_target",
         "fitness_settings",
         "edit_food",
+        "log_focus",
         "start_focus",
         "focus_control",
         "stop_focus",

@@ -55,6 +55,7 @@ DEFERRED = frozenset(
         "log_transfer",
         "set_account_balance",
         "set_macro_target",
+        "log_focus",
         "start_focus",
         "start_routine",
         "start_workout",
