@@ -276,3 +276,61 @@ def test_an_amount_in_grams_is_a_log_not_a_portions_question(said: str) -> None:
 
 def test_asking_for_grams_is_still_a_portions_question() -> None:
     assert intent.classify("grams of rice for dinner to hit my protein").portions
+
+
+# Kai's own messages from production (2026-11-07 to 11-14): a meal edit must
+# follow from what they said, or it is more food to log as its own entry.
+MORE_FOOD = [
+    # Rewrote the amounts already logged (2026-11-08).
+    (
+        "So I want you to record 100 g of chicken breast boiled and another "
+        "100 g of sautéed mixed veggies",
+        True,
+        False,
+    ),
+    # Put inside the dinner already logged (2026-11-14).
+    ("43g chicken andoks", False, True),
+]
+CHANGES = [
+    ("i mean 70g", True, False),
+    ("-35g on the chicken from bones", True, False),
+    ("-46g from left overs", True, False),
+    ("24.8g are the leftovers from the chicken", True, False),
+    ("without skin", True, False),
+    ("i didnt eat the foam at the top of the macadamia", True, False),
+    ("+ 60g fried bangus", False, True),
+    ("then add 1 tbsp of good sheperd ube jam", False, True),
+    (
+        "Hey Fern, add 36 g of fried laptop tilapia the hundred grams of "
+        "peaches that I have eaten eaten yesterday",
+        False,
+        True,
+    ),
+    ("snack at dinner", True, True),
+    ("try it again", True, True),
+    (
+        "the 43g which is later on corrected to 70g is additional meal that i "
+        "have for the dinner, not a fix on the dinner meal that i have",
+        True,
+        True,
+    ),
+]
+
+
+@pytest.mark.parametrize(("text", "changes", "adds"), MORE_FOOD)
+def test_more_food_is_never_edited_into_a_logged_meal(
+    text: str, changes: bool, adds: bool
+) -> None:
+    from app.modules.companion.intent import meal_edit_refusal
+
+    why = meal_edit_refusal(text, changes=changes, adds=adds)
+    assert why is not None and "eaten_again" in why["instead"], text
+
+
+@pytest.mark.parametrize(("text", "changes", "adds"), CHANGES)
+def test_a_change_they_asked_for_still_edits_the_meal(
+    text: str, changes: bool, adds: bool
+) -> None:
+    from app.modules.companion.intent import meal_edit_refusal
+
+    assert meal_edit_refusal(text, changes=changes, adds=adds) is None, text

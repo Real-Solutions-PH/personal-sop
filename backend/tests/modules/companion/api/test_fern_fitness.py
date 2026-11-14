@@ -781,6 +781,111 @@ def test_remove_and_add_meal_items_then_undo(
     assert {i.name for i in live(rows_of(api, MealItem))} == {"Egg", "Rice"}
 
 
+def _two_chickens(api: Api) -> tuple[str, list[dict[str, Any]]]:
+    """Dinner holding the same food twice, as Kai's did on 2026-11-14."""
+    chicken = {"name": "Andok's Litson Manok", "unit": "g", "carbs": 0}
+    meal = api.post(
+        "/fitness/meals",
+        {
+            "label": "dinner",
+            "raw_input": "rice and andoks chicken",
+            "items": [
+                chicken | {"qty": 132, "kcal": 294, "protein": 30.9, "fat": 17.7},
+                chicken | {"qty": 43, "kcal": 96, "protein": 10.1, "fat": 5.8},
+            ],
+        },
+    )
+    items = sorted(
+        (i for i in live(rows_of(api, MealItem)) if str(i.meal_id) == meal["id"]),
+        key=lambda i: i.qty,
+    )
+    return meal["id"], [{"id": str(i.id), "qty": i.qty} for i in items]
+
+
+def test_two_items_of_one_name_are_told_apart_by_id(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-14 ("i mean 70g"): the new chicken's id was refused
+    twice, and the name then reached the first chicken, so the 132 g entry
+    took the 70 g numbers and both were removed."""
+    api = fern(client, db)
+    meal_id, (small, big) = _two_chickens(api)
+    # By name alone it is either one: refused, with each one's id.
+    step, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "i mean 70g",
+        act(
+            "edit_meal",
+            meal_id=meal_id,
+            edit_items=[{"item": "Andok's Litson Manok", "qty": 70}],
+        ),
+    )
+    out = tool_result(model)
+    assert out["error"] == "several_match", out
+    assert any(small["id"] in m for m in out["matches"])
+    assert any(big["id"] in m for m in out["matches"])
+    assert sorted(i.qty for i in live(rows_of(api, MealItem))) == [43, 132]
+    # By id it is that one, and the other is untouched.
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "i mean 70g",
+        act(
+            "edit_meal",
+            meal_id=meal_id,
+            edit_items=[{"item": small["id"], "qty": 70}],
+        ),
+    )
+    assert step["ok"], step
+    assert sorted(i.qty for i in live(rows_of(api, MealItem))) == [70, 132]
+    step, _ = turn(
+        api,
+        client,
+        monkeypatch,
+        "remove the 70 g one",
+        act("edit_meal", meal_id=meal_id, remove_items=[small["id"]]),
+    )
+    assert step["ok"], step
+    assert [i.qty for i in live(rows_of(api, MealItem))] == [132]
+
+
+def test_more_food_is_not_put_inside_the_meal_already_logged(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-14: "43g chicken andoks", sent after dinner was
+    logged, went inside that dinner; Kai: "additional meal ... not a fix on
+    the dinner meal". The edit is refused and Fern is told to log it."""
+    api = fern(client, db)
+    meal_id = _meal(api)["id"]
+    _, model = turn(
+        api,
+        client,
+        monkeypatch,
+        "43g chicken andoks",
+        act(
+            "edit_meal",
+            meal_id=meal_id,
+            add_items=[
+                {
+                    "name": "Andok's chicken",
+                    "qty": 43,
+                    "unit": "g",
+                    "kcal": 96,
+                    "protein": 10.1,
+                    "fat": 5.8,
+                }
+            ],
+        ),
+    )
+    out = tool_result(model)
+    assert out["error"] == "log_it_as_its_own_entry", out
+    assert "eaten_again" in out["instead"]
+    assert {i.name for i in live(rows_of(api, MealItem))} == {"Egg", "Rice"}
+
+
 def test_copy_a_meal_logs_it_again_today(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
