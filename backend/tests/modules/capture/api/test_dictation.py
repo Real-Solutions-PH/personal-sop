@@ -160,6 +160,29 @@ def test_deepgram_is_told_the_persons_own_names(
     assert row.cost_minor == 32
 
 
+def test_a_wav_dictation_pays_for_the_second_listener_too(
+    client: TestClient,
+    db: Session,
+    deepgram: list[Any],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The phone's live dictation uploads WAV, which the second listener
+    # hears alongside Deepgram on the server's key (ADR-0016, 2026-11-14).
+    monkeypatch.setattr(settings, "OPENROUTER_API_KEY", "or-test-key")
+    monkeypatch.setattr(settings, "STT_CHECK_ENABLED", True)
+    monkeypatch.setattr(settings, "STT_CHECK_MODEL", "google/gemini-3.8-flash")
+    api = user(client, db, accounts=False)
+    assert dictate(api, client, WAV, duration_sec=60).status_code == 200
+    assert deepgram[0][1]["mime"] == "audio/wav"
+    with Session(db_engine) as s:
+        row = s.exec(
+            select(AIUsage).where(AIUsage.owner_id == api.user.id)  # type: ignore[attr-defined]
+        ).one()
+    # 60 s: Deepgram with key terms $0.0056 + the second listener $0.0045
+    # = $0.0101 = P0.5757 -> 58 centavos.
+    assert row.cost_minor == 58
+
+
 def test_a_provider_without_key_terms_is_sent_none(
     client: TestClient, db: Session, deepgram: list[Any]
 ) -> None:

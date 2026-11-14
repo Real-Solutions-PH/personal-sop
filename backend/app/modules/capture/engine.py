@@ -385,7 +385,10 @@ def _transcript(ctx: Ctx, cap: Capture, mode: str, language: str) -> None:
         input_tokens=0,
         output_tokens=0,
         cost_minor=ai.transcription_minor(
-            resolved.provider, seconds, keyterms=bool(terms)
+            resolved.provider,
+            seconds,
+            keyterms=bool(terms),
+            checked=seams.checked(resolved, m.mime),
         ),
     )
     if not text:
@@ -686,7 +689,10 @@ def dictate(ctx: Ctx, audio: bytes, *, duration_sec: int | None) -> str:
         input_tokens=0,
         output_tokens=0,
         cost_minor=ai.transcription_minor(
-            resolved.provider, seconds, keyterms=bool(terms)
+            resolved.provider,
+            seconds,
+            keyterms=bool(terms),
+            checked=seams.checked(resolved, mime),
         ),
     )
     if not text:
