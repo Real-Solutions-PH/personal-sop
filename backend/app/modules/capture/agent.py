@@ -995,7 +995,9 @@ MACROS = ("protein", "carbs", "fat")
 def _stored_item(i: MealItemArgs) -> dict[str, Any]:
     """The item as saved: its weight goes into the assumption shown with it."""
     it = fitness_tools.weighed(
-        i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)), i.grams
+        i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)),
+        i.grams,
+        unit_said="unit" in i.model_fields_set,
     )
     for k in MACROS:
         it.setdefault(k, 0.0)  # sent without, after being asked once
