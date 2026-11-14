@@ -10,17 +10,19 @@ import { dayKey } from "@domain/lib/day"
 import {
   ChevronLeft,
   ChevronRight,
-  History,
+  ClockPlus,
   Pencil,
   Play,
+  Trash2,
 } from "lucide-react-native"
-import { useMemo, useState } from "react"
-import { View } from "react-native"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Platform, View } from "react-native"
+import Animated from "react-native-reanimated"
 import { clockOf, FocusTimeline } from "../focus-kit"
-import { SwipeStep } from "../motion"
+import { alpha, rowEnter, SwipeStep } from "../motion"
 import { Copy, Frame, IconTap, Line, Tap } from "../native-kit"
 import { fonts, useTheme } from "../theme"
-import { useNow } from "../ui"
+import { confirm, useNow } from "../ui"
 import { PastSessionSheet } from "./focus-past"
 import { LockedPreview } from "./locked-preview"
 
@@ -31,7 +33,17 @@ const longDay = (d: string) =>
     day: "numeric",
   })
 
-export function FocusDayPanel({ day: initial }: { day?: string }) {
+export function FocusDayPanel({
+  day: initial,
+  addSignal = 0,
+  onSaved,
+}: {
+  day?: string
+  /** Bumped by an "Add focus time" elsewhere on the page: opens the sheet. */
+  addSignal?: number
+  /** After a block is added or changed, with the timeline on its day. */
+  onSaved?: () => void
+}) {
   const t = useTheme(),
     s = useFocusState(),
     now = useNow(),
@@ -39,6 +51,8 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
     [day, setDay] = useState(initial ?? today),
     // null: closed; "": a new block; an id: that logged session.
     [logging, setLogging] = useState<string | null>(null),
+    // The session just added or edited: its rows rise in, tinted a moment.
+    [fresh, setFresh] = useState<string | null>(null),
     manual = useMemo(
       () =>
         new Map(
@@ -46,6 +60,11 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
             .filter((x) => x.source === "manual")
             .map((x) => [x.id, x.label]),
         ),
+      [s.sessions],
+    ),
+    // Sessions still running (or waiting between phases): not deletable here.
+    running = useMemo(
+      () => new Set(s.sessions.filter((x) => !x.endedAt).map((x) => x.id)),
       [s.sessions],
     ),
     blocks = useMemo(() => C.dayBlocks(s, day, now), [s, day, now]),
@@ -60,6 +79,31 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
     goal = C.goalSec(s),
     pauses = blocks.filter((b) => b.kind === "pause"),
     pausedSec = pauses.reduce((n, b) => n + (b.end - b.start) / 1000, 0)
+  const seen = useRef(addSignal)
+  useEffect(() => {
+    if (addSignal === seen.current) return
+    seen.current = addSignal
+    setLogging("")
+  }, [addSignal])
+  useEffect(() => {
+    if (!fresh) return
+    const id = setTimeout(() => setFresh(null), 2400)
+    return () => clearTimeout(id)
+  }, [fresh])
+  const saved = (id: string, date: string) => {
+    setDay(date)
+    setFresh(id)
+    onSaved?.()
+  }
+  // A timed session's times are what the timer saw, so it is not edited;
+  // it can be deleted (a session started by mistake), after a confirm.
+  const removeTimed = (id: string) =>
+    confirm(
+      "Delete this focus session?",
+      "Its time comes off this day, your goal and your stats.",
+      () => P.takeSession(id),
+      "Delete",
+    )
   const step = (n: 1 | -1) => {
     const next = C.addDays(day, n)
     if (next <= today) setDay(next)
@@ -75,7 +119,7 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
           Timeline
         </Copy>
         <Tap
-          label="Log a past session"
+          label="Add focus time"
           onPress={() => setLogging("")}
           style={{
             flexDirection: "row",
@@ -89,9 +133,9 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
             backgroundColor: t.card,
           }}
         >
-          <History size={14} color={t.text} />
+          <ClockPlus size={14} color={t.text} />
           <Copy size={13} weight="medium">
-            Log past
+            Add time
           </Copy>
         </Tap>
       </Line>
@@ -137,7 +181,7 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
             title={day === today ? "No focus yet today" : "No focus this day"}
             detail="Each session shows here as blocks: focus in colour, breaks lighter, pauses hatched."
             action={{
-              label: "Log a session you forgot to time",
+              label: "Add focus time you forgot to track",
               onPress: () => setLogging(""),
             }}
             color={t.foc}
@@ -157,7 +201,11 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
                 <BlockRow
                   key={`${b.segmentId}-${b.start}`}
                   logged={manual.has(b.sessionId)}
+                  fresh={fresh === b.sessionId}
                   onEdit={() => setLogging(b.sessionId)}
+                  {...(running.has(b.sessionId)
+                    ? {}
+                    : { onDelete: () => removeTimed(b.sessionId) })}
                 >
                   <View
                     style={{
@@ -216,37 +264,64 @@ export function FocusDayPanel({ day: initial }: { day?: string }) {
         open={logging !== null}
         onClose={() => setLogging(null)}
         day={day}
+        onSaved={saved}
         {...(logging ? { editId: logging } : {})}
       />
     </View>
   )
 }
 
-/** A block's row; a logged session's opens its editor, with a pencil to
- * say so (no tag: the label needs the width). */
+/** A block's row. A logged session's opens its editor (a pencil says
+ * so); a timed one's offers to delete it (a bin says so). The session just
+ * saved rises in, tinted for a moment, so the change is seen landing. */
 function BlockRow({
   logged,
+  fresh,
   onEdit,
+  onDelete,
   children,
 }: {
   logged: boolean
+  fresh: boolean
   onEdit: () => void
+  onDelete?: () => void
   children: React.ReactNode
 }) {
   const t = useTheme()
-  if (!logged)
-    return <Line style={{ gap: 10, alignItems: "flex-start" }}>{children}</Line>
-  return (
-    <Tap
-      onPress={onEdit}
-      label="Edit logged session"
-      style={{ minHeight: 32, justifyContent: "center" }}
-    >
-      <Line style={{ gap: 10, alignItems: "flex-start" }}>
-        {children}
+  const row = (
+    <Line style={{ gap: 10, alignItems: "flex-start" }}>
+      {children}
+      {logged ? (
         <Pencil size={14} color={t.muted} />
-      </Line>
-    </Tap>
+      ) : onDelete ? (
+        <Trash2 size={14} color={t.muted} />
+      ) : null}
+    </Line>
+  )
+  const press = logged ? onEdit : onDelete
+  return (
+    <Animated.View
+      {...(fresh && Platform.OS !== "web" ? { entering: rowEnter } : {})}
+      testID={fresh ? "focus-block-fresh" : undefined}
+      style={{
+        borderRadius: 8,
+        marginHorizontal: -6,
+        paddingHorizontal: 6,
+        backgroundColor: fresh ? alpha(t.foc, 0.14) : "transparent",
+      }}
+    >
+      {press ? (
+        <Tap
+          onPress={press}
+          label={logged ? "Edit focus time" : "Delete focus session"}
+          style={{ minHeight: 32, justifyContent: "center" }}
+        >
+          {row}
+        </Tap>
+      ) : (
+        row
+      )}
+    </Animated.View>
   )
 }
 
