@@ -246,6 +246,15 @@ class Settings(BaseSettings):
     DEEPGRAM_API_KEY: str | None = None
     DEEPGRAM_MODEL: str = "nova-3"
     DEEPGRAM_BASE_URL: str = "https://api.deepgram.com/v1"
+    # A second listener on the server's own key (ADR-0016, 2026-11-14): an
+    # audio model on OpenRouter hears each WAV/MP3 recording, with the
+    # person's names, while Deepgram does; its words are used unless they
+    # are far shorter or longer than Deepgram's. STT_CHECK_ENABLED=false
+    # turns it off (an empty variable is ignored, not read as "off").
+    STT_CHECK_ENABLED: bool = True
+    STT_CHECK_MODEL: str = "google/gemini-3.8-flash"
+    STT_CHECK_REASONING: str = "minimal"
+    STT_CHECK_TIMEOUT_SECONDS: float = 20.0
     # Text to speech for Fern's replies (Aura-2).
     DEEPGRAM_TTS_MODEL: str = "aura-2-thalia-en"
     # AI spend is metered in pesos (the service's own cost, for every user):
