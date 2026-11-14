@@ -1579,6 +1579,21 @@ export type FlowOut = {
     ]>;
 };
 
+/**
+ * A focus block logged afterwards, because the timer never ran: when it
+ * started and either when it ended or how long it ran. Saved as a
+ * stopwatch session (``source: "manual"``) with one focus segment, so it
+ * counts toward the day, the goal and every stat like a timed one.
+ */
+export type FocusLogIn = {
+    id?: (string | null);
+    started_at: string;
+    ended_at?: (string | null);
+    duration_min?: (number | null);
+    label?: (string | null);
+    item?: (ItemRef | null);
+};
+
 export type FollowUpAnswerIn = {
     option: string;
 };
@@ -6527,6 +6542,19 @@ export type FocusStopData = {
 };
 
 export type FocusStopResponse = (SessionDetail);
+
+export type FocusLogSessionData = {
+    requestBody: FocusLogIn;
+};
+
+export type FocusLogSessionResponse = (SessionDetail);
+
+export type FocusEditLoggedData = {
+    requestBody: FocusLogIn;
+    sessionId: string;
+};
+
+export type FocusEditLoggedResponse = (SessionDetail);
 
 export type FocusGetSessionData = {
     sessionId: string;
