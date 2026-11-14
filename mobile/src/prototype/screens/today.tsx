@@ -23,6 +23,7 @@ import { habitsStore } from "@domain/habits/store"
 import { openCapture } from "@domain/lib/capture"
 import { dayKey, dayOffset, fmtDuration, isEvening } from "@domain/lib/day"
 import { useSharedMemo } from "@domain/lib/memo"
+import { habitIdOf, tickItem } from "@domain/schedule/ticks"
 import { completeTask } from "@domain/tasks/actions"
 import { useStats, useTodayData } from "@domain/tasks/hooks"
 import { fmtInstant, isDueNow } from "@domain/tasks/logic"
@@ -315,7 +316,8 @@ const PLAN_ROWS = 5
 function TodayPlan() {
   const t = useTheme(),
     today = dayKey(),
-    items = D.useLocalCalendar(today, today),
+    // A habit with several times today shows once at each.
+    items = D.useLocalTimeline(today, today),
     now = useMinuteNow(),
     hm = new Date(now).toTimeString().slice(0, 5)
   const open = items.filter((i) => !i.done),
@@ -328,9 +330,7 @@ function TodayPlan() {
     more = open.length - shown.length
   // Habits and tasks can be ticked right here; anything else opens.
   const habitOf = (i: CalendarItem) =>
-    i.module === "habits" && i.id.startsWith("habit-")
-      ? i.id.slice(6, -(i.day.length + 1))
-      : null
+    i.module === "habits" ? habitIdOf(i) : null
   const taskOf = (i: CalendarItem) =>
     i.module === "tasks" && i.id.startsWith("task:") ? i.id.slice(5) : null
   const habitList = habitsStore.use((s) => s.habits),
@@ -345,7 +345,8 @@ function TodayPlan() {
   const markDone = (i: CalendarItem) => {
     const h = habitOf(i)
     const k = taskOf(i)
-    if (h) HA.checkHabit(h, today)
+    // One of a habit's several times ticks its own share of the count.
+    if (h) tickItem(i)
     if (k) completeTask(k)
   }
   const accent = (m: string) =>
@@ -1810,7 +1811,7 @@ function RecapCard({ evening }: { evening: boolean }) {
 }
 function TomorrowCard({ evening }: { evening: boolean }) {
   const t = useTheme(),
-    tomorrow = D.useAllCalendar(dayOffset(1), dayOffset(1))
+    tomorrow = D.useAllTimeline(dayOffset(1), dayOffset(1))
   if (!evening) return null
   return (
     <Frame style={{ padding: 16 }}>

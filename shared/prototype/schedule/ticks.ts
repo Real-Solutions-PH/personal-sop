@@ -8,9 +8,19 @@ import {
   checkHabit,
   clearLog,
   incrementCount,
+  logHabit,
   restoreLog,
 } from "../habits/actions"
+import type { Habit } from "../habits/data"
 import { lk, logIndex, progressOf } from "../habits/logic"
+import {
+  type HabitOccurrence,
+  occurrenceOf,
+  occurrenceProgress,
+  parseHabitItem,
+  shareAt,
+  splitsCount,
+} from "../habits/slots"
 import { habitsStore } from "../habits/store"
 import { dayKey } from "../lib/day"
 import { completeTask, uncompleteTask } from "../tasks/actions"
@@ -20,11 +30,24 @@ export type Tick =
   | { kind: "habit"; habitId: string; day: string; count: boolean }
   | { kind: "task"; taskId: string }
 
-/** The habit id in ``habit-{id}-{day}``, when the id's day is the item's. */
-function habitIdOf(item: Pick<CalendarItem, "id" | "day">): string | null {
-  const tail = `-${item.day}`
-  if (!item.id.startsWith("habit-") || !item.id.endsWith(tail)) return null
-  return item.id.slice(6, -tail.length) || null
+/** The habit id in ``habit-{id}-{day}`` (or one of its several times,
+ * ``habit-{id}-{day}@{n}``), when the id's day is the item's. */
+export function habitIdOf(
+  item: Pick<CalendarItem, "id" | "day">,
+): string | null {
+  return parseHabitItem(item)?.habitId ?? null
+}
+
+/** The row's habit and, for a count habit with several times that day, the
+ * occurrence whose share of the count the row ticks (``habits/slots``). */
+function splitOf(
+  item: Pick<CalendarItem, "id" | "day">,
+  habitId: string,
+): { h: Habit; o: HabitOccurrence } | null {
+  const h = habitsStore.get().habits.find((x) => x.id === habitId)
+  if (!h) return null
+  const o = occurrenceOf(h, item)
+  return o && splitsCount(h, o) ? { h, o } : null
 }
 
 /**
@@ -57,7 +80,9 @@ export function tickProgress(item: CalendarItem): number {
   const s = habitsStore.get()
   const h = s.habits.find((x) => x.id === tick.habitId)
   if (!h) return 0
-  return progressOf(h, logIndex(s.logs).get(lk(tick.habitId, tick.day)))
+  const log = logIndex(s.logs).get(lk(tick.habitId, tick.day))
+  const o = occurrenceOf(h, item)
+  return o && o.of > 1 ? occurrenceProgress(h, o, log) : progressOf(h, log)
 }
 
 export interface Ticked {
@@ -84,8 +109,33 @@ export function tickItem(item: CalendarItem): Ticked | null {
     }
   }
   const undo = putBack(tick.habitId, tick.day)
+  const split = splitOf(item, tick.habitId)
+  if (split) {
+    // One of several times: the day's count up to this one's share.
+    const { h, o } = split
+    const before = currentValue(tick.habitId, tick.day)
+    const need = shareAt(h, o.n, o.of) - before
+    if (need > 0 && !incrementCount(tick.habitId, need, tick.day)) return null
+    const after = logIndex(habitsStore.get().logs).get(
+      lk(tick.habitId, tick.day),
+    )
+    return {
+      completed: true,
+      message:
+        progressOf(h, after) >= 1
+          ? "Habit checked"
+          : `${h.name} ${o.n} of ${o.of} done`,
+      undo,
+    }
+  }
   if (!checkHabit(tick.habitId, tick.day)) return null
   return { completed: true, message: "Habit checked", undo }
+}
+
+/** The day's count so far (0 with no log, or a skip). */
+function currentValue(habitId: string, day: string) {
+  const l = logIndex(habitsStore.get().logs).get(lk(habitId, day))
+  return l && l.status !== "skipped" ? (l.value ?? 0) : 0
 }
 
 /** A count habit one step on for the row's day (Today's +1). Completed only
@@ -118,6 +168,14 @@ function putBack(habitId: string, day: string) {
 export function untickItem(item: CalendarItem): void {
   const tick = tickOf(item)
   if (!tick) return
-  if (tick.kind === "task") uncompleteTask(tick.taskId)
+  if (tick.kind === "task") {
+    uncompleteTask(tick.taskId)
+    return
+  }
+  const split = splitOf(item, tick.habitId)
+  // One of several times: back to the share before it, so the earlier
+  // times stay done and this one and the later ones reopen.
+  const keep = split ? shareAt(split.h, split.o.n - 1, split.o.of) : 0
+  if (keep > 0) logHabit({ habitId: tick.habitId, day: tick.day, value: keep })
   else clearLog(tick.habitId, tick.day)
 }
