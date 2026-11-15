@@ -186,4 +186,6 @@ def get_budget(ctx: CtxDep, budget_id: uuid.UUID) -> Any:
 )
 def set_categories(ctx: CtxDep, budget_id: uuid.UUID, data: CategoriesBody) -> Any:
     """Which of my own categories count toward the shared budget."""
-    return groups.set_categories(ctx, budget_id=budget_id, category_ids=data.category_ids)
+    return groups.set_categories(
+        ctx, budget_id=budget_id, category_ids=data.category_ids
+    )

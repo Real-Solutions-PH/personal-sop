@@ -137,9 +137,7 @@ def _balance(entries: list[GoalEntry]) -> tuple[int, int]:
         if e.status == "accepted"
     )
     pending = sum(
-        e.amount_minor
-        for e in entries
-        if e.kind == "withdrawal" and e.status == "sent"
+        e.amount_minor for e in entries if e.kind == "withdrawal" and e.status == "sent"
     )
     return bal, pending
 
@@ -344,9 +342,7 @@ def refresh_members(ctx: Ctx, kind: Kind, row: Any) -> None:
         rid = member_id(m.owner_id, kind, row.id)
         held = ctx.session.get(SharedMember, rid)
         if m.status in ("invited", "active"):
-            data = _out(_ctx_of(ctx, m.owner_id), kind, row, ms).model_dump(
-                mode="json"
-            )
+            data = _out(_ctx_of(ctx, m.owner_id), kind, row, ms).model_dump(mode="json")
             gone = None
         else:
             data, gone = (held.data if held else {}), ctx.now
@@ -421,7 +417,9 @@ def _notify(
         )
 
 
-def _others(ms: list[SharedMembership], ctx: Ctx, *, active: bool = True) -> list[uuid.UUID]:
+def _others(
+    ms: list[SharedMembership], ctx: Ctx, *, active: bool = True
+) -> list[uuid.UUID]:
     return [
         m.owner_id
         for m in ms
@@ -429,9 +427,7 @@ def _others(ms: list[SharedMembership], ctx: Ctx, *, active: bool = True) -> lis
     ]
 
 
-def _members(
-    ctx: Ctx, ids: list[uuid.UUID]
-) -> list[uuid.UUID]:
+def _members(ctx: Ctx, ids: list[uuid.UUID]) -> list[uuid.UUID]:
     """Validate who to share with: real, not me, connected to me."""
     out = list(dict.fromkeys(ids))
     for uid in out:
@@ -439,7 +435,9 @@ def _members(
             raise invalid("self_member", "You're already in it")
         social.person(ctx, uid)
         if not social.connected(ctx, ctx.user_id, uid):
-            raise forbidden("not_connected", "Follow them (or have them follow you) first")
+            raise forbidden(
+                "not_connected", "Follow them (or have them follow you) first"
+            )
     return out
 
 
@@ -641,7 +639,9 @@ def add_entry(ctx: Ctx, *, data: EntryCreate) -> GoalOut:
             payee=goal.name,
             note=" · ".join(x for x in ("Into shared goal", e.note) if x),
             source="manual",
-            at=ctx.now if e.on_date == ctx.today else ctx.clock.local_time(e.on_date, "12:00"),
+            at=ctx.now
+            if e.on_date == ctx.today
+            else ctx.clock.local_time(e.on_date, "12:00"),
             record_id=derived_id("goal-entry", e.id, "record"),
         ).id
         ctx.session.add(e)
@@ -675,7 +675,12 @@ def add_entry(ctx: Ctx, *, data: EntryCreate) -> GoalOut:
         ctx.session.add(e)
         ctx.session.flush()
         _event(
-            ctx, "goal", goal.id, "withdrawal_sent", entry=e, amount_minor=e.amount_minor
+            ctx,
+            "goal",
+            goal.id,
+            "withdrawal_sent",
+            entry=e,
+            amount_minor=e.amount_minor,
         )
         refresh_members(ctx, "goal", goal)
         _notify(
@@ -720,7 +725,12 @@ def withdraw_entry(ctx: Ctx, *, goal_id: uuid.UUID, entry_id: uuid.UUID) -> Goal
     e.decided_by = ctx.user_id
     ctx.session.add(e)
     _event(
-        ctx, "goal", goal.id, "withdrawal_withdrawn", entry=e, amount_minor=e.amount_minor
+        ctx,
+        "goal",
+        goal.id,
+        "withdrawal_withdrawn",
+        entry=e,
+        amount_minor=e.amount_minor,
     )
     refresh_members(ctx, "goal", goal)
     ctx.commit()
@@ -787,7 +797,9 @@ def decide_entry(
         goal.id,
         [e.owner_id],
         key=f"decided:{e.id}",
-        title=f"{who} okayed taking {amt} out" if accept else f"{who} didn't okay taking {amt} out",
+        title=f"{who} okayed taking {amt} out"
+        if accept
+        else f"{who} didn't okay taking {amt} out",
         body=goal.name if accept else (e.reason or ""),
     )
     ctx.commit()
@@ -826,7 +838,14 @@ def check_thresholds(ctx: Ctx, budget: SharedBudget) -> list[int]:
             )
             sent = sent or row is not None
         if sent:
-            _event(ctx, "budget", budget.id, "threshold", amount_minor=spent, text=f"{pct}%")
+            _event(
+                ctx,
+                "budget",
+                budget.id,
+                "threshold",
+                amount_minor=spent,
+                text=f"{pct}%",
+            )
             hit.append(pct)
     return hit
 

@@ -147,7 +147,11 @@ def test_withdraw_reject_and_take_back(trio: Trio) -> None:
     r = trio.mia.post(f"/goals/{g['id']}/entries/{b['id']}/withdraw", {}, 403)
     assert _code(r) == "not_your_entry"
     out = trio.kai.post(f"/goals/{g['id']}/entries/{b['id']}/withdraw")
-    assert [e["status"] for e in out["entries"]] == ["accepted", "rejected", "withdrawn"]
+    assert [e["status"] for e in out["entries"]] == [
+        "accepted",
+        "rejected",
+        "withdrawn",
+    ]
     assert out["entries"][1]["reason"] == "Not yet"
     assert out["balance_minor"] == 500_000
 
@@ -160,9 +164,7 @@ def test_alone_in_a_goal_nothing_comes_out(trio: Trio) -> None:
 
 
 def test_goal_permissions(trio: Trio) -> None:
-    r = trio.kai.post(
-        "/goals", {"name": "x", "member_ids": [str(trio.sam.id)]}, 403
-    )
+    r = trio.kai.post("/goals", {"name": "x", "member_ids": [str(trio.sam.id)]}, 403)
     assert _code(r) == "not_connected"
     r = trio.kai.post("/goals", {"name": "x", "member_ids": [str(trio.kai.id)]}, 422)
     assert _code(r) == "self_member"
@@ -170,10 +172,16 @@ def test_goal_permissions(trio: Trio) -> None:
     gid = g["id"]
     for method, path, body in (
         ("GET", f"/goals/{gid}", None),
-        ("POST", f"/goals/{gid}/entries", {
-            "kind": "deposit", "amount_minor": 1,
-            "on_date": TODAY.isoformat(), "account_id": trio.sam.account,
-        }),
+        (
+            "POST",
+            f"/goals/{gid}/entries",
+            {
+                "kind": "deposit",
+                "amount_minor": 1,
+                "on_date": TODAY.isoformat(),
+                "account_id": trio.sam.account,
+            },
+        ),
         ("POST", "/groups/respond", {"kind": "goal", "object_id": gid, "accept": True}),
     ):
         r = trio.sam.call(method, path, body, 404)
@@ -182,22 +190,26 @@ def test_goal_permissions(trio: Trio) -> None:
     # Someone else's account is not yours to deposit from.
     r = trio.kai.post(
         f"/goals/{gid}/entries",
-        {"kind": "deposit", "amount_minor": 1, "on_date": TODAY.isoformat(),
-         "account_id": trio.mia.account},
+        {
+            "kind": "deposit",
+            "amount_minor": 1,
+            "on_date": TODAY.isoformat(),
+            "account_id": trio.mia.account,
+        },
         404,
     )
     assert _code(r) == "account_not_found"
     # Declining removes it from view.
-    trio.mia.post("/groups/respond", {"kind": "goal", "object_id": gid, "accept": False})
+    trio.mia.post(
+        "/groups/respond", {"kind": "goal", "object_id": gid, "accept": False}
+    )
     trio.mia.get(f"/goals/{gid}", 404)
 
 
 # ---------------------------------------------------------------- budgets
 
 
-def test_budget_counts_each_members_chosen_categories(
-    trio: Trio, db: Session
-) -> None:
+def test_budget_counts_each_members_chosen_categories(trio: Trio, db: Session) -> None:
     kc, mc = trio.kai.fin.cats(), trio.mia.fin.cats()
     b = trio.kai.post(
         "/budgets",
@@ -212,8 +224,12 @@ def test_budget_counts_each_members_chosen_categories(
     # Someone else's category is not yours to count.
     r = trio.mia.post(
         "/groups/respond",
-        {"kind": "budget", "object_id": b["id"], "accept": True,
-         "category_ids": [kc["dining"]]},
+        {
+            "kind": "budget",
+            "object_id": b["id"],
+            "accept": True,
+            "category_ids": [kc["dining"]],
+        },
         404,
     )
     assert _code(r) == "category_not_found"
@@ -232,7 +248,6 @@ def test_budget_counts_each_members_chosen_categories(
     # 85%: one 80% alert to each member, once.
     trio.mia.fin.expense(trio.mia.account, 350_000, mc["groceries"])
     assert run_shared_budgets() >= 1
-    assert run_shared_budgets() == 0 or True
     for m in (trio.kai, trio.mia):
         assert _titles(db, m).count("Groceries is 80% spent") == 1
     trio.kai.fin.expense(trio.kai.account, 200_000, kc["groceries"])
@@ -292,33 +307,69 @@ def test_job_refreshes_views(trio: Trio, db: Session) -> None:
 def test_sync_actions_for_goals_and_budgets(trio: Trio) -> None:
     gid, bid, eid = (str(uuid.uuid4()) for _ in range(3))
     res = trio.kai.fin.push(
-        op("action", "finance.goal.create", id=gid, name="Sofa",
-           member_ids=[str(trio.mia.id)]),
-        op("action", "finance.budget.create", id=bid, name="Food",
-           limit_minor=900_000, member_ids=[str(trio.mia.id)]),
-        op("action", "finance.goal.entry", id=eid, goal_id=gid, kind="deposit",
-           amount_minor=50_000, on_date=TODAY.isoformat(),
-           account_id=trio.kai.account),
-        op("action", "finance.budget.categories", budget_id=bid,
-           category_ids=[trio.kai.fin.cats()["dining"]]),
+        op(
+            "action",
+            "finance.goal.create",
+            id=gid,
+            name="Sofa",
+            member_ids=[str(trio.mia.id)],
+        ),
+        op(
+            "action",
+            "finance.budget.create",
+            id=bid,
+            name="Food",
+            limit_minor=900_000,
+            member_ids=[str(trio.mia.id)],
+        ),
+        op(
+            "action",
+            "finance.goal.entry",
+            id=eid,
+            goal_id=gid,
+            kind="deposit",
+            amount_minor=50_000,
+            on_date=TODAY.isoformat(),
+            account_id=trio.kai.account,
+        ),
+        op(
+            "action",
+            "finance.budget.categories",
+            budget_id=bid,
+            category_ids=[trio.kai.fin.cats()["dining"]],
+        ),
     )
     assert [r["status"] for r in res] == ["applied"] * 4, res
     res = trio.mia.fin.push(
         op("action", "finance.shared.respond", kind="goal", object_id=gid, accept=True),
-        op("action", "finance.shared.respond", kind="budget", object_id=bid,
-           accept=False),
+        op(
+            "action",
+            "finance.shared.respond",
+            kind="budget",
+            object_id=bid,
+            accept=False,
+        ),
     )
     assert [r["result"] for r in res] == [{"status": "active"}, {"status": "declined"}]
     wid = str(uuid.uuid4())
     res = trio.kai.fin.push(
-        op("action", "finance.goal.entry", id=wid, goal_id=gid, kind="withdrawal",
-           amount_minor=10_000, on_date=TODAY.isoformat(),
-           account_id=trio.kai.account),
+        op(
+            "action",
+            "finance.goal.entry",
+            id=wid,
+            goal_id=gid,
+            kind="withdrawal",
+            amount_minor=10_000,
+            on_date=TODAY.isoformat(),
+            account_id=trio.kai.account,
+        ),
         op("action", "finance.goal.decide", goal_id=gid, entry_id=wid, accept=True),
     )
     assert res[0]["status"] == "applied"
     assert res[1]["status"] == "rejected" and res[1]["code"] == "not_your_call"
-    res = trio.kai.fin.push(op("action", "finance.goal.withdraw", goal_id=gid, entry_id=wid))
+    res = trio.kai.fin.push(
+        op("action", "finance.goal.withdraw", goal_id=gid, entry_id=wid)
+    )
     assert res[0]["status"] == "applied"
 
     kinds = {

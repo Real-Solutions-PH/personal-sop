@@ -73,7 +73,7 @@ export function clearToBlank() {
     lookbacks: [],
     threads: [],
   }))
-  sharedStore.set({ loans: [] })
+  sharedStore.set({ loans: [], goals: [], budgets: [] })
   // The AI spend meter too: the prototype seeds demo spending; live mode
   // reads the real meter from the server (live/capture.ts).
   captureStore.set((s) => ({

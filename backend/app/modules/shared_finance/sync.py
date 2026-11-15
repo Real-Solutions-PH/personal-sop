@@ -8,8 +8,8 @@ outbox while offline.
 
 from typing import Any
 
-from app.modules.shared_finance import schema as S
 from app.modules.shared_finance import groups, services
+from app.modules.shared_finance import schema as S
 from app.modules.shared_finance.models import SharedMember
 from app.modules.sync.registry import Action, Entity, Registry
 from app.shared.context import Ctx

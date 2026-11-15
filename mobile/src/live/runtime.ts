@@ -173,12 +173,12 @@ export function startLive(
       // A loan change the server refused (the other member answered first,
       // or more than what is left): the loans are pulled again, and a new
       // loan it never took is dropped.
-      if (name.startsWith("finance.loan.")) {
+      if (/^finance\.(loan|goal|budget|shared)\./.test(name)) {
         void import("@domain/finance/loans").then((m) =>
-          m.dropUnconfirmed(name === "finance.loan.create"),
+          m.dropUnconfirmed(name.endsWith(".create")),
         )
         void import("sonner-native").then(({ toast }) =>
-          toast.error("Couldn't save that loan change — it was refreshed"),
+          toast.error("Couldn't save that shared change — it was refreshed"),
         )
       }
       // Loaded on use: the toaster pulls in the UI's animation runtime.
