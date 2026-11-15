@@ -24347,6 +24347,19 @@ export const WeighInCreateSchema = {
             ],
             title: 'Body Fat Pct'
         },
+        waist_cm: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMaximum: 300,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Waist Cm'
+        },
         note: {
             anyOf: [
                 {
@@ -24403,6 +24416,19 @@ export const WeighInPayloadSchema = {
             ],
             title: 'Body Fat Pct'
         },
+        waist_cm: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMaximum: 300,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Waist Cm'
+        },
         prev_kg: {
             anyOf: [
                 {
@@ -24456,6 +24482,17 @@ export const WeighInPublicSchema = {
                 }
             ],
             title: 'Body Fat Pct'
+        },
+        waist_cm: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Waist Cm'
         },
         note: {
             anyOf: [
@@ -24513,6 +24550,19 @@ export const WeighInUpdateSchema = {
                 }
             ],
             title: 'Body Fat Pct'
+        },
+        waist_cm: {
+            anyOf: [
+                {
+                    type: 'number',
+                    exclusiveMaximum: 300,
+                    exclusiveMinimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Waist Cm'
         },
         note: {
             anyOf: [

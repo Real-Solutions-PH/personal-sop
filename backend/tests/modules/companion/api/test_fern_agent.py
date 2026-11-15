@@ -683,6 +683,55 @@ def test_body_fat_alone_rides_on_todays_weight(
     assert rows == {(62.4, None), (62.4, 20.0)}
 
 
+def test_weight_body_fat_and_waist_are_saved_together(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_weigh_in", kg=63.6, body_fat_pct=20.0, waist_cm=81.5)),
+        say("Logged 63.6 kg, 20% body fat and an 81.5 cm waist."),
+    )
+    stream(api, client, "63.6 kg, 20% body fat, waist 81.5 cm")
+    [w] = weigh_ins_of(api)
+    assert (w.weight_kg, w.body_fat_pct, w.waist_cm) == (63.6, 20.0, 81.5)
+
+
+def test_waist_alone_rides_on_todays_weight(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_weigh_in", kg=62.4)),
+        say("Logged 62.4 kg."),
+        say("", call("log_weigh_in", waist_cm=80.0)),
+        say("Added an 80 cm waist to today's weigh-in."),
+    )
+    stream(api, client, "62.4 kg this morning")
+    stream(api, client, "waist is 80 cm")
+    rows = {(w.weight_kg, w.waist_cm) for w in weigh_ins_of(api)}
+    assert rows == {(62.4, None), (62.4, 80.0)}
+
+
+def test_waist_with_no_weight_today_asks_for_the_weight(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    api = user(client, db, accounts=False)
+    api.assign("chat")
+    install(
+        monkeypatch,
+        say("", call("log_weigh_in", waist_cm=80.0)),
+        say("What's your weight today? I'll add the waist to it."),
+    )
+    events = stream(api, client, "waist 80 cm")
+    assert weigh_ins_of(api) == []
+    results = [e for e in events if e.get("type") == "TOOL_CALL_RESULT"]
+    assert results and "todays weight with waist" in results[0]["content"]
+
+
 def test_body_fat_with_no_weight_today_asks_for_the_weight(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:

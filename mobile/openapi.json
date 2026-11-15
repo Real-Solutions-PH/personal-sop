@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
+  "info": { "title": "x", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -36680,6 +36680,17 @@
             ],
             "title": "Body Fat Pct"
           },
+          "waist_cm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 300.0,
+                "exclusiveMinimum": 0.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Waist Cm"
+          },
           "note": {
             "anyOf": [
               { "type": "string", "maxLength": 280 },
@@ -36719,6 +36730,17 @@
             ],
             "title": "Body Fat Pct"
           },
+          "waist_cm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 300.0,
+                "exclusiveMinimum": 0.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Waist Cm"
+          },
           "prev_kg": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Prev Kg"
@@ -36747,6 +36769,10 @@
           "body_fat_pct": {
             "anyOf": [{ "type": "number" }, { "type": "null" }],
             "title": "Body Fat Pct"
+          },
+          "waist_cm": {
+            "anyOf": [{ "type": "number" }, { "type": "null" }],
+            "title": "Waist Cm"
           },
           "note": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -36795,6 +36821,17 @@
               { "type": "null" }
             ],
             "title": "Body Fat Pct"
+          },
+          "waist_cm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "exclusiveMaximum": 300.0,
+                "exclusiveMinimum": 0.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Waist Cm"
           },
           "note": {
             "anyOf": [

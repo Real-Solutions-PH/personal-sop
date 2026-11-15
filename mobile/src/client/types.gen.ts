@@ -5164,6 +5164,7 @@ export type WeighInCreate = {
     weight_kg: number;
     measured_at?: (string | null);
     body_fat_pct?: (number | null);
+    waist_cm?: (number | null);
     note?: (string | null);
     id?: (string | null);
 };
@@ -5172,6 +5173,7 @@ export type WeighInPayload = {
     kind: "weighIn";
     kg: number;
     body_fat_pct?: (number | null);
+    waist_cm?: (number | null);
     prev_kg?: (number | null);
 };
 
@@ -5182,6 +5184,7 @@ export type WeighInPublic = {
     measured_at: string;
     weight_kg: number;
     body_fat_pct: (number | null);
+    waist_cm?: (number | null);
     note: (string | null);
 };
 
@@ -5194,6 +5197,7 @@ export type WeighInUpdate = {
     weight_kg?: (number | null);
     measured_at?: (string | null);
     body_fat_pct?: (number | null);
+    waist_cm?: (number | null);
     note?: (string | null);
 };
 

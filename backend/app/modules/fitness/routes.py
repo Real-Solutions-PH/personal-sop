@@ -504,6 +504,7 @@ def log_weigh_in(ctx: CtxDep, body: S.WeighInCreate) -> Any:
         kg=body.weight_kg,
         at=body.measured_at,
         body_fat_pct=body.body_fat_pct,
+        waist_cm=body.waist_cm,
         note=body.note,
         weigh_in_id=body.id,
     )
