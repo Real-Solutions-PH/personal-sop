@@ -2738,6 +2738,55 @@ export const CardioInSchema = {
     title: 'CardioIn'
 } as const;
 
+export const CashCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        amount_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Amount Minor'
+        },
+        paid_on: {
+            type: 'string',
+            format: 'date',
+            title: 'Paid On'
+        },
+        account_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Account Id'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['amount_minor', 'paid_on', 'account_id'],
+    title: 'CashCreate',
+    description: 'A repayment the lender received in hand and records directly.'
+} as const;
+
 export const CatalogModelOutSchema = {
     properties: {
         id: {
@@ -3942,6 +3991,48 @@ export const CsvMappingSchema = {
 debit/credit columns.`
 } as const;
 
+export const CustomInstallmentSchema = {
+    properties: {
+        due: {
+            type: 'string',
+            format: 'date',
+            title: 'Due'
+        },
+        amount_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Amount Minor'
+        }
+    },
+    type: 'object',
+    required: ['due', 'amount_minor'],
+    title: 'CustomInstallment'
+} as const;
+
+export const CustomScheduleSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'custom',
+            title: 'Kind',
+            default: 'custom'
+        },
+        installments: {
+            items: {
+                '$ref': '#/components/schemas/CustomInstallment'
+            },
+            type: 'array',
+            maxItems: 120,
+            minItems: 1,
+            title: 'Installments'
+        }
+    },
+    type: 'object',
+    required: ['installments'],
+    title: 'CustomSchedule'
+} as const;
+
 export const DailySchema = {
     properties: {
         kind: {
@@ -4435,6 +4526,62 @@ export const ErrorResponseSchema = {
     required: ['code', 'message'],
     title: 'ErrorResponse',
     description: 'Standard error envelope returned by all API error responses.'
+} as const;
+
+export const EventOutSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        actor_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Actor Id'
+        },
+        payment_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Payment Id'
+        },
+        amount_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Amount Minor'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'at', 'actor_id', 'payment_id', 'amount_minor', 'text'],
+    title: 'EventOut'
 } as const;
 
 export const EveryNSchema = {
@@ -8430,6 +8577,36 @@ export const InsightsOutSchema = {
     title: 'InsightsOut'
 } as const;
 
+export const InstallmentOutSchema = {
+    properties: {
+        n: {
+            type: 'integer',
+            title: 'N'
+        },
+        due: {
+            type: 'string',
+            format: 'date',
+            title: 'Due'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        },
+        paid_minor: {
+            type: 'integer',
+            title: 'Paid Minor'
+        },
+        state: {
+            type: 'string',
+            enum: ['paid', 'partial', 'overdue', 'due', 'upcoming'],
+            title: 'State'
+        }
+    },
+    type: 'object',
+    required: ['n', 'due', 'amount_minor', 'paid_minor', 'state'],
+    title: 'InstallmentOut'
+} as const;
+
 export const ItemCreateSchema = {
     properties: {
         title: {
@@ -9676,6 +9853,292 @@ export const LiveStateSchema = {
     type: 'object',
     required: ['live'],
     title: 'LiveState'
+} as const;
+
+export const LoanCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        borrower_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Borrower Id'
+        },
+        principal_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Principal Minor'
+        },
+        interest_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 0,
+            title: 'Interest Minor',
+            default: 0
+        },
+        purpose: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 120
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Purpose'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        log_outlay: {
+            type: 'boolean',
+            title: 'Log Outlay',
+            default: false
+        },
+        schedule: {
+            oneOf: [
+                {
+                    '$ref': '#/components/schemas/app__modules__shared_finance__schema__MonthlySchedule'
+                },
+                {
+                    '$ref': '#/components/schemas/CustomSchedule'
+                }
+            ],
+            title: 'Schedule',
+            discriminator: {
+                propertyName: 'kind',
+                mapping: {
+                    custom: '#/components/schemas/CustomSchedule',
+                    monthly: '#/components/schemas/app__modules__shared_finance__schema__MonthlySchedule'
+                }
+            }
+        }
+    },
+    type: 'object',
+    required: ['borrower_id', 'principal_minor', 'schedule'],
+    title: 'LoanCreate',
+    description: "A lender's new loan to a person they are connected with."
+} as const;
+
+export const LoanOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        role: {
+            type: 'string',
+            enum: ['lender', 'borrower'],
+            title: 'Role'
+        },
+        status: {
+            type: 'string',
+            enum: ['invited', 'active', 'declined', 'cancelled', 'paid'],
+            title: 'Status'
+        },
+        lender: {
+            '$ref': '#/components/schemas/PersonOut'
+        },
+        borrower: {
+            '$ref': '#/components/schemas/PersonOut'
+        },
+        principal_minor: {
+            type: 'integer',
+            title: 'Principal Minor'
+        },
+        interest_minor: {
+            type: 'integer',
+            title: 'Interest Minor'
+        },
+        total_minor: {
+            type: 'integer',
+            title: 'Total Minor'
+        },
+        currency: {
+            type: 'string',
+            title: 'Currency'
+        },
+        purpose: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Purpose'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        outlay_record_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Outlay Record Id'
+        },
+        schedule: {
+            additionalProperties: true,
+            type: 'object',
+            title: 'Schedule'
+        },
+        installments: {
+            items: {
+                '$ref': '#/components/schemas/InstallmentOut'
+            },
+            type: 'array',
+            title: 'Installments'
+        },
+        paid_minor: {
+            type: 'integer',
+            title: 'Paid Minor'
+        },
+        pending_minor: {
+            type: 'integer',
+            title: 'Pending Minor'
+        },
+        remaining_minor: {
+            type: 'integer',
+            title: 'Remaining Minor'
+        },
+        overdue_minor: {
+            type: 'integer',
+            title: 'Overdue Minor'
+        },
+        next_due: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/InstallmentOut'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        },
+        payments: {
+            items: {
+                '$ref': '#/components/schemas/PaymentOut'
+            },
+            type: 'array',
+            title: 'Payments'
+        },
+        events: {
+            items: {
+                '$ref': '#/components/schemas/EventOut'
+            },
+            type: 'array',
+            title: 'Events'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        responded_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Responded At'
+        },
+        closed_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Closed At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'role', 'status', 'lender', 'borrower', 'principal_minor', 'interest_minor', 'total_minor', 'currency', 'purpose', 'account_id', 'outlay_record_id', 'schedule', 'installments', 'paid_minor', 'pending_minor', 'remaining_minor', 'overdue_minor', 'next_due', 'payments', 'events', 'created_at', 'responded_at', 'closed_at'],
+    title: 'LoanOut'
+} as const;
+
+export const LoanRespondSchema = {
+    properties: {
+        accept: {
+            type: 'boolean',
+            title: 'Accept'
+        }
+    },
+    type: 'object',
+    required: ['accept'],
+    title: 'LoanRespond'
+} as const;
+
+export const LoansOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/LoanOut'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        },
+        owed_to_me_minor: {
+            type: 'integer',
+            title: 'Owed To Me Minor'
+        },
+        i_owe_minor: {
+            type: 'integer',
+            title: 'I Owe Minor'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count', 'owed_to_me_minor', 'i_owe_minor'],
+    title: 'LoansOut'
 } as const;
 
 export const LogInSchema = {
@@ -11702,35 +12165,6 @@ export const MonthlySchema = {
     title: 'Monthly'
 } as const;
 
-export const MonthlyScheduleSchema = {
-    properties: {
-        kind: {
-            type: 'string',
-            const: 'monthly',
-            title: 'Kind'
-        },
-        day: {
-            type: 'integer',
-            maximum: 31,
-            minimum: 1,
-            title: 'Day'
-        },
-        every: {
-            type: 'integer',
-            maximum: 24,
-            minimum: 1,
-            title: 'Every',
-            default: 1
-        }
-    },
-    type: 'object',
-    required: ['kind', 'day'],
-    title: 'MonthlySchedule',
-    description: `Day \`\`day\`\` of every \`\`every\`\` months, counted from the first such day
-on or after the start. A day past a month's end (31 in April, 29–31 in
-February) is that month's last day, so 31 means "the last day".`
-} as const;
-
 export const MostMissedOutSchema = {
     properties: {
         day: {
@@ -12940,6 +13374,237 @@ export const PayloadInSchema = {
     title: 'PayloadIn'
 } as const;
 
+export const PaymentCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        amount_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Amount Minor'
+        },
+        paid_on: {
+            type: 'string',
+            format: 'date',
+            title: 'Paid On'
+        },
+        account_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Account Id'
+        },
+        proof_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Proof Media Id'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['amount_minor', 'paid_on', 'account_id'],
+    title: 'PaymentCreate',
+    description: "The borrower's repayment, sent for the lender to confirm."
+} as const;
+
+export const PaymentDecideSchema = {
+    properties: {
+        accept: {
+            type: 'boolean',
+            title: 'Accept'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        }
+    },
+    type: 'object',
+    required: ['accept'],
+    title: 'PaymentDecide'
+} as const;
+
+export const PaymentOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['transfer', 'cash'],
+            title: 'Kind'
+        },
+        status: {
+            type: 'string',
+            enum: ['sent', 'accepted', 'rejected', 'withdrawn'],
+            title: 'Status'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        },
+        paid_on: {
+            type: 'string',
+            format: 'date',
+            title: 'Paid On'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        },
+        by_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'By Id'
+        },
+        proof_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Proof Media Id'
+        },
+        proof_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Proof Url'
+        },
+        proof_preview_url: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Proof Preview Url'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        record_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Record Id'
+        },
+        decided_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Decided At'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'status', 'amount_minor', 'paid_on', 'note', 'by_id', 'proof_media_id', 'account_id', 'record_id', 'decided_at', 'reason', 'created_at'],
+    title: 'PaymentOut'
+} as const;
+
 export const PeoplePublicSchema = {
     properties: {
         data: {
@@ -13140,6 +13805,46 @@ export const PersonBriefSchema = {
     type: 'object',
     required: ['id', 'name', 'handle', 'accent', 'photo_media_id', 'verified'],
     title: 'PersonBrief'
+} as const;
+
+export const PersonOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        handle: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Handle'
+        },
+        photo_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Media Id'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name'],
+    title: 'PersonOut'
 } as const;
 
 export const PersonPublicSchema = {
@@ -13457,7 +14162,7 @@ export const PlannedCreateSchema = {
                     '$ref': '#/components/schemas/DailySchedule'
                 },
                 {
-                    '$ref': '#/components/schemas/MonthlySchedule'
+                    '$ref': '#/components/schemas/app__modules__finance__schema__MonthlySchedule'
                 },
                 {
                     '$ref': '#/components/schemas/SemimonthlySchedule'
@@ -13474,7 +14179,7 @@ export const PlannedCreateSchema = {
                 propertyName: 'kind',
                 mapping: {
                     daily: '#/components/schemas/DailySchedule',
-                    monthly: '#/components/schemas/MonthlySchedule',
+                    monthly: '#/components/schemas/app__modules__finance__schema__MonthlySchedule',
                     once: '#/components/schemas/OnceSchedule',
                     semimonthly: '#/components/schemas/SemimonthlySchedule',
                     weekly: '#/components/schemas/WeeklySchedule',
@@ -13694,7 +14399,7 @@ export const PlannedFieldsSchema = {
                             '$ref': '#/components/schemas/DailySchedule'
                         },
                         {
-                            '$ref': '#/components/schemas/MonthlySchedule'
+                            '$ref': '#/components/schemas/app__modules__finance__schema__MonthlySchedule'
                         },
                         {
                             '$ref': '#/components/schemas/SemimonthlySchedule'
@@ -13710,7 +14415,7 @@ export const PlannedFieldsSchema = {
                         propertyName: 'kind',
                         mapping: {
                             daily: '#/components/schemas/DailySchedule',
-                            monthly: '#/components/schemas/MonthlySchedule',
+                            monthly: '#/components/schemas/app__modules__finance__schema__MonthlySchedule',
                             once: '#/components/schemas/OnceSchedule',
                             semimonthly: '#/components/schemas/SemimonthlySchedule',
                             weekly: '#/components/schemas/WeeklySchedule',
@@ -24859,6 +25564,35 @@ export const app__modules__finance__schema__MessagePublicSchema = {
     title: 'MessagePublic'
 } as const;
 
+export const app__modules__finance__schema__MonthlyScheduleSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'monthly',
+            title: 'Kind'
+        },
+        day: {
+            type: 'integer',
+            maximum: 31,
+            minimum: 1,
+            title: 'Day'
+        },
+        every: {
+            type: 'integer',
+            maximum: 24,
+            minimum: 1,
+            title: 'Every',
+            default: 1
+        }
+    },
+    type: 'object',
+    required: ['kind', 'day'],
+    title: 'MonthlySchedule',
+    description: `Day \`\`day\`\` of every \`\`every\`\` months, counted from the first such day
+on or after the start. A day past a month's end (31 in April, 29–31 in
+February) is that month's last day, so 31 means "the last day".`
+} as const;
+
 export const app__modules__finance__schema__SettingsPublicSchema = {
     properties: {
         id: {
@@ -25671,6 +26405,37 @@ export const app__modules__habits__schema__TodayPublicSchema = {
     type: 'object',
     required: ['day', 'habits', 'routines', 'due', 'done', 'timer'],
     title: 'TodayPublic'
+} as const;
+
+export const app__modules__shared_finance__schema__MonthlyScheduleSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            const: 'monthly',
+            title: 'Kind',
+            default: 'monthly'
+        },
+        count: {
+            type: 'integer',
+            maximum: 120,
+            minimum: 1,
+            title: 'Count'
+        },
+        start: {
+            type: 'string',
+            format: 'date',
+            title: 'Start'
+        },
+        day: {
+            type: 'integer',
+            maximum: 31,
+            minimum: 1,
+            title: 'Day'
+        }
+    },
+    type: 'object',
+    required: ['count', 'start', 'day'],
+    title: 'MonthlySchedule'
 } as const;
 
 export const app__modules__social__schema__MessageCreateSchema = {

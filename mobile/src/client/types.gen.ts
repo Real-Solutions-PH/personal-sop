@@ -356,6 +356,17 @@ export type app__modules__finance__schema__MessagePublic = {
     version: number;
 };
 
+/**
+ * Day ``day`` of every ``every`` months, counted from the first such day
+ * on or after the start. A day past a month's end (31 in April, 29–31 in
+ * February) is that month's last day, so 31 means "the last day".
+ */
+export type app__modules__finance__schema__MonthlySchedule = {
+    kind: "monthly";
+    day: number;
+    every?: number;
+};
+
 export type app__modules__finance__schema__SettingsPublic = {
     id: string;
     default_account_id: (string | null);
@@ -509,6 +520,13 @@ export type app__modules__habits__schema__TodayPublic = {
     due: number;
     done: number;
     timer: (TimerPublic | null);
+};
+
+export type app__modules__shared_finance__schema__MonthlySchedule = {
+    kind?: "monthly";
+    count: number;
+    start: string;
+    day: number;
 };
 
 export type app__modules__social__schema__MessageCreate = {
@@ -948,6 +966,17 @@ export type CardPublic = {
     log?: Array<WriteLogPublic>;
 };
 
+/**
+ * A repayment the lender received in hand and records directly.
+ */
+export type CashCreate = {
+    id?: (string | null);
+    amount_minor: number;
+    paid_on: string;
+    account_id: string;
+    note?: (string | null);
+};
+
 export type CatalogModelOut = {
     id: string;
     label: string;
@@ -1186,6 +1215,16 @@ export type CsvMapping = {
     date_format?: (string | null);
 };
 
+export type CustomInstallment = {
+    due: string;
+    amount_minor: number;
+};
+
+export type CustomSchedule = {
+    kind?: "custom";
+    installments: Array<CustomInstallment>;
+};
+
 export type Daily = {
     kind: "daily";
 };
@@ -1311,6 +1350,15 @@ export type ErrorResponse = {
     code: string;
     message: string;
     details?: (unknown | null);
+};
+
+export type EventOut = {
+    kind: string;
+    at: string;
+    actor_id: string;
+    payment_id: (string | null);
+    amount_minor: (number | null);
+    text: (string | null);
 };
 
 export type EveryN = {
@@ -2067,6 +2115,16 @@ export type InsightsOut = {
     data: Array<Insight>;
 };
 
+export type InstallmentOut = {
+    n: number;
+    due: string;
+    amount_minor: number;
+    paid_minor: number;
+    state: 'paid' | 'partial' | 'overdue' | 'due' | 'upcoming';
+};
+
+export type state = 'paid' | 'partial' | 'overdue' | 'due' | 'upcoming';
+
 export type ItemCreate = {
     title: string;
     description?: (string | null);
@@ -2295,6 +2353,64 @@ export type kind11 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
+};
+
+/**
+ * A lender's new loan to a person they are connected with.
+ */
+export type LoanCreate = {
+    id?: (string | null);
+    borrower_id: string;
+    principal_minor: number;
+    interest_minor?: number;
+    purpose?: (string | null);
+    account_id?: (string | null);
+    log_outlay?: boolean;
+    schedule: (app__modules__shared_finance__schema__MonthlySchedule | CustomSchedule);
+};
+
+export type LoanOut = {
+    id: string;
+    role: 'lender' | 'borrower';
+    status: 'invited' | 'active' | 'declined' | 'cancelled' | 'paid';
+    lender: PersonOut;
+    borrower: PersonOut;
+    principal_minor: number;
+    interest_minor: number;
+    total_minor: number;
+    currency: string;
+    purpose: (string | null);
+    account_id: (string | null);
+    outlay_record_id: (string | null);
+    schedule: {
+        [key: string]: unknown;
+    };
+    installments: Array<InstallmentOut>;
+    paid_minor: number;
+    pending_minor: number;
+    remaining_minor: number;
+    overdue_minor: number;
+    next_due: (InstallmentOut | null);
+    payments: Array<PaymentOut>;
+    events: Array<EventOut>;
+    created_at: string;
+    responded_at: (string | null);
+    closed_at: (string | null);
+};
+
+export type role2 = 'lender' | 'borrower';
+
+export type status5 = 'invited' | 'active' | 'declined' | 'cancelled' | 'paid';
+
+export type LoanRespond = {
+    accept: boolean;
+};
+
+export type LoansOut = {
+    data: Array<LoanOut>;
+    count: number;
+    owed_to_me_minor: number;
+    i_owe_minor: number;
 };
 
 export type LogIn = {
@@ -2559,7 +2675,7 @@ export type MediaWithUrl = {
 
 export type kind13 = 'image' | 'video' | 'audio' | 'file';
 
-export type state = 'pending' | 'ready' | 'rejected';
+export type state2 = 'pending' | 'ready' | 'rejected';
 
 export type MemberSettings = {
     muted?: (boolean | null);
@@ -2632,7 +2748,7 @@ export type MissAnalysisOut = {
     on_target: boolean;
 };
 
-export type state2 = 'celebrate' | 'analysis';
+export type state3 = 'celebrate' | 'analysis';
 
 export type source7 = 'fern' | 'rules' | 'none';
 
@@ -2686,17 +2802,6 @@ export type ModulePrefUpdate = {
 export type Monthly = {
     kind: "monthly";
     day: number;
-};
-
-/**
- * Day ``day`` of every ``every`` months, counted from the first such day
- * on or after the start. A day past a month's end (31 in April, 29–31 in
- * February) is that month's last day, so 31 means "the last day".
- */
-export type MonthlySchedule = {
-    kind: "monthly";
-    day: number;
-    every?: number;
 };
 
 export type MostMissedOut = {
@@ -2826,7 +2931,7 @@ export type OccurrenceOut = {
     record_id: (string | null);
 };
 
-export type status5 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
+export type status6 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
 
 export type OccurrenceRef = {
     planned_id: string;
@@ -2919,7 +3024,7 @@ export type OverdueTask = {
 
 export type priority = 'none' | 'low' | 'medium' | 'high';
 
-export type status6 = 'open' | 'done' | 'deleted';
+export type status7 = 'open' | 'done' | 'deleted';
 
 export type parse_state = 'parsed' | 'pending';
 
@@ -2952,6 +3057,46 @@ export type PausePublic = {
 export type PayloadIn = {
     payload: (ExpensePayload | IncomePayload | TransferPayload | PlannedPayload | TaskPayload | TaskCompletePayload | HabitLogPayload | HabitCreatePayload | RoutineStartPayload | WorkoutPayload | WeighInPayload | MealPayload | JournalPayload | PhotoPayload | CommandPayload);
 };
+
+/**
+ * The borrower's repayment, sent for the lender to confirm.
+ */
+export type PaymentCreate = {
+    id?: (string | null);
+    amount_minor: number;
+    paid_on: string;
+    account_id: string;
+    proof_media_id?: (string | null);
+    note?: (string | null);
+};
+
+export type PaymentDecide = {
+    accept: boolean;
+    account_id?: (string | null);
+    reason?: (string | null);
+};
+
+export type PaymentOut = {
+    id: string;
+    kind: 'transfer' | 'cash';
+    status: 'sent' | 'accepted' | 'rejected' | 'withdrawn';
+    amount_minor: number;
+    paid_on: string;
+    note: (string | null);
+    by_id: string;
+    proof_media_id: (string | null);
+    proof_url?: (string | null);
+    proof_preview_url?: (string | null);
+    account_id: (string | null);
+    record_id: (string | null);
+    decided_at: (string | null);
+    reason: (string | null);
+    created_at: string;
+};
+
+export type kind15 = 'transfer' | 'cash';
+
+export type status8 = 'sent' | 'accepted' | 'rejected' | 'withdrawn';
 
 export type PeoplePublic = {
     data: Array<PersonPublic>;
@@ -3000,6 +3145,13 @@ export type PersonBrief = {
 
 export type accent = 'hab' | 'tsk' | 'fit' | 'fin' | 'life' | 'primary';
 
+export type PersonOut = {
+    id: string;
+    name: string;
+    handle?: (string | null);
+    photo_media_id?: (string | null);
+};
+
 export type PersonPublic = {
     id: string;
     name: string;
@@ -3030,9 +3182,9 @@ export type PhaseOut = {
     item: (ItemRef | null);
 };
 
-export type status7 = 'running' | 'paused' | 'waiting' | 'ended';
+export type status9 = 'running' | 'paused' | 'waiting' | 'ended';
 
-export type kind15 = 'focus' | 'break';
+export type kind16 = 'focus' | 'break';
 
 export type PhotoPayload = {
     kind: "photo";
@@ -3054,7 +3206,7 @@ export type PlannedCreate = {
     account_id: string;
     to_account_id?: (string | null);
     category_id?: (string | null);
-    schedule: (OnceSchedule | DailySchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule | YearlySchedule);
+    schedule: (OnceSchedule | DailySchedule | app__modules__finance__schema__MonthlySchedule | SemimonthlySchedule | WeeklySchedule | YearlySchedule);
     start?: (string | null);
     end_rule?: ((EndNever | EndDate | EndCount) | null);
     auto_log?: (boolean | null);
@@ -3075,7 +3227,7 @@ export type PlannedFields = {
     account_id?: (string | null);
     to_account_id?: (string | null);
     category_id?: (string | null);
-    schedule?: ((OnceSchedule | DailySchedule | MonthlySchedule | SemimonthlySchedule | WeeklySchedule | YearlySchedule) | null);
+    schedule?: ((OnceSchedule | DailySchedule | app__modules__finance__schema__MonthlySchedule | SemimonthlySchedule | WeeklySchedule | YearlySchedule) | null);
     start?: (string | null);
     end_rule?: ((EndNever | EndDate | EndCount) | null);
     auto_log?: (boolean | null);
@@ -4185,7 +4337,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind16 = 'image' | 'video' | 'text' | 'progress';
+export type kind17 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -4274,7 +4426,7 @@ export type SyncOp = {
     at?: (string | null);
 };
 
-export type kind17 = 'upsert' | 'delete' | 'action';
+export type kind18 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -4291,7 +4443,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status8 = 'applied' | 'conflict' | 'rejected';
+export type status10 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -4589,7 +4741,7 @@ export type TodayRoutine = {
     run: (RunPublic | null);
 };
 
-export type state3 = 'start' | 'resume' | 'done';
+export type state4 = 'start' | 'resume' | 'done';
 
 export type ToggleSetOut = {
     completed: boolean;
@@ -4706,7 +4858,7 @@ export type UsageEventIn = {
     detail?: (string | null);
 };
 
-export type kind18 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
+export type kind19 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
 
 export type UsageOut = {
     month: string;
@@ -5025,7 +5177,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind19 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind20 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;
@@ -7112,6 +7264,62 @@ export type RolesReadRoleData = {
 };
 
 export type RolesReadRoleResponse = (RolePublic);
+
+export type SharedFinanceListLoansResponse = (LoansOut);
+
+export type SharedFinanceCreateLoanData = {
+    requestBody: LoanCreate;
+};
+
+export type SharedFinanceCreateLoanResponse = (LoanOut);
+
+export type SharedFinanceGetLoanData = {
+    loanId: string;
+};
+
+export type SharedFinanceGetLoanResponse = (LoanOut);
+
+export type SharedFinanceRespondData = {
+    loanId: string;
+    requestBody: LoanRespond;
+};
+
+export type SharedFinanceRespondResponse = (LoanOut);
+
+export type SharedFinanceCancelData = {
+    loanId: string;
+};
+
+export type SharedFinanceCancelResponse = (LoanOut);
+
+export type SharedFinanceSendPaymentData = {
+    loanId: string;
+    requestBody: PaymentCreate;
+};
+
+export type SharedFinanceSendPaymentResponse = (LoanOut);
+
+export type SharedFinanceWithdrawPaymentData = {
+    loanId: string;
+    paymentId: string;
+};
+
+export type SharedFinanceWithdrawPaymentResponse = (LoanOut);
+
+export type SharedFinanceDecidePaymentData = {
+    loanId: string;
+    paymentId: string;
+    requestBody: PaymentDecide;
+};
+
+export type SharedFinanceDecidePaymentResponse = (LoanOut);
+
+export type SharedFinanceRecordCashData = {
+    loanId: string;
+    requestBody: CashCreate;
+};
+
+export type SharedFinanceRecordCashResponse = (LoanOut);
 
 export type SocialReadMeResponse = (PersonPublic);
 
