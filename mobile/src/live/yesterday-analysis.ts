@@ -31,9 +31,11 @@ export interface YesterdayAnalysis {
 
 /** One model call: longer than an ordinary request. */
 const ANALYSIS_TIMEOUT_MS = 45_000
-/** Kept for the whole day, page shown or not: a prewarmed answer must
- * outlive the hours before the person opens the page. */
-const ANALYSIS_GC_MS = 26 * 60 * 60_000
+/** Kept until the prewarm drops it on a new day, page shown or not: a
+ * prewarmed answer must outlive the hours before the person opens the page.
+ * Infinity, not 26 h: a finite gcTime queues a timer that holds the JS
+ * process open (CI's jest run never exited), while Infinity queues none. */
+const ANALYSIS_GC_MS = Number.POSITIVE_INFINITY
 
 export async function fetchYesterdayAnalysis(): Promise<YesterdayAnalysis> {
   // Loaded on use, so prototype mode never builds auth.
