@@ -174,6 +174,8 @@ export type Payload =
   | {
       kind: "weighIn"
       kg: number
+      bodyFatPct?: number
+      waistCm?: number
       prevKg?: number
     }
   | {

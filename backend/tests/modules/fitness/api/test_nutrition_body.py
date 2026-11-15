@@ -380,6 +380,33 @@ def test_weigh_ins_crud_and_trend(client: TestClient, db: Session) -> None:
     )
 
 
+def test_weigh_in_carries_an_optional_waist(client: TestClient, db: Session) -> None:
+    _, h = signed_in(db)
+    w = ok(
+        client.post(
+            f"{API}/weigh-ins",
+            headers=h,
+            json={"weight_kg": 63.6, "body_fat_pct": 20, "waist_cm": 81.54},
+        )
+    )
+    assert (w["body_fat_pct"], w["waist_cm"]) == (20.0, 81.5)
+    upd = ok(
+        client.patch(f"{API}/weigh-ins/{w['id']}", headers=h, json={"waist_cm": 80})
+    )
+    assert upd["waist_cm"] == 80.0
+    bare = ok(client.post(f"{API}/weigh-ins", headers=h, json={"weight_kg": 63.4}))
+    assert bare["waist_cm"] is None
+    for bad in (0, 300):
+        assert (
+            client.post(
+                f"{API}/weigh-ins",
+                headers=h,
+                json={"weight_kg": 63.4, "waist_cm": bad},
+            ).status_code
+            == 422
+        )
+
+
 def test_writes_mark_the_day_dirty(db: Session) -> None:
     from app.modules.fitness import services
 

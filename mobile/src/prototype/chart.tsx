@@ -604,6 +604,7 @@ export function FitnessTrend({
   height = 160,
   labels,
   fmt = (n: number) => num(n),
+  label = "Trend chart",
 }: {
   line: (number | undefined)[]
   dots?: (number | undefined)[]
@@ -611,6 +612,8 @@ export function FitnessTrend({
   height?: number
   labels?: [string, string]
   fmt?: (n: number) => string
+  /** What the chart shows, for screen readers. */
+  label?: string
 }) {
   const t = useTheme(),
     all = [
@@ -670,7 +673,7 @@ export function FitnessTrend({
             viewBox={`0 0 300 ${height}`}
             width="100%"
             height={height}
-            accessibilityLabel="Trend chart"
+            accessibilityLabel={label}
           >
             {ticks.map((v) => (
               <G key={v}>

@@ -396,6 +396,7 @@ class WeighEditArgs(BaseModel):
     )
     kg: Annotated[float, Field(gt=20, le=500)] | None = None
     body_fat_pct: Annotated[float, Field(gt=0, lt=100)] | None = None
+    waist_cm: Annotated[float, Field(gt=20, lt=300)] | None = None
     day: date | None = Field(default=None, description="Move it to this day.")
     note: Annotated[str, Field(max_length=280)] | None = None
 
@@ -605,6 +606,7 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
                     "day": day(x.measured_at).isoformat(),
                     "kg": x.weight_kg,
                     **({"body_fat_pct": x.body_fat_pct} if x.body_fat_pct else {}),
+                    **({"waist_cm": x.waist_cm} if x.waist_cm else {}),
                 }
                 for x in ports.fitness.recent_weigh_ins(ctx, days=a.days)
             ]
@@ -1167,6 +1169,8 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             ch["weight_kg"] = a.kg
         if a.body_fat_pct is not None:
             ch["body_fat_pct"] = a.body_fat_pct
+        if a.waist_cm is not None:
+            ch["waist_cm"] = a.waist_cm
         if a.note is not None:
             ch["note"] = a.note
         if a.day:
@@ -1182,6 +1186,7 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         before = {
             "weight_kg": x.weight_kg,
             "body_fat_pct": x.body_fat_pct,
+            "waist_cm": x.waist_cm,
             "note": x.note,
             "day": when,
         }
@@ -1296,7 +1301,7 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         (
             edit_weigh_in,
             WeighEditArgs,
-            "Change a weigh-in's weight, body fat, day or note.",
+            "Change a weigh-in's weight, body fat, waist, day or note.",
         ),
         (
             set_macro_target,
