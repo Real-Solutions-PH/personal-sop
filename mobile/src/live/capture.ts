@@ -189,6 +189,8 @@ export const THINKING_LONG_MS = 10_000
  * RESUME_EVERY_MS while the server says it is still being written. */
 const RESUME_STEPS_MS = [2_000, 4_000, 8_000]
 const RESUME_EVERY_MS = 10_000
+const STUCK_FIRST_MS = 15_000
+const STUCK_MAX_MS = 5 * 60_000
 /** Reads that fail (or answer nothing) for this long give the reply up. */
 export const RESUME_CAP_MS = 300_000
 
@@ -254,6 +256,9 @@ async function errorCode(res: Response): Promise<string | undefined> {
 
 export function createLiveCapture(deps: LiveCaptureDeps) {
   const { cats } = deps
+  // resumeStuck's backoff between syncs while a capture stays stuck.
+  let stuckGapMs = 0
+  let stuckNextAt = 0
 
   /** The AI spend meter is a REST read (sync's ai_settings row carries no
    * meter): this month's spend and calls from GET /capture/settings. */
@@ -872,7 +877,21 @@ export function createLiveCapture(deps: LiveCaptureDeps) {
           !streamingCaptures.has(c.id) &&
           Date.now() - new Date(c.startedAt ?? c.at).getTime() > 60_000,
       )
-      if (stale && deps.online()) deps.kick()
+      // Asked every 5 s while the drawer is mounted. A capture the server
+      // never finishes kept a sync going every 5 s for as long as it stayed
+      // stuck: ask again 15 s, 30 s, 1 min … up to 5 min apart instead.
+      if (!stale) {
+        stuckGapMs = 0
+        stuckNextAt = 0
+        return
+      }
+      if (!deps.online() || Date.now() < stuckNextAt) return
+      stuckGapMs = Math.min(
+        STUCK_MAX_MS,
+        stuckGapMs ? stuckGapMs * 2 : STUCK_FIRST_MS,
+      )
+      stuckNextAt = Date.now() + stuckGapMs
+      deps.kick()
     },
     quickAdd(text, payload, target) {
       // Offline (or the server can't be reached): the record goes straight
