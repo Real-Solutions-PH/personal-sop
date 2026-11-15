@@ -199,9 +199,19 @@ export function useLiveRows(now: number): LiveRow[] {
  * when it counts something smaller than the whole activity. */
 const clockText = (r: LiveRow) => fmtDuration(Math.round(r.clock))
 
+/** Whether anything could show a row: only then does the bar's clock tick.
+ * It sits on every tab, so a one-second clock with nothing running kept
+ * the whole bar re-rendering all day. */
+export function useAnythingLive() {
+  const live = liveStore.use((s) => !!s.live),
+    run = RL.runLiveStore.use((s) => !!s.active),
+    focus = focusStore.use((s) => !!FO.current(s))
+  return live || run || focus
+}
+
 export function LiveBar({ path }: { path: string }) {
   const t = useTheme(),
-    now = useNow(),
+    now = useNow(useAnythingLive() ? 1000 : null),
     // The screen of the thing itself already shows all of this.
     rows = useLiveRows(now).filter((r) => r.href !== path)
   if (!rows.length) return null
