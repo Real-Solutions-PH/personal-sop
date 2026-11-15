@@ -10478,7 +10478,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/BudgetCreate" }
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__finance__schema__BudgetCreate"
+              }
             }
           }
         },
@@ -12705,6 +12707,398 @@
         }
       }
     },
+    "/api/v1/finance/shared/groups": {
+      "get": {
+        "tags": ["shared-finance"],
+        "summary": "List Groups",
+        "description": "My shared savings goals and shared budgets (joined or invited).",
+        "operationId": "shared-finance-list_groups",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GroupsOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/finance/shared/groups/respond": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Respond Group",
+        "description": "Join (or decline) a goal or budget I was invited to.",
+        "operationId": "shared-finance-respond_group",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GroupRespond" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Answered" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/finance/shared/goals": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Create Goal",
+        "operationId": "shared-finance-create_goal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__shared_finance__schema__GoalCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoalOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/finance/shared/goals/{goal_id}": {
+      "get": {
+        "tags": ["shared-finance"],
+        "summary": "Get Goal",
+        "operationId": "shared-finance-get_goal",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "goal_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Goal Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoalOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/goals/{goal_id}/entries": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Add Entry",
+        "description": "Put money in (counts at once) or ask to take some out (another\nmember okays it).",
+        "operationId": "shared-finance-add_entry",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "goal_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Goal Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/EntryBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoalOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/goals/{goal_id}/entries/{entry_id}/withdraw": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Withdraw Entry",
+        "operationId": "shared-finance-withdraw_entry",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "goal_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Goal Id" }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoalOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/goals/{goal_id}/entries/{entry_id}/decide": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Decide Entry",
+        "operationId": "shared-finance-decide_entry",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "goal_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Goal Id" }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Entry Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DecideBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GoalOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/budgets": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Create Budget",
+        "operationId": "shared-finance-create_budget",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__shared_finance__schema__BudgetCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/finance/shared/budgets/{budget_id}": {
+      "get": {
+        "tags": ["shared-finance"],
+        "summary": "Get Budget",
+        "operationId": "shared-finance-get_budget",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "budget_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Budget Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/budgets/{budget_id}/categories": {
+      "put": {
+        "tags": ["shared-finance"],
+        "summary": "Set Categories",
+        "description": "Which of my own categories count toward the shared budget.",
+        "operationId": "shared-finance-set_categories",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "budget_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Budget Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CategoriesBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
     "/api/v1/capture/settings": {
       "get": {
         "tags": ["capture"],
@@ -14902,7 +15296,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/GoalCreate" }
+              "schema": {
+                "$ref": "#/components/schemas/app__modules__dashboard__schema__GoalCreate"
+              }
             }
           }
         },
@@ -20864,6 +21260,12 @@
         "required": ["value"],
         "title": "AnswerIn"
       },
+      "Answered": {
+        "properties": { "status": { "type": "string", "title": "Status" } },
+        "type": "object",
+        "required": ["status"],
+        "title": "Answered"
+      },
       "ArchiveExercise": {
         "properties": {
           "archived": {
@@ -21310,58 +21712,6 @@
         "required": ["day", "length"],
         "title": "BrokenOut"
       },
-      "BudgetCreate": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 60,
-            "minLength": 1,
-            "title": "Name"
-          },
-          "limit_minor": {
-            "type": "integer",
-            "maximum": 100000000000000.0,
-            "minimum": 1.0,
-            "title": "Limit Minor"
-          },
-          "rollover": {
-            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
-            "title": "Rollover"
-          },
-          "start_date": {
-            "anyOf": [
-              { "type": "string", "format": "date" },
-              { "type": "null" }
-            ],
-            "title": "Start Date"
-          },
-          "archived": {
-            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
-            "title": "Archived"
-          },
-          "category_ids": {
-            "anyOf": [
-              {
-                "items": { "type": "string", "format": "uuid" },
-                "type": "array",
-                "maxItems": 100
-              },
-              { "type": "null" }
-            ],
-            "title": "Category Ids"
-          },
-          "id": {
-            "anyOf": [
-              { "type": "string", "format": "uuid" },
-              { "type": "null" }
-            ],
-            "title": "Id"
-          }
-        },
-        "type": "object",
-        "required": ["name", "limit_minor"],
-        "title": "BudgetCreate"
-      },
       "BudgetDetail": {
         "properties": {
           "view": { "$ref": "#/components/schemas/BudgetViewOut" },
@@ -21425,6 +21775,68 @@
         },
         "type": "object",
         "title": "BudgetFields"
+      },
+      "BudgetOut": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "member"],
+            "title": "Role"
+          },
+          "my_status": {
+            "type": "string",
+            "enum": ["invited", "active", "declined", "left"],
+            "title": "My Status"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "closed"],
+            "title": "Status"
+          },
+          "name": { "type": "string", "title": "Name" },
+          "currency": { "type": "string", "title": "Currency" },
+          "limit_minor": { "type": "integer", "title": "Limit Minor" },
+          "month": { "type": "string", "title": "Month" },
+          "spent_minor": { "type": "integer", "title": "Spent Minor" },
+          "my_category_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "title": "My Category Ids"
+          },
+          "members": {
+            "items": { "$ref": "#/components/schemas/MemberOut" },
+            "type": "array",
+            "title": "Members"
+          },
+          "events": {
+            "items": { "$ref": "#/components/schemas/GroupEventOut" },
+            "type": "array",
+            "title": "Events"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "my_status",
+          "status",
+          "name",
+          "currency",
+          "limit_minor",
+          "month",
+          "spent_minor",
+          "my_category_ids",
+          "members",
+          "events",
+          "created_at"
+        ],
+        "title": "BudgetOut"
       },
       "BudgetPublic": {
         "properties": {
@@ -21829,6 +22241,18 @@
         "type": "object",
         "required": ["id", "label", "vendor", "kind", "usd_in", "usd_out"],
         "title": "CatalogModelOut"
+      },
+      "CategoriesBody": {
+        "properties": {
+          "category_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Category Ids"
+          }
+        },
+        "type": "object",
+        "title": "CategoriesBody"
       },
       "CategoriesPublic": {
         "properties": {
@@ -22809,6 +23233,21 @@
         ],
         "title": "DayVerdictOut"
       },
+      "DecideBody": {
+        "properties": {
+          "accept": { "type": "boolean", "title": "Accept" },
+          "reason": {
+            "anyOf": [
+              { "type": "string", "maxLength": 280 },
+              { "type": "null" }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": ["accept"],
+        "title": "DecideBody"
+      },
       "DictationOut": {
         "properties": { "text": { "type": "string", "title": "Text" } },
         "type": "object",
@@ -22957,6 +23396,120 @@
         "type": "object",
         "required": ["kind"],
         "title": "EndNever"
+      },
+      "EntryBody": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["deposit", "withdrawal"],
+            "title": "Kind"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "maximum": 100000000000000.0,
+            "minimum": 1.0,
+            "title": "Amount Minor"
+          },
+          "on_date": { "type": "string", "format": "date", "title": "On Date" },
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "note": {
+            "anyOf": [
+              { "type": "string", "maxLength": 280 },
+              { "type": "null" }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": ["kind", "amount_minor", "on_date", "account_id"],
+        "title": "EntryBody"
+      },
+      "EntryOut": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "kind": {
+            "type": "string",
+            "enum": ["deposit", "withdrawal"],
+            "title": "Kind"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["sent", "accepted", "rejected", "withdrawn"],
+            "title": "Status"
+          },
+          "amount_minor": { "type": "integer", "title": "Amount Minor" },
+          "on_date": { "type": "string", "format": "date", "title": "On Date" },
+          "note": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Note"
+          },
+          "by_id": { "type": "string", "format": "uuid", "title": "By Id" },
+          "account_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Account Id"
+          },
+          "record_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Record Id"
+          },
+          "decided_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Decided By"
+          },
+          "reason": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "amount_minor",
+          "on_date",
+          "note",
+          "by_id",
+          "account_id",
+          "record_id",
+          "decided_at",
+          "decided_by",
+          "reason",
+          "created_at"
+        ],
+        "title": "EntryOut"
       },
       "ErrorResponse": {
         "properties": {
@@ -24383,61 +24936,78 @@
         "title": "FxRatePublic",
         "description": "One unit of ``base`` in the user's currency (``quote``), as of the\nlast published reference day."
       },
-      "GoalCreate": {
+      "GoalOut": {
         "properties": {
-          "id": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "member"],
+            "title": "Role"
+          },
+          "my_status": {
+            "type": "string",
+            "enum": ["invited", "active", "declined", "left"],
+            "title": "My Status"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "closed"],
+            "title": "Status"
+          },
+          "name": { "type": "string", "title": "Name" },
+          "currency": { "type": "string", "title": "Currency" },
+          "target_minor": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Target Minor"
+          },
+          "deadline": {
             "anyOf": [
-              { "type": "string", "format": "uuid" },
+              { "type": "string", "format": "date" },
               { "type": "null" }
             ],
-            "title": "Id"
+            "title": "Deadline"
           },
-          "metric": {
+          "balance_minor": { "type": "integer", "title": "Balance Minor" },
+          "pending_minor": { "type": "integer", "title": "Pending Minor" },
+          "members": {
+            "items": { "$ref": "#/components/schemas/MemberOut" },
+            "type": "array",
+            "title": "Members"
+          },
+          "entries": {
+            "items": { "$ref": "#/components/schemas/EntryOut" },
+            "type": "array",
+            "title": "Entries"
+          },
+          "events": {
+            "items": { "$ref": "#/components/schemas/GroupEventOut" },
+            "type": "array",
+            "title": "Events"
+          },
+          "created_at": {
             "type": "string",
-            "maxLength": 64,
-            "minLength": 1,
-            "title": "Metric"
-          },
-          "label": {
-            "type": "string",
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Label"
-          },
-          "target": {
-            "type": "number",
-            "maximum": 1000000000.0,
-            "minimum": -1000000000.0,
-            "title": "Target"
-          },
-          "unit": {
-            "type": "string",
-            "maxLength": 16,
-            "title": "Unit",
-            "default": ""
-          },
-          "comparator": {
-            "type": "string",
-            "enum": ["gte", "lte"],
-            "title": "Comparator",
-            "default": "gte"
-          },
-          "period": {
-            "type": "string",
-            "enum": ["week", "month"],
-            "title": "Period",
-            "default": "week"
-          },
-          "via": {
-            "type": "string",
-            "enum": ["manual", "onboarding", "review"],
-            "title": "Via",
-            "default": "manual"
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
-        "required": ["metric", "label", "target"],
-        "title": "GoalCreate"
+        "required": [
+          "id",
+          "role",
+          "my_status",
+          "status",
+          "name",
+          "currency",
+          "target_minor",
+          "deadline",
+          "balance_minor",
+          "pending_minor",
+          "members",
+          "entries",
+          "events",
+          "created_at"
+        ],
+        "title": "GoalOut"
       },
       "GoalProgressOut": {
         "properties": {
@@ -24643,6 +25213,83 @@
         "type": "object",
         "required": ["name", "member_ids"],
         "title": "GroupCreate"
+      },
+      "GroupEventOut": {
+        "properties": {
+          "kind": { "type": "string", "title": "Kind" },
+          "at": { "type": "string", "format": "date-time", "title": "At" },
+          "actor_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Actor Id"
+          },
+          "entry_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Entry Id"
+          },
+          "amount_minor": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Amount Minor"
+          },
+          "text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "at",
+          "actor_id",
+          "entry_id",
+          "amount_minor",
+          "text"
+        ],
+        "title": "GroupEventOut"
+      },
+      "GroupRespond": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["goal", "budget"],
+            "title": "Kind"
+          },
+          "object_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Object Id"
+          },
+          "accept": { "type": "boolean", "title": "Accept" },
+          "category_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Category Ids"
+          }
+        },
+        "type": "object",
+        "required": ["kind", "object_id", "accept"],
+        "title": "GroupRespond"
+      },
+      "GroupsOut": {
+        "properties": {
+          "goals": {
+            "items": { "$ref": "#/components/schemas/GoalOut" },
+            "type": "array",
+            "title": "Goals"
+          },
+          "budgets": {
+            "items": { "$ref": "#/components/schemas/BudgetOut" },
+            "type": "array",
+            "title": "Budgets"
+          }
+        },
+        "type": "object",
+        "required": ["goals", "budgets"],
+        "title": "GroupsOut"
       },
       "HabitCreate": {
         "properties": {
@@ -27774,6 +28421,25 @@
           "created_at"
         ],
         "title": "MediaWithUrl"
+      },
+      "MemberOut": {
+        "properties": {
+          "person": { "$ref": "#/components/schemas/PersonOut" },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "member"],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["invited", "active", "declined", "left"],
+            "title": "Status"
+          },
+          "amount_minor": { "type": "integer", "title": "Amount Minor" }
+        },
+        "type": "object",
+        "required": ["person", "role", "status", "amount_minor"],
+        "title": "MemberOut"
       },
       "MemberSettings": {
         "properties": {
@@ -36953,6 +37619,62 @@
         "required": ["metric", "label", "days", "points"],
         "title": "SeriesOut"
       },
+      "app__modules__dashboard__schema__GoalCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          },
+          "metric": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Metric"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label"
+          },
+          "target": {
+            "type": "number",
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Target"
+          },
+          "unit": {
+            "type": "string",
+            "maxLength": 16,
+            "title": "Unit",
+            "default": ""
+          },
+          "comparator": {
+            "type": "string",
+            "enum": ["gte", "lte"],
+            "title": "Comparator",
+            "default": "gte"
+          },
+          "period": {
+            "type": "string",
+            "enum": ["week", "month"],
+            "title": "Period",
+            "default": "week"
+          },
+          "via": {
+            "type": "string",
+            "enum": ["manual", "onboarding", "review"],
+            "title": "Via",
+            "default": "manual"
+          }
+        },
+        "type": "object",
+        "required": ["metric", "label", "target"],
+        "title": "GoalCreate"
+      },
       "app__modules__dashboard__schema__ReviewIn": {
         "properties": {
           "done": {
@@ -37035,6 +37757,58 @@
         "type": "object",
         "required": ["text"],
         "title": "AskIn"
+      },
+      "app__modules__finance__schema__BudgetCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "limit_minor": {
+            "type": "integer",
+            "maximum": 100000000000000.0,
+            "minimum": 1.0,
+            "title": "Limit Minor"
+          },
+          "rollover": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Rollover"
+          },
+          "start_date": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Start Date"
+          },
+          "archived": {
+            "anyOf": [{ "type": "boolean" }, { "type": "null" }],
+            "title": "Archived"
+          },
+          "category_ids": {
+            "anyOf": [
+              {
+                "items": { "type": "string", "format": "uuid" },
+                "type": "array",
+                "maxItems": 100
+              },
+              { "type": "null" }
+            ],
+            "title": "Category Ids"
+          },
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": ["name", "limit_minor"],
+        "title": "BudgetCreate"
       },
       "app__modules__finance__schema__MessageCreate": {
         "properties": {
@@ -37668,6 +38442,92 @@
         "type": "object",
         "required": ["day", "habits", "routines", "due", "done", "timer"],
         "title": "TodayPublic"
+      },
+      "app__modules__shared_finance__schema__BudgetCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "limit_minor": {
+            "type": "integer",
+            "maximum": 100000000000000.0,
+            "minimum": 1.0,
+            "title": "Limit Minor"
+          },
+          "member_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Member Ids"
+          },
+          "category_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Category Ids"
+          }
+        },
+        "type": "object",
+        "required": ["name", "limit_minor", "member_ids"],
+        "title": "BudgetCreate",
+        "description": "A monthly budget shared with people the maker is connected with."
+      },
+      "app__modules__shared_finance__schema__GoalCreate": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "target_minor": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100000000000000.0,
+                "minimum": 1.0
+              },
+              { "type": "null" }
+            ],
+            "title": "Target Minor"
+          },
+          "deadline": {
+            "anyOf": [
+              { "type": "string", "format": "date" },
+              { "type": "null" }
+            ],
+            "title": "Deadline"
+          },
+          "member_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Member Ids"
+          }
+        },
+        "type": "object",
+        "required": ["name", "member_ids"],
+        "title": "GoalCreate",
+        "description": "A savings goal shared with people the maker is connected with."
       },
       "app__modules__shared_finance__schema__MonthlySchedule": {
         "properties": {
