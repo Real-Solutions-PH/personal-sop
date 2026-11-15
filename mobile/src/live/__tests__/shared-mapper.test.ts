@@ -335,7 +335,7 @@ it("maps a pulled member row and keeps this phone's proof photo", () => {
       ],
     }),
     L.sharedStore.get(),
-  )
+  ) as L.Loan | null
   expect(pulled).toMatchObject({
     id: L.memberId(MIA, LOAN),
     loanId: LOAN,
