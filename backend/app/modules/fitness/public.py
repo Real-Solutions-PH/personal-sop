@@ -121,10 +121,16 @@ def log_weigh_in(
     kg: float,
     at: datetime | None = None,
     body_fat_pct: float | None = None,
+    waist_cm: float | None = None,
     weigh_in_id: uuid.UUID | None = None,
 ) -> WeighIn:
     return services._weigh_in(
-        ctx, kg=kg, at=at, body_fat_pct=body_fat_pct, weigh_in_id=weigh_in_id
+        ctx,
+        kg=kg,
+        at=at,
+        body_fat_pct=body_fat_pct,
+        waist_cm=waist_cm,
+        weigh_in_id=weigh_in_id,
     )
 
 
@@ -406,6 +412,7 @@ def nutrition_today(ctx: Ctx) -> dict[str, Any]:
                 if latest.body_fat_pct is not None
                 else {}
             ),
+            **({"waist_cm": latest.waist_cm} if latest.waist_cm is not None else {}),
         }
     return out
 
@@ -714,6 +721,7 @@ def weigh_in_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
             "day": ctx.clock.day_of(w.measured_at).isoformat(),
             "kg": w.weight_kg,
             "body_fat_pct": w.body_fat_pct,
+            "waist_cm": w.waist_cm,
         }
         for w in owned_repo.list_rows(
             ctx,

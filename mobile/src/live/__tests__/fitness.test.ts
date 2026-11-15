@@ -529,18 +529,21 @@ describe("store edits become sync ops", () => {
   test("weigh-ins: create, one-field edit, delete", () => {
     const e = engine()
     const seen = new Set<string>()
-    const w = logWeighIn(80.24, undefined, undefined, 18.5)
+    const w = logWeighIn(80.24, undefined, undefined, 18.5, 82.04)
     let ops = step(e, seen)
     expect(upsertOf(ops, w.id)).toEqual({
       measured_at: T0.toISOString(),
       weight_kg: 80.2,
       body_fat_pct: 18.5,
+      waist_cm: 82,
       note: null,
     })
     updateWeighIn(w.id, { note: "after the run" })
     ops = step(e, seen)
     expect(ops).toHaveLength(1)
     expect(upsertOf(ops, w.id)).toEqual({ note: "after the run" })
+    updateWeighIn(w.id, { waistCm: undefined })
+    expect(upsertOf(step(e, seen), w.id)).toEqual({ waist_cm: null })
     deleteWeighIn(w.id)
     expect(names(step(e, seen))).toEqual(["delete:weigh_in"])
   })

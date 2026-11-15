@@ -1,6 +1,10 @@
 import * as A from "@domain/fitness/actions"
 import * as C from "@domain/fitness/calc"
-import type { FitnessSettings, WeighIn } from "@domain/fitness/data"
+import type {
+  FitnessSettings,
+  FitnessState,
+  WeighIn,
+} from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
 import { dayKey } from "@domain/lib/day"
 import { useLocalSearchParams } from "expo-router"
@@ -9,16 +13,18 @@ import {
   ChevronRight,
   Minus,
   Plus,
+  Ruler,
   Scale,
   Settings,
   Target,
 } from "lucide-react-native"
 import { useEffect, useState } from "react"
-import { View } from "react-native"
+import { TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { FLASH_MS, FlashLine, weighInSaved } from "../body-moments"
 import type { WeighStep } from "../body-rewards"
 import { FitnessTrend, Sparkline } from "../chart"
+import { parseAmount } from "../fitness-controls"
 import { MomentCard } from "../moment"
 import { Burst } from "../motion"
 import {
@@ -33,7 +39,7 @@ import {
   Tap,
 } from "../native-kit"
 import { go } from "../navigation"
-import { useTheme } from "../theme"
+import { fonts, useTheme } from "../theme"
 import { Button, DateField, Field, PinnedFooter, Screen, Sheet } from "../ui"
 import { isDay } from "../validation"
 import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
@@ -128,22 +134,28 @@ export function WeighInEditor({
   onLogged?: (step: WeighStep | null) => void
 }) {
   const s = fitStore.use((s) => s),
-    [weight, setWeight] = useState(
-      String(entry?.weightKg ?? C.latestBodyweight(s) ?? 75),
+    [weight, setWeight] = useState<number | undefined>(
+      entry?.weightKg ?? C.latestBodyweight(s) ?? 75,
     ),
     [day, setDay] = useState(
       entry ? dayKey(new Date(entry.measuredAt)) : dayKey(),
     ),
-    [fat, setFat] = useState(String(entry?.bodyFatPct ?? "")),
-    [note, setNote] = useState(entry?.note ?? "")
+    [fat, setFat] = useState<number | undefined>(entry?.bodyFatPct),
+    [waist, setWaist] = useState<number | undefined>(entry?.waistCm),
+    [note, setNote] = useState(entry?.note ?? ""),
+    comp =
+      weight !== undefined && weight > 0 && fat !== undefined && fat > 0
+        ? C.bodyComposition(weight, fat)
+        : undefined
   const save = () => {
     if (
       !isDay(day) ||
-      !(Number(weight) > 0) ||
-      !Number.isFinite(Number(weight)) ||
-      (fat && (!(Number(fat) > 0) || Number(fat) > 100))
+      weight === undefined ||
+      !(weight > 0 && weight < 500) ||
+      (fat !== undefined && !(fat > 0 && fat < 100)) ||
+      (waist !== undefined && !(waist > 0 && waist < 300))
     ) {
-      toast.error("Enter a valid weight, date and body-fat percentage")
+      toast.error("Enter a valid weight, date, body fat and waist")
       return
     }
     const measuredAt =
@@ -154,19 +166,15 @@ export function WeighInEditor({
           : new Date(`${day}T12:00:00`).toISOString()
     if (entry)
       A.updateWeighIn(entry.id, {
-        weightKg: Number(weight),
+        weightKg: weight,
         measuredAt,
         note,
-        bodyFatPct: fat ? Number(fat) : undefined,
+        bodyFatPct: fat,
+        waistCm: waist,
       })
     else {
-      const step = weighInSaved(Number(weight), measuredAt)
-      A.logWeighIn(
-        Number(weight),
-        measuredAt,
-        note,
-        fat ? Number(fat) : undefined,
-      )
+      const step = weighInSaved(weight, measuredAt)
+      A.logWeighIn(weight, measuredAt, note, fat, waist)
       onLogged?.(step)
     }
     onClose()
@@ -177,11 +185,16 @@ export function WeighInEditor({
       open={open}
       onClose={onClose}
     >
-      <Field
-        label="Weight (kg)"
+      <MeasureField
+        label="Weight"
+        unit="kg"
         value={weight}
-        onChangeText={setWeight}
-        keyboardType="decimal-pad"
+        onChange={setWeight}
+        step={0.1}
+        seed={C.latestBodyweight(s) ?? 75}
+        min={20}
+        max={499}
+        placeholder="e.g. 72.4"
       />
       <DateField
         label="Date"
@@ -189,13 +202,42 @@ export function WeighInEditor({
         onChangeText={setDay}
         maximumDate={dayKey()}
       />
-      <Field
-        label="Body fat % (optional)"
+      <MeasureField
+        label="Body fat (optional)"
+        unit="%"
         value={fat}
-        onChangeText={setFat}
-        keyboardType="decimal-pad"
+        onChange={setFat}
+        step={0.1}
+        seed={C.latestBodyFat(s) ?? 20}
+        min={1}
+        max={75}
+        placeholder="From a smart scale or calipers"
       />
-      <Field label="Note (optional)" value={note} onChangeText={setNote} />
+      {comp && (
+        <View testID="weigh-derived">
+          <Copy size={13} muted>
+            Fat mass {comp.fatKg.toFixed(1)} kg · Lean mass{" "}
+            {comp.leanKg.toFixed(1)} kg
+          </Copy>
+        </View>
+      )}
+      <MeasureField
+        label="Waist (optional)"
+        unit="cm"
+        value={waist}
+        onChange={setWaist}
+        step={0.5}
+        seed={C.metricChange(s, "waist", 0)?.latest ?? 80}
+        min={30}
+        max={250}
+        placeholder="Around the navel, e.g. 82.5"
+      />
+      <Field
+        label="Note (optional)"
+        value={note}
+        onChangeText={setNote}
+        placeholder="e.g. after a late dinner"
+      />
       <PinnedFooter>
         <Button onPress={save}>
           {entry ? "Save changes" : "Log weigh-in"}
@@ -213,6 +255,107 @@ export function WeighInEditor({
         </Button>
       )}
     </Sheet>
+  )
+}
+/** A measurement typed or stepped with − / +. An empty field is no value;
+ * the first step from empty starts at ``seed`` (the last reading). */
+export function MeasureField({
+  label,
+  unit,
+  value,
+  onChange,
+  step,
+  seed,
+  min,
+  max,
+  placeholder,
+}: {
+  label: string
+  unit: string
+  value: number | undefined
+  onChange: (n: number | undefined) => void
+  step: number
+  seed: number
+  min: number
+  max: number
+  placeholder?: string
+}) {
+  const t = useTheme(),
+    show = (n: number | undefined) => (n === undefined ? "" : String(n)),
+    read = (v: string) => {
+      const n = parseAmount(v)
+      return v.trim() === "" || !Number.isFinite(n) ? undefined : n
+    },
+    [draft, setDraft] = useState(show(value)),
+    [last, setLast] = useState(value)
+  // A step from outside rewrites the text; typing "72." keeps its dot.
+  if (last !== value) {
+    setLast(value)
+    if (read(draft) !== value) setDraft(show(value))
+  }
+  const bump = (d: number) =>
+    onChange(
+      value === undefined
+        ? seed
+        : Math.min(max, Math.max(min, Math.round((value + d) * 10) / 10)),
+    )
+  const name = label.replace(/ \(optional\)$/, "").toLowerCase()
+  return (
+    <View style={{ gap: 6, marginVertical: 6 }}>
+      <Copy size={12} weight="medium" muted>
+        {label}
+      </Copy>
+      <Line style={{ gap: 8 }}>
+        <IconTap
+          size={44}
+          icon={Minus}
+          background={t.soft}
+          label={`Lower ${name}`}
+          onPress={() => bump(-step)}
+        />
+        <Line
+          style={{
+            flex: 1,
+            minHeight: 44,
+            borderWidth: 1,
+            borderColor: t.line,
+            borderRadius: 12,
+            paddingHorizontal: 12,
+            gap: 6,
+          }}
+        >
+          <TextInput
+            accessibilityLabel={label}
+            value={draft}
+            onChangeText={(v) => {
+              setDraft(v)
+              onChange(read(v))
+            }}
+            placeholder={placeholder}
+            placeholderTextColor={t.muted}
+            keyboardType="decimal-pad"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              paddingVertical: 10,
+              fontSize: 16,
+              fontFamily: fonts.semibold,
+              color: t.text,
+            }}
+          />
+          <Copy size={14} muted>
+            {unit}
+          </Copy>
+        </Line>
+        <IconTap
+          size={44}
+          icon={Plus}
+          background={t.soft}
+          label={`Raise ${name}`}
+          onPress={() => bump(step)}
+        />
+      </Line>
+    </View>
   )
 }
 /** A compact pill action, so secondary actions don't take a card each. */
@@ -257,7 +400,7 @@ function Chip({
 }
 /** What the page holds once someone weighs in, drawn dimmed behind the
  * first-weigh-in card: twelve weeks of mornings drifting from 75.0 to 72.6 kg,
- * with a body-fat reading about once a week. Fixed values, so the preview
+ * with a body-fat reading and a waist measurement about once a week. Fixed values, so the preview
  * looks the same on every open. */
 export function sampleWeighIns(now = Date.now()): WeighIn[] {
   const wobble = [0.2, -0.1, 0.3, 0, -0.2, 0.1, 0.25]
@@ -273,6 +416,9 @@ export function sampleWeighIns(now = Date.now()): WeighIn[] {
       weightKg: Math.round(kg * 10) / 10,
       ...(n % 7 === 0
         ? { bodyFatPct: Math.round((21.4 + (2.2 * n) / 84) * 10) / 10 }
+        : {}),
+      ...(n % 7 === 3
+        ? { waistCm: Math.round((81.5 + (3 * n) / 84) * 10) / 10 }
         : {}),
     })
   }
@@ -613,6 +759,13 @@ export function Body({
                 )}
               </Frame>
             </Tap>
+            <BodyComposition state={s} days={Number(range)} onLog={addWeigh} />
+            <Waist
+              state={s}
+              range={range}
+              setRange={setRange}
+              onLog={addWeigh}
+            />
             <Frame style={{ padding: 16 }}>
               <Line>
                 {[
@@ -665,8 +818,16 @@ export function Body({
                             {C.fmtDay(dayKey(new Date(w.measuredAt)))}
                           </Copy>
                           <Copy size={12} muted>
-                            {C.fmtTime(w.measuredAt)}
-                            {w.note ? ` · ${w.note}` : ""}
+                            {[
+                              C.fmtTime(w.measuredAt),
+                              w.bodyFatPct !== undefined &&
+                                `${w.bodyFatPct}% fat`,
+                              w.waistCm !== undefined &&
+                                `${w.waistCm} cm waist`,
+                              w.note,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </Copy>
                         </View>
                         {!!diff && (
@@ -776,10 +937,13 @@ function BodyFat({ onLog }: { onLog: () => void }) {
       base && base !== last
         ? Math.round((last.bodyFatPct! - base.bodyFatPct!) * 10) / 10
         : null,
-    fat = (last.weightKg * last.bodyFatPct!) / 100,
-    lean = last.weightKg - fat,
-    oldFat = base ? (base.weightKg * base.bodyFatPct!) / 100 : undefined,
-    oldLean = base && oldFat !== undefined ? base.weightKg - oldFat : undefined
+    { fatKg: fat, leanKg: lean } = C.bodyComposition(
+      last.weightKg,
+      last.bodyFatPct!,
+    ),
+    old = base ? C.bodyComposition(base.weightKg, base.bodyFatPct!) : undefined,
+    oldFat = old?.fatKg,
+    oldLean = old?.leanKg
   const card = (
     <>
       <Line style={{ justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -870,5 +1034,289 @@ function BodyFat({ onLog }: { onLog: () => void }) {
         />
       )}
     </Frame>
+  )
+}
+
+type Series = { key: C.BodyMetric; label: string; unit: "%" | "kg" | "cm" }
+const COMPOSITION: Series[] = [
+  { key: "bodyFat", label: "Body fat", unit: "%" },
+  { key: "leanMass", label: "Lean mass", unit: "kg" },
+  { key: "fatMass", label: "Fat mass", unit: "kg" },
+]
+const RANGE_WORDS: Record<string, string> = {
+  "28": "4 weeks",
+  "84": "12 weeks",
+  "90": "90 days",
+}
+export const fmtMeasure = (v: number, unit: Series["unit"]) =>
+  unit === "%" ? `${v.toFixed(1)}%` : `${v.toFixed(1)} ${unit}`
+/** "▼ 0.4 pts" · "▲ 1.2 kg": a change in a series' own unit (points for a
+ * percentage, since a change in percent of a percent misleads). */
+export function fmtChange(d: number, unit: Series["unit"]) {
+  const r = Math.round(d * 10) / 10
+  return `${r > 0 ? "▲" : r < 0 ? "▼" : ""} ${Math.abs(r).toFixed(1)} ${unit === "%" ? "pts" : unit}`.trim()
+}
+/** Whether a change is the good kind for the goal: lean mass should hold or
+ * grow; fat, body fat and waist should hold or fall (a gaining phase allows
+ * a little). */
+export function goodChange(
+  m: C.BodyMetric,
+  d: number,
+  dir: FitnessSettings["goalDirection"],
+) {
+  if (m === "leanMass") return d >= -0.3
+  return dir === "bulk" ? d <= 0.5 : d <= 0
+}
+const lastAvg = (trend: C.TrendPoint[]) =>
+  [...trend].reverse().find((p) => p.avg !== undefined)?.avg
+/** Body fat, lean mass and fat mass on the body page: each one's latest
+ * reading with its change over 30 days, then a small chart per series on the
+ * weight chart's time range. The kg series get charts of their own rather
+ * than one shared axis: lean mass sits near 50 kg and fat mass near 13 kg, so
+ * one axis would flatten both lines. */
+export function BodyComposition({
+  state,
+  days,
+  onLog,
+}: {
+  state: FitnessState
+  days: number
+  onLog: () => void
+}) {
+  const t = useTheme(),
+    // No body fat yet: sample readings, dimmed, above the step that adds one.
+    empty = !state.weighIns.some((w) => w.bodyFatPct !== undefined),
+    s = empty ? { ...state, weighIns: sampleWeighIns() } : state,
+    [shown, setShown] = useState<C.BodyMetric[]>(COMPOSITION.map((x) => x.key)),
+    rows = COMPOSITION.map((x) => ({
+      ...x,
+      change: C.metricChange(s, x.key, 30),
+      trend: C.metricTrend(s, x.key, days),
+    })),
+    charts = rows.filter((x) => shown.includes(x.key))
+  const toggle = (k: C.BodyMetric) =>
+    setShown((v) => (v.includes(k) ? v.filter((x) => x !== k) : [...v, k]))
+  const body = (
+    <>
+      <Line style={{ marginTop: 10, gap: 8, alignItems: "flex-start" }}>
+        {rows.map((x) => (
+          <View key={x.key} style={{ flex: 1 }} testID={`comp-${x.key}`}>
+            <Copy size={20} weight="semibold">
+              {x.change ? fmtMeasure(x.change.latest, x.unit) : "–"}
+            </Copy>
+            <Copy size={12} muted>
+              {x.label}
+            </Copy>
+            {x.change?.delta !== undefined && (
+              <Copy
+                size={12}
+                style={{
+                  color: goodChange(
+                    x.key,
+                    x.change.delta,
+                    s.settings.goalDirection,
+                  )
+                    ? t.good
+                    : t.bad,
+                }}
+              >
+                {fmtChange(x.change.delta, x.unit)} / 30d
+              </Copy>
+            )}
+          </View>
+        ))}
+      </Line>
+      <Line style={{ marginTop: 12, gap: 8, flexWrap: "wrap" }}>
+        {rows.map((x) => {
+          const on = shown.includes(x.key)
+          return (
+            <Tap
+              key={x.key}
+              label={`${x.label} chart`}
+              hint={on ? "Hides this chart" : "Shows this chart"}
+              selected={on}
+              onPress={() => toggle(x.key)}
+              style={{
+                minHeight: 32,
+                paddingHorizontal: 12,
+                borderRadius: 16,
+                justifyContent: "center",
+                borderWidth: 1,
+                borderColor: on ? t.fit : t.line,
+                backgroundColor: on ? `${t.fit}1f` : "transparent",
+              }}
+            >
+              <Copy
+                size={13}
+                weight="medium"
+                style={{ color: on ? t.fit : t.muted }}
+              >
+                {x.label}
+              </Copy>
+            </Tap>
+          )
+        })}
+      </Line>
+      {charts.map((x, i) => {
+        const avg = lastAvg(x.trend)
+        return (
+          <View
+            key={x.key}
+            testID={`comp-chart-${x.key}`}
+            style={{ marginTop: 12 }}
+          >
+            {/* The series is named beside its own line, so no legend. */}
+            <Line style={{ justifyContent: "space-between" }}>
+              <Copy size={13} weight="medium" style={{ color: t.fit }}>
+                {x.label}
+              </Copy>
+              {avg !== undefined && (
+                <Copy size={12} muted>
+                  7-day avg {fmtMeasure(avg, x.unit)}
+                </Copy>
+              )}
+            </Line>
+            <View style={{ marginTop: 4 }}>
+              <FitnessTrend
+                height={96}
+                label={`${x.label} trend`}
+                line={x.trend.map((p) => p.avg)}
+                dots={x.trend.map((p) => p.raw)}
+                fmt={(n) => n.toFixed(1)}
+                labels={
+                  i === charts.length - 1 && x.trend[0]
+                    ? [C.fmtDay(x.trend[0].day), "Today"]
+                    : undefined
+                }
+              />
+            </View>
+          </View>
+        )
+      })}
+    </>
+  )
+  return (
+    <Frame style={{ padding: 16 }}>
+      <Copy size={14} weight="medium">
+        Body composition
+      </Copy>
+      {empty ? <Dimmed>{body}</Dimmed> : body}
+      {empty && (
+        <EmptyFoot
+          testID="body-comp-empty"
+          hint="Add body fat when you weigh in, from a smart scale or calipers. Lean and fat mass follow from it."
+          action={{ label: "Add", onPress: onLog }}
+        />
+      )}
+    </Frame>
+  )
+}
+/** Waist on the body page: the latest measurement, its change over the
+ * range, and the same daily-dots-and-7-day-average chart as weight. */
+export function Waist({
+  state,
+  range,
+  setRange,
+  onLog,
+}: {
+  state: FitnessState
+  range: string
+  setRange: (r: string) => void
+  onLog: () => void
+}) {
+  const t = useTheme(),
+    empty = !state.weighIns.some((w) => w.waistCm !== undefined),
+    s = empty ? { ...state, weighIns: sampleWeighIns() } : state,
+    days = Number(range),
+    trend = C.metricTrend(s, "waist", days),
+    change = C.metricChange(s, "waist", days),
+    avg = lastAvg(trend)
+  const body = (
+    <>
+      <Line
+        style={{
+          marginTop: 10,
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <View testID="waist-latest">
+          <Copy size={30} weight="displayMedium">
+            {change ? fmtMeasure(change.latest, "cm") : "–"}
+          </Copy>
+          <Copy size={12} muted>
+            Latest
+          </Copy>
+        </View>
+        {change?.delta !== undefined && (
+          <View testID="waist-change" style={{ alignItems: "flex-end" }}>
+            <Copy
+              size={14}
+              weight="semibold"
+              style={{
+                color: goodChange(
+                  "waist",
+                  change.delta,
+                  s.settings.goalDirection,
+                )
+                  ? t.good
+                  : t.bad,
+              }}
+            >
+              {fmtChange(change.delta, "cm")}
+            </Copy>
+            <Copy size={12} muted>
+              over {RANGE_WORDS[range] ?? `${days} days`}
+            </Copy>
+          </View>
+        )}
+      </Line>
+      <View style={{ marginTop: 12 }}>
+        {avg !== undefined && (
+          <Copy size={12} style={{ textAlign: "right", color: t.fit }}>
+            7-day avg {fmtMeasure(avg, "cm")}
+          </Copy>
+        )}
+        <FitnessTrend
+          height={120}
+          label="Waist trend"
+          line={trend.map((p) => p.avg)}
+          dots={trend.map((p) => p.raw)}
+          fmt={(n) => n.toFixed(1)}
+          labels={trend[0] ? [C.fmtDay(trend[0].day), "Today"] : undefined}
+        />
+      </View>
+      <View style={{ marginTop: 12 }}>
+        <Segmented
+          value={range}
+          onChange={setRange}
+          options={[
+            { value: "28", label: "4w" },
+            { value: "84", label: "12w" },
+            { value: "90", label: "All" },
+          ]}
+        />
+      </View>
+    </>
+  )
+  return (
+    <View testID="waist-section">
+      <Frame style={{ padding: 16 }}>
+        <Line style={{ gap: 8 }}>
+          <Ruler size={16} color={t.fit} />
+          <Copy size={14} weight="medium">
+            Waist
+          </Copy>
+        </Line>
+        {empty ? <Dimmed>{body}</Dimmed> : body}
+        {empty && (
+          <EmptyFoot
+            testID="waist-empty"
+            hint="Add your waist when you weigh in: measure around the navel, relaxed, same time each week."
+            action={{ label: "Add", onPress: onLog }}
+          />
+        )}
+      </Frame>
+    </View>
   )
 }
