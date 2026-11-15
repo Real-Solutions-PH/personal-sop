@@ -51,8 +51,12 @@ jest.mock("expo-router", () => ({
   useFocusEffect: () => {},
 }))
 
+// One client per test, cleared after it: useFernReview keeps a review for
+// 30 minutes, and an unmounted query's gc timer would otherwise hold jest
+// open for that long after the run.
+let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={new QueryClient()}>
+  <QueryClientProvider client={client}>
     <SafeAreaProvider
       initialMetrics={{
         frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -65,6 +69,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 )
 
 beforeEach(() => {
+  client = new QueryClient()
   configureStorage({
     getItem: () => null,
     setItem: () => {},
@@ -76,6 +81,8 @@ beforeEach(() => {
   reviewDismissStore.set({ dismissed: [] })
   jest.clearAllMocks()
 })
+// After the render's own cleanup has unmounted it: clearing drops the gc timer.
+afterEach(() => client.clear())
 
 const LONG =
   "A ten-minute walk right after lunch, before you open the laptop again, three days a week"

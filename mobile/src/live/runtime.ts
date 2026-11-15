@@ -39,6 +39,10 @@ import { syncReady } from "./ready"
 import { startSocialLive } from "./social"
 import { createStats, type LiveStats } from "./stats"
 import { createSyncSchedule } from "./sync-schedule"
+import {
+  prewarmYesterdayAnalysis,
+  resetYesterdayPrewarm,
+} from "./yesterday-analysis"
 
 export type MapperFactory = (userId: string) => AnyMapper[]
 
@@ -168,6 +172,13 @@ export function startLive(
       schedule.onSynced(changed)
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()
+      // App opened or back in the foreground (each runs a sync): Fern's read
+      // of yesterday, once a day, so the Yesterday page opens on it.
+      void prewarmYesterdayAnalysis({
+        owner: userId,
+        online: getConnectivity,
+        loadMisses: (key) => stats.load(key),
+      })
     },
     onRejected: (name) => {
       // A loan change the server refused (the other member answered first,
@@ -281,6 +292,7 @@ export function stopLive() {
   active?.stop()
   active = null
   owner = null
+  resetYesterdayPrewarm()
   setFxSource(null)
 }
 

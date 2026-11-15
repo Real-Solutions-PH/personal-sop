@@ -47,6 +47,12 @@ if (liveMode)
   (
     require("@/live/query-refresh") as typeof import("@/live/query-refresh")
   ).installQueryRefresh(queryClient)
+// Live mode: Fern's read of yesterday is asked for in the background once
+// the app opens, into this client, so the Yesterday page finds it ready.
+if (liveMode)
+  (
+    require("@/live/yesterday-analysis") as typeof import("@/live/yesterday-analysis")
+  ).installYesterdayPrewarm(queryClient)
 
 export function PrototypeProviders({ children }: { children: ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
