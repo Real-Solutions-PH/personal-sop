@@ -1,10 +1,15 @@
 import type { CalendarItem, ModuleKey } from "@domain/contract"
 import { AREA, MODULE_KEYS } from "@domain/dash/data"
-import { useAllCalendar, useEnabled } from "@domain/dash/hooks"
+import { useAllTimeline, useEnabled } from "@domain/dash/hooks"
 import * as FA from "@domain/finance/actions"
 import * as N from "@domain/finance/calc"
 import { finStore } from "@domain/finance/store"
 import * as H from "@domain/habits/logic"
+import {
+  habitOccurrences,
+  occurrenceDone,
+  occurrenceId,
+} from "@domain/habits/slots"
 import { habitsStore } from "@domain/habits/store"
 import { dayKey } from "@domain/lib/day"
 import { dayMinutes } from "@domain/schedule/logic"
@@ -667,18 +672,42 @@ export function HabitPlanPanel() {
       )
       .map((r) => ({
         id: r.id,
+        key: r.id,
+        calId: `routine-${r.id}-${sel}`,
         time: H.slotFor(r.schedule, sel)?.time,
+        done: false,
         habit: null,
         routine: r,
       })),
+    // A habit with several times that day: one row at each, each done by
+    // its own share of the count (habits/slots).
     ...habits
       .filter((h) => H.cellFor(h, sel, idx, today) !== "none")
-      .map((h) => ({
-        id: h.id,
-        time: H.slotFor(h.schedule, sel)?.time,
-        habit: h,
-        routine: null,
-      })),
+      .flatMap((h) => {
+        const log = idx.get(H.lk(h.id, sel)),
+          occ = habitOccurrences(h, sel)
+        const one = {
+          id: h.id,
+          key: h.id,
+          calId: `habit-${h.id}-${sel}`,
+          time: H.slotFor(h.schedule, sel)?.time,
+          done: log?.status === "done",
+          habit: h,
+          routine: null,
+        }
+        return occ.length < 2
+          ? [one]
+          : occ.map((o) => {
+              const calId = occurrenceId(h.id, sel, o)
+              return {
+                ...one,
+                key: calId,
+                calId,
+                time: o.time,
+                done: occurrenceDone(h, o, log),
+              }
+            })
+      }),
   ].sort((a, b) => H.toMin(a.time ?? "99:99") - H.toMin(b.time ?? "99:99"))
   return (
     <View>
@@ -794,7 +823,7 @@ export function HabitPlanPanel() {
                       size={item.routine ? 16 : 14}
                       weight={item.routine ? "medium" : "body"}
                       style={
-                        idx.get(H.lk(item.id, sel))?.status === "done"
+                        item.done
                           ? {
                               color: t.muted,
                               textDecorationLine: "line-through",
@@ -815,7 +844,7 @@ export function HabitPlanPanel() {
               </Tap>
             )
             return (
-              <View key={item.id}>
+              <View key={item.key}>
                 {i === 0 || item.time !== items[i - 1].time ? (
                   <Copy size={12} muted style={{ padding: 8 }}>
                     {H.fmtTime(item.time)}
@@ -828,12 +857,12 @@ export function HabitPlanPanel() {
                       color={t.hab}
                       size={24}
                       item={{
-                        id: `habit-${item.id}-${sel}`,
+                        id: item.calId,
                         day: sel,
                         title: item.habit.name,
                         module: "habits",
                         href: `/habits/${item.id}`,
-                        done: idx.get(H.lk(item.id, sel))?.status === "done",
+                        done: item.done,
                       }}
                     >
                       {(check, step) => (
@@ -932,7 +961,8 @@ export function CalendarPanel() {
     days = Array.from({ length: mode === "week" ? 7 : 42 }, (_, i) =>
       N.addDays(start, i),
     ),
-    all = useAllCalendar(days[0], days.at(-1)!),
+    // A habit with several times a day shows once at each (habits/slots).
+    all = useAllTimeline(days[0], days.at(-1)!),
     items = all.filter((i) => !hidden.includes(i.module)),
     // Bills come from their occurrences below, with their actions.
     selected = items.filter((i) => i.day === sel && i.module !== "finance"),
