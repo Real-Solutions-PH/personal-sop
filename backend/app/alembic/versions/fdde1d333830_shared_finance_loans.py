@@ -1,7 +1,7 @@
 """shared finance: loans between two people
 
 Revision ID: fdde1d333830
-Revises: 626f9ababa93
+Revises: ec27c6bfa274
 Create Date: 2026-11-15 12:00:00.000000
 
 Four tables, each with the sync-version trigger and the tenant row-level
@@ -25,7 +25,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "fdde1d333830"
-down_revision = "626f9ababa93"
+down_revision = "ec27c6bfa274"
 branch_labels = None
 depends_on = None
 
