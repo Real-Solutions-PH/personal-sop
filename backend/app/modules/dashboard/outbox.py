@@ -66,7 +66,9 @@ def queue_event(ctx: Ctx, recipient: uuid.UUID, row: Notification) -> None:
     )
 
 
-def queue_push(ctx: Ctx, recipient: uuid.UUID, row: Notification) -> None:
+def queue_push(
+    ctx: Ctx, recipient: uuid.UUID, row: Notification, *, fern: str | None = None
+) -> None:
     tokens = ctx.session.exec(
         select(PushDevice.token).where(
             PushDevice.owner_id == recipient,
@@ -85,6 +87,7 @@ def queue_push(ctx: Ctx, recipient: uuid.UUID, row: Notification) -> None:
             body=row.body,
             data=data,
             thread=row.dedupe_key or None,
+            fern=fern,
         )
         for t in dict.fromkeys(tokens)
     ]
