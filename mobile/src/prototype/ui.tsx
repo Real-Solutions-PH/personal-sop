@@ -24,7 +24,6 @@ import {
 import type { ScrollViewInstance } from "react-native"
 import {
   Alert,
-  AppState,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -71,6 +70,7 @@ export { formScrollProps }
 
 import { feel } from "./motion"
 import { back, go } from "./navigation"
+import { useOnScreen } from "./on-screen"
 import { Switch } from "./switch"
 import { fonts, useTheme } from "./theme"
 
@@ -1614,19 +1614,21 @@ export function undo(message: string, action: () => void) {
  * everything under it, so a screen that shows minutes asks for a minute: a
  * one-second clock on a large screen keeps the JS thread busy and every tap
  * waits behind it. */
-export function useNow(everyMs = 1000) {
-  const [now, setNow] = useState(Date.now())
+export function useNow(everyMs: number | null = 1000) {
+  const [now, setNow] = useState(Date.now)
+  // Battery: no ticks while the app is in the background or this screen is
+  // covered (a tab left behind stays mounted); ``null`` asks for none.
+  const shown = useOnScreen()
+  const last = useRef(now)
+  last.current = now
   useEffect(() => {
+    if (everyMs === null || !shown) return
     const tick = () => setNow(Date.now())
+    // Back on screen, or a clock just switched on: catch up at once.
+    if (Date.now() - last.current >= Math.min(everyMs, 1000)) tick()
     const id = setInterval(tick, everyMs)
-    const sub = AppState.addEventListener("change", (s) => {
-      if (s === "active") tick()
-    })
-    return () => {
-      clearInterval(id)
-      sub.remove()
-    }
-  }, [everyMs])
+    return () => clearInterval(id)
+  }, [everyMs, shown])
   return now
 }
 export async function shareText(message: string) {
