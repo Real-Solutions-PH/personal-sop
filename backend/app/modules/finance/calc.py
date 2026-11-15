@@ -685,6 +685,62 @@ def due_now(s: State) -> list[Occurrence]:
     ]
 
 
+# How many days before its date a bill can be paid and still be matched.
+PAY_EARLY_DAYS = 3
+
+
+def _words(x: str) -> list[str]:
+    return re.sub(r"[\W_]+", " ", x.lower()).split()
+
+
+def _same_name(a: str, b: str) -> bool:
+    """The same name, or every word of the shorter in the longer ("gym" in
+    "Gym membership"), as long as one of those words is a real word."""
+    x, y = _words(a), _words(b)
+    if not x or not y:
+        return False
+    short, long = (x, y) if len(x) <= len(y) else (y, x)
+    return any(len(w) >= 3 for w in short) and all(w in long for w in short)
+
+
+def due_for(s: State, r: Rec) -> Occurrence | None:
+    """The unpaid scheduled date a newly logged transaction pays, if any
+    (``dueFor`` in calc.ts, rule for rule): the same kind of money, a date
+    from two weeks before the transaction's day to three days after it,
+    neither paid nor skipped, an amount from half to double what the date
+    expects, and the payee is the bill's name, or the category is the
+    bill's at the exact amount, or (a transfer) the same two accounts. The
+    bill's own account is never required. The name beats the category, the
+    exact amount a near one, and the oldest date wins."""
+    if r.planned_id or r.is_adjustment or r.is_refund or r.amount <= 0:
+        return None
+    best: tuple[Occurrence, int] | None = None
+    for o in occurrences_in(
+        s, add_days(r.day, -MOVE_DAYS), add_days(r.day, PAY_EARLY_DAYS)
+    ):
+        p = o.item
+        if o.status in ("paid", "skipped") or p.type != r.type:
+            continue
+        expected = amount_on(p, o.orig)
+        if r.amount * 2 < expected or r.amount > expected * 2:
+            continue
+        exact = r.amount == expected
+        named = bool(r.payee) and _same_name(r.payee or "", p.name)
+        if p.type == "transfer":
+            ok = r.account_id == p.account_id and r.to_account_id == p.to_account_id
+        else:
+            ok = named or (
+                exact and p.category_id is not None and r.category_id == p.category_id
+            )
+        if not ok:
+            continue
+        rank = (2 if named else 0) + (1 if exact else 0)
+        # Occurrences come oldest first: a later one wins only on rank.
+        if best is None or rank > best[1]:
+            best = (o, rank)
+    return best[0] if best else None
+
+
 def monthly_eq(p: Plan) -> float:
     kind = p.schedule["kind"]
     if kind == "once":
