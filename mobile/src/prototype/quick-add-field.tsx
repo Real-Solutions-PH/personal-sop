@@ -29,8 +29,10 @@ export function useQuickAdd(
   lists?: readonly TaskList[],
   /** Kinds a field set by hand owns: their words stay text. */
   skip?: ReadonlySet<QuickToken["kind"]>,
+  /** Text the field starts with. */
+  initial = "",
 ) {
-  const [text, setRaw] = useState(""),
+  const [text, setRaw] = useState(initial),
     [ignore, setIgnore] = useState<ReadonlySet<string>>(new Set()),
     live = useMemo(() => lists?.filter((l) => !l.archivedAt), [lists]),
     parsed = useMemo(
