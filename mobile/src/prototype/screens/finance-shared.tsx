@@ -3,12 +3,20 @@
 // history with proof photos. Reads the synced store, so it works offline;
 // every change queues one sync action (live/mappers/shared.ts).
 import { shortDate } from "@domain/finance/calc"
+import type * as G from "@domain/finance/groups"
 import * as L from "@domain/finance/loans"
 import { dayKey } from "@domain/lib/day"
 import { currencyInfo, money } from "@domain/lib/money"
 import { getConnectivity } from "@domain/lib/platform"
 import { privacyStore } from "@domain/lib/privacy"
-import { Check, HandCoins, Plus, Users } from "lucide-react-native"
+import {
+  Check,
+  HandCoins,
+  PiggyBank,
+  Plus,
+  Target,
+  Users,
+} from "lucide-react-native"
 import { useEffect, useState } from "react"
 import { Image, View } from "react-native"
 import { useMomentTimer } from "../big-moment"
@@ -31,6 +39,7 @@ import { useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet } from "../ui"
 import { DecideSheet, NewLoanSheet, PaySheet } from "./finance-loan-sheets"
 import { FinPill } from "./finance-planned"
+import { BudgetCard, GoalCard, NewGroupSheet } from "./finance-shared-groups"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 
 /** A loan's amount (centavos) in its own currency, hidden with the eye. */
@@ -195,7 +204,23 @@ export function SharedSection() {
     owed = sum("lender"),
     owe = sum("borrower"),
     code = open[0]?.currency ?? "PHP",
-    todo = open.filter((l) => needs(l)?.match(/Accept|confirm/)).length
+    todo = open.filter((l) => needs(l)?.match(/Accept|confirm/)).length,
+    goals = L.sharedStore
+      .use((s) => s.goals ?? [])
+      .filter(
+        (g) => g.myStatus === "active" || g.myStatus === "invited",
+      ).length,
+    budgets = L.sharedStore
+      .use((s) => s.budgets ?? [])
+      .filter(
+        (b) => b.myStatus === "active" || b.myStatus === "invited",
+      ).length,
+    groups = [
+      goals ? `${goals} shared goal${goals === 1 ? "" : "s"}` : "",
+      budgets ? `${budgets} shared budget${budgets === 1 ? "" : "s"}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ")
   return (
     <View testID="finance-shared-section">
       <SectionHeading
@@ -203,14 +228,14 @@ export function SharedSection() {
         action={
           <Tap onPress={() => go("/finance/shared")}>
             <Copy size={12} style={{ color: t.fin }}>
-              {open.length ? "All shared" : "Open"}
+              {open.length || groups ? "All shared" : "Open"}
             </Copy>
           </Tap>
         }
       >
         Shared
       </SectionHeading>
-      {open.length ? (
+      {open.length || groups ? (
         <Frame>
           <Tap onPress={() => go("/finance/shared")} label="Shared money">
             <Line style={{ gap: 0 }}>
@@ -241,6 +266,15 @@ export function SharedSection() {
                 </View>
               ))}
             </Line>
+            {groups !== "" && (
+              <Copy
+                size={12}
+                muted
+                style={{ paddingHorizontal: 16, paddingBottom: 12 }}
+              >
+                {groups}
+              </Copy>
+            )}
             {todo > 0 && (
               <View style={{ paddingHorizontal: 16, paddingBottom: 12 }}>
                 <FinPill tone="warn">
@@ -265,12 +299,78 @@ export function SharedSection() {
   )
 }
 
+const SAMPLE_GOAL: G.SharedGoal = {
+  id: "sample-goal",
+  goalId: "sample-goal",
+  role: "owner",
+  myStatus: "active",
+  status: "active",
+  name: "Japan trip",
+  currency: "PHP",
+  target: 10_000_000,
+  members: [
+    {
+      person: { id: "me", name: "You" },
+      role: "owner",
+      status: "active",
+      amount: 0,
+    },
+    {
+      person: { id: "them", name: "Your partner" },
+      role: "member",
+      status: "active",
+      amount: 0,
+    },
+  ],
+  entries: [
+    {
+      id: "e1",
+      kind: "deposit",
+      status: "accepted",
+      amount: 2_500_000,
+      onDate: "2026-01-01",
+      byId: "me",
+      createdAt: "2026-01-01T00:00:00.000Z",
+    },
+    {
+      id: "e2",
+      kind: "deposit",
+      status: "accepted",
+      amount: 1_800_000,
+      onDate: "2026-01-02",
+      byId: "them",
+      createdAt: "2026-01-02T00:00:00.000Z",
+    },
+  ],
+  createdAt: "2026-01-01T00:00:00.000Z",
+}
+
+const SAMPLE_BUDGET: G.SharedBudget = {
+  id: "sample-budget",
+  budgetId: "sample-budget",
+  role: "owner",
+  myStatus: "active",
+  status: "active",
+  name: "Groceries",
+  currency: "PHP",
+  limit: 1_500_000,
+  month: "2026-01",
+  spent: 960_000,
+  myCategoryIds: [],
+  members: [],
+  createdAt: "2026-01-01T00:00:00.000Z",
+}
+
+type Making = "choose" | "loan" | "goal" | "budget" | null
+
 export function SharedHome({ startNew = false }: { startNew?: boolean }) {
   const t = useTheme(),
     m = useLoanMoney(),
     loans = L.sharedStore.use((s) => s.loans),
+    goals = L.sharedStore.use((s) => s.goals ?? []),
+    budgets = L.sharedStore.use((s) => s.budgets ?? []),
     today = dayKey(),
-    [making, setMaking] = useState(startNew)
+    [making, setMaking] = useState<Making>(startNew ? "loan" : null)
   const invites = loans.filter(
       (l) => l.status === "invited" && l.role === "borrower",
     ),
@@ -281,6 +381,10 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
     ),
     owe = loans.filter((l) => l.role === "borrower" && l.status === "active"),
     closed = loans.filter((l) => !["active", "invited"].includes(l.status)),
+    liveGoals = goals.filter((g) => ["invited", "active"].includes(g.myStatus)),
+    liveBudgets = budgets.filter((b) =>
+      ["invited", "active"].includes(b.myStatus),
+    ),
     total = (list: L.Loan[]) =>
       list
         .filter((l) => l.status === "active")
@@ -304,6 +408,10 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
         ))}
       </View>
     )
+  const made = (href: string) => {
+    setMaking(null)
+    go(href)
+  }
   return (
     <Screen
       prototypeLayout
@@ -312,12 +420,13 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
         <IconTap
           size={40}
           icon={Plus}
-          label="New loan"
+          label="New loan, shared goal or shared budget"
           color={t.text}
-          onPress={() => setMaking(true)}
+          onPress={() => setMaking("choose")}
         />
       }
     >
+      <SectionHeading>Loans</SectionHeading>
       {loans.length ? (
         <>
           {section("Invites for you", invites)}
@@ -332,18 +441,66 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
           </Dimmed>
           <EmptyFoot
             hint="Lend to someone you follow and split it into monthly payments. They send proof, you confirm each one."
-            action={{ label: "New loan", onPress: () => setMaking(true) }}
+            action={{ label: "New loan", onPress: () => setMaking("loan") }}
           />
         </>
       )}
+      <SectionHeading>Shared goals</SectionHeading>
+      {liveGoals.length ? (
+        liveGoals.map((g) => <GoalCard key={g.id} goal={g} />)
+      ) : (
+        <>
+          <Dimmed>
+            <GoalCard goal={SAMPLE_GOAL} />
+          </Dimmed>
+          <EmptyFoot
+            hint="Save toward something together. Everyone sees who put in what; taking money out needs another member's okay."
+            action={{ label: "New goal", onPress: () => setMaking("goal") }}
+          />
+        </>
+      )}
+      <SectionHeading>Shared budgets</SectionHeading>
+      {liveBudgets.length ? (
+        liveBudgets.map((b) => <BudgetCard key={b.id} budget={b} />)
+      ) : (
+        <>
+          <Dimmed>
+            <BudgetCard budget={SAMPLE_BUDGET} />
+          </Dimmed>
+          <EmptyFoot
+            hint="One monthly limit you both spend against. Everyone is told at 80% and 100%."
+            action={{ label: "New budget", onPress: () => setMaking("budget") }}
+          />
+        </>
+      )}
+      <Sheet
+        title="Share money"
+        open={making === "choose"}
+        onClose={() => setMaking(null)}
+      >
+        <Button icon={HandCoins} onPress={() => setMaking("loan")}>
+          Loan
+        </Button>
+        <Button tone="quiet" icon={PiggyBank} onPress={() => setMaking("goal")}>
+          Shared goal
+        </Button>
+        <Button tone="quiet" icon={Target} onPress={() => setMaking("budget")}>
+          Shared budget
+        </Button>
+      </Sheet>
       <NewLoanSheet
-        open={making}
-        onClose={() => setMaking(false)}
-        onMade={(id) => {
-          setMaking(false)
-          go(`/finance/shared/${id}`)
-        }}
+        open={making === "loan"}
+        onClose={() => setMaking(null)}
+        onMade={(id) => made(`/finance/shared/${id}`)}
       />
+      {(making === "goal" || making === "budget") && (
+        <NewGroupSheet
+          kind={making}
+          open
+          onClose={() => setMaking(null)}
+          onMade={made}
+        />
+      )}
     </Screen>
   )
 }

@@ -14,6 +14,7 @@
 
 import { derivedId, newId } from "../lib/ids"
 import { createStore } from "../lib/store"
+import type { SharedBudget, SharedGoal } from "./groups"
 
 export type LoanRole = "lender" | "borrower"
 export type LoanStatus =
@@ -107,15 +108,25 @@ export interface Loan {
 
 export interface SharedState {
   loans: Loan[]
+  goals: SharedGoal[]
+  budgets: SharedBudget[]
 }
 
 export const sharedStore = createStore<SharedState>("finance-shared", () => ({
   loans: [],
+  goals: [],
+  budgets: [],
 }))
 
-/** The id of ``userId``'s member row of a loan (the server derives the same). */
-export const memberId = (userId: string, loanId: string) =>
-  derivedId("shared-member", userId, `loan:${loanId}`)
+export const EMPTY_SHARED: SharedState = { loans: [], goals: [], budgets: [] }
+
+/** The id of ``userId``'s member row of a shared loan, goal or budget (the
+ * server derives the same). */
+export const memberId = (
+  userId: string,
+  objectId: string,
+  kind: "loan" | "goal" | "budget" = "loan",
+) => derivedId("shared-member", userId, `${kind}:${objectId}`)
 
 // ---------------------------------------------------------------- arithmetic
 
@@ -282,11 +293,16 @@ export function createLoan(n: NewLoan): Loan {
   return loan
 }
 
-/** After the server refused a new loan: drop the ones it never took (the
+/** After the server refused a new loan, goal or budget: drop the ones it never took (the
  * full pull that follows brings back every one it did). */
 export function dropUnconfirmed(creates: boolean) {
   if (!creates) return
-  sharedStore.set((s) => ({ ...s, loans: s.loans.filter((l) => !l.local) }))
+  sharedStore.set((s) => ({
+    ...s,
+    loans: s.loans.filter((l) => !l.local),
+    goals: (s.goals ?? []).filter((g) => !g.local),
+    budgets: (s.budgets ?? []).filter((b) => !b.local),
+  }))
 }
 
 export function respondLoan(loanId: string, accept: boolean) {

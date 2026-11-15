@@ -1352,6 +1352,18 @@ export const AnswerInSchema = {
     title: 'AnswerIn'
 } as const;
 
+export const AnsweredSchema = {
+    properties: {
+        status: {
+            type: 'string',
+            title: 'Status'
+        }
+    },
+    type: 'object',
+    required: ['status'],
+    title: 'Answered'
+} as const;
+
 export const ArchiveExerciseSchema = {
     properties: {
         archived: {
@@ -1980,88 +1992,6 @@ export const BrokenOutSchema = {
     title: 'BrokenOut'
 } as const;
 
-export const BudgetCreateSchema = {
-    properties: {
-        name: {
-            type: 'string',
-            maxLength: 60,
-            minLength: 1,
-            title: 'Name'
-        },
-        limit_minor: {
-            type: 'integer',
-            maximum: 100000000000000,
-            minimum: 1,
-            title: 'Limit Minor'
-        },
-        rollover: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Rollover'
-        },
-        start_date: {
-            anyOf: [
-                {
-                    type: 'string',
-                    format: 'date'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Start Date'
-        },
-        archived: {
-            anyOf: [
-                {
-                    type: 'boolean'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Archived'
-        },
-        category_ids: {
-            anyOf: [
-                {
-                    items: {
-                        type: 'string',
-                        format: 'uuid'
-                    },
-                    type: 'array',
-                    maxItems: 100
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Category Ids'
-        },
-        id: {
-            anyOf: [
-                {
-                    type: 'string',
-                    format: 'uuid'
-                },
-                {
-                    type: 'null'
-                }
-            ],
-            title: 'Id'
-        }
-    },
-    type: 'object',
-    required: ['name', 'limit_minor'],
-    title: 'BudgetCreate'
-} as const;
-
 export const BudgetDetailSchema = {
     properties: {
         view: {
@@ -2165,6 +2095,81 @@ export const BudgetFieldsSchema = {
     },
     type: 'object',
     title: 'BudgetFields'
+} as const;
+
+export const BudgetOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        role: {
+            type: 'string',
+            enum: ['owner', 'member'],
+            title: 'Role'
+        },
+        my_status: {
+            type: 'string',
+            enum: ['invited', 'active', 'declined', 'left'],
+            title: 'My Status'
+        },
+        status: {
+            type: 'string',
+            enum: ['active', 'closed'],
+            title: 'Status'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        currency: {
+            type: 'string',
+            title: 'Currency'
+        },
+        limit_minor: {
+            type: 'integer',
+            title: 'Limit Minor'
+        },
+        month: {
+            type: 'string',
+            title: 'Month'
+        },
+        spent_minor: {
+            type: 'integer',
+            title: 'Spent Minor'
+        },
+        my_category_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            title: 'My Category Ids'
+        },
+        members: {
+            items: {
+                '$ref': '#/components/schemas/MemberOut'
+            },
+            type: 'array',
+            title: 'Members'
+        },
+        events: {
+            items: {
+                '$ref': '#/components/schemas/GroupEventOut'
+            },
+            type: 'array',
+            title: 'Events'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'role', 'my_status', 'status', 'name', 'currency', 'limit_minor', 'month', 'spent_minor', 'my_category_ids', 'members', 'events', 'created_at'],
+    title: 'BudgetOut'
 } as const;
 
 export const BudgetPublicSchema = {
@@ -2818,6 +2823,22 @@ export const CatalogModelOutSchema = {
     type: 'object',
     required: ['id', 'label', 'vendor', 'kind', 'usd_in', 'usd_out'],
     title: 'CatalogModelOut'
+} as const;
+
+export const CategoriesBodySchema = {
+    properties: {
+        category_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 50,
+            title: 'Category Ids'
+        }
+    },
+    type: 'object',
+    title: 'CategoriesBody'
 } as const;
 
 export const CategoriesPublicSchema = {
@@ -4278,6 +4299,30 @@ export const DayVerdictOutSchema = {
     title: 'DayVerdictOut'
 } as const;
 
+export const DecideBodySchema = {
+    properties: {
+        accept: {
+            type: 'boolean',
+            title: 'Accept'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        }
+    },
+    type: 'object',
+    required: ['accept'],
+    title: 'DecideBody'
+} as const;
+
 export const DictationOutSchema = {
     properties: {
         text: {
@@ -4500,6 +4545,171 @@ export const EndNeverSchema = {
     type: 'object',
     required: ['kind'],
     title: 'EndNever'
+} as const;
+
+export const EntryBodySchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['deposit', 'withdrawal'],
+            title: 'Kind'
+        },
+        amount_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Amount Minor'
+        },
+        on_date: {
+            type: 'string',
+            format: 'date',
+            title: 'On Date'
+        },
+        account_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Account Id'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 280
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'amount_minor', 'on_date', 'account_id'],
+    title: 'EntryBody'
+} as const;
+
+export const EntryOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['deposit', 'withdrawal'],
+            title: 'Kind'
+        },
+        status: {
+            type: 'string',
+            enum: ['sent', 'accepted', 'rejected', 'withdrawn'],
+            title: 'Status'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        },
+        on_date: {
+            type: 'string',
+            format: 'date',
+            title: 'On Date'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        },
+        by_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'By Id'
+        },
+        account_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Account Id'
+        },
+        record_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Record Id'
+        },
+        decided_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Decided At'
+        },
+        decided_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Decided By'
+        },
+        reason: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Reason'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'status', 'amount_minor', 'on_date', 'note', 'by_id', 'account_id', 'record_id', 'decided_at', 'decided_by', 'reason', 'created_at'],
+    title: 'EntryOut'
 } as const;
 
 export const ErrorResponseSchema = {
@@ -6610,66 +6820,97 @@ export const FxRatePublicSchema = {
 last published reference day.`
 } as const;
 
-export const GoalCreateSchema = {
+export const GoalOutSchema = {
     properties: {
         id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        role: {
+            type: 'string',
+            enum: ['owner', 'member'],
+            title: 'Role'
+        },
+        my_status: {
+            type: 'string',
+            enum: ['invited', 'active', 'declined', 'left'],
+            title: 'My Status'
+        },
+        status: {
+            type: 'string',
+            enum: ['active', 'closed'],
+            title: 'Status'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        currency: {
+            type: 'string',
+            title: 'Currency'
+        },
+        target_minor: {
             anyOf: [
                 {
-                    type: 'string',
-                    format: 'uuid'
+                    type: 'integer'
                 },
                 {
                     type: 'null'
                 }
             ],
-            title: 'Id'
+            title: 'Target Minor'
         },
-        metric: {
+        deadline: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Deadline'
+        },
+        balance_minor: {
+            type: 'integer',
+            title: 'Balance Minor'
+        },
+        pending_minor: {
+            type: 'integer',
+            title: 'Pending Minor'
+        },
+        members: {
+            items: {
+                '$ref': '#/components/schemas/MemberOut'
+            },
+            type: 'array',
+            title: 'Members'
+        },
+        entries: {
+            items: {
+                '$ref': '#/components/schemas/EntryOut'
+            },
+            type: 'array',
+            title: 'Entries'
+        },
+        events: {
+            items: {
+                '$ref': '#/components/schemas/GroupEventOut'
+            },
+            type: 'array',
+            title: 'Events'
+        },
+        created_at: {
             type: 'string',
-            maxLength: 64,
-            minLength: 1,
-            title: 'Metric'
-        },
-        label: {
-            type: 'string',
-            maxLength: 120,
-            minLength: 1,
-            title: 'Label'
-        },
-        target: {
-            type: 'number',
-            maximum: 1000000000,
-            minimum: -1000000000,
-            title: 'Target'
-        },
-        unit: {
-            type: 'string',
-            maxLength: 16,
-            title: 'Unit',
-            default: ''
-        },
-        comparator: {
-            type: 'string',
-            enum: ['gte', 'lte'],
-            title: 'Comparator',
-            default: 'gte'
-        },
-        period: {
-            type: 'string',
-            enum: ['week', 'month'],
-            title: 'Period',
-            default: 'week'
-        },
-        via: {
-            type: 'string',
-            enum: ['manual', 'onboarding', 'review'],
-            title: 'Via',
-            default: 'manual'
+            format: 'date-time',
+            title: 'Created At'
         }
     },
     type: 'object',
-    required: ['metric', 'label', 'target'],
-    title: 'GoalCreate'
+    required: ['id', 'role', 'my_status', 'status', 'name', 'currency', 'target_minor', 'deadline', 'balance_minor', 'pending_minor', 'members', 'entries', 'events', 'created_at'],
+    title: 'GoalOut'
 } as const;
 
 export const GoalProgressOutSchema = {
@@ -6956,6 +7197,115 @@ export const GroupCreateSchema = {
     type: 'object',
     required: ['name', 'member_ids'],
     title: 'GroupCreate'
+} as const;
+
+export const GroupEventOutSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        actor_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Actor Id'
+        },
+        entry_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Entry Id'
+        },
+        amount_minor: {
+            anyOf: [
+                {
+                    type: 'integer'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Amount Minor'
+        },
+        text: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Text'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'at', 'actor_id', 'entry_id', 'amount_minor', 'text'],
+    title: 'GroupEventOut'
+} as const;
+
+export const GroupRespondSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            enum: ['goal', 'budget'],
+            title: 'Kind'
+        },
+        object_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Object Id'
+        },
+        accept: {
+            type: 'boolean',
+            title: 'Accept'
+        },
+        category_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 50,
+            title: 'Category Ids'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'object_id', 'accept'],
+    title: 'GroupRespond'
+} as const;
+
+export const GroupsOutSchema = {
+    properties: {
+        goals: {
+            items: {
+                '$ref': '#/components/schemas/GoalOut'
+            },
+            type: 'array',
+            title: 'Goals'
+        },
+        budgets: {
+            items: {
+                '$ref': '#/components/schemas/BudgetOut'
+            },
+            type: 'array',
+            title: 'Budgets'
+        }
+    },
+    type: 'object',
+    required: ['goals', 'budgets'],
+    title: 'GroupsOut'
 } as const;
 
 export const HabitCreateSchema = {
@@ -11625,6 +11975,31 @@ export const MediaWithUrlSchema = {
     type: 'object',
     required: ['id', 'kind', 'mime', 'size_bytes', 'width', 'height', 'duration_sec', 'state', 'ready_at', 'created_at'],
     title: 'MediaWithUrl'
+} as const;
+
+export const MemberOutSchema = {
+    properties: {
+        person: {
+            '$ref': '#/components/schemas/PersonOut'
+        },
+        role: {
+            type: 'string',
+            enum: ['owner', 'member'],
+            title: 'Role'
+        },
+        status: {
+            type: 'string',
+            enum: ['invited', 'active', 'declined', 'left'],
+            title: 'Status'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        }
+    },
+    type: 'object',
+    required: ['person', 'role', 'status', 'amount_minor'],
+    title: 'MemberOut'
 } as const;
 
 export const MemberSettingsSchema = {
@@ -25403,6 +25778,68 @@ export const app__modules__companion__schema__SeriesOutSchema = {
     title: 'SeriesOut'
 } as const;
 
+export const app__modules__dashboard__schema__GoalCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        metric: {
+            type: 'string',
+            maxLength: 64,
+            minLength: 1,
+            title: 'Metric'
+        },
+        label: {
+            type: 'string',
+            maxLength: 120,
+            minLength: 1,
+            title: 'Label'
+        },
+        target: {
+            type: 'number',
+            maximum: 1000000000,
+            minimum: -1000000000,
+            title: 'Target'
+        },
+        unit: {
+            type: 'string',
+            maxLength: 16,
+            title: 'Unit',
+            default: ''
+        },
+        comparator: {
+            type: 'string',
+            enum: ['gte', 'lte'],
+            title: 'Comparator',
+            default: 'gte'
+        },
+        period: {
+            type: 'string',
+            enum: ['week', 'month'],
+            title: 'Period',
+            default: 'week'
+        },
+        via: {
+            type: 'string',
+            enum: ['manual', 'onboarding', 'review'],
+            title: 'Via',
+            default: 'manual'
+        }
+    },
+    type: 'object',
+    required: ['metric', 'label', 'target'],
+    title: 'GoalCreate'
+} as const;
+
 export const app__modules__dashboard__schema__ReviewInSchema = {
     properties: {
         done: {
@@ -25512,6 +25949,88 @@ export const app__modules__finance__advisor_ai__AskInSchema = {
     type: 'object',
     required: ['text'],
     title: 'AskIn'
+} as const;
+
+export const app__modules__finance__schema__BudgetCreateSchema = {
+    properties: {
+        name: {
+            type: 'string',
+            maxLength: 60,
+            minLength: 1,
+            title: 'Name'
+        },
+        limit_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Limit Minor'
+        },
+        rollover: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Rollover'
+        },
+        start_date: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Start Date'
+        },
+        archived: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Archived'
+        },
+        category_ids: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string',
+                        format: 'uuid'
+                    },
+                    type: 'array',
+                    maxItems: 100
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Ids'
+        },
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        }
+    },
+    type: 'object',
+    required: ['name', 'limit_minor'],
+    title: 'BudgetCreate'
 } as const;
 
 export const app__modules__finance__schema__MessageCreateSchema = {
@@ -26455,6 +26974,120 @@ export const app__modules__habits__schema__TodayPublicSchema = {
     type: 'object',
     required: ['day', 'habits', 'routines', 'due', 'done', 'timer'],
     title: 'TodayPublic'
+} as const;
+
+export const app__modules__shared_finance__schema__BudgetCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            maxLength: 80,
+            minLength: 1,
+            title: 'Name'
+        },
+        limit_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Limit Minor'
+        },
+        member_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 10,
+            minItems: 1,
+            title: 'Member Ids'
+        },
+        category_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 50,
+            title: 'Category Ids'
+        }
+    },
+    type: 'object',
+    required: ['name', 'limit_minor', 'member_ids'],
+    title: 'BudgetCreate',
+    description: 'A monthly budget shared with people the maker is connected with.'
+} as const;
+
+export const app__modules__shared_finance__schema__GoalCreateSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            maxLength: 80,
+            minLength: 1,
+            title: 'Name'
+        },
+        target_minor: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 100000000000000,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Target Minor'
+        },
+        deadline: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Deadline'
+        },
+        member_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 10,
+            minItems: 1,
+            title: 'Member Ids'
+        }
+    },
+    type: 'object',
+    required: ['name', 'member_ids'],
+    title: 'GoalCreate',
+    description: 'A savings goal shared with people the maker is connected with.'
 } as const;
 
 export const app__modules__shared_finance__schema__MonthlyScheduleSchema = {

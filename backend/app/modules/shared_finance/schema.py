@@ -230,3 +230,164 @@ class SharedMemberRow(BaseModel):
 
 class SharedMemberSync(BaseModel):
     """Never written by a device (the entity is read-only)."""
+
+
+# ================================================================ goals, budgets
+
+MemberStatus = Literal["invited", "active", "declined", "left"]
+
+
+class GoalCreate(BaseModel):
+    """A savings goal shared with people the maker is connected with."""
+
+    id: uuid.UUID | None = None
+    name: str = Field(min_length=1, max_length=80)
+    target_minor: Minor | None = None
+    deadline: date | None = None
+    member_ids: list[uuid.UUID] = Field(min_length=1, max_length=10)
+
+
+class BudgetCreate(BaseModel):
+    """A monthly budget shared with people the maker is connected with."""
+
+    id: uuid.UUID | None = None
+    name: str = Field(min_length=1, max_length=80)
+    limit_minor: Minor
+    member_ids: list[uuid.UUID] = Field(min_length=1, max_length=10)
+    # The maker's own categories that count toward it (empty: all spending).
+    category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+
+class GroupRef(BaseModel):
+    kind: Literal["goal", "budget"]
+    object_id: uuid.UUID
+
+
+class GroupRespond(GroupRef):
+    accept: bool
+    # Budget: the member's own categories that count (empty: all spending).
+    category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+
+class BudgetCategories(BaseModel):
+    budget_id: uuid.UUID
+    category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+
+class EntryCreate(BaseModel):
+    """A deposit into, or a withdrawal request out of, a shared goal."""
+
+    id: uuid.UUID | None = None
+    goal_id: uuid.UUID
+    kind: Literal["deposit", "withdrawal"]
+    amount_minor: Minor
+    on_date: date
+    # The writer's own account: where a deposit left, a withdrawal lands.
+    account_id: uuid.UUID
+    note: str | None = Field(default=None, max_length=280)
+
+
+class EntryRef(BaseModel):
+    goal_id: uuid.UUID
+    entry_id: uuid.UUID
+
+
+class EntryDecide(EntryRef):
+    accept: bool
+    reason: str | None = Field(default=None, max_length=280)
+
+
+class MemberOut(BaseModel):
+    person: PersonOut
+    role: Literal["owner", "member"]
+    status: MemberStatus
+    # Goal: accepted deposits less accepted withdrawals. Budget: spent this
+    # month in the member's chosen categories.
+    amount_minor: int
+
+
+class EntryOut(BaseModel):
+    id: uuid.UUID
+    kind: Literal["deposit", "withdrawal"]
+    status: PaymentStatus
+    amount_minor: int
+    on_date: date
+    note: str | None
+    by_id: uuid.UUID
+    # The viewer's own account / record (null on another member's entry).
+    account_id: uuid.UUID | None
+    record_id: uuid.UUID | None
+    decided_at: datetime | None
+    decided_by: uuid.UUID | None
+    reason: str | None
+    created_at: datetime
+
+
+class GroupEventOut(BaseModel):
+    kind: str
+    at: datetime
+    actor_id: uuid.UUID
+    entry_id: uuid.UUID | None
+    amount_minor: int | None
+    text: str | None
+
+
+class GoalOut(BaseModel):
+    id: uuid.UUID
+    role: Literal["owner", "member"]
+    my_status: MemberStatus
+    status: Literal["active", "closed"]
+    name: str
+    currency: str
+    target_minor: int | None
+    deadline: date | None
+    balance_minor: int
+    pending_minor: int
+    members: list[MemberOut]
+    entries: list[EntryOut]
+    events: list[GroupEventOut]
+    created_at: datetime
+
+
+class BudgetOut(BaseModel):
+    id: uuid.UUID
+    role: Literal["owner", "member"]
+    my_status: MemberStatus
+    status: Literal["active", "closed"]
+    name: str
+    currency: str
+    limit_minor: int
+    # The current month (calendar month of the viewer's day).
+    month: str
+    spent_minor: int
+    # The viewer's own categories that count (others' are their own).
+    my_category_ids: list[uuid.UUID]
+    members: list[MemberOut]
+    events: list[GroupEventOut]
+    created_at: datetime
+
+
+class GroupsOut(BaseModel):
+    goals: list[GoalOut]
+    budgets: list[BudgetOut]
+
+
+# REST bodies (the path names the goal / entry / budget).
+
+
+class EntryBody(BaseModel):
+    id: uuid.UUID | None = None
+    kind: Literal["deposit", "withdrawal"]
+    amount_minor: Minor
+    on_date: date
+    account_id: uuid.UUID
+    note: str | None = Field(default=None, max_length=280)
+
+
+class DecideBody(BaseModel):
+    accept: bool
+    reason: str | None = Field(default=None, max_length=280)
+
+
+class CategoriesBody(BaseModel):
+    category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)

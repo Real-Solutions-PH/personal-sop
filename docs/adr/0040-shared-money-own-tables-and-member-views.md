@@ -65,4 +65,11 @@ row-level security, soft-delete column).
   (the borrower's account is not known).
 
 **Follow-ups:**
-- Shared savings goals and shared budgets on the same pattern.
+- Shared savings goals and shared budgets on the same pattern (done in the
+  follow-up PR): `shared_goal` / `shared_budget` with `shared_membership`
+  rows (role, invite status, a budget member's own counted categories),
+  `goal_entry` (deposits final when made, withdrawals okayed by another
+  member, decided entries final in the database) and the append-only
+  `shared_event`. A budget's spending is read from each member's own
+  ledger; a job every 15 minutes refreshes the views and sends the 80% /
+  100% alerts once a month each.

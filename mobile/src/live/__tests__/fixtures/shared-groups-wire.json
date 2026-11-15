@@ -1,0 +1,116 @@
+[
+  {
+    "kind": "action",
+    "name": "finance.goal.create",
+    "data": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "name": "Japan trip",
+      "target_minor": 1000000,
+      "deadline": "2027-04-01",
+      "member_ids": [
+        "22222222-2222-4222-8222-222222222222"
+      ]
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.goal.entry",
+    "data": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "goal_id": "44444444-4444-4444-8444-444444444444",
+      "kind": "deposit",
+      "amount_minor": 250000,
+      "on_date": "2026-11-15",
+      "account_id": "33333333-3333-4333-8333-333333333333",
+      "note": null
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.shared.respond",
+    "data": {
+      "kind": "goal",
+      "object_id": "44444444-4444-4444-8444-444444444444",
+      "accept": true,
+      "category_ids": []
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.goal.decide",
+    "data": {
+      "goal_id": "44444444-4444-4444-8444-444444444444",
+      "entry_id": "44444444-4444-4444-8444-444444444444",
+      "accept": true,
+      "reason": null
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.goal.decide",
+    "data": {
+      "goal_id": "44444444-4444-4444-8444-444444444444",
+      "entry_id": "44444444-4444-4444-8444-444444444444",
+      "accept": false,
+      "reason": "Not yet"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.goal.entry",
+    "data": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "goal_id": "44444444-4444-4444-8444-444444444444",
+      "kind": "withdrawal",
+      "amount_minor": 5000,
+      "on_date": "2026-11-15",
+      "account_id": "33333333-3333-4333-8333-333333333333",
+      "note": null
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.goal.withdraw",
+    "data": {
+      "goal_id": "44444444-4444-4444-8444-444444444444",
+      "entry_id": "44444444-4444-4444-8444-444444444444"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.budget.create",
+    "data": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "name": "Groceries",
+      "limit_minor": 1500000,
+      "member_ids": [
+        "22222222-2222-4222-8222-222222222222"
+      ],
+      "category_ids": [
+        "44444444-4444-4444-8444-444444444444"
+      ]
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.budget.categories",
+    "data": {
+      "budget_id": "44444444-4444-4444-8444-444444444444",
+      "category_ids": [
+        "44444444-4444-4444-8444-444444444444"
+      ]
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.shared.respond",
+    "data": {
+      "kind": "budget",
+      "object_id": "44444444-4444-4444-8444-444444444444",
+      "accept": true,
+      "category_ids": [
+        "44444444-4444-4444-8444-444444444444"
+      ]
+    }
+  }
+]
