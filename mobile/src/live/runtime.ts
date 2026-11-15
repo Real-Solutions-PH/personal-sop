@@ -30,6 +30,7 @@ import { habitsMappers } from "./mappers/habits"
 import { modulePrefMapper, weatherPrefMapper } from "./mappers/reference"
 import { scheduleMappers } from "./mappers/schedule"
 import { screenMappers } from "./mappers/screen"
+import { sharedMappers } from "./mappers/shared"
 import { tasksMappers } from "./mappers/tasks"
 import { createOutbox } from "./outbox"
 import { configurePurchases } from "./purchases"
@@ -46,6 +47,8 @@ const factories: MapperFactory[] = [
   (uid) => [weatherPrefMapper(uid), modulePrefMapper(uid)],
   dashMappers,
   financeMappers,
+  // After finance: a loan action books records in the ledger.
+  sharedMappers,
   fitnessMappers,
   // Before habits: a habit's screen-time rule names a group.
   screenMappers,
@@ -167,6 +170,17 @@ export function startLive(
       void transcribePending()
     },
     onRejected: (name) => {
+      // A loan change the server refused (the other member answered first,
+      // or more than what is left): the loans are pulled again, and a new
+      // loan it never took is dropped.
+      if (name.startsWith("finance.loan.")) {
+        void import("@domain/finance/loans").then((m) =>
+          m.dropUnconfirmed(name === "finance.loan.create"),
+        )
+        void import("sonner-native").then(({ toast }) =>
+          toast.error("Couldn't save that loan change — it was refreshed"),
+        )
+      }
       // Loaded on use: the toaster pulls in the UI's animation runtime.
       if (name === "fitness.merge_exercises")
         void import("sonner-native").then(({ toast }) =>

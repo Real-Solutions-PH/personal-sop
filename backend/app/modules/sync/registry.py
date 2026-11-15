@@ -78,6 +78,8 @@ SYNC_MODULES = (
     "schedule",
     "fitness",
     "finance",
+    # After finance: a loan action books records in the finance ledger.
+    "shared_finance",
     "focus",
     "screen",
     "capture",

@@ -51,6 +51,7 @@ Context pack for human + AI programmers building this SaaS. Fill each template; 
 | [adr/0036-marketing-site-static-workspace.md](adr/0036-marketing-site-static-workspace.md) | Proposed: the public marketing site is a static Next.js export in its own `marketing/` workspace, not a route group in `frontend/` (2026-11-08) | Architecture |
 | [adr/0037-revenuecat-for-unfurl-plus.md](adr/0037-revenuecat-for-unfurl-plus.md) | Proposed: Unfurl Plus through RevenueCat; the server holds the plan, written only from verified webhooks and a refresh against RevenueCat (2026-11-09) | Architecture |
 | [adr/0038-fern-allowance-and-plus-fair-use.md](adr/0038-fern-allowance-and-plus-fair-use.md) | Fern allowance and Plus fair use: one `fern_turn` row per message on the server key, light model and every limit in settings (2026-11-09) | Architecture |
+| [adr/0040-shared-money-own-tables-and-member-views.md](adr/0040-shared-money-own-tables-and-member-views.md) | Shared money (loans): own tables with members and roles, each member's ledger gets its own records, append-only propose/accept, a synced per-member view for offline (2026-11-15) | Architecture |
 | [runbook.md](runbook.md) | Deploy, rollback, backup/restore, common ops, incidents | DevOps |
 
 ### Feature specs and plans

@@ -5,6 +5,7 @@
 
 import { captureStore } from "@domain/capture/store"
 import { dashStore } from "@domain/dash/store"
+import { sharedStore } from "@domain/finance/loans"
 import { finStore } from "@domain/finance/store"
 import { runLiveStore } from "@domain/fitness/run-live"
 import { fitStore } from "@domain/fitness/store"
@@ -72,6 +73,7 @@ export function clearToBlank() {
     lookbacks: [],
     threads: [],
   }))
+  sharedStore.set({ loans: [] })
   // The AI spend meter too: the prototype seeds demo spending; live mode
   // reads the real meter from the server (live/capture.ts).
   captureStore.set((s) => ({

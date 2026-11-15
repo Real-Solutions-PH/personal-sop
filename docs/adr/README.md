@@ -32,3 +32,4 @@ Start new ADRs from [template.md](template.md).
 | [0037](0037-revenuecat-for-unfurl-plus.md) | RevenueCat for Unfurl Plus; the server holds the plan, written only from verified webhooks and a refresh |
 | [0038](0038-fern-allowance-and-plus-fair-use.md) | Fern allowance and Plus fair use: a turn ledger, server-key only, every limit in settings |
 | [0039](0039-guided-tour-in-house-overlay.md) | The first-run guided tour is a small in-house overlay (reanimated + measure), not a tour library |
+| [0040](0040-shared-money-own-tables-and-member-views.md) | Shared money: own tables with members and roles, linked ledger records, append-only propose/accept, a synced view per member |
