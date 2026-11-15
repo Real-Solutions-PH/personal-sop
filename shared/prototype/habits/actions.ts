@@ -152,6 +152,8 @@ export function createHabit(
   input: Partial<HabitInput> & {
     name: string
   },
+  /** The day it starts, when not today (a habit added on a past day). */
+  opts: { startsOn?: string } = {},
 ): Habit {
   const s = S.get()
   const h: Habit = {
@@ -164,7 +166,7 @@ export function createHabit(
     id: uid(),
     status: "active",
     pauses: [],
-    createdAt: dayKey(),
+    createdAt: opts.startsOn ?? dayKey(),
     sortOrder: Math.max(0, ...s.habits.map((x) => x.sortOrder)) + 1,
   }
   S.set((st) => ({ ...st, habits: [...st.habits, h] }))
