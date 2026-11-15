@@ -39,8 +39,10 @@ export interface EngineDeps {
   mappers: AnyMapper[]
   online: () => boolean
   log?: (event: string, detail?: unknown) => void
-  /** After every successful push + pull (server statistics refresh). */
-  onSynced?: () => void
+  /** After every successful push + pull (server statistics refresh).
+   * ``changed``: this sync pushed ops or pulled rows; false for a quiet
+   * poll, after which server-derived figures cannot have moved. */
+  onSynced?: (changed: boolean) => void
   /** An op the server refused (name and code only, for the person's toast). */
   onRejected?: (name: string, code: string | null | undefined) => void
   debounceMs?: number
@@ -447,14 +449,18 @@ export class SyncEngine {
     return this.running
   }
 
+  /** Whether the running sync pushed or pulled anything. */
+  private carried = false
+
   private async run() {
     if (!this.deps.online()) return
+    this.carried = false
     try {
       await this.push()
       await this.pull()
       this.showDeferred()
       this.backoffMs = 0
-      this.deps.onSynced?.()
+      this.deps.onSynced?.(this.carried)
     } catch (error) {
       if (!(error instanceof NetworkError))
         this.deps.log?.("sync_error", String(error))
@@ -473,8 +479,10 @@ export class SyncEngine {
 
   private async push() {
     const batch = this.deps.batch ?? 100
-    while (this.deps.outbox.size())
+    while (this.deps.outbox.size()) {
+      this.carried = true
       await this.pushOps(this.deps.outbox.peek(batch))
+    }
   }
 
   /** Push ``ops`` in order. A batch the server refuses as malformed is split
@@ -578,6 +586,7 @@ export class SyncEngine {
       }>("GET", `/sync/pull?cursor=${this.cursor}&limit=500`, undefined, {
         timeoutMs: SYNC_TIMEOUT_MS,
       })
+      if (page.changes.length) this.carried = true
       this.apply(page.changes)
       this.cursor = page.cursor
       this.persist()
