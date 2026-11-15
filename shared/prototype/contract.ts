@@ -25,6 +25,9 @@ export interface CalendarItem {
   /** Moved on the Plan tab for this day only: the time it had before (null:
    * it had none). Absent when the item sits at its own time. */
   movedFrom?: string | null
+  /** One of a habit's several times that day (``habits/slots``): the n-th
+   * of ``of`` in time order. Absent for a habit with one time. */
+  slot?: { n: number; of: number }
 }
 export interface Miss {
   id: string
