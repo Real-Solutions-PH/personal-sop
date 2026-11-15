@@ -8,6 +8,7 @@ flush, so ``public.py`` can compose them inside another module's use case.
 import csv
 import io
 import uuid
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -115,6 +116,48 @@ def _check_record(
         raise invalid("category_kind_mismatch", "That category is for the other kind")
     if is_refund and type != "income":
         raise invalid("refund_not_income", "A refund is money coming back in")
+
+
+def due_link(
+    ctx: Ctx,
+    *,
+    type: str,
+    amount_minor: int,
+    account_id: uuid.UUID,
+    at: datetime | None,
+    to_account_id: uuid.UUID | None = None,
+    category_id: uuid.UUID | None = None,
+    payee: str | None = None,
+    is_refund: bool = False,
+    record_id: uuid.UUID | None = None,
+) -> dict[str, Any]:
+    """``planned_id``/``planned_on`` for a transaction logged through Fern or
+    a capture when it pays a bill that is due or overdue (``calc.due_for``),
+    else nothing: "paid my gym membership 1000" takes the bill off the
+    overdue list as Pay on the bill would. Read from the database as it is
+    now (never the request's snapshot), so two payments in one turn never
+    claim the same date. A replay of ``record_id`` is matched without its
+    own earlier copy, so it keeps the date it paid."""
+    s = repo.load_state(ctx, repo.settings_row(ctx))
+    if record_id is not None:
+        s = replace(s, records=[r for r in s.records if r.id != str(record_id)])
+    o = calc.due_for(
+        s,
+        calc.Rec(
+            id="",
+            type=type,
+            amount=amount_minor,
+            account_id=str(account_id),
+            day=_day(ctx, at or ctx.now),
+            to_account_id=str(to_account_id) if to_account_id else None,
+            category_id=str(category_id) if category_id else None,
+            payee=payee,
+            is_refund=is_refund,
+        ),
+    )
+    if o is None:
+        return {}
+    return {"planned_id": uuid.UUID(o.item.id), "planned_on": o.orig}
 
 
 def _settings(ctx: Ctx) -> FinanceSettings:
@@ -1204,9 +1247,16 @@ def _settle(
     p = _planned(ctx, planned_id)
     _require_occurrence(p, day)
     rid = settle_record_id(p.id, day)
-    existing = owned_repo.get(ctx, FinRecord, rid)
+    existing = owned_repo.get(ctx, FinRecord, rid) or owned_repo.find_one(
+        ctx,
+        FinRecord,
+        col(FinRecord.planned_id) == p.id,
+        col(FinRecord.planned_on) == day,
+    )
     if existing is not None:
-        return existing  # settling twice is the same record
+        # Settling twice is the same record, and so is settling a date a
+        # logged payment already paid (``due_link``): one per occurrence.
+        return existing
     if amount_minor is None:
         # The date's own amount, when one was set for it.
         own = owned_repo.find_one(
