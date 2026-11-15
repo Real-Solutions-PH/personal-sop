@@ -596,6 +596,64 @@ test("settling the same occurrence twice replaces its record, never a second one
   expect(settleOccurrence("no-such-plan", day, { amount: 1 })).toBeUndefined()
 })
 
+test("an overdue bill paid by a logged expense: settled on the server, and still paid after the pull", () => {
+  const { e, acct, bank } = setup()
+  // The bill's account is archived: its row reads "No account".
+  updateAccount(bank.id, { archived: true })
+  const due = addDays(today(), -3)
+  const p = addPlanned({
+    name: "Gym membership",
+    type: "expense",
+    amount: 1000,
+    estimated: false,
+    accountId: bank.id,
+    categoryId: "health",
+    schedule: { kind: "monthly", day: Number(due.slice(8)) },
+    start: addDays(due, -62),
+    end: { kind: "never" },
+    autoLog: false,
+    isWhatIf: false,
+    inProjection: true,
+  })
+  captureWire(e, seen)
+  const rec = logExpense({
+    amount: 1000,
+    payee: "Gym membership",
+    accountId: acct.id,
+    source: "manual",
+  })
+  const id = derivedId("planned-record", p.id, due)
+  expect(rec).toMatchObject({ id, plannedId: p.id, plannedOn: due })
+  const ops = captureWire(e, seen)
+  // The settle goes first, paid today from the account the person chose.
+  expect(actionsOf(ops)).toEqual([
+    expect.objectContaining({
+      name: "finance.settle",
+      data: {
+        planned_id: p.id,
+        day: due,
+        amount_minor: 100000,
+        account_id: acct.id,
+        paid_on: today(),
+      },
+    }),
+  ])
+  expect(upserts(ops, "fin_record").map((o) => o.id)).toEqual([id])
+  // The server's row comes back linked; the merge keeps the link.
+  const m = recordMapper(cats)
+  const s = finStore.get()
+  const back = m.fromServer(
+    {
+      id,
+      ...m.toServer(rec, s),
+      planned_id: p.id,
+      planned_on: due,
+    },
+    s,
+  )
+  expect(back).toMatchObject({ plannedId: p.id, plannedOn: due })
+})
+
 test("a transfer's fee is its own record, derived from the transfer, sent after it", () => {
   const { e, acct, bank } = setup()
   const { transfer, fee } = logTransfer({

@@ -349,3 +349,171 @@ def test_keep_reminding_round_trips_through_sync(
     assert rows[str(hid)]["nag_every_min"] == 60
     bad = _push(client, h, _op("upsert", "habit", hid, nag_every_min=5))
     assert bad[0]["status"] != "applied", bad
+
+
+def test_steps_added_and_removed_mid_run(client: TestClient, db: Session) -> None:
+    """A run in progress takes a new habit (up next or at the end) and drops
+    an unplayed one. A removed step leaves no result and no log, so it is
+    never counted as skipped or missed; the saved routine is untouched."""
+    _, h = signed_in(db)
+    skin, journal, stretch, read, rid = (uuid.uuid4() for _ in range(5))
+    _push(
+        client,
+        h,
+        _op("upsert", "habit", skin, name="Skin care", type="check"),
+        _op("upsert", "habit", journal, name="Journal", type="check"),
+        _op("upsert", "habit", stretch, name="Stretch", type="check"),
+        _op("upsert", "habit", read, name="Read", type="check"),
+        _op("upsert", "routine", rid, name="Morning"),
+        *[
+            _op(
+                "upsert",
+                "routine_step",
+                uuid.uuid4(),
+                routine_id=str(rid),
+                habit_id=str(hid),
+                position=i,
+                minutes=m,
+            )
+            for i, (hid, m) in enumerate([(skin, 15), (journal, 10), (stretch, 5)])
+        ],
+    )
+    run = str(uuid.uuid4())
+
+    def steps(res: dict[str, Any]) -> list[tuple[str, int]]:
+        return [(s["habit_id"], s["minutes"]) for s in res["result"]["run"]["steps"]]
+
+    def remove(hid: uuid.UUID, position: int) -> dict[str, Any]:
+        return _op(
+            "action",
+            "habits.run.remove_step",
+            run_id=run,
+            habit_id=str(hid),
+            position=position,
+        )
+
+    res = _push(
+        client,
+        h,
+        _op("action", "habits.run.start", routine_id=str(rid), run_id=run),
+        _op("action", "habits.run.done", run_id=run),
+        # up next, after the journal (the current step)
+        _op(
+            "action",
+            "habits.run.add_step",
+            run_id=run,
+            habit_id=str(read),
+            minutes=20,
+            position=2,
+        ),
+        # a stale position: the step is found by its habit
+        remove(stretch, 9),
+    )
+    assert [r["status"] for r in res] == ["applied"] * 4, res
+    assert steps(res[2]) == [
+        (str(skin), 15),
+        (str(journal), 10),
+        (str(read), 20),
+        (str(stretch), 5),
+    ]
+    assert res[2]["result"]["run"]["current"] == 1
+    assert steps(res[3]) == [(str(skin), 15), (str(journal), 10), (str(read), 20)]
+    # a replayed removal finds nothing to remove: a no-op
+    again = _push(client, h, remove(stretch, 3))[0]
+    assert again["status"] == "applied"
+    assert len(again["result"]["run"]["steps"]) == 3
+    # a played step is never removed
+    played = _push(client, h, remove(skin, 0))[0]
+    assert len(played["result"]["run"]["steps"]) == 3
+    # removing the current step (the journal) moves on to the read
+    cur = _push(client, h, remove(journal, 1))[0]
+    assert cur["result"]["run"]["current"] == 1
+    assert steps(cur) == [(str(skin), 15), (str(read), 20)]
+    # removing the last step left finishes the run
+    end = _push(client, h, remove(read, 1))[0]
+    assert end["result"]["run"]["state"] == "completed"
+
+    pulled = _pull(client, h)
+    results = [c["row"] for c in pulled if c["entity"] == "routine_step_result"]
+    assert [(r["habit_id"], r["status"]) for r in results] == [(str(skin), "done")]
+    logged = {
+        c["row"]["habit_id"]
+        for c in pulled
+        if c["entity"] == "habit_log" and not c["deleted"]
+    }
+    assert logged == {str(skin)}
+    saved = sorted(
+        (c["row"]["position"], c["row"]["habit_id"])
+        for c in pulled
+        if c["entity"] == "routine_step" and not c["deleted"]
+    )
+    assert [hid for _, hid in saved] == [str(skin), str(journal), str(stretch)]
+
+
+def test_a_step_added_at_the_current_one_restarts_its_clock(
+    client: TestClient, db: Session
+) -> None:
+    """Undo of removing the current step: added back AT the current index it
+    is the step being played again, on a fresh clock and unpaused."""
+    _, h = signed_in(db)
+    a, b, rid = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    _push(
+        client,
+        h,
+        _op("upsert", "habit", a, name="A", type="check"),
+        _op("upsert", "habit", b, name="B", type="check"),
+        _op("upsert", "routine", rid, name="R"),
+        *[
+            _op(
+                "upsert",
+                "routine_step",
+                uuid.uuid4(),
+                routine_id=str(rid),
+                habit_id=str(hid),
+                position=i,
+                minutes=5,
+            )
+            for i, hid in enumerate([a, b])
+        ],
+    )
+    run = str(uuid.uuid4())
+    res = _push(
+        client,
+        h,
+        _op("action", "habits.run.start", routine_id=str(rid), run_id=run),
+        _op("action", "habits.run.toggle_pause", run_id=run),
+        _op("action", "habits.run.add_minute", run_id=run),
+        _op(
+            "action",
+            "habits.run.remove_step",
+            run_id=run,
+            habit_id=str(a),
+            position=0,
+        ),
+        _op(
+            "action",
+            "habits.run.add_step",
+            run_id=run,
+            habit_id=str(a),
+            minutes=5,
+            position=0,
+        ),
+    )
+    assert [r["status"] for r in res] == ["applied"] * 5, res
+    out = res[4]["result"]["run"]
+    assert [s["habit_id"] for s in out["steps"]] == [str(a), str(b)]
+    assert (out["current"], out["paused_at"], out["step_bonus_sec"]) == (0, None, 0)
+    # an unknown habit is refused
+    bad = _push(
+        client,
+        h,
+        _op(
+            "action",
+            "habits.run.add_step",
+            run_id=run,
+            habit_id=str(uuid.uuid4()),
+            minutes=5,
+            position=1,
+        ),
+    )[0]
+    assert bad["status"] == "rejected"

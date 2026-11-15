@@ -178,6 +178,7 @@ def log_expense(
     pending: bool = False,
     foreign: "Foreign | None" = None,
 ) -> FinRecord:
+    acct = _account_or_default(ctx, account_id, for_income=False)
     return _keep_foreign(
         ctx,
         foreign,
@@ -186,7 +187,7 @@ def log_expense(
             record_id=record_id,
             type="expense",
             amount_minor=amount_minor,
-            account_id=_account_or_default(ctx, account_id, for_income=False),
+            account_id=acct,
             category_id=category_id,
             at=at,
             payee=payee,
@@ -194,6 +195,16 @@ def log_expense(
             source=source,
             status="pending" if pending else "cleared",
             receipt_media_id=receipt_media_id,
+            **services.due_link(
+                ctx,
+                type="expense",
+                amount_minor=amount_minor,
+                account_id=acct,
+                at=at,
+                category_id=category_id,
+                payee=payee,
+                record_id=record_id,
+            ),
         )[0],
     )
 
@@ -215,6 +226,7 @@ def log_income(
     if category_id is None and not is_refund:
         other = repo.category_by_slug(ctx, "other-in")
         category_id = other.id if other else None
+    acct = _account_or_default(ctx, account_id, for_income=True)
     return _keep_foreign(
         ctx,
         foreign,
@@ -223,13 +235,24 @@ def log_income(
             record_id=record_id,
             type="income",
             amount_minor=amount_minor,
-            account_id=_account_or_default(ctx, account_id, for_income=True),
+            account_id=acct,
             category_id=category_id,
             at=at,
             payee=payee,
             note=note,
             source=source,
             is_refund=is_refund,
+            **services.due_link(
+                ctx,
+                type="income",
+                amount_minor=amount_minor,
+                account_id=acct,
+                at=at,
+                category_id=category_id,
+                payee=payee,
+                is_refund=is_refund,
+                record_id=record_id,
+            ),
         )[0],
     )
 

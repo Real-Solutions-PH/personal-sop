@@ -323,7 +323,7 @@ function Editor({ record, prefill, onClose, onSaved, settles }: Props) {
         setTried(false)
       } else onClose()
       return
-    } else created = [A.addRecord({ ...input, source: "manual" })]
+    } else created = [A.logRecord({ ...input, source: "manual" })]
     onSaved?.(created[0])
     const result = outcome(!again)
     if (again) {
