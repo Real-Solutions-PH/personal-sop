@@ -125,8 +125,17 @@ test("Delete removes a scheduled payment, even once it was paid", () => {
 
 test("items that already ended are off the scheduled list", () => {
   const yesterday = C.addDays(C.today(), -1)
-  plan({ name: "Old gym", end: { kind: "date", date: yesterday } })
-  plan({ name: "Ended today", end: { kind: "date", date: C.today() } })
+  // Billed the day after today: their last date is about a month back, so
+  // no unpaid date of theirs is due or overdue now. Billed on today's own
+  // date, "Ended today" still has today's payment to make and rightly shows.
+  const dom = Number(C.today().slice(8, 10))
+  const schedule = { kind: "monthly", day: dom >= 28 ? 1 : dom + 1 } as const
+  plan({ name: "Old gym", schedule, end: { kind: "date", date: yesterday } })
+  plan({
+    name: "Ended today",
+    schedule,
+    end: { kind: "date", date: C.today() },
+  })
   plan({ name: "Spotify" })
   render(<Planned />, { wrapper })
   expect(screen.queryByText("Old gym")).toBeNull()
