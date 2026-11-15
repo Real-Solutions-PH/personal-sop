@@ -64,6 +64,33 @@ def latest_log_at(session: Session, owner: uuid.UUID) -> datetime | None:
     return value if isinstance(value, datetime) else None
 
 
+def fern_turns(session: Session, owner: uuid.UUID, since: datetime) -> int:
+    """Messages the person sent Fern since ``since``."""
+    value = session.execute(
+        text(
+            "SELECT count(*) FROM companion_message WHERE owner_id = :owner"
+            " AND role = 'me' AND created_at >= :since AND deleted_at IS NULL"
+        ),
+        {"owner": owner, "since": since},
+    ).scalar()
+    return int(value or 0)
+
+
+def last_push_at(
+    session: Session, owner: uuid.UUID, since: datetime
+) -> datetime | None:
+    """When the server last pushed an inbox notification to the person (a
+    task reminder, the digest, a nudge), from ``since``."""
+    value = session.execute(
+        text(
+            "SELECT max(pushed_at) FROM notification WHERE owner_id = :owner"
+            " AND pushed_at >= :since"
+        ),
+        {"owner": owner, "since": since},
+    ).scalar()
+    return value if isinstance(value, datetime) else None
+
+
 def app_opens(session: Session, owner: uuid.UUID, since: datetime) -> list[datetime]:
     rows = session.execute(
         text(

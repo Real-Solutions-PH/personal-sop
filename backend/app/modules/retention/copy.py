@@ -7,17 +7,26 @@ never uses loss-aversion copy: no "at risk", "lose", "about to end", "don't
 break", "you missed again", and no emoji (a test sweeps the catalogue).
 
 Nothing sensitive reaches the lock screen: the only personal text is the
-title of a habit or task the person wrote, never an amount, a weight or a
-food.
+title of a habit or task the person wrote, their first name and counts
+(days in a row, done of due), never an amount, a weight, a food or a
+bill's name.
+
+``render`` writes the comeback ladder and the plain best-time nudge;
+``render_topic`` writes the best-time nudge for the topic ``topics.pick``
+chose from the person's state and persona.
 """
 
 from dataclasses import dataclass
 from typing import Literal
 
 from app.modules.retention.logic import NudgeKind
+from app.modules.retention.topics import Candidate
 
 SETTINGS_HREF = "/me/settings"
 TODAY_HREF = "/today"
+PLAN_HREF = "/plan"
+WRAP_UP_HREF = "/today/wrap-up"
+BODY_HREF = "/fitness/body"
 ITEM_TITLE_MAX = 60
 
 
@@ -116,3 +125,61 @@ def render(
         f"A month since we last checked in. Here's where you left off: {_t(item)}.",
         item_href(item),
     )
+
+
+# ---------------------------------------------------------------- topics
+
+
+def _first_name(person: str | None) -> str:
+    words = (person or "").split()
+    return words[0][:30] if words else ""
+
+
+def _hi(greeting: str, person: str | None) -> str:
+    first = _first_name(person)
+    return f"{greeting}, {first}. " if first else f"{greeting}. "
+
+
+def render_topic(c: Candidate, *, name: str, person: str | None = None) -> Message:
+    """The best-time nudge for a chosen topic (``topics.pick``), with the
+    person's own habit or task title and numbers; ``person`` is their name,
+    for a greeting on the morning and evening topics."""
+    title = _t(Item("habit", "", c.title)) if c.title else ""
+    if c.topic == "bill_due":
+        # The lock screen never shows the bill's name or amount (§6).
+        when = "tomorrow" if c.tomorrow else "today"
+        body = f"A bill is due {when}. One tap opens it, ready to mark paid."
+    elif c.topic == "near_best":
+        body = f"One more {title} makes {c.count:,} days in a row. One tap logs it."
+    elif c.topic == "habit_usual":
+        body = f"You usually do {title} around now. One tap logs it."
+    elif c.topic == "wrap_up":
+        if c.due > 0:
+            body = (
+                _hi("Evening", person)
+                + f"{c.done:,} of {c.due:,} done today. Two minutes to wrap it up."
+            )
+        else:
+            body = _hi("Evening", person) + "Two minutes to wrap up today."
+    elif c.topic == "plan_tomorrow":
+        body = "Tomorrow's still open. Pick one thing for it now and the morning starts easier."
+    elif c.topic == "plan_today":
+        body = (
+            _hi("Morning", person)
+            + "Nothing's planned for today yet. Pick one thing to start with."
+        )
+    elif c.topic == "weigh_in":
+        body = f"{c.count:,} days since your last weigh-in. One tap logs today's."
+    elif c.topic == "first_week":
+        body = (
+            f"Day {c.count:,}. One thing logged is enough: {title} is open for today."
+            if title
+            else f"Day {c.count:,}. One thing logged is enough today."
+        )
+    elif c.topic == "habit_due":
+        body = f"{title} is open for today. One tap logs it."
+        if c.rest_ready:
+            body += " Rest day ready if today's a no."
+    else:  # task_due
+        body = f"Next up: {title}. One tap opens it."
+    return Message(name, body, c.href)

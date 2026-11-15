@@ -76,7 +76,15 @@ export function HabitForm({
     [step, setStep] = useState(String(h?.step ?? 1)),
     [schedule, setSchedule] = useState<ScheduleSlot[]>(
       old?.schedule ?? [
-        { days: EVERY_DAY, ...(routine ? { time: "06:00" } : {}) },
+        {
+          days: EVERY_DAY,
+          // A time it was opened with (a Plan block's quick add).
+          ...(/^([01]\d|2[0-3]):[0-5]\d$/.test(p.time ?? "")
+            ? { time: p.time }
+            : routine
+              ? { time: "06:00" }
+              : {}),
+        },
       ],
     ),
     [reminder, setReminder] = useState(old?.reminder ?? defaultReminder),

@@ -30,6 +30,9 @@ SUPPRESSIONS = (
     "no_content",
     "no_push",
     "holdout",
+    # Another push went out under 45 min before, and waiting for the gap
+    # would run past the late limit.
+    "recent_push",
 )
 
 
@@ -99,6 +102,10 @@ class Nudge(OwnedRow, table=True):
         default=None, foreign_key="notification.id", ondelete="SET NULL", index=True
     )
     dedupe_key: str = Field(sa_type=String(40))  # type: ignore
+    # What a best-time nudge was about (``topics.Topic``: bill_due,
+    # near_best, wrap_up, ...); null for ladder steps and for a day with
+    # nothing to say.
+    topic: str | None = Field(default=None, sa_type=String(16))  # type: ignore
 
 
 __all__ = ["Nudge", "RetentionProfile"]

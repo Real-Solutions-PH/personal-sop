@@ -6,6 +6,7 @@ import {
   addDays,
   balanceOf,
   companionOf,
+  dueFor,
   MOVE_DAYS,
   recDay,
   reconcile,
@@ -55,6 +56,29 @@ export function addRecord(input: NewRecord): FinRecord {
   }))
   return r
 }
+/**
+ * A transaction the person logs (the + sheet, Apple Pay, a widget, Fern on
+ * the device): when it pays a bill that is due or overdue (``dueFor``), it
+ * is that date's payment, saved as Pay / Record on the bill saves it, under
+ * the id the server derives, so the bill leaves the overdue list here and
+ * the sync settles it there. Anything else is a plain record.
+ */
+export function logRecord(input: NewRecord): FinRecord {
+  const at = input.at ?? nowIso()
+  const o = dueFor(finStore.get(), { ...input, at })
+  if (!o) return addRecord({ ...input, at })
+  const id = derivedId("planned-record", o.item.id, o.orig)
+  // Already on the device (a settle another device synced): a plain record.
+  if (finStore.get().records.some((r) => r.id === id))
+    return addRecord({ ...input, at })
+  return addRecord({
+    ...input,
+    at,
+    id,
+    plannedId: o.item.id,
+    plannedOn: o.orig,
+  })
+}
 export function logExpense(input: {
   amount: number
   accountId?: string
@@ -66,7 +90,7 @@ export function logExpense(input: {
   pending?: boolean
 }): FinRecord {
   const st = finStore.get().settings
-  return addRecord({
+  return logRecord({
     type: "expense",
     amount: input.amount,
     accountId: input.accountId ?? st.lastAccountId ?? st.defaultAccountId,
@@ -89,7 +113,7 @@ export function logIncome(input: {
   isRefund?: boolean
 }): FinRecord {
   const st = finStore.get().settings
-  return addRecord({
+  return logRecord({
     type: "income",
     amount: input.amount,
     accountId: input.accountId ?? st.defaultAccountId,

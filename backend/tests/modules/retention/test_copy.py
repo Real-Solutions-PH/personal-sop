@@ -4,8 +4,9 @@
 import itertools
 import re
 
-from app.modules.retention.copy import Item, Message, render
+from app.modules.retention.copy import Item, Message, render, render_topic
 from app.modules.retention.logic import LADDER
+from app.modules.retention.topics import TOPICS, Candidate
 
 BANNED = (
     "at risk",
@@ -37,6 +38,25 @@ def catalogue() -> list[Message]:
         m = render(kind, name="Fern", item=item, rest_ready=rest, way_back_ready=way)
         if m is not None:
             out.append(m)
+    for topic, title, person, tomorrow, count, due in itertools.product(
+        TOPICS,
+        ("", "Read 10 pages", "x" * 200),
+        (None, "", "Kai Tecson"),
+        (False, True),
+        (1, 1_234),
+        (0, 5),
+    ):
+        c = Candidate(
+            topic,
+            "/somewhere",
+            title,
+            count=count,
+            done=min(due, 3),
+            due=due,
+            tomorrow=tomorrow,
+            rest_ready=tomorrow,
+        )
+        out.append(render_topic(c, name="Fern", person=person))
     return out
 
 
@@ -91,3 +111,51 @@ def test_rest_day_and_way_back_lines_only_when_true() -> None:
     assert w is not None and "pause" in w.body
     n = render("ladder_7", name="Fern", item=habit, way_back_ready=False)
     assert n is not None and "pause" not in n.body
+
+
+# ---------------------------------------------------------------- topics
+
+
+def _topic(c: Candidate, person: str | None = None) -> str:
+    return render_topic(c, name="Fern", person=person).body
+
+
+def test_topics_use_the_persons_own_words_and_numbers() -> None:
+    habit = "Read 10 pages"
+    assert _topic(Candidate("near_best", "/h", habit, count=30)) == (
+        "One more Read 10 pages makes 30 days in a row. One tap logs it."
+    )
+    assert "usually do Read 10 pages around now" in _topic(
+        Candidate("habit_usual", "/h", habit)
+    )
+    assert _topic(Candidate("weigh_in", "/b", count=1_234)).startswith("1,234 days")
+    assert _topic(Candidate("first_week", "/h", habit, count=3)).startswith("Day 3.")
+    assert "3 of 5 done today" in _topic(Candidate("wrap_up", "/w", done=3, due=5))
+
+
+def test_morning_and_evening_greet_by_first_name() -> None:
+    plan = Candidate("plan_today", "/plan")
+    assert _topic(plan, "Kai Tecson").startswith("Morning, Kai. ")
+    assert _topic(plan, None).startswith("Morning. ")
+    assert _topic(plan, "   ").startswith("Morning. ")
+    wrap = Candidate("wrap_up", "/w")
+    assert _topic(wrap, "Kai").startswith("Evening, Kai. ")
+    assert "done today" not in _topic(wrap)  # nothing due: no 0 of 0
+
+
+def test_a_bill_never_shows_its_name_or_amount() -> None:
+    body = _topic(Candidate("bill_due", "/finance/planned/p1", "Rent 25,000"))
+    assert body == "A bill is due today. One tap opens it, ready to mark paid."
+    tomorrow = _topic(Candidate("bill_due", "/finance/planned/p1", tomorrow=True))
+    assert "due tomorrow" in tomorrow
+
+
+def test_topic_links_go_where_the_candidate_says() -> None:
+    for topic in TOPICS:
+        m = render_topic(Candidate(topic, "/x/y"), name="Sprout")
+        assert m.href == "/x/y" and m.title == "Sprout"
+
+
+def test_long_titles_are_cut() -> None:
+    body = _topic(Candidate("habit_due", "/h", "x" * 200))
+    assert "x" * 60 not in body and "…" in body

@@ -1221,6 +1221,68 @@ def step_add_minute(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
     return run
 
 
+def run_add_step(
+    ctx: Ctx,
+    *,
+    run_id: uuid.UUID,
+    habit_id: uuid.UUID,
+    minutes: int,
+    position: int,
+) -> RoutineRun:
+    """Add a habit to this run only (the saved routine is its own write).
+    It lands at ``position``, never before the current step: added AT the
+    current step it becomes the step being played, on a fresh clock."""
+    run = _require_running(ctx, run_id)
+    require_habit(ctx, habit_id)
+    steps = list(run.steps)
+    at = max(run.current, min(position, len(steps)))
+    steps.insert(at, {"habit_id": str(habit_id), "minutes": minutes})
+    run.steps = steps
+    if at == run.current:
+        _reset_step_clock(ctx, run)
+    ctx.session.add(run)
+    ctx.session.flush()
+    _relabel_run(ctx, run)
+    _dirty(ctx, run.day)
+    ctx.commit()
+    return run
+
+
+def run_remove_step(
+    ctx: Ctx, *, run_id: uuid.UUID, habit_id: uuid.UUID, position: int
+) -> RoutineRun:
+    """Take an unplayed step out of this run. It leaves no result and no
+    log, so it never counts as skipped or missed. Removing the current step
+    moves on to the next one (or finishes the run when it was the last).
+    ``position`` must hold ``habit_id``; otherwise the first unplayed step
+    with that habit is taken, and none at all is a no-op (a replay)."""
+    run = _require_running(ctx, run_id)
+    steps = list(run.steps)
+
+    def holds(i: int) -> bool:
+        return 0 <= i < len(steps) and str(steps[i]["habit_id"]) == str(habit_id)
+
+    at = position if position >= run.current and holds(position) else None
+    if at is None:
+        at = next((i for i in range(run.current, len(steps)) if holds(i)), None)
+    if at is None:
+        ctx.commit()
+        return run
+    del steps[at]
+    run.steps = steps
+    if at == run.current:
+        _reset_step_clock(ctx, run)
+    ctx.session.add(run)
+    ctx.session.flush()
+    if run.current >= len(steps):
+        _finish_run(ctx, run)
+    else:
+        _relabel_run(ctx, run)
+    _dirty(ctx, run.day)
+    ctx.commit()
+    return run
+
+
 def toggle_run_pause(ctx: Ctx, *, run_id: uuid.UUID) -> RoutineRun:
     run = _require_running(ctx, run_id)
     if run.paused_at is not None:

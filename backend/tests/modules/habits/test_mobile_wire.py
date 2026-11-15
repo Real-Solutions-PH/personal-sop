@@ -57,6 +57,8 @@ def test_fixture_covers_every_habits_entity_and_action() -> None:
         "habits.run.skip",
         "habits.run.back",
         "habits.run.add_minute",
+        "habits.run.add_step",
+        "habits.run.remove_step",
         "habits.run.toggle_pause",
         "habits.timer.start",
         "habits.timer.extend",
