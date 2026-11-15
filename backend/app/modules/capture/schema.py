@@ -143,6 +143,7 @@ class WeighInPayload(_P):
     kind: Literal["weighIn"]
     kg: Annotated[float, Field(gt=0, le=500)]
     body_fat_pct: Annotated[float | None, Field(gt=0, lt=100)] = None
+    waist_cm: Annotated[float | None, Field(gt=0, lt=300)] = None
     prev_kg: float | None = None
 
 

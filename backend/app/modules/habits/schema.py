@@ -677,6 +677,26 @@ class RunArgs(BaseModel):
     run_id: uuid.UUID
 
 
+class RunAddStepArgs(BaseModel):
+    """Add a habit to a run in progress, at ``position`` (clamped to the
+    unplayed part: never before the current step)."""
+
+    run_id: uuid.UUID
+    habit_id: uuid.UUID
+    minutes: int = Field(gt=0, le=600)
+    position: int = Field(ge=0, le=100)
+
+
+class RunRemoveStepArgs(BaseModel):
+    """Take an unplayed step out of a run in progress. ``habit_id`` names
+    the step the device meant, so a stale ``position`` never removes
+    another one."""
+
+    run_id: uuid.UUID
+    habit_id: uuid.UUID
+    position: int = Field(ge=0, le=100)
+
+
 class StepResultSyncOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: uuid.UUID

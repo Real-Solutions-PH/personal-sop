@@ -141,6 +141,7 @@ class WeighInPublic(_Row):
     measured_at: datetime
     weight_kg: float
     body_fat_pct: float | None
+    waist_cm: float | None = None
     note: str | None
 
 
@@ -314,6 +315,7 @@ class WeighInIn(BaseModel):
     measured_at: datetime | None = None
     weight_kg: float | None = Field(default=None, gt=0, lt=500)
     body_fat_pct: float | None = Field(default=None, gt=0, lt=100)
+    waist_cm: float | None = Field(default=None, gt=0, lt=300)
     note: str | None = Field(default=None, max_length=280)
 
 
@@ -524,6 +526,7 @@ class WeighInCreate(BaseModel):
     weight_kg: float = Field(gt=0, lt=500)
     measured_at: datetime | None = None
     body_fat_pct: float | None = Field(default=None, gt=0, lt=100)
+    waist_cm: float | None = Field(default=None, gt=0, lt=300)
     note: str | None = Field(default=None, max_length=280)
     id: uuid.UUID | None = None
 
@@ -532,6 +535,7 @@ class WeighInUpdate(BaseModel):
     weight_kg: float | None = Field(default=None, gt=0, lt=500)
     measured_at: datetime | None = None
     body_fat_pct: float | None = Field(default=None, gt=0, lt=100)
+    waist_cm: float | None = Field(default=None, gt=0, lt=300)
     note: str | None = Field(default=None, max_length=280)
 
 

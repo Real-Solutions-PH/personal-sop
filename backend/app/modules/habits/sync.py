@@ -44,7 +44,9 @@ from app.modules.habits.schema import (
     RoutineStepPublic,
     RoutineStepSyncIn,
     RoutineSyncIn,
+    RunAddStepArgs,
     RunArgs,
+    RunRemoveStepArgs,
     SettingsIn,
     SettingsSyncOut,
     SkipArgs,
@@ -207,6 +209,28 @@ def _run_step(fn: Callable[..., RoutineRun]) -> Callable[[Ctx, dict[str, Any]], 
     return handler
 
 
+def _run_add_step(ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return _run_out(
+        ctx,
+        svc.run_add_step(
+            ctx,
+            run_id=a["run_id"],
+            habit_id=a["habit_id"],
+            minutes=a["minutes"],
+            position=a["position"],
+        ),
+    )
+
+
+def _run_remove_step(ctx: Ctx, a: dict[str, Any]) -> dict[str, Any]:
+    return _run_out(
+        ctx,
+        svc.run_remove_step(
+            ctx, run_id=a["run_id"], habit_id=a["habit_id"], position=a["position"]
+        ),
+    )
+
+
 RUN_STEPS: dict[str, Callable[..., RoutineRun]] = {
     "done": svc.step_done,
     "skip": svc.step_skip,
@@ -324,3 +348,13 @@ def register(r: Registry) -> None:
     r.action(Action(name="habits.run.start", handler=_run_start, args=StartRunArgs))
     for verb, fn in RUN_STEPS.items():
         r.action(Action(name=f"habits.run.{verb}", handler=_run_step(fn), args=RunArgs))
+    r.action(
+        Action(name="habits.run.add_step", handler=_run_add_step, args=RunAddStepArgs)
+    )
+    r.action(
+        Action(
+            name="habits.run.remove_step",
+            handler=_run_remove_step,
+            args=RunRemoveStepArgs,
+        )
+    )

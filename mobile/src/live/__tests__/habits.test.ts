@@ -16,6 +16,8 @@ import {
   pauseLive,
   resumeHabit,
   resumeLive,
+  runAddStep,
+  runRemoveStep,
   setRoutineSteps,
   skipHabit,
   startRoutine,
@@ -25,6 +27,7 @@ import {
   stepDone,
   stepSkip,
   toggleRunPause,
+  undoRemoveStep,
   updateHabit,
   updateSettings,
 } from "@domain/habits/actions"
@@ -547,6 +550,73 @@ describe("diffs on store edits", () => {
       "habits.run.done",
       "habits.run.skip",
       "habits.run.continue",
+    ])
+  })
+
+  test("steps added and removed mid-run go up as run actions, in order", () => {
+    const a = createHabit({ name: "Skin care", type: "duration", target: 15 })
+    const b = createHabit({ name: "Journal" })
+    const c = createHabit({ name: "Stretch" })
+    const d = createHabit({ name: "Read", type: "duration", target: 20 })
+    const r = createRoutine({
+      name: "Morning",
+      steps: [
+        { habitId: a.id, minutes: 15 },
+        { habitId: b.id, minutes: 10 },
+        { habitId: c.id, minutes: 5 },
+      ],
+    })
+    const e = engineAfterSetup()
+    const run = startRoutine(r.id)
+    if (!run) throw new Error("no run")
+    record(e.capture())
+    const cur = () => habitsStore.get().runs.find((x) => x.id === run.id)!
+    // this run only: no routine_step writes
+    runAddStep(cur(), d.id)
+    expect(shape(record(e.capture()))).toEqual([
+      {
+        kind: "action",
+        name: "habits.run.add_step",
+        data: { run_id: run.id, habit_id: d.id, minutes: 20, position: 1 },
+      },
+    ])
+    const removed = runRemoveStep(cur(), 2)
+    expect(shape(record(e.capture()))).toEqual([
+      {
+        kind: "action",
+        name: "habits.run.remove_step",
+        data: { run_id: run.id, habit_id: b.id, position: 2 },
+      },
+    ])
+    undoRemoveStep(removed!)
+    expect(shape(record(e.capture()))).toEqual([
+      {
+        kind: "action",
+        name: "habits.run.add_step",
+        data: { run_id: run.id, habit_id: b.id, minutes: 10, position: 2 },
+      },
+    ])
+    // Removing the paused current step, then Done on the next one, in one
+    // burst: the removal goes first so Done lands on the step it was for,
+    // and no pause toggle is sent (the removal restarted the clock).
+    toggleRunPause(cur())
+    record(e.capture())
+    runRemoveStep(cur(), 0)
+    jest.advanceTimersByTime(90_000) // time on the next step: a real Done
+    stepDone(cur())
+    const burst = record(e.capture())
+    expect(burst.filter((o) => o.kind === "action").map((o) => o.name)).toEqual(
+      ["habits.run.remove_step", "habits.run.done"],
+    )
+    expect(cur().steps.map((s) => s.habitId)).toEqual([d.id, b.id, c.id])
+    expect(cur().current).toBe(1)
+    // also changing the routine: its steps are written as well
+    runRemoveStep(cur(), 2, true)
+    const both = record(e.capture())
+    expect(both.map((o) => [o.kind, o.name])).toEqual([
+      ["action", "habits.run.remove_step"],
+      // the stretch was the routine's last step: its row goes
+      ["delete", "routine_step"],
     ])
   })
 

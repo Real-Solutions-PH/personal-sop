@@ -423,8 +423,12 @@ def card_label(ctx: Ctx, card: RecordCard) -> str:
         titles = [str(t.get("title", "")) for t in p.get("tasks") or []]
         return "task: " + ", ".join(t for t in titles if t)
     if kind == "weighIn":
-        fat = p.get("body_fat_pct")
-        return f"weigh-in {p.get('kg', '')} kg{f', {fat}% body fat' if fat else ''}"
+        fat, waist = p.get("body_fat_pct"), p.get("waist_cm")
+        return (
+            f"weigh-in {p.get('kg', '')} kg"
+            f"{f', {fat}% body fat' if fat else ''}"
+            f"{f', {waist} cm waist' if waist else ''}"
+        )
     if kind == "meal":
         names = [str(i.get("name", "")) for i in (p.get("items") or [])[:2]]
         return "meal: " + ", ".join(n for n in names if n)

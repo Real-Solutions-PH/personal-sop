@@ -1246,6 +1246,7 @@ def _weigh_in(
     kg: float,
     at: datetime | None,
     body_fat_pct: float | None = None,
+    waist_cm: float | None = None,
     note: str | None = None,
     weigh_in_id: uuid.UUID | None = None,
 ) -> WeighIn:
@@ -1260,6 +1261,7 @@ def _weigh_in(
             "weight_kg": _round1(kg),
             "measured_at": at or ctx.now,
             "body_fat_pct": _round1(body_fat_pct) if body_fat_pct is not None else None,
+            "waist_cm": _round1(waist_cm) if waist_cm is not None else None,
             "note": note,
         },
         row_id=weigh_in_id,
@@ -1274,11 +1276,18 @@ def log_weigh_in(
     kg: float,
     at: datetime | None = None,
     body_fat_pct: float | None = None,
+    waist_cm: float | None = None,
     note: str | None = None,
     weigh_in_id: uuid.UUID | None = None,
 ) -> WeighIn:
     w = _weigh_in(
-        ctx, kg=kg, at=at, body_fat_pct=body_fat_pct, note=note, weigh_in_id=weigh_in_id
+        ctx,
+        kg=kg,
+        at=at,
+        body_fat_pct=body_fat_pct,
+        waist_cm=waist_cm,
+        note=note,
+        weigh_in_id=weigh_in_id,
     )
     ctx.commit()
     return w
