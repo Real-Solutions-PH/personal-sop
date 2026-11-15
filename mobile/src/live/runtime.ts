@@ -124,7 +124,7 @@ export function startLive(
   const schedule = createSyncSchedule({
     sync: () => void syncing?.sync(),
     refreshStats: () => void stats.refreshAll(),
-    appState: () => AppState.currentState,
+    appState: () => AppState.currentState ?? "active",
   })
   const stats = createStats({
     http,
