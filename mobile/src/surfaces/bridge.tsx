@@ -13,6 +13,7 @@ import { router } from "expo-router"
 import { useEffect, useRef, useState } from "react"
 import { AppState, PermissionsAndroid, Platform } from "react-native"
 import { useShown } from "@/prototype/extras"
+import { useAppForeground } from "@/prototype/on-screen"
 import { screenTimeAvailable } from "@/prototype/screen-time"
 import { drainSurfaceActions } from "./actions"
 import { buildAllLive, liveKey } from "./live-state"
@@ -35,13 +36,16 @@ const WRITE_DEBOUNCE_MS = 600
 
 function useMinute() {
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60_000))
+  // Foreground only (a run keeps JS alive in the background): the widgets'
+  // own timelines move the clock there, and the return catches up at once.
+  const foreground = useAppForeground()
   useEffect(() => {
-    const id = setInterval(
-      () => setMinute(Math.floor(Date.now() / 60_000)),
-      60_000,
-    )
+    if (!foreground) return
+    const tick = () => setMinute(Math.floor(Date.now() / 60_000))
+    tick()
+    const id = setInterval(tick, 60_000)
     return () => clearInterval(id)
-  }, [])
+  }, [foreground])
   return minute
 }
 

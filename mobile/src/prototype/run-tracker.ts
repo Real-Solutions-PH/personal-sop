@@ -213,6 +213,11 @@ export function startRunTracker() {
   }
   runLiveStore.subscribe(sync)
   sync()
+  // No session in progress at launch, yet the route task may still be
+  // registered (the app was killed mid-run, or the run was finished on
+  // another device): GPS at navigation accuracy would keep running in the
+  // background with nothing to record. Stop it.
+  if (!runLiveStore.get().active) void stopTracking()
   // Back from the lock screen: catch up at once instead of on the next
   // 30-second tick (a treadmill session reads nothing while away).
   AppState.addEventListener("change", (state) => {

@@ -59,6 +59,9 @@ export interface StreamDeps {
   ): Promise<ReadableStream<Uint8Array> | null>
   online(): boolean
   onEvent(e: ServerEvent): void
+  /** The stream connected (true) or dropped (false). While it is up, the
+   * server's events say when to pull, so the safety poll can slow down. */
+  onOpen?(open: boolean): void
   sleep?(ms: number): Promise<void>
 }
 
@@ -79,6 +82,7 @@ export function runEventStream(deps: StreamDeps) {
         const body = await deps.open(lastId, controller.signal)
         if (body) {
           delay = 1000
+          deps.onOpen?.(true)
           const reader = body.getReader()
           const decoder = new TextDecoder()
           const feed = createSseParser((e) => {
@@ -94,6 +98,7 @@ export function runEventStream(deps: StreamDeps) {
       } catch {
         // dropped connection: fall through to the backoff
       }
+      deps.onOpen?.(false)
       if (controller.signal.aborted) return
       await sleep(delay)
       delay = Math.min(30_000, delay * 2)
