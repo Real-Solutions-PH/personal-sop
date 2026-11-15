@@ -1,7 +1,7 @@
 """nudge topic and recent_push suppression
 
 Revision ID: 626f9ababa93
-Revises: ec27c6bfa274
+Revises: b8d4f2a6c913
 Create Date: 2026-11-15 09:35:15.935390
 
 Persona-based nudges from Fern: ``nudge.topic`` records what a best-time
@@ -16,7 +16,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "626f9ababa93"
-down_revision = "ec27c6bfa274"
+down_revision = "b8d4f2a6c913"
 branch_labels = None
 depends_on = None
 
