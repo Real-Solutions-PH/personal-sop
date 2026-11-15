@@ -501,6 +501,179 @@ export function stepBack(run: RoutineRun) {
     pausedAt: undefined,
   })
 }
+/** Where an added step goes: straight after the current one ("Up next"),
+ * or after every other unplayed step. */
+export type StepPlace = "next" | "end"
+/** The minutes a habit gets as a routine step: its own target when it is
+ * timed, else five (the routine editor's default too). */
+export const stepMinutesFor = (h: Habit | undefined) =>
+  h?.type === "duration" && h.target ? h.target : 5
+const fresh = (run: RoutineRun) => S.get().runs.find((x) => x.id === run.id)
+const nextSeq = (run: RoutineRun) =>
+  Math.max(0, ...(run.edits ?? []).map((e) => e.seq)) + 1
+/** A step changed at the one being played starts it on a fresh clock (as
+ * the server does), paused or not. */
+const clockReset = (run: RoutineRun): Partial<RoutineRun> => {
+  if (run.pausedAt) resumeLive()
+  return {
+    stepStartedAt: nowIso(),
+    stepPausedSec: 0,
+    stepBonusSec: 0,
+    pausedAt: undefined,
+  }
+}
+function relabel(run: RoutineRun) {
+  const r = S.get().routines.find((x) => x.id === run.routineId)
+  const cur = fresh(run)
+  if (!r || !cur || cur.state !== "in_progress") return
+  liveStore.set((s) =>
+    s.live?.kind === "routine"
+      ? { live: { ...s.live, label: liveLabel(r, cur) } }
+      : s,
+  )
+}
+function insertStep(
+  run: RoutineRun,
+  step: RoutineStep,
+  position: number,
+): number | null {
+  const cur = fresh(run)
+  if (cur?.state !== "in_progress") return null
+  const at = Math.max(cur.current, Math.min(position, cur.steps.length))
+  const steps = [...cur.steps]
+  steps.splice(at, 0, step)
+  patchRun(cur.id, {
+    steps,
+    edits: [
+      ...(cur.edits ?? []),
+      {
+        seq: nextSeq(cur),
+        at: cur.current,
+        kind: "add",
+        habitId: step.habitId,
+        minutes: step.minutes,
+        position: at,
+      },
+    ],
+    ...(at === cur.current ? clockReset(cur) : {}),
+  })
+  relabel(cur)
+  return at
+}
+/** Add a habit to the routine being played. ``alsoRoutine`` writes it into
+ * the saved routine too (after the current step's habit, or at the end);
+ * otherwise only today's run changes. Returns the run index it took. */
+export function runAddStep(
+  run: RoutineRun,
+  habitId: string,
+  place: StepPlace = "next",
+  alsoRoutine = false,
+  minutes = stepMinutesFor(findHabit(habitId)),
+): number | null {
+  const cur = fresh(run)
+  if (!cur || !findHabit(habitId)) return null
+  const at = insertStep(
+    cur,
+    { habitId, minutes: Math.max(1, Math.round(minutes)) },
+    place === "next" ? cur.current + 1 : cur.steps.length,
+  )
+  if (at === null || !alsoRoutine) return at
+  const r = S.get().routines.find((x) => x.id === cur.routineId)
+  if (r && !r.steps.some((x) => x.habitId === habitId)) {
+    const after = r.steps.findIndex(
+      (x) => x.habitId === cur.steps[cur.current]?.habitId,
+    )
+    const i = place === "next" && after >= 0 ? after + 1 : r.steps.length
+    const steps = [...r.steps]
+    steps.splice(i, 0, { habitId, minutes: Math.max(1, Math.round(minutes)) })
+    setRoutineSteps(r.id, steps)
+  }
+  return at
+}
+/** What a removal took out, so Undo can put it back where it was. */
+export interface RemovedStep {
+  runId: string
+  position: number
+  step: RoutineStep
+  /** Where it sat in the saved routine, when that changed too. */
+  routineIndex?: number
+  /** The removal ended the run (it was the last step left to play). */
+  finished: boolean
+}
+/** Whether a run step can be taken out: an unplayed one, and never the
+ * run's only step (removing it would leave nothing to play). */
+export const canRemoveStep = (run: RoutineRun, position: number) =>
+  run.state === "in_progress" &&
+  position >= run.current &&
+  position < run.steps.length &&
+  run.steps.length > 1
+/** Take an unplayed step out of the routine being played. It leaves no
+ * result and no log, so it never counts as skipped or missed. Removing the
+ * current step moves on to the next one, or finishes the run when it was
+ * the last one left. ``alsoRoutine`` drops it from the saved routine too. */
+export function runRemoveStep(
+  run: RoutineRun,
+  position: number,
+  alsoRoutine = false,
+): RemovedStep | null {
+  const cur = fresh(run)
+  if (!cur || !canRemoveStep(cur, position)) return null
+  const step = cur.steps[position]
+  const steps = cur.steps.filter((_, i) => i !== position)
+  const finished = cur.current >= steps.length
+  patchRun(cur.id, {
+    steps,
+    edits: [
+      ...(cur.edits ?? []),
+      {
+        seq: nextSeq(cur),
+        at: cur.current,
+        kind: "remove",
+        habitId: step.habitId,
+        position,
+      },
+    ],
+    ...(position === cur.current ? clockReset(cur) : {}),
+    ...(finished ? { state: "completed" as const, endedAt: nowIso() } : {}),
+  })
+  if (finished) {
+    if (liveStore.get().live?.kind === "routine") stopLive()
+  } else relabel(cur)
+  let routineIndex: number | undefined
+  if (alsoRoutine) {
+    const r = S.get().routines.find((x) => x.id === cur.routineId)
+    const i = r ? r.steps.findIndex((x) => x.habitId === step.habitId) : -1
+    if (r && i >= 0) {
+      routineIndex = i
+      setRoutineSteps(
+        r.id,
+        r.steps.filter((_, j) => j !== i),
+      )
+    }
+  }
+  return { runId: cur.id, position, step, routineIndex, finished }
+}
+/** Undo a removal: the step goes back where it was (never before the step
+ * now playing), and into the saved routine when that changed too. A run
+ * the removal finished has ended and cannot take it back. */
+export function undoRemoveStep(removed: RemovedStep): boolean {
+  const run = S.get().runs.find((x) => x.id === removed.runId)
+  if (run?.state !== "in_progress") return false
+  if (insertStep(run, removed.step, removed.position) === null) return false
+  if (removed.routineIndex !== undefined) {
+    const r = S.get().routines.find((x) => x.id === run.routineId)
+    if (r && !r.steps.some((x) => x.habitId === removed.step.habitId)) {
+      const steps = [...r.steps]
+      steps.splice(
+        Math.min(removed.routineIndex, steps.length),
+        0,
+        removed.step,
+      )
+      setRoutineSteps(r.id, steps)
+    }
+  }
+  return true
+}
 export const stepAddMinute = (run: RoutineRun) =>
   patchRun(run.id, { stepBonusSec: run.stepBonusSec + 60 })
 export function toggleRunPause(run: RoutineRun) {
