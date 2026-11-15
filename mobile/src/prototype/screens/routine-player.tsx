@@ -6,6 +6,7 @@ import { liveStore } from "@domain/lib/live"
 import {
   AlarmClockPlus,
   Check,
+  ListPlus,
   Pause,
   Play,
   SkipBack,
@@ -30,6 +31,12 @@ import { back, go, replace } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, useNow } from "../ui"
 import { Ring } from "../visual"
+import {
+  type Removal,
+  RunEditSheet,
+  UNDO_MS,
+  UndoRemoval,
+} from "./routine-run-edit"
 export function RoutinePlayer({ id }: { id: string }) {
   const t = useTheme(),
     safe = useSafeAreaInsets(),
@@ -44,7 +51,15 @@ export function RoutinePlayer({ id }: { id: string }) {
     live = liveStore.use((s) => s.live),
     now = useNow(),
     [redo, setRedo] = useState<string | null>(null),
+    // Changing the run while it plays: its steps, or the add picker.
+    [edit, setEdit] = useState<"steps" | "add" | null>(null),
+    [removal, setRemoval] = useState<Removal | null>(null),
     leaving = useRef(false)
+  useEffect(() => {
+    if (!removal) return
+    const id = setTimeout(() => setRemoval(null), UNDO_MS)
+    return () => clearTimeout(id)
+  }, [removal])
   useEffect(() => {
     if (run?.state === "in_progress" && !live && !leaving.current)
       A.startRoutine(id)
@@ -97,6 +112,13 @@ export function RoutinePlayer({ id }: { id: string }) {
     )
       replace(`/habits/routines/${id}/summary?run=${run.id}`)
   }
+  const upNext = nextHabit
+    ? `Up next · ${nextHabit.icon} ${nextHabit.name} · ${next?.minutes}m`
+    : "Last step"
+  const undo = () => {
+    if (removal && A.undoRemoveStep(removal)) feel.tap()
+    setRemoval(null)
+  }
   const planned = step ? step.minutes * 60 + (run?.stepBonusSec ?? 0) : 0,
     elapsed = run ? L.stepElapsed(run, now) : 0,
     remaining = planned - elapsed,
@@ -140,9 +162,22 @@ export function RoutinePlayer({ id }: { id: string }) {
             >
               {r.icon} {r.name}
             </Copy>
-            <Copy size={14} muted style={{ minWidth: 40, textAlign: "center" }}>
-              {run.current + 1}/{run.steps.length}
-            </Copy>
+            <Tap
+              label={`Step ${run.current + 1} of ${run.steps.length}. Show all steps`}
+              onPress={() => setEdit("steps")}
+              style={{ minWidth: 44, minHeight: 44, justifyContent: "center" }}
+            >
+              <Copy size={14} muted style={{ textAlign: "center" }}>
+                {run.current + 1}/{run.steps.length}
+              </Copy>
+            </Tap>
+            <IconTap
+              size={40}
+              icon={ListPlus}
+              label="Add a step"
+              color={t.text}
+              onPress={() => setEdit("add")}
+            />
           </>
         )}
       </Line>
@@ -229,26 +264,32 @@ export function RoutinePlayer({ id }: { id: string }) {
         </View>
       ) : (
         <>
-          <Line style={{ paddingHorizontal: 16, gap: 4 }}>
-            {run.steps.map((_, i) => (
-              <View
-                key={i}
-                style={{
-                  height: 6,
-                  borderRadius: 3,
-                  flex: 1,
-                  backgroundColor:
-                    i < run.current
-                      ? run.results[i]?.status === "skipped"
-                        ? `${t.warn}99`
-                        : t.hab
-                      : i === run.current
-                        ? `${t.hab}80`
-                        : t.soft,
-                }}
-              />
-            ))}
-          </Line>
+          <Tap
+            label="Show all steps"
+            onPress={() => setEdit("steps")}
+            style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+          >
+            <Line style={{ gap: 4 }}>
+              {run.steps.map((_, i) => (
+                <View
+                  key={i}
+                  style={{
+                    height: 6,
+                    borderRadius: 3,
+                    flex: 1,
+                    backgroundColor:
+                      i < run.current
+                        ? run.results[i]?.status === "skipped"
+                          ? `${t.warn}99`
+                          : t.hab
+                        : i === run.current
+                          ? `${t.hab}80`
+                          : t.soft,
+                  }}
+                />
+              ))}
+            </Line>
+          </Tap>
           <View
             style={{
               flex: 1,
@@ -333,12 +374,17 @@ export function RoutinePlayer({ id }: { id: string }) {
                 </Copy>
               </Ring>
             )}
-            <View>
-              <Copy size={14} muted style={{ textAlign: "center" }}>
-                {nextHabit
-                  ? `Up next · ${nextHabit.icon} ${nextHabit.name} · ${next?.minutes}m`
-                  : "Last step"}
-              </Copy>
+            <View
+              style={{ gap: 8, alignSelf: "stretch", alignItems: "center" }}
+            >
+              <Tap
+                label={`${upNext}. Show all steps`}
+                onPress={() => setEdit("steps")}
+              >
+                <Copy size={14} muted style={{ textAlign: "center" }}>
+                  {upNext}
+                </Copy>
+              </Tap>
               <Copy
                 size={12}
                 muted
@@ -348,6 +394,11 @@ export function RoutinePlayer({ id }: { id: string }) {
                 {fmtDuration(run.steps.reduce((a, s) => a + s.minutes * 60, 0))}{" "}
                 planned
               </Copy>
+              {!edit && (
+                <View style={{ alignSelf: "stretch", maxWidth: 360 }}>
+                  <UndoRemoval removal={removal} onUndo={undo} />
+                </View>
+              )}
             </View>
           </View>
           <View style={{ gap: 12, paddingHorizontal: 16, paddingBottom: 24 }}>
@@ -412,6 +463,20 @@ export function RoutinePlayer({ id }: { id: string }) {
               </Tap>
             )}
           </View>
+          <RunEditSheet
+            run={run}
+            mode={edit}
+            onMode={setEdit}
+            onClose={() => setEdit(null)}
+            removal={removal}
+            onRemoved={setRemoval}
+            onUndo={undo}
+            onFinished={() => {
+              setEdit(null)
+              setRemoval(null)
+              replace(`/habits/routines/${id}/summary?run=${run.id}`)
+            }}
+          />
         </>
       )}
     </View>

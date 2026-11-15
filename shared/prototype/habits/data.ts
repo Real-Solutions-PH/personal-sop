@@ -98,7 +98,29 @@ export interface RoutineRun {
   stepBonusSec: number
   pausedAt?: string
   state: "in_progress" | "completed" | "abandoned"
+  /** Steps added to or removed from this run while it played, in order.
+   * Device-only bookkeeping: it lets sync replay each change at the step
+   * it was made on, interleaved with Done/Skip taps in the same burst. */
+  edits?: StepEdit[]
 }
+/** One change to a running routine's steps. ``at`` is the step being
+ * played when it was made; ``position`` is the run index it touched. */
+export type StepEdit =
+  | {
+      seq: number
+      at: number
+      kind: "add"
+      habitId: string
+      minutes: number
+      position: number
+    }
+  | {
+      seq: number
+      at: number
+      kind: "remove"
+      habitId: string
+      position: number
+    }
 export interface TimerSession {
   habitId: string
   day: string
