@@ -96,6 +96,7 @@ import {
   type GridRef,
   MovedMark,
 } from "./plan-grid"
+import { FreshIn, PlanQuickAdd, type QuickBlock } from "./plan-quick-add"
 import { StarterLists } from "./task-lists"
 import { TaskStats } from "./task-stats"
 import { TaskRow } from "./tasks"
@@ -913,12 +914,43 @@ const dateLabel = (d: string) =>
   })
 const monday = (d: string) =>
   N.addDays(d, -((new Date(`${d}T12:00:00`).getDay() + 6) % 7))
+// `at`: the hour something quick-added to the part gets.
 const PARTS = [
-  { label: "Early morning", range: "4–8 AM", from: 4, to: 8, icon: Sunrise },
-  { label: "Morning", range: "8 AM–12 PM", from: 8, to: 12, icon: Sun },
-  { label: "Afternoon", range: "12–6 PM", from: 12, to: 18, icon: CloudSun },
-  { label: "Night", range: "6 PM–4 AM", from: 18, to: 28, icon: Moon },
+  {
+    label: "Early morning",
+    range: "4–8 AM",
+    from: 4,
+    to: 8,
+    at: 6,
+    icon: Sunrise,
+  },
+  { label: "Morning", range: "8 AM–12 PM", from: 8, to: 12, at: 9, icon: Sun },
+  {
+    label: "Afternoon",
+    range: "12–6 PM",
+    from: 12,
+    to: 18,
+    at: 14,
+    icon: CloudSun,
+  },
+  { label: "Night", range: "6 PM–4 AM", from: 18, to: 28, at: 20, icon: Moon },
 ]
+const ANYTIME: QuickBlock = { key: "anytime", label: "Anytime", time: null }
+/** A part's quick-add time: its usual hour, or the coming hour when the
+ * part is under way today and that is later. */
+export function partTime(
+  part: { from: number; to: number; at: number },
+  now?: { hour: number; min: number },
+) {
+  const next = now ? now.hour + (now.min > 0 ? 1 : 0) : null,
+    h =
+      now && now.hour >= part.from && now.hour < part.to && next !== null
+        ? next < part.to && next > part.at
+          ? next
+          : part.at
+        : part.at
+  return `${String(h % 24).padStart(2, "0")}:00`
+}
 const hour = (time: string) =>
   Number(time.slice(0, 2)) < 4
     ? Number(time.slice(0, 2)) + 24
@@ -949,6 +981,10 @@ export function CalendarPanel() {
       key: string
     } | null>(null),
     [acted, setActed] = useState<string[]>([]),
+    // The block whose quick-add field is open, and what it just added (that
+    // row fades in).
+    [adding, setAdding] = useState<string | null>(null),
+    [fresh, setFresh] = useState<string[]>([]),
     grid: GridRef = useRef(null),
     fin = finStore.use((s) => s),
     money = useMoney()
@@ -985,6 +1021,21 @@ export function CalendarPanel() {
       : [],
     total = selected.length + bills.length
   const accentOf = (i: CalendarItem) => t[AREA[i.module].accent]
+  const isFresh = (i: CalendarItem) =>
+    fresh.some((id) => i.id === `task:${id}` || i.id.startsWith(`habit-${id}-`))
+  const nowClock = new Date().toTimeString().slice(0, 5)
+  const quickAdd = (block: QuickBlock) => (
+    <PlanQuickAdd
+      key={`${block.key}-${sel}`}
+      day={sel}
+      today={today}
+      block={block}
+      open={adding === block.key}
+      onOpen={() => setAdding(block.key)}
+      onClose={() => setAdding((a) => (a === block.key ? null : a))}
+      onAdded={(id) => setFresh((f) => [...f, id])}
+    />
+  )
   const itemRow = (i: CalendarItem, anytime = false) => {
     const row = (wasDrag: () => boolean) => (
       <Tap
@@ -1024,7 +1075,7 @@ export function CalendarPanel() {
         </Line>
       </Tap>
     )
-    return (
+    const tick = (
       <TickRow key={i.id}>
         <Line style={{ gap: 8 }}>
           {anytime ? (
@@ -1042,6 +1093,7 @@ export function CalendarPanel() {
         </Line>
       </TickRow>
     )
+    return isFresh(i) ? <FreshIn key={i.id}>{tick}</FreshIn> : tick
   }
   const settled = (id: string, day: string) =>
     finStore
@@ -1076,16 +1128,18 @@ export function CalendarPanel() {
   }
   // What has no time comes first in the day: habits and tasks to fit in
   // anywhere, and the day's bills and paydays.
-  const anytimeFrame =
-    untimed.length || bills.length ? (
-      // Above the grid and unclipped: a row lifted from here is dragged
-      // over the hours below.
-      <Frame style={{ padding: 12, overflow: "visible", zIndex: 2 }}>
-        <Line style={{ gap: 8, marginBottom: 4 }}>
-          <CircleDashed size={16} color={t.muted} />
-          <Copy size={14} weight="semibold">
-            Anytime
-          </Copy>
+  // Always there, so the day can be filled from here: its "+ Add" row adds
+  // a task or habit with no time.
+  const anytimeFrame = (
+    // Above the grid and unclipped: a row lifted from here is dragged
+    // over the hours below.
+    <Frame style={{ padding: 12, overflow: "visible", zIndex: 2 }}>
+      <Line style={{ gap: 8, marginBottom: 4 }}>
+        <CircleDashed size={16} color={t.muted} />
+        <Copy size={14} weight="semibold">
+          Anytime
+        </Copy>
+        {untimed.length + bills.length > 0 && (
           <View testID="anytime-count" style={{ marginLeft: "auto" }}>
             <Copy size={12} muted>
               {`${
@@ -1096,16 +1150,18 @@ export function CalendarPanel() {
               }/${untimed.length + bills.length}`}
             </Copy>
           </View>
-        </Line>
-        {dayView === "Hours" && untimed.some((i) => tickOf(i) || !i.done) && (
-          <Copy size={12} muted style={{ marginBottom: 4 }}>
-            Hold one and drag it onto the hours to give it a time.
-          </Copy>
         )}
-        {untimed.map((i) => itemRow(i, true))}
-        {bills.map(billRow)}
-      </Frame>
-    ) : null
+      </Line>
+      {dayView === "Hours" && untimed.some((i) => tickOf(i) || !i.done) && (
+        <Copy size={12} muted style={{ marginBottom: 4 }}>
+          Hold one and drag it onto the hours to give it a time.
+        </Copy>
+      )}
+      {untimed.map((i) => itemRow(i, true))}
+      {bills.map(billRow)}
+      {quickAdd(ANYTIME)}
+    </Frame>
+  )
   return (
     <View>
       <Line style={{ gap: 8, marginBottom: 12 }}>
@@ -1324,7 +1380,7 @@ export function CalendarPanel() {
       >{`${sel === today ? "Today" : dateLabel(sel)} · ${total}`}</SectionHeading>
       <GridAnchor.Provider value={dayView === "Hours" ? grid : null}>
         <View style={{ gap: 12 }}>
-          {total && dayView === "Hours" ? (
+          {dayView === "Hours" ? (
             <>
               {anytimeFrame}
               <Frame style={{ padding: 12 }}>
@@ -1334,7 +1390,7 @@ export function CalendarPanel() {
                 />
               </Frame>
             </>
-          ) : total ? (
+          ) : (
             <>
               {anytimeFrame}
               {PARTS.map((part) => {
@@ -1380,24 +1436,24 @@ export function CalendarPanel() {
                           : ""}
                       </Copy>
                     </Line>
-                    {list.length ? (
-                      list.map((i) => itemRow(i))
-                    ) : (
-                      <Copy size={12} muted>
-                        Nothing planned
-                      </Copy>
-                    )}
+                    {list.map((i) => itemRow(i))}
+                    {quickAdd({
+                      key: part.label,
+                      label: part.label,
+                      time: partTime(
+                        part,
+                        sel === today
+                          ? {
+                              hour: hour(nowClock),
+                              min: Number(nowClock.slice(3)),
+                            }
+                          : undefined,
+                      ),
+                    })}
                   </Frame>
                 )
               })}
             </>
-          ) : (
-            <Frame style={{ padding: 24 }}>
-              <Copy weight="semibold">Nothing scheduled</Copy>
-              <Copy size={14} muted>
-                Free day — add a task or let it breathe.
-              </Copy>
-            </Frame>
           )}
         </View>
       </GridAnchor.Provider>

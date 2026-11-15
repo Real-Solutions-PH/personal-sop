@@ -22,6 +22,11 @@ class PushMessage:
     data: dict[str, Any] = field(default_factory=dict)
     # Collapse key: a newer push with the same thread replaces the older.
     thread: str | None = None
+    # Sent by Fern: the companion's current name. The iOS notification
+    # service extension (mobile targets/notification-service) then shows
+    # Fern's picture: as the message's sender where the build allows it,
+    # else as an attachment.
+    fern: str | None = None
 
 
 @dataclass(frozen=True)
@@ -44,15 +49,19 @@ ANDROID_CHANNEL = "reminders"
 
 
 def expo_message(m: PushMessage) -> dict[str, Any]:
-    """One Expo push request body for ``m``."""
+    """One Expo push request body for ``m``. A push from Fern carries the
+    sender's name in ``data.fern`` and ``mutableContent``, so the iOS
+    extension may add Fern's picture before it shows (a build without the
+    extension shows it unchanged)."""
     return {
         "to": m.token,
         "title": m.title,
         "body": m.body,
-        "data": m.data,
+        "data": {**m.data, "fern": m.fern} if m.fern else m.data,
         "sound": SOUND,
         "channelId": ANDROID_CHANNEL,
         **({"threadId": m.thread, "collapseId": m.thread} if m.thread else {}),
+        **({"mutableContent": True} if m.fern else {}),
     }
 
 

@@ -17,7 +17,7 @@ minute of day is their local wall clock.
 
 import hashlib
 import uuid
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Literal
@@ -383,3 +383,85 @@ def decide(
     if holdout:
         return Decision(kind, "holdout")
     return Decision(kind, None)
+
+
+# ---------------------------------------------------------------- persona
+
+# What a person mostly uses Unfurl for, by the area they log in most (§3.1).
+ARCHETYPES: dict[str, str] = {
+    "habits": "habit-builder",
+    "tasks": "planner",
+    "finance": "money-tracker",
+    "nutrition": "body-tracker",
+    "fitness": "body-tracker",
+    "focus": "deep-worker",
+    "journal": "reflector",
+}
+# Below this many logs in 28 days, the priorities set in onboarding decide.
+ARCHETYPE_MIN_LOGS = 10
+SECONDARY_SHARE = 0.25
+# Fern turns on at least this share of log days: the person logs by talking.
+TALKER_SHARE = 0.5
+
+
+@dataclass(frozen=True)
+class Persona:
+    archetype: str | None
+    secondary: str | None
+    tags: list[str]
+
+
+def persona_of(
+    *,
+    area_logs: Mapping[str, int],
+    weights: Mapping[str, int],
+    fern_turns: int,
+    log_days: int,
+) -> Persona:
+    """§3.1: the archetype with the largest share of the last 28 days' logs
+    (nutrition and fitness both count for ``body-tracker``), and a second
+    one with a share of 25%+. Cold start (under 10 logs): the Life Score
+    weights of the enabled modules, where nutrition and fitness count once
+    (the larger), so equal weights favour no one. Ties keep the order of
+    ``ARCHETYPES``."""
+    total = sum(area_logs.get(a, 0) for a in ARCHETYPES)
+    cold = total < ARCHETYPE_MIN_LOGS
+    raw: dict[str, int] = {}
+    for area, arch in ARCHETYPES.items():
+        n = max(0, (weights if cold else area_logs).get(area, 0))
+        raw[arch] = max(raw.get(arch, 0), n) if cold else raw.get(arch, 0) + n
+    denom = sum(raw.values())
+    share = {arch: n / denom for arch, n in raw.items()} if denom > 0 else {}
+    order = list(dict.fromkeys(ARCHETYPES.values()))
+    ranked = sorted(
+        (s for s in share.items() if s[1] > 0),
+        key=lambda s: (-s[1], order.index(s[0])),
+    )
+    primary = ranked[0][0] if ranked else None
+    secondary = (
+        ranked[1][0] if len(ranked) > 1 and ranked[1][1] >= SECONDARY_SHARE else None
+    )
+    talker = log_days > 0 and fern_turns >= TALKER_SHARE * log_days
+    return Persona(primary, secondary, ["talker"] if talker else [])
+
+
+# ---------------------------------------------------------------- recent push
+
+# No nudge lands within this long after another push (a reminder, the
+# digest, a Fern reply): it waits, or lets the day go when waiting would run
+# past the sender's late limit.
+RECENT_PUSH_GAP = timedelta(minutes=45)
+Hold = Literal["wait", "skip"]
+
+
+def recent_push_hold(
+    *, at: datetime, now: datetime, last_push: datetime | None, late_limit: timedelta
+) -> Hold | None:
+    """None: no push in the last 45 min. ``wait``: one went out recently
+    and the gap ends within the late limit, so a later run sends. ``skip``:
+    the gap outlasts the late limit; the day's nudge is held back."""
+    if last_push is None or now - last_push >= RECENT_PUSH_GAP:
+        return None
+    if last_push + RECENT_PUSH_GAP <= at + late_limit:
+        return "wait"
+    return "skip"

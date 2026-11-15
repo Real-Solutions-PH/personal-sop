@@ -1833,7 +1833,10 @@ def sol_tools(run: SolRun) -> list[BaseTool]:
             NoArgs,
             "Where their money stands now: each account's balance, net worth, "
             "spent this month so far, every budget (spent, left, safe per "
-            "day, on pace or not) and bills overdue or due in the next 7 days.",
+            "day, on pace or not), bills overdue or due in the next 7 days, "
+            "and loans with other people (who owes whom, how much is still "
+            "owed, the next payment, what is overdue). Call it for 'how much "
+            "does X still owe me' or 'how much do I still owe X'.",
         ),
         (
             find_tasks,

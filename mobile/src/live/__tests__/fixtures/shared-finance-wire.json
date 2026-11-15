@@ -1,0 +1,91 @@
+[
+  {
+    "kind": "action",
+    "name": "finance.loan.create",
+    "data": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "borrower_id": "22222222-2222-4222-8222-222222222222",
+      "principal_minor": 1200000,
+      "interest_minor": 0,
+      "purpose": "Phone",
+      "account_id": "33333333-3333-4333-8333-333333333333",
+      "log_outlay": true,
+      "schedule": {
+        "kind": "monthly",
+        "count": 6,
+        "start": "2026-11-15",
+        "day": 15
+      }
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.respond",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444",
+      "accept": true
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.pay",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444",
+      "id": "44444444-4444-4444-8444-444444444444",
+      "amount_minor": 200000,
+      "paid_on": "2026-11-15",
+      "account_id": "33333333-3333-4333-8333-333333333333",
+      "proof_media_id": "55555555-5555-4555-8555-555555555555",
+      "note": "GCash ref 1234"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.withdraw",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444",
+      "payment_id": "44444444-4444-4444-8444-444444444444"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.decide",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444",
+      "payment_id": "44444444-4444-4444-8444-444444444444",
+      "accept": true,
+      "account_id": "33333333-3333-4333-8333-333333333333",
+      "reason": null
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.decide",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444",
+      "payment_id": "44444444-4444-4444-8444-444444444444",
+      "accept": false,
+      "account_id": null,
+      "reason": "Not in my account yet"
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.cash",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444",
+      "id": "44444444-4444-4444-8444-444444444444",
+      "amount_minor": 100000,
+      "paid_on": "2026-11-16",
+      "account_id": "33333333-3333-4333-8333-333333333333",
+      "note": null
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.loan.cancel",
+    "data": {
+      "loan_id": "44444444-4444-4444-8444-444444444444"
+    }
+  }
+]

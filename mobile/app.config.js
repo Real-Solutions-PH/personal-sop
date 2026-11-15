@@ -4,12 +4,15 @@
 // it this is app.json with the activity-monitor target and the native module
 // left out, so production and TestFlight builds ship unchanged. The JS side
 // finds no native module there and shows Screen Time as a locked preview.
+// The widget and Fern's notification-service extension are always built.
 const SCREEN_TIME_GROUP = "group.com.schadenkai.personal-sop"
 const TARGETS = "@bacons/apple-targets"
 
 module.exports = ({ config }) => {
   const on = process.env.UNFURL_SCREEN_TIME === "1"
-  const match = on ? "{widget,activity-monitor}" : "widget"
+  const match = on
+    ? "{widget,notification-service,activity-monitor}"
+    : "{widget,notification-service}"
   const plugins = (config.plugins ?? []).map((p) =>
     p === TARGETS ? [TARGETS, { match }] : p,
   )

@@ -36,7 +36,19 @@ import { LIST_GLYPHS, ListEditor } from "./task-lists"
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/
 
-export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
+export function TaskNew({
+  listId,
+  day,
+  title,
+  presetTime,
+}: {
+  listId?: string
+  day?: string
+  /** The title so far, from a quick-add field ("More options"). */
+  title?: string
+  /** A time it was opened with (a Plan block's): set as if picked. */
+  presetTime?: string
+}) {
   const t = useTheme(),
     allLists = tasksStore.use((s) => s.lists),
     lists = useMemo(() => allLists.filter((l) => !l.archivedAt), [allLists]),
@@ -46,7 +58,9 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
     // screen's preset (the list or day it was opened from).
     [pickedList, setList] = useState<string | null>(null),
     [pickedDate, setDate] = useState<string | null>(null),
-    [pickedTime, setTime] = useState<string | null>(null),
+    [pickedTime, setTime] = useState<string | null>(
+      presetTime && TIME.test(presetTime) ? presetTime : null,
+    ),
     [remind, setRemind] = useState<Remind>("off"),
     [pickedPriority, setPriority] = useState<TaskPriority | null>(null),
     skip = useMemo(
@@ -59,7 +73,7 @@ export function TaskNew({ listId, day }: { listId?: string; day?: string }) {
         ]),
       [pickedDate, pickedTime, pickedPriority, pickedList],
     ),
-    quick = useQuickAdd(allLists, skip),
+    quick = useQuickAdd(allLists, skip, title),
     [errors, setErrors] = useState<{ title?: string; when?: string }>({}),
     [making, setMaking] = useState(false)
 

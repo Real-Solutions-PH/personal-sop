@@ -13,6 +13,7 @@ from typing import Any
 
 from app.modules.finance import calc
 from app.modules.finance import public as finance
+from app.modules.shared_finance import public as shared
 from app.shared.context import Ctx
 from app.shared.currency import money
 
@@ -77,5 +78,9 @@ def status(ctx: Ctx) -> dict[str, Any]:
         ),
         "budgets": budgets,
         "bills_overdue_or_due_next_7_days": bills,
+        # Money lent to or borrowed from another person ("how much does
+        # Ana still owe me"): still_owed is what is left after every
+        # payment the lender confirmed.
+        "loans": shared.loans_status(ctx),
         "no_accounts_yet": not accounts,
     }
