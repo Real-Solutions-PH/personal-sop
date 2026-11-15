@@ -70,7 +70,7 @@ function AccountChoice({
   value: string
   onChange: (id: string) => void
 }) {
-  const accounts = finStore.use((s) => s.accounts.filter((a) => !a.archived))
+  const accounts = finStore.use((s) => s.accounts).filter((a) => !a.archived)
   if (!accounts.length)
     return (
       <Copy size={12} muted>
@@ -127,7 +127,7 @@ export function NewLoanSheet({
 }) {
   const t = useTheme(),
     c = useCurrency(),
-    accounts = finStore.use((s) => s.accounts.filter((a) => !a.archived)),
+    accounts = finStore.use((s) => s.accounts).filter((a) => !a.archived),
     myName = dashStore.use((s) => s.profile.name),
     { people, failed } = useConnections(open),
     today = dayKey(),

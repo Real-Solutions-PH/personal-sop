@@ -350,7 +350,10 @@ it("maps a pulled member row and keeps this phone's proof photo", () => {
       },
     ],
   })
-  const local = { ...pulled!, payments: [{ ...pulled!.payments[0], proofUri: "file:///p.jpg" }] }
+  const local = {
+    ...pulled!,
+    payments: [{ ...pulled!.payments[0], proofUri: "file:///p.jpg" }],
+  }
   const merged = m.merge({ loans: [local] }, [pulled!], [])
   expect(merged.loans[0].payments[0].proofUri).toBe("file:///p.jpg")
   expect(m.merge(merged, [], [pulled!.id]).loans).toEqual([])
