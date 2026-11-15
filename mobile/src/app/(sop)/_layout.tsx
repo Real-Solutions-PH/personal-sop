@@ -39,6 +39,7 @@ import { startReminders } from "@/prototype/local-reminders"
 import { prototypeMode } from "@/prototype/mode"
 import { replace, switchTab } from "@/prototype/navigation"
 import { OfflineNote } from "@/prototype/offline-note"
+import { noteActivity, useIdle } from "@/prototype/on-screen"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { FinishWatcher } from "@/prototype/routine-done"
 import { startRunTracker } from "@/prototype/run-tracker"
@@ -68,10 +69,13 @@ const tabs = [
 function FabIcon({
   open,
   hearing,
+  rest,
   press,
 }: {
   open: boolean
   hearing: boolean
+  /** Nobody has touched the phone for a while: Fern holds still. */
+  rest: boolean
   press: SharedValue<number>
 }) {
   const t = useTheme()
@@ -119,6 +123,9 @@ function FabIcon({
         <FernSprite
           size={48}
           state={hearing ? "listening" : "idle"}
+          // Hidden under the × while the drawer is open, or resting: the
+          // idle loop redraws every frame, so it stops (listening never does).
+          still={(open || rest) && !hearing}
           decorative
         />
       </Animated.View>
@@ -138,9 +145,12 @@ const pressOut = (v: SharedValue<number>) => {
     reduceMotion: ReduceMotion.Never,
   })
 }
+/** Fern's idle breathing and the halo rest after this long untouched. */
+const FERN_REST_MS = 20_000
 // A slow breathing halo marks Fern as the place to start; under Reduce
 // Motion it only brightens and dims, never grows. Still while the drawer
-// is open.
+// is open, and once nobody has touched the phone for FERN_REST_MS: an
+// endless loop on the bar kept the screen redrawing every frame all day.
 function FernHalo({ color, still }: { color: string; still: boolean }) {
   const reduced = useReducedMotion()
   const pulse = useSharedValue(0)
@@ -270,6 +280,10 @@ export default function PrototypeLayout() {
   const dir = tabDirection((s) => s.dir)
   const drawer = captureUi.use((s) => s.open)
   const hearing = wake((s) => s.armed)
+  const resting = useIdle(FERN_REST_MS)
+  // A new screen counts as use, as a touch does (the root view's onTouchStart).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: path is the trigger
+  useEffect(() => noteActivity(), [path])
   const fabPress = useSharedValue(0)
   const [bar, setBar] = useState(0)
   // The tour points at these tabs (tour/targets.ts).
@@ -330,7 +344,10 @@ export default function PrototypeLayout() {
                     : "primary"
       }
     >
-      <View style={{ flex: 1, backgroundColor: t.bg }}>
+      <View
+        style={{ flex: 1, backgroundColor: t.bg }}
+        onTouchStart={noteActivity}
+      >
         <GestureDetector gesture={swipeTabs}>
           <View style={{ flex: 1 }}>
             <Stack
@@ -475,7 +492,7 @@ export default function PrototypeLayout() {
                         justifyContent: "center",
                       }}
                     >
-                      <FernHalo color={fern.sprout} still={drawer} />
+                      <FernHalo color={fern.sprout} still={drawer || resting} />
                       <View
                         style={{
                           width: 60,
@@ -492,6 +509,7 @@ export default function PrototypeLayout() {
                         <FabIcon
                           open={drawer}
                           hearing={hearing}
+                          rest={resting}
                           press={fabPress}
                         />
                       </View>

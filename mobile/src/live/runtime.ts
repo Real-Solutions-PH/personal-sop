@@ -37,6 +37,7 @@ import { registerPushDevice } from "./push"
 import { syncReady } from "./ready"
 import { startSocialLive } from "./social"
 import { createStats, type LiveStats } from "./stats"
+import { createSyncSchedule } from "./sync-schedule"
 
 export type MapperFactory = (userId: string) => AnyMapper[]
 
@@ -119,6 +120,12 @@ export function startLive(
   syncReady.setState({ ready: isNew || pulledBefore(), failed: false })
   let reached = false
   let syncing: SyncEngine | null = null
+  // The safety poll, and which syncs the statistics follow (sync-schedule).
+  const schedule = createSyncSchedule({
+    sync: () => void syncing?.sync(),
+    refreshStats: () => void stats.refreshAll(),
+    appState: () => AppState.currentState,
+  })
   const stats = createStats({
     http,
     online: getConnectivity,
@@ -139,7 +146,7 @@ export function startLive(
     outbox: createOutbox(storage),
     mappers: factories.flatMap((f) => f(userId)),
     online: getConnectivity,
-    onSynced: () => {
+    onSynced: (changed) => {
       reached = true
       syncReady.setState({ failed: false })
       // Once per account on this device, after a pull really reached the
@@ -152,7 +159,10 @@ export function startLive(
       }
       // The extras switches move from this phone to the account, once.
       void settleDeviceExtras(userId, storage, http)
-      void stats.refreshAll()
+      // A quiet poll (nothing pushed or pulled) cannot have moved the
+      // server's figures: refetching every watched one each minute was most
+      // of the app's requests.
+      schedule.onSynced(changed)
       // The server is reachable: voice entries saved offline get their words.
       void transcribePending()
     },
@@ -209,19 +219,20 @@ export function startLive(
       },
       onEvent: (e) => {
         if (e.id) resumeId = e.id
-        if (PULL_EVENTS.has(e.type)) void engine.sync()
+        if (PULL_EVENTS.has(e.type)) schedule.onPullEvent()
         for (const l of listeners) l(e)
       },
+      onOpen: (open) => schedule.onStreamOpen(open),
     }),
   )
   const appState = AppState.addEventListener("change", (s) => {
     stream.onAppState(s)
-    if (s === "active") void engine.sync()
     // Leaving the foreground: an edit still in the debounce window would be
     // lost if the OS kills the app, so queue it now.
-    else engine.flush()
+    if (s !== "active") engine.flush()
+    schedule.onAppState(s)
   })
-  const interval = setInterval(() => void engine.sync(), 60_000)
+  schedule.start()
   const stopSocial = startSocialLive(userId, onServerEvent)
   void engine.sync().finally(() =>
     syncReady.setState({
@@ -244,7 +255,7 @@ export function startLive(
       stats.stop()
       appState.remove()
       page?.removeEventListener?.("pagehide", onPageHide)
-      clearInterval(interval)
+      schedule.stop()
       void stream.stop()
       stopSocial()
     },

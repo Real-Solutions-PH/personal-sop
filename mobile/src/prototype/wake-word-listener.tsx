@@ -9,11 +9,17 @@ import { chime } from "./chime"
 import { companionStore } from "./companion/store"
 import { dictating } from "./live-dictation"
 import { feel } from "./motion"
+import { useIdle } from "./on-screen"
 import { createWakeListener, wake, wakePrefs } from "./wake-word"
 
 /** Lead time between the chime and dictation starting, so the chime is not
  * cut off when the recogniser takes the microphone. */
 const CHIME_MS = 300
+
+/** The recogniser runs flat out while it listens, one of the heaviest
+ * things a phone does. With nobody touching the phone for this long (a
+ * phone set to never auto-lock), it stands down; a touch starts it again. */
+export const WAKE_IDLE_MS = 5 * 60_000
 
 /** Mount once inside the signed-in layout. ``onChatPage``: the full chat
  * page is showing, so a wake dictates there instead of opening the drawer. */
@@ -26,6 +32,7 @@ export function WakeWordListener({ onChatPage }: { onChatPage: boolean }) {
     (s) => s.state === "playing" || s.state === "loading",
   )
   const [active, setActive] = useState(AppState.currentState === "active")
+  const idle = useIdle(WAKE_IDLE_MS)
   const page = useRef(onChatPage)
   page.current = onChatPage
   const listener = useRef<ReturnType<typeof createWakeListener> | null>(null)
@@ -58,8 +65,8 @@ export function WakeWordListener({ onChatPage }: { onChatPage: boolean }) {
   }, [])
 
   useEffect(() => {
-    listener.current?.setWanted(enabled && active && !busy && !reading)
-  }, [enabled, active, busy, reading])
+    listener.current?.setWanted(enabled && active && !idle && !busy && !reading)
+  }, [enabled, active, idle, busy, reading])
 
   return null
 }
