@@ -68,8 +68,12 @@ jest.mock("../media", () => ({ exportCsv: jest.fn(), pickPhoto: jest.fn() }))
 const { WelcomeBack, wayBackNow } =
   require("../screens/welcome-back") as typeof import("../screens/welcome-back")
 
+// One client per test, cleared after it: the way-back card's review query
+// keeps its answer for 30 minutes, and an unmounted query's gc timer would
+// otherwise hold jest open for that long after the run.
+let client: QueryClient
 const wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={new QueryClient()}>
+  <QueryClientProvider client={client}>
     <SafeAreaProvider
       initialMetrics={{
         frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -109,6 +113,7 @@ const logs: HabitLog[] = Array.from({ length: 8 }, (_, i) => {
 })
 
 beforeEach(() => {
+  client = new QueryClient()
   configureStorage({
     getItem: () => null,
     setItem: () => {},
@@ -122,6 +127,8 @@ beforeEach(() => {
   finStore.set((s) => ({ ...s, records: [] }))
   fitStore.set((s) => ({ ...s, workouts: [], runs: [], meals: [] }))
 })
+// After the render's own cleanup has unmounted it: clearing drops the gc timer.
+afterEach(() => client.clear())
 
 describe("wayBackNow", () => {
   it("finds the gap since the last active day", () => {
