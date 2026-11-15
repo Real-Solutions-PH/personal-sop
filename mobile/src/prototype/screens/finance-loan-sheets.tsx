@@ -26,7 +26,7 @@ export const toCentavos = (major: number) =>
 
 const live = () =>
   require("@/live/shared-finance") as typeof import("@/live/shared-finance")
-const owner = () =>
+export const owner = () =>
   prototypeMode
     ? "me"
     : ((
@@ -34,7 +34,7 @@ const owner = () =>
       ).liveOwner() ?? "me")
 
 /** Who this person may lend to: everyone they follow or who follows them. */
-function useConnections(open: boolean) {
+export function useConnections(open: boolean) {
   const demo = socialStore.use((s) => s.people)
   const [people, setPeople] = useState<L.LoanPerson[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -61,7 +61,7 @@ function useConnections(open: boolean) {
   return { people, failed }
 }
 
-function AccountChoice({
+export function AccountChoice({
   label,
   value,
   onChange,
@@ -88,7 +88,7 @@ function AccountChoice({
   )
 }
 
-function AmountStepper({
+export function AmountStepper({
   label,
   value,
   onChange,

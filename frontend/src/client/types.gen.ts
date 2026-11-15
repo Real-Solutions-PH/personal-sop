@@ -230,6 +230,10 @@ export type AllowanceOut = {
 
 export type plan = 'free' | 'plus';
 
+export type Answered = {
+    status: string;
+};
+
 export type AnswerIn = {
     value: string;
 };
@@ -303,6 +307,23 @@ export type app__modules__companion__schema__SeriesOut = {
     points: Array<Point>;
 };
 
+export type app__modules__dashboard__schema__GoalCreate = {
+    id?: (string | null);
+    metric: string;
+    label: string;
+    target: number;
+    unit?: string;
+    comparator?: 'gte' | 'lte';
+    period?: 'week' | 'month';
+    via?: 'manual' | 'onboarding' | 'review';
+};
+
+export type comparator = 'gte' | 'lte';
+
+export type period = 'week' | 'month';
+
+export type via = 'manual' | 'onboarding' | 'review';
+
 export type app__modules__dashboard__schema__ReviewIn = {
     done?: (boolean | null);
     reflection?: (string | null);
@@ -329,6 +350,16 @@ export type app__modules__finance__advisor_ai__AskIn = {
     text: string;
     id?: (string | null);
     scope?: ('aggregates' | 'records' | null);
+};
+
+export type app__modules__finance__schema__BudgetCreate = {
+    name: string;
+    limit_minor: number;
+    rollover?: (boolean | null);
+    start_date?: (string | null);
+    archived?: (boolean | null);
+    category_ids?: (Array<(string)> | null);
+    id?: (string | null);
 };
 
 export type app__modules__finance__schema__MessageCreate = {
@@ -520,6 +551,28 @@ export type app__modules__habits__schema__TodayPublic = {
     due: number;
     done: number;
     timer: (TimerPublic | null);
+};
+
+/**
+ * A monthly budget shared with people the maker is connected with.
+ */
+export type app__modules__shared_finance__schema__BudgetCreate = {
+    id?: (string | null);
+    name: string;
+    limit_minor: number;
+    member_ids: Array<(string)>;
+    category_ids?: Array<(string)>;
+};
+
+/**
+ * A savings goal shared with people the maker is connected with.
+ */
+export type app__modules__shared_finance__schema__GoalCreate = {
+    id?: (string | null);
+    name: string;
+    target_minor?: (number | null);
+    deadline?: (string | null);
+    member_ids: Array<(string)>;
 };
 
 export type app__modules__shared_finance__schema__MonthlySchedule = {
@@ -831,16 +884,6 @@ export type BrokenOut = {
     length: number;
 };
 
-export type BudgetCreate = {
-    name: string;
-    limit_minor: number;
-    rollover?: (boolean | null);
-    start_date?: (string | null);
-    archived?: (boolean | null);
-    category_ids?: (Array<(string)> | null);
-    id?: (string | null);
-};
-
 export type BudgetDetail = {
     view: BudgetViewOut;
     history: Array<BudgetViewOut>;
@@ -855,6 +898,28 @@ export type BudgetFields = {
     archived?: (boolean | null);
     category_ids?: (Array<(string)> | null);
 };
+
+export type BudgetOut = {
+    id: string;
+    role: 'owner' | 'member';
+    my_status: 'invited' | 'active' | 'declined' | 'left';
+    status: 'active' | 'closed';
+    name: string;
+    currency: string;
+    limit_minor: number;
+    month: string;
+    spent_minor: number;
+    my_category_ids: Array<(string)>;
+    members: Array<MemberOut>;
+    events: Array<GroupEventOut>;
+    created_at: string;
+};
+
+export type role2 = 'owner' | 'member';
+
+export type my_status = 'invited' | 'active' | 'declined' | 'left';
+
+export type status2 = 'active' | 'closed';
 
 export type BudgetPublic = {
     id: string;
@@ -987,6 +1052,10 @@ export type CatalogModelOut = {
 };
 
 export type kind6 = 'text' | 'vision';
+
+export type CategoriesBody = {
+    category_ids?: Array<(string)>;
+};
 
 export type CategoriesPublic = {
     data: Array<CategoryPublic>;
@@ -1286,6 +1355,11 @@ export type DayVerdictOut = {
     verdict: string;
 };
 
+export type DecideBody = {
+    accept: boolean;
+    reason?: (string | null);
+};
+
 /**
  * ``POST /capture/dictate``: what was said.
  */
@@ -1342,6 +1416,35 @@ export type EndDate = {
 export type EndNever = {
     kind: "never";
 };
+
+export type EntryBody = {
+    id?: (string | null);
+    kind: 'deposit' | 'withdrawal';
+    amount_minor: number;
+    on_date: string;
+    account_id: string;
+    note?: (string | null);
+};
+
+export type kind9 = 'deposit' | 'withdrawal';
+
+export type EntryOut = {
+    id: string;
+    kind: 'deposit' | 'withdrawal';
+    status: 'sent' | 'accepted' | 'rejected' | 'withdrawn';
+    amount_minor: number;
+    on_date: string;
+    note: (string | null);
+    by_id: string;
+    account_id: (string | null);
+    record_id: (string | null);
+    decided_at: (string | null);
+    decided_by: (string | null);
+    reason: (string | null);
+    created_at: string;
+};
+
+export type status3 = 'sent' | 'accepted' | 'rejected' | 'withdrawn';
 
 /**
  * Standard error envelope returned by all API error responses.
@@ -1539,7 +1642,7 @@ export type FernRuleDecision = {
     text?: (string | null);
 };
 
-export type status2 = 'proposed' | 'approved' | 'rejected';
+export type status4 = 'proposed' | 'approved' | 'rejected';
 
 /**
  * A rule learned for every Fern: its text and how much stands behind
@@ -1746,22 +1849,22 @@ export type FxRatePublic = {
     as_of: string;
 };
 
-export type GoalCreate = {
-    id?: (string | null);
-    metric: string;
-    label: string;
-    target: number;
-    unit?: string;
-    comparator?: 'gte' | 'lte';
-    period?: 'week' | 'month';
-    via?: 'manual' | 'onboarding' | 'review';
+export type GoalOut = {
+    id: string;
+    role: 'owner' | 'member';
+    my_status: 'invited' | 'active' | 'declined' | 'left';
+    status: 'active' | 'closed';
+    name: string;
+    currency: string;
+    target_minor: (number | null);
+    deadline: (string | null);
+    balance_minor: number;
+    pending_minor: number;
+    members: Array<MemberOut>;
+    entries: Array<EntryOut>;
+    events: Array<GroupEventOut>;
+    created_at: string;
 };
-
-export type comparator = 'gte' | 'lte';
-
-export type period = 'week' | 'month';
-
-export type via = 'manual' | 'onboarding' | 'review';
 
 export type GoalProgressOut = {
     id: (string);
@@ -1779,7 +1882,7 @@ export type GoalProgressOut = {
     hidden?: boolean;
 };
 
-export type status3 = 'active' | 'archived';
+export type status5 = 'active' | 'archived';
 
 export type GoalPublic = {
     id: string;
@@ -1814,6 +1917,29 @@ export type GroupCreate = {
     id?: (string | null);
     name: string;
     member_ids: Array<(string)>;
+};
+
+export type GroupEventOut = {
+    kind: string;
+    at: string;
+    actor_id: string;
+    entry_id: (string | null);
+    amount_minor: (number | null);
+    text: (string | null);
+};
+
+export type GroupRespond = {
+    kind: 'goal' | 'budget';
+    object_id: string;
+    accept: boolean;
+    category_ids?: Array<(string)>;
+};
+
+export type kind10 = 'goal' | 'budget';
+
+export type GroupsOut = {
+    goals: Array<GoalOut>;
+    budgets: Array<BudgetOut>;
 };
 
 export type HabitCreate = {
@@ -1948,7 +2074,7 @@ export type HandleAvailability = {
     status: 'available' | 'taken' | 'invalid';
 };
 
-export type status4 = 'available' | 'taken' | 'invalid';
+export type status6 = 'available' | 'taken' | 'invalid';
 
 export type HandleCheck = {
     handle: string;
@@ -2153,7 +2279,7 @@ export type ItemRef = {
     title?: (string | null);
 };
 
-export type kind9 = 'task' | 'habit';
+export type kind11 = 'task' | 'habit';
 
 export type ItemSession = {
     session_id: string;
@@ -2296,7 +2422,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind10 = 'standard' | 'shopping';
+export type kind12 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -2349,7 +2475,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind11 = 'timer' | 'routine' | 'workout';
+export type kind13 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -2398,9 +2524,9 @@ export type LoanOut = {
     closed_at: (string | null);
 };
 
-export type role2 = 'lender' | 'borrower';
+export type role3 = 'lender' | 'borrower';
 
-export type status5 = 'invited' | 'active' | 'declined' | 'cancelled' | 'paid';
+export type status7 = 'invited' | 'active' | 'declined' | 'cancelled' | 'paid';
 
 export type LoanRespond = {
     accept: boolean;
@@ -2643,7 +2769,7 @@ export type MediaIn = {
     ratio?: (number | null);
 };
 
-export type kind12 = 'image' | 'video';
+export type kind14 = 'image' | 'video';
 
 export type MediaPublic = {
     media_id: string;
@@ -2673,9 +2799,18 @@ export type MediaWithUrl = {
     preview_url?: (string | null);
 };
 
-export type kind13 = 'image' | 'video' | 'audio' | 'file';
+export type kind15 = 'image' | 'video' | 'audio' | 'file';
 
 export type state2 = 'pending' | 'ready' | 'rejected';
+
+export type MemberOut = {
+    person: PersonOut;
+    role: 'owner' | 'member';
+    status: 'invited' | 'active' | 'declined' | 'left';
+    amount_minor: number;
+};
+
+export type status8 = 'invited' | 'active' | 'declined' | 'left';
 
 export type MemberSettings = {
     muted?: (boolean | null);
@@ -2866,7 +3001,7 @@ export type NotificationPublic = {
     version: number;
 };
 
-export type kind14 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+export type kind16 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
 
 export type NotificationsOut = {
     data: Array<NotificationPublic>;
@@ -2931,7 +3066,7 @@ export type OccurrenceOut = {
     record_id: (string | null);
 };
 
-export type status6 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
+export type status9 = 'paid' | 'skipped' | 'due' | 'upcoming' | 'overdue';
 
 export type OccurrenceRef = {
     planned_id: string;
@@ -3024,7 +3159,7 @@ export type OverdueTask = {
 
 export type priority = 'none' | 'low' | 'medium' | 'high';
 
-export type status7 = 'open' | 'done' | 'deleted';
+export type status10 = 'open' | 'done' | 'deleted';
 
 export type parse_state = 'parsed' | 'pending';
 
@@ -3094,9 +3229,7 @@ export type PaymentOut = {
     created_at: string;
 };
 
-export type kind15 = 'transfer' | 'cash';
-
-export type status8 = 'sent' | 'accepted' | 'rejected' | 'withdrawn';
+export type kind17 = 'transfer' | 'cash';
 
 export type PeoplePublic = {
     data: Array<PersonPublic>;
@@ -3182,9 +3315,9 @@ export type PhaseOut = {
     item: (ItemRef | null);
 };
 
-export type status9 = 'running' | 'paused' | 'waiting' | 'ended';
+export type status11 = 'running' | 'paused' | 'waiting' | 'ended';
 
-export type kind16 = 'focus' | 'break';
+export type kind18 = 'focus' | 'break';
 
 export type PhotoPayload = {
     kind: "photo";
@@ -4337,7 +4470,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind17 = 'image' | 'video' | 'text' | 'progress';
+export type kind19 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -4426,7 +4559,7 @@ export type SyncOp = {
     at?: (string | null);
 };
 
-export type kind18 = 'upsert' | 'delete' | 'action';
+export type kind20 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -4443,7 +4576,7 @@ export type SyncOpResult = {
     replayed?: boolean;
 };
 
-export type status10 = 'applied' | 'conflict' | 'rejected';
+export type status12 = 'applied' | 'conflict' | 'rejected';
 
 export type SyncPull = {
     changes: Array<SyncChange>;
@@ -4858,7 +4991,7 @@ export type UsageEventIn = {
     detail?: (string | null);
 };
 
-export type kind19 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
+export type kind21 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
 
 export type UsageOut = {
     month: string;
@@ -5181,7 +5314,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind20 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind22 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;
@@ -5583,7 +5716,7 @@ export type DashboardListGoalsData = {
 export type DashboardListGoalsResponse = (GoalsOut);
 
 export type DashboardCreateGoalData = {
-    requestBody: GoalCreate;
+    requestBody: app__modules__dashboard__schema__GoalCreate;
 };
 
 export type DashboardCreateGoalResponse = (GoalProgressOut);
@@ -5917,7 +6050,7 @@ export type FinanceListBudgetsData = {
 export type FinanceListBudgetsResponse = (BudgetsPublic);
 
 export type FinanceAddBudgetData = {
-    requestBody: BudgetCreate;
+    requestBody: app__modules__finance__schema__BudgetCreate;
 };
 
 export type FinanceAddBudgetResponse = (BudgetPublic);
@@ -7324,6 +7457,67 @@ export type SharedFinanceRecordCashData = {
 };
 
 export type SharedFinanceRecordCashResponse = (LoanOut);
+
+export type SharedFinanceListGroupsResponse = (GroupsOut);
+
+export type SharedFinanceRespondGroupData = {
+    requestBody: GroupRespond;
+};
+
+export type SharedFinanceRespondGroupResponse = (Answered);
+
+export type SharedFinanceCreateGoalData = {
+    requestBody: app__modules__shared_finance__schema__GoalCreate;
+};
+
+export type SharedFinanceCreateGoalResponse = (GoalOut);
+
+export type SharedFinanceGetGoalData = {
+    goalId: string;
+};
+
+export type SharedFinanceGetGoalResponse = (GoalOut);
+
+export type SharedFinanceAddEntryData = {
+    goalId: string;
+    requestBody: EntryBody;
+};
+
+export type SharedFinanceAddEntryResponse = (GoalOut);
+
+export type SharedFinanceWithdrawEntryData = {
+    entryId: string;
+    goalId: string;
+};
+
+export type SharedFinanceWithdrawEntryResponse = (GoalOut);
+
+export type SharedFinanceDecideEntryData = {
+    entryId: string;
+    goalId: string;
+    requestBody: DecideBody;
+};
+
+export type SharedFinanceDecideEntryResponse = (GoalOut);
+
+export type SharedFinanceCreateBudgetData = {
+    requestBody: app__modules__shared_finance__schema__BudgetCreate;
+};
+
+export type SharedFinanceCreateBudgetResponse = (BudgetOut);
+
+export type SharedFinanceGetBudgetData = {
+    budgetId: string;
+};
+
+export type SharedFinanceGetBudgetResponse = (BudgetOut);
+
+export type SharedFinanceSetCategoriesData = {
+    budgetId: string;
+    requestBody: CategoriesBody;
+};
+
+export type SharedFinanceSetCategoriesResponse = (BudgetOut);
 
 export type SocialReadMeResponse = (PersonPublic);
 

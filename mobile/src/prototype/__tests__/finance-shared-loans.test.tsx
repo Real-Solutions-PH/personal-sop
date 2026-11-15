@@ -95,7 +95,7 @@ function loan(role: L.LoanRole, extra: Partial<L.Loan> = {}): L.Loan {
     createdAt: "2020-01-01T00:00:00.000Z",
     ...extra,
   }
-  L.sharedStore.set({ loans: [l] })
+  L.sharedStore.set({ ...L.EMPTY_SHARED, loans: [l] })
   return l
 }
 

@@ -100,7 +100,7 @@ function row(role: L.LoanRole, extra: Record<string, unknown> = {}) {
 function seed(role: L.LoanRole, extra: Record<string, unknown> = {}) {
   const loan = loanFromRow(row(role, extra))
   if (!loan) throw new Error("no loan")
-  L.sharedStore.set({ loans: [loan] })
+  L.sharedStore.set({ ...L.EMPTY_SHARED, loans: [loan] })
   return loan
 }
 
@@ -146,6 +146,7 @@ it("the borrower accepts, pays with proof and withdraws", () => {
   const e = engine()
   seed("borrower", { status: "invited" })
   L.sharedStore.set((s) => ({
+    ...s,
     loans: s.loans.map((l) => ({ ...l, status: "invited" as const })),
   }))
   e.capture()
@@ -272,6 +273,7 @@ it("the lender cancels an invite", () => {
   const e = engine()
   seed("lender", { status: "invited" })
   L.sharedStore.set((s) => ({
+    ...s,
     loans: s.loans.map((l) => ({ ...l, status: "invited" as const })),
   }))
   e.capture()
@@ -333,7 +335,7 @@ it("maps a pulled member row and keeps this phone's proof photo", () => {
       ],
     }),
     L.sharedStore.get(),
-  )
+  ) as L.Loan | null
   expect(pulled).toMatchObject({
     id: L.memberId(MIA, LOAN),
     loanId: LOAN,
@@ -354,10 +356,10 @@ it("maps a pulled member row and keeps this phone's proof photo", () => {
     ...pulled!,
     payments: [{ ...pulled!.payments[0], proofUri: "file:///p.jpg" }],
   }
-  const merged = m.merge({ loans: [local] }, [pulled!], [])
+  const merged = m.merge({ ...L.EMPTY_SHARED, loans: [local] }, [pulled!], [])
   expect(merged.loans[0].payments[0].proofUri).toBe("file:///p.jpg")
   expect(m.merge(merged, [], [pulled!.id]).loans).toEqual([])
-  expect(m.fromServer({ ...row("lender"), kind: "goal" }, merged)).toBeNull()
+  expect(m.fromServer({ ...row("lender"), kind: "pot" }, merged)).toBeNull()
 })
 
 describe("loan arithmetic matches the server", () => {
