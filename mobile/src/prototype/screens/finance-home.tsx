@@ -53,6 +53,7 @@ import {
   TopPayeesCard,
   WeekdayCard,
 } from "./finance-report-cards"
+import { SharedSection } from "./finance-shared"
 import { UpcomingWeek } from "./finance-upcoming"
 import { Dimmed, EmptyFoot, LockedPreview } from "./locked-preview"
 
@@ -494,6 +495,7 @@ export function FinanceHome({
           <BudgetsSection s={s} />
           <CashFlowSection s={s} />
           <SavingsSection s={s} />
+          <SharedSection />
           <View
             style={{
               flexDirection: "row",
