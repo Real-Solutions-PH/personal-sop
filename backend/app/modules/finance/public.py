@@ -127,6 +127,16 @@ def resolve_category(
     return None
 
 
+def require_account(ctx: Ctx, account_id: uuid.UUID) -> Account:
+    """The caller's own live account; 404 ``account_not_found``."""
+    return owned_repo.require(ctx, Account, account_id, what="account")
+
+
+def get_account(ctx: Ctx, account_id: uuid.UUID) -> Account | None:
+    """The caller's own live account, or None."""
+    return owned_repo.get(ctx, Account, account_id)
+
+
 def _account_or_default(
     ctx: Ctx, account_id: uuid.UUID | None, *, for_income: bool
 ) -> uuid.UUID:

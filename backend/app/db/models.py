@@ -116,6 +116,12 @@ from app.modules.screen.models import (  # noqa: F401
     ScreenDay,
     ScreenGroup,
 )
+from app.modules.shared_finance.models import (  # noqa: F401
+    Loan,
+    LoanEvent,
+    LoanPayment,
+    SharedMember,
+)
 from app.modules.social.models import (  # noqa: F401
     Activity,
     Chat,
