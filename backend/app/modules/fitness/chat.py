@@ -711,11 +711,16 @@ def _edit_meal(ctx: Ctx, row_id: uuid.UUID, ch: dict[str, Any]) -> dict[str, Any
             services.remove_meal_item(ctx=ctx, meal_id=m.id, item_id=_uuid(item_id))
         for e in ch.get("edit_items") or []:
             iid = _uuid(e["id"])
-            if e.get("qty") is not None:
+            # A new unit (a serving made a weight in grams) comes with its
+            # values for that amount: the amount is written, not rescaled.
+            rescale = e.get("qty") is not None and "unit" not in e
+            if rescale:
                 services.set_item_qty(
                     ctx=ctx, meal_id=m.id, item_id=iid, qty=float(e["qty"])
                 )
-            values = {k: v for k, v in e.items() if k not in ("id", "qty")}
+            values = {
+                k: v for k, v in e.items() if k != "id" and not (k == "qty" and rescale)
+            }
             if values:
                 services.set_item_macros(
                     ctx=ctx, meal_id=m.id, item_id=iid, patch=values

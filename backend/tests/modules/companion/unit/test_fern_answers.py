@@ -29,6 +29,8 @@ from app.modules.companion.services import drop_confirm_how
             True,
         ),
         ("try again", "redo", False),
+        # Kai, 2026-11-14, after a reply that left the job half done.
+        ("try it again", "redo", False),
         ("answer?", "redo", False),
         ("that's wrong", "redo", False),
         ("you didn't answer my question", "redo", False),

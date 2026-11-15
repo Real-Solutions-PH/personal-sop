@@ -182,3 +182,47 @@ def session_facts(ctx: Ctx, first: date, last: date) -> list[dict[str, Any]]:
                     }
                 )
     return sorted(out, key=lambda x: str(x["day"]))
+
+
+def log_blocks(ctx: Ctx, blocks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Focus time the timer never saw, logged afterwards: each block is a
+    business ``day`` (None: today), a ``start`` "HH:MM" in their time, and
+    an ``end`` "HH:MM" or ``minutes``, with an optional ``label`` and the
+    ``item`` it was for. Each block is saved or refused on its own (in the
+    future, overlapping another session, longer than 12 hours)."""
+    from fastapi import HTTPException
+
+    from app.modules.focus.schema import FocusLogIn
+
+    logged: list[dict[str, Any]] = []
+    refused: list[dict[str, Any]] = []
+    for b in blocks:
+        day = b.get("day") or ctx.today
+        start = ctx.clock.local_time(day, b["start"])
+        end = ctx.clock.local_time(day, b["end"]) if b.get("end") else None
+        if end is not None and end <= start:
+            end += timedelta(days=1)
+        what = {"day": day.isoformat(), "start": b["start"]}
+        ref = find_item(ctx, b["item"]) if b.get("item") else None
+        if b.get("item") and ref is None:
+            refused.append(what | {"error": "item_not_found", "item": b["item"]})
+            continue
+        try:
+            row = svc.log_session(
+                ctx,
+                body=FocusLogIn(
+                    started_at=start,
+                    ended_at=end,
+                    duration_min=None if end is not None else b.get("minutes"),
+                    label=b.get("label"),
+                    item=ref,
+                ),
+            )
+        except (HTTPException, ValueError) as exc:
+            detail = getattr(exc, "detail", None)
+            code = detail.get("code") if isinstance(detail, dict) else None
+            refused.append(what | {"error": code or "invalid_block"})
+            continue
+        minutes = round(((row.ended_at or start) - row.started_at).total_seconds() / 60)
+        logged.append(what | {"minutes": minutes, "label": row.label})
+    return {"logged": logged, "refused": refused, "today": today_line(ctx)}

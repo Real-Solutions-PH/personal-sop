@@ -5784,6 +5784,82 @@ export const FlowOutSchema = {
     title: 'FlowOut'
 } as const;
 
+export const FocusLogInSchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        started_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Started At'
+        },
+        ended_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ended At'
+        },
+        duration_min: {
+            anyOf: [
+                {
+                    type: 'integer',
+                    maximum: 720,
+                    minimum: 1
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Duration Min'
+        },
+        label: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 80
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Label'
+        },
+        item: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/ItemRef'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['started_at'],
+    title: 'FocusLogIn',
+    description: `A focus block logged afterwards, because the timer never ran: when it
+started and either when it ended or how long it ran. Saved as a
+stopwatch session (\`\`source: "manual"\`\`) with one focus segment, so it
+counts toward the day, the goal and every stat like a timed one.`
+} as const;
+
 export const FollowUpAnswerInSchema = {
     properties: {
         option: {

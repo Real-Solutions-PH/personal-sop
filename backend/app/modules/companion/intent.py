@@ -23,7 +23,7 @@ Kind = Literal["redo", "question", "edit", "plan", "log", "chat"]
 # The whole message says the last answer missed. Short on purpose: "try
 # again with 2 cups" is a new ask that happens to say "again".
 _REDO = re.compile(
-    r"^\W*(?:no[,.!]?\s+)?(?:try again|again|retry|redo( it)?|wrong|that'?s wrong|"
+    r"^\W*(?:no[,.!]?\s+)?(?:try (?:it |that )?again|again|retry|redo( it)?|wrong|that'?s wrong|"
     r"that'?s not (?:it|right|what i asked)|not that|nope|answer\W*|"
     r"(?:you )?(?:didn'?t|did not) answer(?: (?:me|my question|the question))?|"
     r"answer (?:me|my question|the question)|huh|what|"
@@ -165,3 +165,58 @@ def turn_note(
             f'- Your last reply ended: "{last}". Do not repeat that suggestion.'
         )
     return "\n".join(lines)
+
+
+# What a meal edit may follow from. Seen live: "record 100 g of chicken
+# breast boiled and another 100 g of sautéed mixed veggies" (2026-11-08)
+# rewrote the amounts already logged, and "43g chicken andoks" (2026-11-14)
+# was put inside the dinner already logged; both were more food, eaten
+# after the meal, to log as its own entry.
+_MORE = re.compile(r"\b(?:another|more|additional|extra|second|again|also had)\b", re.I)
+# Changing what is logged: the edit words above, or an amount taken off,
+# eaten leftover, or a part not eaten.
+_CORRECTS = re.compile(
+    r"^\W*[-–−]|\bi mean\b|\bminus\b|\bless\b|\bleft ?overs?\b|\bwithout\b|"
+    r"\bno (?:skin|sugar|rice|sauce|fat)\b|\bonly\b|\bnot\b|\bremove\b|\bdrop\b|"
+    r"\bdelete\b|\bdidn'?t\b|\bwasn'?t\b|\bfrom (?:the )?bones?\b",
+    re.I,
+)
+# Putting food into a meal already logged: "+ 60g bangus", "add …",
+# "also …", or a meal named.
+_ADDS_TO = re.compile(
+    r"^\W*\+|\badd\b|\balso\b|\bplus\b|\bput\b|"
+    r"\b(?:breakfast|lunch|dinner|snack|merienda|meal)\b",
+    re.I,
+)
+
+
+def corrects(text: str) -> bool:
+    """Whether the message changes something already logged."""
+    said = text.split("\n\n[", 1)[0]
+    return bool(_EDIT.search(said) or _CORRECTS.search(said))
+
+
+def meal_edit_refusal(text: str, *, changes: bool, adds: bool) -> dict[str, str] | None:
+    """Why a meal edit does not follow from ``text``, or None when it does.
+    ``changes``: it edits or removes items already logged; ``adds``: it puts
+    new items into the meal."""
+    said = text.split("\n\n[", 1)[0]
+    # "try it again" redoes the last ask, whatever it was.
+    if corrects(said) or classify(said).kind == "redo":
+        return None
+    if changes and _MORE.search(said):
+        return {
+            "error": "they_ate_more",
+            "instead": "they said they had more food: log it with log_meal as "
+            "its own entry (eaten_again true, same meal label); never change "
+            "what is logged",
+        }
+    if adds and not changes and not _ADDS_TO.search(said):
+        return {
+            "error": "log_it_as_its_own_entry",
+            "instead": "they named food without saying to add it to a meal "
+            "already logged: log it with log_meal as its own entry "
+            "(eaten_again true, the meal label the time gives); edit a meal "
+            "only when they say so",
+        }
+    return None

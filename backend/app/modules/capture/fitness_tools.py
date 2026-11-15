@@ -10,6 +10,7 @@ Confirm. The changes themselves are the fitness module's
 (``fitness.chat``); every tool's ``summary`` says what changed.
 """
 
+import re
 import uuid
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
@@ -112,18 +113,32 @@ SODIUM_SAYS = "Milligrams of sodium; estimate it, 0 when there is none."
 
 # Units that are a weight in grams: the amount IS the weight.
 GRAM_UNITS = frozenset({"g", "gram", "grams"})
+# The weight an item's note states ("..., about 70 g"), added when it was
+# saved with ``grams`` in another unit.
+_ABOUT_GRAMS = re.compile(r",?\s*about \d+(?:\.\d+)? g\s*$")
+# A new amount this many times the old one, on an item whose note states its
+# weight, is a weight sent as a count.
+COUNT_AS_WEIGHT = 20
 
 
-def weighed(item: dict[str, Any], grams: float | None) -> dict[str, Any]:
+def weighed(
+    item: dict[str, Any], grams: float | None, *, unit_said: bool = True
+) -> dict[str, Any]:
     """An item in grams carries its weight as its amount. Seen live
     2026-10-31: an iced latte's milk came as 1 g with ``grams`` 100, and the
     card read "1 g whole milk" for 61 kcal. The weight is set rather than
     the item refused: the nutrition already matches ``grams``, so only the
     amount was wrong, and refusing a meal over details lost it before
     (2026-10-29). Millilitres are left alone, because a volume and its
-    weight differ by the food's density (100 ml of oil is about 92 g)."""
-    if grams and str(item.get("unit", "")).strip().casefold() in GRAM_UNITS:
-        return item | {"qty": grams}
+    weight differ by the food's density (100 ml of oil is about 92 g).
+
+    An item sent with its weight and no unit (``unit_said`` False) is in
+    grams too. Seen live 2026-11-14: "43g chicken andoks" was added as
+    ``grams`` 43 with no unit and saved as "1 serving", and the review
+    screen's stepper then moved it half a serving at a time."""
+    unit = str(item.get("unit", "")).strip().casefold()
+    if grams and (unit in GRAM_UNITS or not unit_said):
+        return item | {"qty": grams, "unit": "g"}
     return item
 
 
@@ -300,10 +315,21 @@ class ItemArgs(BaseModel):
 
 class ItemEditArgs(BaseModel):
     item: Annotated[str, Field(min_length=1, max_length=120)] = Field(
-        description="The item's current name."
+        description="The item's id from find_fitness_logs, or its current name."
     )
     qty: Annotated[float, Field(gt=0, le=10000)] | None = Field(
-        default=None, description="New amount; its macros scale with it."
+        default=None,
+        description="New amount in the item's own unit (servings, pieces); "
+        "its macros scale with it. A new weight goes in grams instead.",
+    )
+    grams: Annotated[float, Field(gt=0, le=5000)] | None = Field(
+        default=None,
+        description="New edible weight in grams; the item is then shown in "
+        "grams. An item not yet in grams needs its kcal and macros for that "
+        "weight sent with it.",
+    )
+    assumption: Assumption | None = Field(
+        default=None, description="The item's new portion note, replacing its old one."
     )
     new_name: Annotated[str, Field(min_length=1, max_length=120)] | None = None
     kcal: Macro | None = None
@@ -345,7 +371,9 @@ class MealEditArgs(BaseModel):
     day: date | None = Field(default=None, description="Move it to this day.")
     add_items: list[ItemArgs] = Field(default_factory=list, max_length=20)
     remove_items: list[Annotated[str, Field(max_length=120)]] = Field(
-        default_factory=list, max_length=20
+        default_factory=list,
+        max_length=20,
+        description="Each item's id from find_fitness_logs, or its name.",
     )
     edit_items: list[ItemEditArgs] = Field(default_factory=list, max_length=20)
     confirmed: bool | None = Field(
@@ -895,6 +923,25 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
         wrong: list[dict[str, Any]] = []
 
         def item_id(name: str) -> Any:
+            # An item's id (find_fitness_logs gives them) names one item.
+            # Seen live 2026-11-14: a meal held two "Andok's Litson Manok"
+            # items, the id of the new one was refused twice, and the name
+            # then reached the first, so the 132 g entry was overwritten
+            # with the 70 g one's numbers and both were removed.
+            ref = name.strip().lower()
+            if any(i == ref for i, _ in pairs):
+                return ref
+            same = [it for it in items if it["name"].strip().casefold() == ref]
+            if len(same) > 1:
+                return {
+                    "error": "several_match",
+                    "matches": [
+                        f"{it['name']} · {it['qty']:g} {it['unit']} · "
+                        f"{it['kcal']} kcal · id {it['id']}"
+                        for it in same
+                    ],
+                    "instead": "pass the id of the item you mean",
+                }
             hits = fx.best_matches(name, pairs)
             return _one(hits, "item_in_that_meal", lambda i: dict(pairs)[i])
 
@@ -917,18 +964,73 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             if isinstance(iid, dict):
                 return iid
             spec: dict[str, Any] = {"id": iid} | e.model_dump(
-                exclude_none=True, exclude={"item", "new_name"}
+                exclude_none=True, exclude={"item", "new_name", "grams"}
             )
             if e.new_name:
                 spec["name"] = e.new_name
+            row = rows.get(str(iid))
+            in_grams = row is not None and row.unit.strip().casefold() in GRAM_UNITS
+            if e.grams:
+                spec["qty"] = e.grams
+                if row is not None and not in_grams:
+                    # Seen live 2026-11-14: a chicken saved as "1 serving"
+                    # was resized with qty 132 meaning grams, and the review
+                    # screen read "132 serving". A weight makes the item one
+                    # in grams; its old values are for a serving, so the
+                    # ones for the weight come with it.
+                    need = [
+                        k for k in ("kcal", "protein", "carbs", "fat") if k not in spec
+                    ]
+                    if need:
+                        wrong.append(
+                            {
+                                "item": e.item,
+                                "problems": [
+                                    {
+                                        "problem": "send_values_for_the_new_weight",
+                                        "missing": need,
+                                    }
+                                ],
+                            }
+                        )
+                        continue
+                    spec["unit"] = "g"
+                    if "assumption" not in spec and row.assumption:
+                        # "..., about 70 g" no longer says anything new.
+                        spec["assumption"] = _ABOUT_GRAMS.sub("", row.assumption)
+            elif (
+                e.qty
+                and row is not None
+                and not in_grams
+                and row.qty > 0
+                and e.qty >= COUNT_AS_WEIGHT * row.qty
+                and _ABOUT_GRAMS.search(row.assumption or "")
+            ):
+                wrong.append(
+                    {
+                        "item": e.item,
+                        "problems": [
+                            {
+                                "problem": "qty_counts_servings_send_a_weight_as_grams",
+                                "unit": row.unit,
+                                "qty": e.qty,
+                            }
+                        ],
+                    }
+                )
+                continue
             if len(spec) == 1:
                 return {"error": "nothing_to_change", "item": e.item}
-            row = rows.get(str(iid))
             touched = {k for k in spec if k in _ITEM_VALUES}
             if row is not None and touched:
                 # A new amount rescales the stored values first (as the
-                # edit itself does), then the named values replace them.
-                f = float(e.qty) / row.qty if e.qty and row.qty > 0 else 1.0
+                # edit itself does), then the named values replace them. A
+                # new unit sends its values whole: nothing is rescaled.
+                f = (
+                    float(spec["qty"]) / row.qty
+                    if "qty" in spec and "unit" not in spec and row.qty > 0
+                    else 1.0
+                )
                 before = {
                     k: None if getattr(row, k) is None else getattr(row, k) * f
                     for k in _ITEM_VALUES
@@ -960,6 +1062,7 @@ def fitness_tools(run: "Run", *, manage: Manage, card: Card) -> list[BaseTool]:
             added = weighed(
                 it.model_dump(exclude_none=True, exclude={"grams", "alcohol"}),
                 it.grams,
+                unit_said="unit" in it.model_fields_set,
             )
             if it.grams:
                 weight = f"about {it.grams:g} g"

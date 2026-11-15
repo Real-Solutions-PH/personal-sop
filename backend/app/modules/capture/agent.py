@@ -995,7 +995,9 @@ MACROS = ("protein", "carbs", "fat")
 def _stored_item(i: MealItemArgs) -> dict[str, Any]:
     """The item as saved: its weight goes into the assumption shown with it."""
     it = fitness_tools.weighed(
-        i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)), i.grams
+        i.model_dump(exclude_none=True, exclude=set(_CHECK_ONLY)),
+        i.grams,
+        unit_said="unit" in i.model_fields_set,
     )
     for k in MACROS:
         it.setdefault(k, 0.0)  # sent without, after being asked once
@@ -1012,8 +1014,11 @@ class MealArgs(BaseModel):
     days_ago: DaysAgo = 0
     eaten_again: bool = Field(
         default=False,
-        description="true only when the person ate a second breakfast, lunch "
-        "or dinner that day; otherwise change the saved one with edit_meal.",
+        description="true when the person ate a second breakfast, lunch or "
+        'dinner that day, or more food after a meal was logged ("another 100 '
+        'g chicken", or a food and amount sent after dinner was logged, '
+        "unless they say to add it to that meal); false when they are fixing "
+        "the saved one, which edit_meal changes.",
     )
 
 

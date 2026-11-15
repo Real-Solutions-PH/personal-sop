@@ -17,11 +17,11 @@ import SwiftUI
 
 // MARK: - Opening the app at Fern
 
-/** Opens Fern already listening; the message sends when you stop talking.
+/** Opens Fern already listening; the words fill the box and you tap Send.
  * The recommended Back Tap double tap. */
 struct TalkToFernIntent: AppIntent {
   static let title: LocalizedStringResource = "Talk to Fern"
-  static let description = IntentDescription("Opens Fern already listening. Stop talking and it sends.")
+  static let description = IntentDescription("Opens Fern already listening. Your words fill the box; tap Send when ready.")
   static let openAppWhenRun: Bool = true
 
   @MainActor

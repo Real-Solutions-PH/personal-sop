@@ -47,17 +47,26 @@ import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { PageNudge, ScrollLock } from "../ui"
 import { PlanCheck } from "./plan-day"
+import {
+  type Axis,
+  BLOCK_MIN_H,
+  columnsFor,
+  layoutGrid,
+  minuteAt,
+  PX,
+  type Slot,
+  yAt,
+} from "./plan-grid-layout"
 
 /** The hour grid on the page, for a row dragged onto it from outside (the
  * Anytime list): where its first hour sits on screen. Null with no grid. */
 export type GridRef = RefObject<ComponentRef<typeof View> | null>
 export const GridAnchor = createContext<GridRef | null>(null)
+/** The grid's current minute ↔ point mapping, for a row dragged onto it
+ * from outside: hours stretch to fit their blocks, so a point is not a fixed
+ * number of minutes. */
+const axisOf = new WeakMap<GridRef, Axis>()
 
-/** Points per minute: an hour row is 64 pt, a quarter hour 16. */
-const PX = 64 / 60
-/** How long a block reads as, for laying out neighbours side by side. */
-const SPAN_MIN = 30
-const BLOCK_MIN_H = SPAN_MIN * PX - 2
 const GUTTER = 48
 /** How deep the zones are, inside the page's visible part, where a held
  * block scrolls it. */
@@ -78,41 +87,6 @@ export const timeLabel = (min: number) => `${label12(min)} ${ampm(min)}`
 /** Draggable: a habit, routine or task not yet done. */
 const movable = (i: CalendarItem) => !i.done && itemRef(i) !== null
 
-interface Placed {
-  item: CalendarItem
-  min: number
-  lane: number
-  lanes: number
-}
-
-/** Side by side when their half hours overlap, as many lanes as needed. */
-export function layout(items: readonly CalendarItem[]): Placed[] {
-  const timed = items
-    .filter((i) => i.time)
-    .map((item) => ({ item, min: dayMinutes(item.time as string) }))
-    .sort((a, b) => a.min - b.min)
-  const out: Placed[] = []
-  let cluster: Placed[] = [],
-    end = -1
-  const close = () => {
-    const lanes = Math.max(1, ...cluster.map((p) => p.lane + 1))
-    for (const p of cluster) out.push({ ...p, lanes })
-    cluster = []
-  }
-  for (const t of timed) {
-    if (t.min >= end && cluster.length) close()
-    const busy = new Set(
-      cluster.filter((p) => p.min + SPAN_MIN > t.min).map((p) => p.lane),
-    )
-    let lane = 0
-    while (busy.has(lane)) lane++
-    cluster.push({ ...t, lane, lanes: 1 })
-    end = Math.max(end, t.min + SPAN_MIN)
-  }
-  if (cluster.length) close()
-  return out
-}
-
 /** The whole business day, 4 AM to 4 AM: anywhere a block can land. */
 const DAY_FROM = DAY_FIRST_MIN,
   DAY_TO = DAY_FIRST_MIN + 24 * 60
@@ -128,28 +102,43 @@ export function DayGrid({
   const t = useTheme()
   const anchor = useContext(GridAnchor)
   const [width, setWidth] = useState(0)
-  const placed = layout(items)
+  // Each block's height as it rendered: a long title wraps and the block
+  // grows, and the hour it sits in grows with it (see plan-grid-layout).
+  const [heights, setHeights] = useState<Record<string, number>>({})
+  const onHeight = (id: string, h: number) =>
+    setHeights((prev) =>
+      Math.abs((prev[id] ?? 0) - h) < 0.5 ? prev : { ...prev, [id]: h },
+    )
   const from = DAY_FROM,
     to = DAY_TO
-  const hours = Array.from(
-    { length: (to - from) / 60 },
-    (_, k) => from + k * 60,
-  )
   const lane = width ? width - GUTTER - 4 : 0
+  const cols = columnsFor(lane)
+  const grid = layoutGrid(items, {
+    from,
+    // The last hour line drawn is the one before the day wraps.
+    to: to - 60,
+    cols,
+    minuteOf: (i) => (i.time ? dayMinutes(i.time) : null),
+    heightOf: (i) => heights[i.id],
+  })
+  if (anchor) axisOf.set(anchor, grid.axis)
   return (
     <View
       ref={anchor ?? undefined}
       testID="plan-day-grid"
       onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-      style={{ height: (to - from) * PX + 8, marginTop: 4 }}
+      style={{
+        height: Math.max(grid.height, yAt(grid.axis, to) + 8),
+        marginTop: 4,
+      }}
     >
-      {hours.map((h) => (
+      {grid.hours.map(({ min: h, y }) => (
         <View
           key={h}
           pointerEvents="none"
           style={{
             position: "absolute",
-            top: (h - from) * PX,
+            top: y,
             left: 0,
             right: 0,
             flexDirection: "row",
@@ -179,7 +168,7 @@ export function DayGrid({
           accessibilityLabel={`Now, ${timeLabel(nowMin)}`}
           style={{
             position: "absolute",
-            top: (nowMin - from) * PX - 1,
+            top: yAt(grid.axis, nowMin) - 1,
             left: GUTTER - 4,
             right: 0,
             flexDirection: "row",
@@ -198,13 +187,15 @@ export function DayGrid({
         </View>
       )}
       {lane > 0 &&
-        placed.map((p) => (
+        grid.placed.map((p) => (
           <Block
             key={p.item.id}
             placed={p}
-            top={(p.min - from) * PX}
-            left={GUTTER + (lane / p.lanes) * p.lane}
-            width={lane / p.lanes - 4}
+            axis={grid.axis}
+            top={p.top}
+            left={GUTTER + (lane / p.cols) * p.col}
+            width={lane / p.cols - 4}
+            onHeight={onHeight}
           />
         ))}
     </View>
@@ -213,14 +204,18 @@ export function DayGrid({
 
 function Block({
   placed,
+  axis,
   top,
   left,
   width,
+  onHeight,
 }: {
-  placed: Placed
+  placed: Slot<CalendarItem>
+  axis: Axis
   top: number
   left: number
   width: number
+  onHeight: (id: string, height: number) => void
 }) {
   const t = useTheme()
   const reduced = useReducedMotion()
@@ -259,10 +254,13 @@ function Block({
   // Anywhere on the business day the grid shows.
   const lo = DAY_FIRST_MIN,
     hi = DAY_LAST_MIN
+  // Where its own time sits on the axis: a block in a group's second row
+  // sits below that, but a drag still starts from its time.
+  const base = yAt(axis, min)
   /** The quarter hour the block is over, ``offset`` points below its start. */
   const slotAt = (offset: number) => {
     "worklet"
-    const raw = Math.round((min + offset / PX) / SNAP_MIN) * SNAP_MIN
+    const raw = Math.round(minuteAt(axis, base + offset) / SNAP_MIN) * SNAP_MIN
     return Math.min(hi, Math.max(lo, raw))
   }
   // Held near the top or bottom of the screen, the page scrolls under the
@@ -275,7 +273,10 @@ function Block({
   /** Never above the day's first quarter hour or below its last. */
   const clampOffset = (offset: number) => {
     "worklet"
-    return Math.min((hi - min) * PX, Math.max((lo - min) * PX, offset))
+    return Math.min(
+      yAt(axis, hi) - base,
+      Math.max(yAt(axis, lo) - base, offset),
+    )
   }
   // ``depth``: -1..1, how far into the top (negative) or bottom edge zone
   // the finger is; deeper scrolls faster. Stops at the day's ends.
@@ -364,9 +365,8 @@ function Block({
     })
     .onEnd(() => {
       const to = slot.value
-      y.value = reduced
-        ? top + (to - min) * PX
-        : withTiming(top + (to - min) * PX, { duration: 140 })
+      const landed = top + yAt(axis, to) - base
+      y.value = reduced ? landed : withTiming(landed, { duration: 140 })
       lifted.value = 0
       runOnJS(drop)(to)
     })
@@ -392,6 +392,11 @@ function Block({
   const movedFrom = item.movedFrom
   return (
     <Animated.View
+      // Its height lays out the hour it sits in; not while it is held (the
+      // landing time it shows then would stretch the grid under the finger).
+      onLayout={(e) => {
+        if (target === null) onHeight(item.id, e.nativeEvent.layout.height)
+      }}
       style={[
         {
           position: "absolute",
@@ -408,99 +413,130 @@ function Block({
         style,
       ]}
     >
-      <View
-        style={{
-          flexGrow: 1,
-          flexDirection: "row",
-          minHeight: BLOCK_MIN_H,
-          borderRadius: 8,
-          borderLeftWidth: 3,
-          borderLeftColor: accent,
-          backgroundColor: `${accent}26`,
-        }}
-      >
-        <View style={{ flex: 1 }}>
-          <GestureDetector gesture={pan}>
-            {/* One pressable carries the open tap, the drag and the screen
-            reader's actions: a button inside a button is invalid on web. */}
-            <Pressable
-              cssInterop={false}
-              accessibilityRole={canMove ? "adjustable" : "button"}
-              accessibilityLabel={`${item.title}, ${timeLabel(min)}${
-                movedFrom !== undefined ? ", moved for this day" : ""
-              }`}
-              accessibilityHint={
-                canMove
-                  ? "Hold and drag to move it. Swipe up or down to move it 15 minutes."
-                  : undefined
-              }
-              accessibilityActions={
-                canMove
-                  ? [
-                      { name: "increment", label: "15 minutes later" },
-                      { name: "decrement", label: "15 minutes earlier" },
-                      { name: "activate", label: "Open" },
-                    ]
-                  : [{ name: "activate", label: "Open" }]
-              }
-              onAccessibilityAction={(e) => {
-                const a = e.nativeEvent.actionName
-                if (a === "increment") step(1)
-                else if (a === "decrement") step(-1)
-                else go(item.href)
-              }}
-              onPressIn={() => {
-                dragged.current = false
-              }}
-              onPress={() => {
-                if (!dragged.current) go(item.href)
-              }}
-            >
-              <Line
-                style={{
-                  gap: 6,
-                  alignItems: "flex-start",
-                  paddingVertical: 4,
-                  paddingLeft: 6,
-                  paddingRight: 4,
-                }}
-              >
-                <View style={{ flex: 1, gap: 1 }}>
-                  <Copy
-                    size={12}
-                    weight="medium"
+      <PlanCheck item={item} color={accent} size={22}>
+        {(check, stepButton) => (
+          <View
+            style={{
+              flexGrow: 1,
+              flexDirection: "row",
+              minHeight: BLOCK_MIN_H,
+              borderRadius: 8,
+              borderLeftWidth: 3,
+              borderLeftColor: accent,
+              backgroundColor: `${accent}26`,
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <GestureDetector gesture={pan}>
+                {/* One pressable carries the open tap, the drag and the
+                screen reader's actions: a button inside a button is invalid
+                on web. */}
+                <Pressable
+                  cssInterop={false}
+                  accessibilityRole={canMove ? "adjustable" : "button"}
+                  accessibilityLabel={`${item.title}, ${timeLabel(min)}${
+                    movedFrom !== undefined ? ", moved for this day" : ""
+                  }`}
+                  accessibilityHint={
+                    canMove
+                      ? "Hold and drag to move it. Swipe up or down to move it 15 minutes."
+                      : undefined
+                  }
+                  accessibilityActions={
+                    canMove
+                      ? [
+                          { name: "increment", label: "15 minutes later" },
+                          { name: "decrement", label: "15 minutes earlier" },
+                          { name: "activate", label: "Open" },
+                        ]
+                      : [{ name: "activate", label: "Open" }]
+                  }
+                  onAccessibilityAction={(e) => {
+                    const a = e.nativeEvent.actionName
+                    if (a === "increment") step(1)
+                    else if (a === "decrement") step(-1)
+                    else go(item.href)
+                  }}
+                  onPressIn={() => {
+                    dragged.current = false
+                  }}
+                  onPress={() => {
+                    if (!dragged.current) go(item.href)
+                  }}
+                >
+                  <Line
                     style={{
-                      color: item.done ? t.muted : t.text,
-                      textDecorationLine: item.done ? "line-through" : "none",
+                      gap: 6,
+                      alignItems: "flex-start",
+                      paddingVertical: 4,
+                      paddingLeft: 6,
+                      paddingRight: 4,
                     }}
                   >
-                    {item.title}
-                  </Copy>
-                  {target !== null && (
-                    <Copy size={12} weight="semibold" style={{ color: accent }}>
-                      {timeLabel(target)}
-                    </Copy>
-                  )}
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <Copy
+                        size={12}
+                        weight="medium"
+                        style={{
+                          color: item.done ? t.muted : t.text,
+                          textDecorationLine: item.done
+                            ? "line-through"
+                            : "none",
+                        }}
+                      >
+                        {item.title}
+                      </Copy>
+                      {target !== null && (
+                        <Copy
+                          size={12}
+                          weight="semibold"
+                          style={{ color: accent }}
+                        >
+                          {timeLabel(target)}
+                        </Copy>
+                      )}
+                    </View>
+                    {item.done && !tickable && (
+                      <Check
+                        size={14}
+                        color={t.good}
+                        style={{ marginTop: 1 }}
+                      />
+                    )}
+                  </Line>
+                </Pressable>
+              </GestureDetector>
+              {/* A count habit's +step sits under the title, not beside it:
+              beside, it and the tick left a narrow column too little room
+              for the title. Outside the pressable (no button in a button). */}
+              {stepButton && target === null && (
+                <View
+                  style={{
+                    flexDirection: "row",
+                    paddingLeft: 4,
+                    paddingBottom: 4,
+                  }}
+                >
+                  {stepButton}
                 </View>
-                {item.done && !tickable && (
-                  <Check size={14} color={t.good} style={{ marginTop: 1 }} />
-                )}
-              </Line>
-            </Pressable>
-          </GestureDetector>
-          {/* Beside the pressable, never inside it (no button in a button). */}
-          {movedFrom !== undefined && target === null && (
-            <View style={{ paddingLeft: 4, paddingBottom: 4 }}>
-              <MovedMark item={item} from={movedFrom} />
+              )}
+              {/* Beside the pressable, never inside it. */}
+              {movedFrom !== undefined && target === null && (
+                <View style={{ paddingLeft: 4, paddingBottom: 4 }}>
+                  <MovedMark item={item} from={movedFrom} />
+                </View>
+              )}
             </View>
-          )}
-        </View>
-        {/* Ticks off where it sits; outside the drag, so a press on the
+            {/* Ticks off where it sits; outside the drag, so a press on the
             check never lifts the block. */}
-        {tickable && target === null && (
-          <PlanCheck item={item} color={accent} size={22} />
+            {check && target === null && (
+              <View style={{ justifyContent: "center", paddingRight: 2 }}>
+                {check}
+              </View>
+            )}
+          </View>
         )}
-      </View>
+      </PlanCheck>
     </Animated.View>
   )
 }
@@ -603,15 +639,14 @@ export function DragToGrid({
   const aim = () => {
     const a = at.current
     const y = a.absY - (a.gridTop - a.scrolled)
+    const axis = grid ? axisOf.get(grid) : undefined
+    const over = axis ? minuteAt(axis, y) : DAY_FROM + y / PX
     const next =
       y < 0
         ? -1
         : Math.min(
             DAY_LAST_MIN,
-            Math.max(
-              DAY_FIRST_MIN,
-              Math.round((DAY_FROM + y / PX) / SNAP_MIN) * SNAP_MIN,
-            ),
+            Math.max(DAY_FIRST_MIN, Math.round(over / SNAP_MIN) * SNAP_MIN),
           )
     if (next === a.slot) return
     a.slot = next

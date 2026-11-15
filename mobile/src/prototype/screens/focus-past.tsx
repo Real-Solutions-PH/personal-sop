@@ -101,6 +101,7 @@ export function PastSessionSheet({
   onClose,
   day,
   editId,
+  onSaved,
 }: {
   open: boolean
   onClose: () => void
@@ -108,6 +109,8 @@ export function PastSessionSheet({
   day?: string
   /** A logged session to edit. */
   editId?: string
+  /** After a save, with the session's id and its day (YYYY-MM-DD). */
+  onSaved?: (id: string, day: string) => void
 }) {
   const t = useTheme()
   const s = useFocusState()
@@ -134,7 +137,18 @@ export function PastSessionSheet({
   const save = () => {
     setTried(true)
     if (unreadable || !P.pastOk(errors)) return
-    if (P.savePastSession(input, editId)) onClose()
+    const id = P.savePastSession(input, editId)
+    if (!id) return
+    onClose()
+    onSaved?.(id, d.date)
+  }
+  // A focus block's length, kept in step with its end: − / + move the end.
+  const minutes =
+    w && d.kind === "focus" ? Math.round((w.end - w.start) / 60_000) : 0
+  const setMinutes = (m: number) => {
+    const start = at(d.date, d.start)
+    if (Number.isNaN(start)) return
+    set({ end: timeOf(start + m * 60_000) })
   }
   const remove = () => {
     if (!editId) return
@@ -148,7 +162,7 @@ export function PastSessionSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={editId ? "Edit logged session" : "Log a past session"}
+      title={editId ? "Edit focus time" : "Add focus time"}
     >
       <View style={{ gap: 4 }}>
         <Segmented
@@ -193,6 +207,18 @@ export function PastSessionSheet({
             </View>
           )}
         </Line>
+        {d.kind === "focus" && (
+          <Stepper
+            label="Duration"
+            unit="min"
+            value={Math.max(0, minutes)}
+            onChange={setMinutes}
+            step={5}
+            min={1}
+            max={P.MAX_BLOCK_MIN}
+            decimals={0}
+          />
+        )}
         {d.kind === "pomodoro" && (
           <View style={{ gap: 10 }}>
             <Segmented
@@ -256,12 +282,12 @@ export function PastSessionSheet({
         <View style={{ gap: 8, marginTop: 8 }}>
           <PinnedFooter>
             <Button icon={Clock} onPress={save}>
-              {editId ? "Save changes" : "Log session"}
+              {editId ? "Save changes" : "Save focus time"}
             </Button>
           </PinnedFooter>
           {editId && (
             <Button icon={Trash2} tone="danger" onPress={remove}>
-              Delete session
+              Delete focus time
             </Button>
           )}
         </View>

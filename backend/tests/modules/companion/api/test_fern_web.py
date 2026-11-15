@@ -1,10 +1,12 @@
 """Fern looks things up on the web: an unfamiliar dish is searched, then
 logged with the numbers found. Brave is replaced at its one seam."""
 
+import json
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import ToolMessage
 from sqlmodel import Session
 
 from app.core.config import settings
@@ -149,6 +151,26 @@ def test_a_search_keeps_to_the_words_the_person_said() -> None:
     assert own_words("sinigang calories", "what's in that?") == "sinigang calories"
 
 
+def test_a_search_never_loses_the_food_it_is_for() -> None:
+    """Seen live 2026-11-14: "check again on the macro for the size of my
+    serving for andoks chicken in the web" was searched as "nutrition facts
+    calories protein per serving", the brand stripped, and found nothing."""
+    from app.modules.companion.services import own_words
+
+    said = (
+        "can you check again on the macro for the size of my serving for "
+        "andoks chicken in the web"
+    )
+    # "Andok's" is the "andoks" they typed: kept, with the words they said.
+    assert (
+        own_words("Andok's Litson Manok nutrition facts calories protein", said)
+        == "Andok's nutrition facts calories protein"
+    )
+    # Only search words would be left: the model's query goes out whole.
+    q = "Litson Manok per 100g calories protein fat nutrition Philippines"
+    assert own_words(q, "how about that one") == q
+
+
 def test_logging_a_meal_hands_back_the_day_with_it_counted(
     client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -208,3 +230,97 @@ def test_logging_a_meal_hands_back_the_day_with_it_counted(
     seen = str(model.seen[1])
     # 480 already eaten + 555 for this (still waiting) meal = 1,035; 915 left.
     assert '"kcal": 1035.0' in seen and '"kcal": 915.0' in seen
+
+
+def test_the_day_after_a_meal_counts_every_meal_still_waiting(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-10: breakfast, lunch and a snack were logged in one
+    reply, all waiting for an OK (1,266 kcal together), and the reply said
+    "with all three in, that's 604.5 kcal for the day": each call counted
+    only its own meal on top of what was saved."""
+    from app.modules.fitness import services as S
+    from tests.utils.mobile import ctx_for
+
+    api = user(client, db)
+    api.assign("chat")
+    with ctx_for(api.user) as ctx:  # type: ignore[attr-defined]
+        S.set_macro_target(ctx=ctx, kcal=1750, protein=140, carbs=185, fat=50)
+        ctx.commit()
+
+    def meal(label: str, kcal: float, protein: float) -> Any:
+        return call(
+            "log_meal",
+            description=label,
+            label=label,
+            items=[
+                full(
+                    {
+                        "name": f"{label} plate",
+                        "kcal": kcal,
+                        "protein": protein,
+                        "carbs": round((kcal - 4 * protein) / 4, 1),
+                        "grams": 200,
+                    }
+                )
+            ],
+            confidence=0.5,
+        )
+
+    model = install(
+        monkeypatch,
+        say("", meal("breakfast", 452, 21.1)),
+        say("", meal("lunch", 502, 33.5)),
+        say("", meal("snack", 312, 7.1)),
+        say("Logged."),
+    )
+    ask(client, api, "breakfast, lunch and snack")
+    last = next(
+        json.loads(str(m.content))
+        for m in reversed(model.seen[3])
+        if isinstance(m, ToolMessage)
+    )
+    after = last["day_after_this_meal"]
+    # 452 + 502 + 312 = 1,266 eaten once confirmed; 484 left of 1,750.
+    assert after["eaten_today_with_this_meal"]["kcal"] == 1266.0, after
+    assert after["left_today"]["kcal"] == 484.0
+    assert [m["meal"] for m in after["also_waiting_and_counted"]] == [
+        "breakfast",
+        "lunch",
+    ]
+
+
+def test_nutrition_status_lists_the_meals_waiting_for_an_ok(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Seen live 2026-11-13: "counting only the pizza, today leaves 1485
+    kcal" while a 605 kcal breakfast also waited: the day read from the
+    records alone left every waiting meal out."""
+    api = user(client, db)
+    api.assign("chat")
+    model = install(
+        monkeypatch,
+        say(
+            "",
+            call(
+                "log_meal",
+                description="7-Eleven breakfast",
+                label="breakfast",
+                items=[
+                    full({"name": "Sandwich", "kcal": 360, "carbs": 90, "grams": 103})
+                ],
+                confidence=0.5,
+            ),
+        ),
+        say("", call("nutrition_status")),
+        say("Logged."),
+    )
+    ask(client, api, "7-eleven sandwich for breakfast")
+    status = next(
+        json.loads(str(m.content))
+        for m in reversed(model.seen[2])
+        if isinstance(m, ToolMessage)
+    )
+    assert status["waiting_for_ok"][0]["meal"] == "breakfast", status
+    assert status["waiting_for_ok"][0]["kcal"] == 360.0
+    assert status["eaten_once_confirmed"]["kcal"] == 360.0

@@ -245,3 +245,15 @@ test("without a server nothing is recorded", async () => {
     "recordingOptions",
   )
 })
+
+test("the phone's recogniser is told the names to expect", async () => {
+  const { result } = renderHook(() =>
+    useLiveDictation(jest.fn(), jest.fn(), "en-US", null),
+  )
+  await act(async () => {
+    await result.current.start("")
+  })
+  const words: string[] = mockModule.start.mock.calls[0][0].contextualStrings
+  expect(words[0]).toBe("Fern")
+  expect(words).toEqual(expect.arrayContaining(["whey protein", "GCash"]))
+})

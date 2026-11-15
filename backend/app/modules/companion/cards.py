@@ -86,6 +86,7 @@ OTHER_WRITES = frozenset(
         "edit_weigh_in",
         "fitness_settings",
         "save_journal",
+        "log_focus",
         "start_focus",
         "focus_control",
         "stop_focus",

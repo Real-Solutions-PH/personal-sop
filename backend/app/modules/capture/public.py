@@ -471,6 +471,38 @@ def waiting_chat_cards(ctx: Ctx) -> list[RecordCard]:
     )
 
 
+MACROS = ("kcal", "protein", "carbs", "fat")
+
+
+def waiting_meals(
+    ctx: Ctx, day: date, *, skip: Iterable[str] = ()
+) -> list[dict[str, Any]]:
+    """Meals the chat logged for ``day`` that still wait for the person's
+    OK, each with its label and totals (not in the records yet, so the
+    day's totals leave them out). ``skip``: card ids already counted."""
+    left_out = {str(s) for s in skip}
+    out: list[dict[str, Any]] = []
+    caps: dict[uuid.UUID, Capture | None] = {}
+    for c in waiting_chat_cards(ctx):
+        p = c.payload
+        if p.get("kind") != "meal" or str(c.id) in left_out:
+            continue
+        if c.capture_id not in caps:
+            caps[c.capture_id] = owned_repo.get(ctx, Capture, c.capture_id)
+        cap = caps[c.capture_id]
+        if cap is None:
+            continue
+        if ctx.clock.day_of(cap.at) + timedelta(days=c.day_offset or 0) != day:
+            continue
+        raw = p.get("items")
+        items = [i for i in raw if isinstance(i, dict)] if isinstance(raw, list) else []
+        meal: dict[str, Any] = {"card_id": str(c.id), "meal": p.get("label")}
+        for k in MACROS:
+            meal[k] = round(sum(float(i.get(k) or 0) for i in items), 1)
+        out.append(meal)
+    return out
+
+
 def card_states(ctx: Ctx, ids: list[str]) -> dict[str, str]:
     """The current state of each of the person's cards, by id, in one read.
     An id that is not a card of theirs (or not an id) is absent."""

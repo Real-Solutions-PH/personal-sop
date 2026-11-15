@@ -174,3 +174,15 @@ it("only a logged session opens in the editor", () => {
   }))
   expect(P.pastInputOf(focusStore.get(), "t")).toBeNull()
 })
+
+it("a focus block can be at most 12 hours", () => {
+  const s = focusStore.get()
+  const start = NOW - 13 * 60 * MIN
+  // 12 h = 720 min is the most; one minute more is refused.
+  const ok = { kind: "focus" as const, start, end: start + 720 * MIN }
+  expect(P.pastErrors(s, ok, NOW)).toEqual({})
+  expect(P.pastErrors(s, { ...ok, end: start + 721 * MIN }, NOW).end).toBe(
+    "A block can be at most 12 hours",
+  )
+  expect(P.savePastSession({ ...ok, end: start + 721 * MIN })).toBeNull()
+})

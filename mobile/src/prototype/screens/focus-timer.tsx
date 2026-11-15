@@ -26,6 +26,7 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  ClockPlus,
   Coffee,
   Pause,
   Play,
@@ -78,9 +79,12 @@ export function FocusTimer({ day }: { day?: string } = {}) {
     [ending, setEnding] = useState(false),
     // The session just ended, shown as a card in place of a silent stop.
     [ended, setEnded] = useState<Ended | null>(null),
-    [goalMoment, setGoalMoment] = useState(false)
+    [goalMoment, setGoalMoment] = useState(false),
+    // Bumped by the header's "Add focus time": the day panel opens its sheet.
+    [adding, setAdding] = useState(0)
   const scroll = useRef<ScrollViewInstance>(null),
-    scrolled = useRef(false)
+    scrolled = useRef(false),
+    panelY = useRef(0)
   // Write down a set that ended on screen, so it syncs as it happens.
   // biome-ignore lint/correctness/useExhaustiveDependencies: now is the clock tick
   useEffect(() => A.tickFocus(), [now])
@@ -215,6 +219,13 @@ export function FocusTimer({ day }: { day?: string } = {}) {
         >
           Focus
         </Text>
+        <IconTap
+          size={40}
+          icon={ClockPlus}
+          label="Add focus time"
+          color={t.text}
+          onPress={() => setAdding((n) => n + 1)}
+        />
         <IconTap
           size={40}
           icon={Share2}
@@ -452,6 +463,7 @@ export function FocusTimer({ day }: { day?: string } = {}) {
         <View
           style={{ width: "100%" }}
           onLayout={(e) => {
+            panelY.current = e.nativeEvent.layout.y
             if (!day || scrolled.current) return
             scrolled.current = true
             const y = e.nativeEvent.layout.y
@@ -460,7 +472,19 @@ export function FocusTimer({ day }: { day?: string } = {}) {
             )
           }}
         >
-          <FocusDayPanel day={day} />
+          {/* Time added from the header lands in the timeline: scroll to it
+              so the new block is seen arriving. */}
+          <FocusDayPanel
+            day={day}
+            addSignal={adding}
+            onSaved={() =>
+              requestAnimationFrame(() =>
+                scroll.current?.scrollTo({
+                  y: Math.max(0, panelY.current - 8),
+                }),
+              )
+            }
+          />
         </View>
         <Copy size={12} muted style={{ textAlign: "center" }}>
           Safe to lock your phone or close the app: the timer keeps time from

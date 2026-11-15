@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 Mode = Literal["pomodoro", "stopwatch"]
 SegmentKind = Literal["focus", "break", "pause"]
@@ -256,3 +256,28 @@ class ExtendIn(BaseModel):
 
 class StopIn(BaseModel):
     abandon: bool = False
+
+
+# The longest focus block one logged session may hold: past this it is
+# almost surely a typo (a wrong day or am/pm), not a sitting.
+MAX_LOGGED_MIN = 12 * 60
+
+
+class FocusLogIn(BaseModel):
+    """A focus block logged afterwards, because the timer never ran: when it
+    started and either when it ended or how long it ran. Saved as a
+    stopwatch session (``source: "manual"``) with one focus segment, so it
+    counts toward the day, the goal and every stat like a timed one."""
+
+    id: uuid.UUID | None = None
+    started_at: AwareDatetime
+    ended_at: AwareDatetime | None = None
+    duration_min: int | None = Field(default=None, ge=1, le=MAX_LOGGED_MIN)
+    label: str | None = Field(default=None, max_length=80)
+    item: ItemRef | None = None
+
+    @model_validator(mode="after")
+    def _one_end(self) -> "FocusLogIn":
+        if (self.ended_at is None) == (self.duration_min is None):
+            raise ValueError("Give either ended_at or duration_min, not both")
+        return self

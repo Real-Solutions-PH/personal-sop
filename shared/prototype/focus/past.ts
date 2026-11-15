@@ -30,6 +30,9 @@ export interface PastInput {
 }
 
 export const MAX_SETS = 12
+/** The longest focus block: past it the times are surely a typo (a wrong
+ * day or am/pm). The server refuses the same over HTTP. */
+export const MAX_BLOCK_MIN = 12 * 60
 const MIN = 60_000
 
 function lengths(i: PastInput): [number, number, number, number] {
@@ -76,6 +79,8 @@ export function pastErrors(
     out.count = `Log 1 to ${MAX_SETS} Pomodoros`
   if (w.start > now) out.start = "That's in the future"
   else if (w.end <= w.start) out.end = "End after it starts"
+  else if (i.kind === "focus" && w.end - w.start > MAX_BLOCK_MIN * MIN)
+    out.end = `A block can be at most ${MAX_BLOCK_MIN / 60} hours`
   else if (w.end > now)
     out.end =
       i.kind === "pomodoro"

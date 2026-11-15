@@ -20,7 +20,9 @@ from sqlmodel import col, or_
 from app.modules.focus import logic as L
 from app.modules.focus.models import FocusSegment, FocusSession, FocusSettings
 from app.modules.focus.schema import (
+    MAX_LOGGED_MIN,
     Block,
+    FocusLogIn,
     ItemRef,
     ItemSession,
     ItemTime,
@@ -448,6 +450,97 @@ def switch(ctx: Ctx, *, item: ItemRef | None) -> FocusSession:
 
 def stop(ctx: Ctx, *, abandon: bool = False) -> FocusSession:
     return _act(ctx, lambda tl: L.stop(tl, ctx.now, abandon=abandon))
+
+
+def _overlapping(
+    ctx: Ctx, start: datetime, end: datetime, skip: uuid.UUID | None
+) -> FocusSession | None:
+    """Another session with time inside ``[start, end)`` (one still running
+    reaches to now): logged time there would count twice."""
+    rows = owned_repo.list_rows(
+        ctx,
+        FocusSession,
+        col(FocusSession.started_at) < end,
+        or_(col(FocusSession.ended_at).is_(None), col(FocusSession.ended_at) > start),
+        order_by=[col(FocusSession.started_at)],
+    )
+    return next((r for r in rows if r.id != skip), None)
+
+
+def log_session(
+    ctx: Ctx, *, body: FocusLogIn, session_id: uuid.UUID | None = None
+) -> FocusSession:
+    """Create (``session_id`` None) or replace a logged focus block: one
+    stopwatch session, over and in the past, with one focus segment.
+
+    Refused when it ends before it starts, runs past ``MAX_LOGGED_MIN``,
+    reaches into the future or overlaps another session. Only a logged
+    session can be replaced: a timed one's segments are what the timer saw.
+    """
+    start = body.started_at
+    end = body.ended_at or start + timedelta(minutes=body.duration_min or 0)
+    if end <= start:
+        raise invalid("focus_range_invalid", "A span can't end before it starts")
+    if end - start > timedelta(minutes=MAX_LOGGED_MIN):
+        raise invalid(
+            "focus_logged_too_long",
+            f"A logged session can be at most {MAX_LOGGED_MIN // 60} hours",
+        )
+    if end > ctx.now + CLOCK_SKEW:
+        raise invalid("focus_logged_future", "A logged session can't be in the future")
+    row: FocusSession | None = None
+    if session_id is not None:
+        row = require_session(ctx, session_id)
+        if row.source != "manual":
+            raise invalid(
+                "focus_not_logged", "Only a logged session can be edited this way"
+            )
+    sid = session_id or body.id or uuid.uuid4()
+    if row is None and owned_repo.get(ctx, FocusSession, sid, include_deleted=True):
+        raise conflict("focus_session_exists", "That session already exists")
+    other = _overlapping(ctx, start, end, sid)
+    if other is not None:
+        what = other.label or other.item_title or "focus"
+        raise invalid(
+            "focus_logged_overlap",
+            f"Overlaps your {what} session; move the times so they don't overlap",
+            {"session_id": str(other.id)},
+        )
+    item = item_ref(ctx, body.item)
+    label = (body.label or "").strip() or None
+    fields: dict[str, Any] = {
+        "mode": "stopwatch",
+        "preset": None,
+        "started_at": start,
+        "ended_at": end,
+        "end_reason": "completed",
+        "source": "manual",
+        "label": label,
+        **_item_fields(item),
+    }
+    if row is None:
+        row = owned_repo.insert(ctx, FocusSession, fields, row_id=sid)
+    else:
+        owned_repo.apply(row, fields)
+        ctx.session.add(row)
+        for old in segment_rows(ctx, [row.id]):
+            owned_repo.soft_delete(ctx, old)
+    owned_repo.insert(
+        ctx,
+        FocusSegment,
+        {
+            "session_id": row.id,
+            "kind": "focus",
+            "started_at": start,
+            "ended_at": end,
+            "set_index": 0,
+            **_item_fields(item),
+        },
+    )
+    ctx.session.flush()
+    out = recompute(ctx, row)
+    ctx.commit()
+    return out
 
 
 # ---------------------------------------------------------------- reads

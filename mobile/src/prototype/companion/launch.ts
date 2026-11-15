@@ -11,9 +11,9 @@ export const fernLaunch = create<{
   pending: { kind: "camera" | "chat"; at: number } | null
 }>(() => ({ pending: null }))
 
-/** A Shortcut or Back Tap asked to talk: the dictation it starts sends the
- * message by itself when the person stops talking. Taken (and cleared) by
- * the composer when that dictation ends. */
+/** A Shortcut or Back Tap asked to talk: the dictation it starts is
+ * hands-free, so a long silence turns the mic off; it never sends (the
+ * person taps Send). Taken (and cleared) by the composer as it starts. */
 export const talkLaunch = create<{ at: number | null }>(() => ({ at: null }))
 
 const started = new Set<string>()
