@@ -209,6 +209,8 @@ export interface WeighIn {
   measuredAt: string
   weightKg: number
   bodyFatPct?: number
+  /** Waist circumference, centimetres. */
+  waistCm?: number
   note?: string
 }
 export interface Macros {

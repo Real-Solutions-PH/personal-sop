@@ -221,6 +221,16 @@ export function CaptureSummary({
           <Copy size={30} weight="displayMedium">
             {p.kg} <Copy muted>kg</Copy>
           </Copy>
+          {(p.bodyFatPct !== undefined || p.waistCm !== undefined) && (
+            <Copy size={13} muted>
+              {[
+                p.bodyFatPct !== undefined && `${p.bodyFatPct}% body fat`,
+                p.waistCm !== undefined && `${p.waistCm} cm waist`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </Copy>
+          )}
         </View>
       )
     case "journal":
