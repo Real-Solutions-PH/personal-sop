@@ -761,6 +761,7 @@ export function weighInMapper(): Mapper<S, WeighIn> {
       measured_at: w.measuredAt,
       weight_kg: w.weightKg,
       body_fat_pct: w.bodyFatPct ?? null,
+      waist_cm: w.waistCm ?? null,
       note: w.note ?? null,
     }),
     fromServer: (row) => ({
@@ -770,6 +771,7 @@ export function weighInMapper(): Mapper<S, WeighIn> {
       ...(row.body_fat_pct != null
         ? { bodyFatPct: Number(row.body_fat_pct) }
         : {}),
+      ...(row.waist_cm != null ? { waistCm: Number(row.waist_cm) } : {}),
       ...(row.note != null ? { note: str(row.note) } : {}),
     }),
     merge: (s, ups, dels) =>

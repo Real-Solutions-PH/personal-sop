@@ -434,7 +434,7 @@ function execute(
       }
     }
     case "weighIn": {
-      const w = logWeighIn(p.kg, at)
+      const w = logWeighIn(p.kg, at, undefined, p.bodyFatPct, p.waistCm)
       const d = p.prevKg ? p.kg - p.prevKg : 0
       return {
         refs: [w.id],
