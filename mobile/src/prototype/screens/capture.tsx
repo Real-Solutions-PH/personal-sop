@@ -37,12 +37,24 @@ export function CaptureOverlay({ bottom = 0 }: { bottom?: number }) {
       A.processQueue()
     }
     resume()
-    const timer = setInterval(resumeStuck, 5000)
+    // Foreground only: in the background (a run keeps JS alive) the check
+    // waits for the return, which runs it at once.
+    let timer: ReturnType<typeof setInterval> | null = null
+    const watch = () => {
+      timer ??= setInterval(resumeStuck, 5000)
+    }
+    if (AppState.currentState !== "background") watch()
     const app = AppState.addEventListener("change", (state) => {
-      if (state === "active") resume()
+      if (state === "active") {
+        resume()
+        watch()
+      } else if (state === "background" && timer) {
+        clearInterval(timer)
+        timer = null
+      }
     })
     return () => {
-      clearInterval(timer)
+      if (timer) clearInterval(timer)
       app.remove()
     }
   }, [online])

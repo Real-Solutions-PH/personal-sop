@@ -37,6 +37,7 @@ import Svg, {
   Path,
   Stop,
 } from "react-native-svg"
+import { useOnScreen } from "../on-screen"
 import { useTheme } from "../theme"
 import { fernMoods, fernPalette } from "./brand"
 import {
@@ -553,7 +554,10 @@ export function FernSprite({
   const name = companionStore.use((s) => s.name)
   const isDark = dark ?? t.dark
   const reduced = useReducedMotion()
-  const live = !still
+  // Battery: the clock redraws every frame, so it stops while the app is in
+  // the background or this sprite's screen is covered by another.
+  const onScreen = useOnScreen()
+  const live = !still && onScreen
   const calm = reduced
   // Arriving plays once; then Fern rests, breathing and blinking, instead
   // of holding the last frame.
