@@ -201,8 +201,12 @@ def running_label(name: str) -> str:
 
 
 def _weigh(args: dict[str, Any]) -> str:
-    kg, fat = args.get("kg"), args.get("body_fat_pct")
-    parts = [f"{kg} kg" if kg else "", f"{fat}% body fat" if fat else ""]
+    kg, fat, waist = args.get("kg"), args.get("body_fat_pct"), args.get("waist_cm")
+    parts = [
+        f"{kg} kg" if kg else "",
+        f"{fat}% body fat" if fat else "",
+        f"{waist} cm waist" if waist else "",
+    ]
     return "Logged " + ", ".join(p for p in parts if p)
 
 

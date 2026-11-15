@@ -68,7 +68,7 @@ AREAS: dict[str, Area] = {
         ("sets", "reps", "volume_kg", "top_kg", "minutes", "km"),
         ("workout", "exercise"),
     ),
-    "weight": Area(fitness.weigh_in_facts, ("kg", "body_fat_pct"), ()),
+    "weight": Area(fitness.weigh_in_facts, ("kg", "body_fat_pct", "waist_cm"), ()),
     "money": Area(
         finance.record_facts,
         ("spent_minor", "received_minor"),
@@ -86,7 +86,7 @@ AREAS: dict[str, Area] = {
 
 # Levels, not amounts: two weigh-ins in a day don't make 150 kg, so these
 # are averaged per record and never summed.
-LEVELS = {"kg", "body_fat_pct", "top_kg"}
+LEVELS = {"kg", "body_fat_pct", "waist_cm", "top_kg"}
 
 AVERAGES_NOTE = (
     "average_per_logged_day divides by the days that had a value (how much "
