@@ -1,7 +1,7 @@
 """The nightly retention profile (docs/26-retention-algorithms.md §3.1-3.3,
-§4.1): stage, churn risk, the slot histogram and best slots, the ignore
-streak and backoff, and the holdout arm, for each person once a day in
-their local 03:00 hour.
+§4.1): archetype (persona), stage, churn risk, the slot histogram and best
+slots, the ignore streak and backoff, and the holdout arm, for each person
+once a day in their local 03:00 hour.
 
 Registered as ``retention_nightly`` (hourly) in ``jobs.tasks``; each run
 takes the people whose wall clock reads 03:xx and who have no profile for
@@ -9,14 +9,18 @@ today yet, so an overlapping or retried run is harmless.
 """
 
 import uuid
+from collections import Counter
 from collections.abc import Sequence
 from datetime import date, datetime, timedelta
 
 from sqlmodel import Session, col, select
 
 from app.logger import app_logger
+from app.modules.habits import logic as habit_logic
+from app.modules.habits.models import Habit, Routine
+from app.modules.habits.views import slots as habit_slots
 from app.modules.iam.users.models import User
-from app.modules.profile.models import UserProfile
+from app.modules.profile.models import MODULE_KEYS, ModulePref, UserProfile
 from app.modules.retention import logic as L
 from app.modules.retention import signals
 from app.modules.retention.models import Nudge, RetentionProfile
@@ -55,6 +59,56 @@ def reminder_minutes(ctx: Ctx, profile: UserProfile | None) -> list[int]:
     return sorted(out)
 
 
+def phone_reminder_minutes(ctx: Ctx) -> list[int]:
+    """Local minutes of the reminders the phone schedules itself today and
+    the server can see: habits and routines with a reminder on a timed slot
+    for today. A nudge keeps 45 min away from these too; they do not count
+    toward the four-reminder budget (the phone's own bill, weigh-in and
+    nag reminders are not known here)."""
+    out: list[int] = []
+    rows: list[Habit | Routine] = [
+        *owned_repo.list_rows(
+            ctx,
+            Habit,
+            col(Habit.reminder).is_(True),
+            col(Habit.status) == "active",
+            col(Habit.archived_at).is_(None),
+        ),
+        *owned_repo.list_rows(
+            ctx,
+            Routine,
+            col(Routine.reminder).is_(True),
+            col(Routine.status) == "active",
+        ),
+    ]
+    for row in rows:
+        slot = habit_logic.slot_for(habit_slots(row.schedule), ctx.today)
+        if slot is not None and slot.time:
+            h, m = parse_hm(slot.time)
+            out.append(h * 60 + m)
+    return sorted(out)
+
+
+def gap_minutes(ctx: Ctx, profile: UserProfile | None) -> list[int]:
+    """Every reminder time today a nudge keeps 45 min away from."""
+    return sorted(reminder_minutes(ctx, profile) + phone_reminder_minutes(ctx))
+
+
+def persona(ctx: Ctx, logs: Sequence[tuple[datetime, str]]) -> L.Persona:
+    """The archetype from the last 28 days' logs, or the module weights."""
+    since28 = ctx.now - timedelta(days=28)
+    recent = [(at, a) for at, a in logs if at >= since28]
+    weights = dict.fromkeys(MODULE_KEYS, 1)
+    for pref in owned_repo.list_rows(ctx, ModulePref):
+        weights[pref.module] = pref.weight if pref.enabled else 0
+    return L.persona_of(
+        area_logs=Counter(a for _, a in recent),
+        weights=weights,
+        fern_turns=signals.fern_turns(ctx.session, ctx.user_id, since28),
+        log_days=len({ctx.clock.day_of(at) for at, _ in recent}),
+    )
+
+
 def quiet_hours(ctx: Ctx) -> tuple[str, str]:
     s = task_repo.settings_or_default(ctx)
     return s.quiet_start, s.quiet_end
@@ -89,7 +143,7 @@ def compute(ctx: Ctx) -> RetentionProfile:
     ok = L.eligible_slots(
         quiet_start=quiet[0],
         quiet_end=quiet[1],
-        reminders=reminder_minutes(ctx, profile),
+        reminders=gap_minutes(ctx, profile),
     )
     evening = profile.push_evening if profile else None
     morning = profile.push_morning if profile else None
@@ -113,7 +167,11 @@ def compute(ctx: Ctx) -> RetentionProfile:
     areas = {a for at, a in logs if at >= since28}
     signup = ctx.clock.day_of(ctx.user.created_at) if ctx.user.created_at else today
     stage = L.stage_of(today=today, signup_day=signup, log_days=log_days)
+    who = persona(ctx, logs)
     values: dict[str, object] = {
+        "archetype": who.archetype,
+        "secondary": who.secondary,
+        "tags": who.tags,
         "stage": stage,
         "risk": L.risk_score(
             today=today,

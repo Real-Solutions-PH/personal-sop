@@ -610,6 +610,73 @@ export function dueNow(s: FinState) {
     (o) => o.status === "overdue" || o.status === "due",
   )
 }
+/** How many days before its date a bill can be paid and still be matched. */
+export const PAY_EARLY_DAYS = 3
+/** Lower case, letters and digits only, one space between words. */
+const words = (x: string) =>
+  x
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+/** The same name, or every word of the shorter in the longer ("gym" in
+ * "Gym membership"), as long as one of those words is a real word. */
+function sameName(a: string, b: string) {
+  const x = words(a),
+    y = words(b)
+  if (!x.length || !y.length) return false
+  const [short, long] = x.length <= y.length ? [x, y] : [y, x]
+  return (
+    short.some((w) => w.length >= 3) && short.every((w) => long.includes(w))
+  )
+}
+/**
+ * The unpaid scheduled date a newly logged transaction pays, if any: what
+ * lets "Gym membership ₱1,000" logged from the + sheet or through Fern take
+ * the bill off the overdue list, as Pay / Record on the bill itself does.
+ *
+ * A date matches when it is the same kind of money (an expense pays a bill,
+ * income settles expected income, a transfer a planned transfer between the
+ * same two accounts), falls from two weeks before the transaction's day to
+ * three days after it, is neither paid nor skipped, and the amount is in
+ * reach (half to double what the date expects). Then one of: the payee is
+ * the bill's name; the category is the bill's and the amount is exact; for
+ * a transfer, the same two accounts. The bill's own account is never
+ * required (it may be archived: "No account"). The name beats the
+ * category, the exact amount beats a near one, and the oldest date wins,
+ * so an overdue date is paid before the next one.
+ */
+export function dueFor(
+  s: FinState,
+  r: Omit<FinRecord, "id" | "status" | "source" | "at"> & { at: string },
+): Occurrence | undefined {
+  if (r.plannedId || r.isAdjustment || r.feeOf || r.isRefund) return
+  if (!(r.amount > 0)) return
+  const day = recDay(r as FinRecord)
+  let best: { o: Occurrence; rank: number } | undefined
+  for (const o of occurrencesIn(
+    s,
+    addDays(day, -MOVE_DAYS),
+    addDays(day, PAY_EARLY_DAYS),
+  )) {
+    const p = o.item
+    if (o.status === "paid" || o.status === "skipped" || p.type !== r.type)
+      continue
+    if (r.amount < o.amount / 2 || r.amount > o.amount * 2) continue
+    const exact = Math.abs(r.amount - o.amount) < 0.005
+    const named = !!r.payee && sameName(r.payee, p.name)
+    const ok =
+      p.type === "transfer"
+        ? r.accountId === p.accountId && r.toAccountId === p.toAccountId
+        : named || (exact && !!p.categoryId && r.categoryId === p.categoryId)
+    if (!ok) continue
+    const rank = (named ? 2 : 0) + (exact ? 1 : 0)
+    // Occurrences come oldest first: a later one wins only on rank.
+    if (!best || rank > best.rank) best = { o, rank }
+  }
+  return best?.o
+}
 /** The days ahead that the Finance home lists, today included: today plus
  * seven more, so a bill due a week from today is still on it. */
 export const UPCOMING_DAYS = 7
