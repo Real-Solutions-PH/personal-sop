@@ -43,17 +43,19 @@ describe("UNFURL_SCREEN_TIME unset", () => {
     delete process.env.UNFURL_SCREEN_TIME
   })
 
-  it("is app.json with only the widget target and no native module", () => {
+  it("is app.json with the widget and notification-service targets and no native module", () => {
     const out = resolve()
     const expected = structuredClone(appJson.expo)
     expected.plugins = [
       ...expected.plugins.map((p: unknown) =>
-        p === TARGETS ? [TARGETS, { match: "widget" }] : p,
+        p === TARGETS
+          ? [TARGETS, { match: "{widget,notification-service}" }]
+          : p,
       ),
       "./plugins/without-screen-time",
     ]
     expect(out).toEqual(expected)
-    expect(selected(out)).toEqual(["widget"])
+    expect(selected(out)).toEqual(["notification-service", "widget"])
   })
 
   it("adds no Screen Time entitlements", () => {
@@ -80,7 +82,11 @@ describe("UNFURL_SCREEN_TIME=1", () => {
 
   it("builds the activity-monitor target beside the widget, and the module", () => {
     const out = resolve()
-    expect(selected(out)).toEqual(["activity-monitor", "widget"])
+    expect(selected(out)).toEqual([
+      "activity-monitor",
+      "notification-service",
+      "widget",
+    ])
     expect(out.plugins).not.toContain("./plugins/without-screen-time")
   })
 

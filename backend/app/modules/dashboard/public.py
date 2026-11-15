@@ -36,8 +36,11 @@ def notify(
     dedupe_key: str | None = None,
     push: bool = False,
     recipient_id: uuid.UUID | None = None,
+    fern: str | None = None,
 ) -> Notification | None:
-    """Post to the inbox (and optionally push). Returns None when
+    """Post to the inbox (and optionally push; ``fern``: the companion's
+    name when the push comes from Fern, shown with Fern's picture on iOS).
+    Returns None when
     ``dedupe_key`` already exists for the recipient (even dismissed: a
     reminder the user swiped away is not re-posted)."""
     recipient = recipient_id or ctx.user_id
@@ -76,7 +79,7 @@ def notify(
     savepoint.commit()
     outbox.queue_event(ctx, recipient, row)
     if push:
-        outbox.queue_push(ctx, recipient, row)
+        outbox.queue_push(ctx, recipient, row, fern=fern)
     return row
 
 

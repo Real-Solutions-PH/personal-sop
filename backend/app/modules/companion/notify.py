@@ -106,6 +106,7 @@ def reply_pushed(ctx: Ctx, out: AskOut, *, asked_at: datetime | None = None) -> 
                     "kind": KIND,
                 },
                 thread=f"companion:{thread}",
+                fern=name,
             )
             for t in dict.fromkeys(tokens)
         ]
