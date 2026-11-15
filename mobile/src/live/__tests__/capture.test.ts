@@ -1637,3 +1637,43 @@ describe("catch-up and check-in captures", () => {
     expect(out.range_from).toBeUndefined()
   })
 })
+
+// ---------------------------------------------------------------------------
+// Battery
+// ---------------------------------------------------------------------------
+
+test("a capture stuck in processing kicks sync with backoff, not every 5 s", () => {
+  const { resumeStuck } =
+    require("@domain/capture/engine") as typeof import("@domain/capture/engine")
+  jest.useFakeTimers({ now: new Date("2026-11-15T09:00:00Z") })
+  try {
+    const { kick } = fakeDeps({})
+    const at = new Date(Date.now() - 120_000).toISOString()
+    const stuck = (id: string) =>
+      ({
+        id,
+        at,
+        startedAt: at,
+        source: "text",
+        text: "spent 250 on grab",
+        status: "processing",
+      }) as Capture
+    captureStore.set((s) => ({ ...s, captures: [stuck("a")] }))
+    // The drawer asks every 5 s; ten minutes of asking.
+    for (let s = 0; s < 600; s += 5) {
+      resumeStuck()
+      jest.advanceTimersByTime(5_000)
+    }
+    // Was 120 syncs (one per ask). Now at 0, 15 s, 45 s, 1:45, 3:45, 7:45.
+    expect(kick).toHaveBeenCalledTimes(6)
+    // Once nothing is stuck, the backoff starts over.
+    captureStore.set((s) => ({ ...s, captures: [] }))
+    resumeStuck()
+    captureStore.set((s) => ({ ...s, captures: [stuck("b")] }))
+    kick.mockClear()
+    resumeStuck()
+    expect(kick).toHaveBeenCalledTimes(1)
+  } finally {
+    jest.useRealTimers()
+  }
+})
