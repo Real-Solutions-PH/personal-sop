@@ -510,8 +510,17 @@ function stepActions(prev: RunRow | undefined, next: RunRow): ActionOp[] {
       name: "habits.run.start",
       data: { routine_id: next.routineId, run_id },
     })
-  if (next.current > was.current) {
-    for (let i = was.current; i < next.current; i++) {
+  // Steps added or removed mid-run since the last diff, each replayed at
+  // the step it was made on, so a Done/Skip in the same burst lands on the
+  // step it was tapped for.
+  const seen = Math.max(0, ...(prev?.edits ?? []).map((e) => e.seq))
+  const edits = (next.edits ?? []).filter((e) => e.seq > seen)
+  let cursor = was.current
+  let moved = false
+  // A change at the step being played restarts its clock on the server.
+  let clock = { paused: !!was.pausedAt, bonus: was.stepBonusSec }
+  const moveTo = (to: number) => {
+    for (let i = cursor; i < to; i++) {
       const r = next.results[i]
       const verb =
         r?.status === "skipped"
@@ -521,14 +530,36 @@ function stepActions(prev: RunRow | undefined, next: RunRow): ActionOp[] {
             : "continue" // done with no time: the habit was already logged
       out.push({ name: `habits.run.${verb}`, data: { run_id } })
     }
-    return out
+    for (let i = to; i < cursor; i++)
+      out.push({ name: "habits.run.back", data: { run_id } })
+    if (to !== cursor) moved = true
+    cursor = to
   }
-  for (let i = next.current; i < was.current; i++)
-    out.push({ name: "habits.run.back", data: { run_id } })
-  if (next.current !== was.current) return out
-  if (!!was.pausedAt !== !!next.pausedAt)
+  for (const e of edits) {
+    moveTo(e.at)
+    out.push(
+      e.kind === "add"
+        ? {
+            name: "habits.run.add_step",
+            data: {
+              run_id,
+              habit_id: e.habitId,
+              minutes: e.minutes,
+              position: e.position,
+            },
+          }
+        : {
+            name: "habits.run.remove_step",
+            data: { run_id, habit_id: e.habitId, position: e.position },
+          },
+    )
+    if (e.position === e.at) clock = { paused: false, bonus: 0 }
+  }
+  moveTo(next.current)
+  if (moved) return out
+  if (clock.paused !== !!next.pausedAt)
     out.push({ name: "habits.run.toggle_pause", data: { run_id } })
-  const minutes = Math.round((next.stepBonusSec - was.stepBonusSec) / 60)
+  const minutes = Math.round((next.stepBonusSec - clock.bonus) / 60)
   for (let i = 0; i < minutes; i++)
     out.push({ name: "habits.run.add_minute", data: { run_id } })
   return out
@@ -580,6 +611,8 @@ function runMapper(
         endedAt: optStr(row.ended_at),
         steps,
         results: cur?.results ?? [],
+        // device-only: the edits already pushed stay the diff's baseline
+        ...(cur?.edits ? { edits: cur.edits } : {}),
         current: Number(row.current ?? 0),
         stepStartedAt: str(row.step_started_at),
         stepPausedSec: Number(row.step_paused_sec ?? 0),

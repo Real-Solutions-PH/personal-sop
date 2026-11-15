@@ -407,16 +407,50 @@ export function consistencyStreak(s: FitnessState): number {
   }
   return n
 }
-export function dailyWeights(s: FitnessState): Map<string, number> {
+/** Fat mass is weight times body fat; lean mass is the rest. */
+export function bodyComposition(weightKg: number, bodyFatPct: number) {
+  const fatKg = (weightKg * bodyFatPct) / 100
+  return { fatKg, leanKg: weightKg - fatKg }
+}
+/** What the body page charts: weight, body fat, the two masses that follow
+ * from them, and waist. */
+export type BodyMetric = "weight" | "bodyFat" | "leanMass" | "fatMass" | "waist"
+/** One weigh-in's value for a metric; lean and fat mass need its body fat. */
+export function metricValue(w: WeighIn, m: BodyMetric): number | undefined {
+  switch (m) {
+    case "weight":
+      return w.weightKg
+    case "bodyFat":
+      return w.bodyFatPct
+    case "waist":
+      return w.waistCm
+    case "leanMass":
+    case "fatMass": {
+      if (w.bodyFatPct === undefined) return undefined
+      const c = bodyComposition(w.weightKg, w.bodyFatPct)
+      return m === "leanMass" ? c.leanKg : c.fatKg
+    }
+  }
+}
+/** Each day's first reading of a metric, by day key. */
+export function dailyMetric(
+  s: FitnessState,
+  m: BodyMetric,
+): Map<string, number> {
   const sorted = [...s.weighIns].sort((a, b) =>
     a.measuredAt.localeCompare(b.measuredAt),
   )
-  const m = new Map<string, number>()
+  const out = new Map<string, number>()
   for (const w of sorted) {
+    const v = metricValue(w, m)
+    if (v === undefined) continue
     const k = dayKey(new Date(w.measuredAt))
-    if (!m.has(k)) m.set(k, w.weightKg)
+    if (!out.has(k)) out.set(k, v)
   }
-  return m
+  return out
+}
+export function dailyWeights(s: FitnessState): Map<string, number> {
+  return dailyMetric(s, "weight")
 }
 export interface TrendPoint {
   day: string
@@ -424,7 +458,16 @@ export interface TrendPoint {
   avg?: number
 }
 export function weightTrend(s: FitnessState, days: number): TrendPoint[] {
-  const daily = dailyWeights(s)
+  return metricTrend(s, "weight", days)
+}
+/** The last ``days`` days of a metric: each day's reading and the average of
+ * the readings in the 7 days up to it. */
+export function metricTrend(
+  s: FitnessState,
+  m: BodyMetric,
+  days: number,
+): TrendPoint[] {
+  const daily = dailyMetric(s, m)
   const out: TrendPoint[] = []
   for (let i = -days + 1; i <= 0; i++) {
     const day = dayOffset(i)
@@ -440,6 +483,27 @@ export function weightTrend(s: FitnessState, days: number): TrendPoint[] {
     })
   }
   return out
+}
+/** A metric's newest reading and how far it moved from the oldest reading
+ * in the ``days`` before it (no change when there is only the one). */
+export function metricChange(
+  s: FitnessState,
+  m: BodyMetric,
+  days: number,
+): { latest: number; at: string; delta?: number } | undefined {
+  const rows = s.weighIns
+    .filter((w) => metricValue(w, m) !== undefined)
+    .sort((a, b) => a.measuredAt.localeCompare(b.measuredAt))
+  const last = rows.at(-1)
+  if (!last) return undefined
+  const from = new Date(last.measuredAt).getTime() - days * 86400000
+  const base = rows.find((w) => new Date(w.measuredAt).getTime() >= from)
+  const latest = metricValue(last, m)!
+  return {
+    latest,
+    at: last.measuredAt,
+    ...(base && base !== last ? { delta: latest - metricValue(base, m)! } : {}),
+  }
 }
 export function avgOver(s: FitnessState, fromOffset: number, toOffset: number) {
   const daily = dailyWeights(s)

@@ -937,10 +937,12 @@ class WorkoutArgs(BaseModel):
 
 
 class WeighArgs(BaseModel):
-    """Weight, body fat, or both. Body fat alone reuses today's weight."""
+    """Weight, body fat, waist, or any of them together. Body fat or waist
+    without a weight reuses today's weight."""
 
     kg: Annotated[float | None, Field(gt=20, le=500)] = None
     body_fat_pct: Annotated[float | None, Field(gt=0, lt=100)] = None
+    waist_cm: Annotated[float | None, Field(gt=20, lt=300)] = None
 
 
 class MealItemArgs(BaseModel):
@@ -2223,12 +2225,16 @@ def capture_tools(run: Run) -> list[BaseTool]:
         prev = w.latest_kg
         kg = a.kg
         if kg is None:
-            if a.body_fat_pct is None:
-                return {"error": "give_weight_or_body_fat"}
-            # Body fat alone rides on today's weigh-in; an older weight is
-            # never stamped onto today.
+            if a.body_fat_pct is None and a.waist_cm is None:
+                return {"error": "give_weight_body_fat_or_waist"}
+            # Body fat or waist alone rides on today's weigh-in; an older
+            # weight is never stamped onto today.
             if prev is None or w.latest_kg_day != w.today:
-                return {"error": "ask_for_todays_weight_with_body_fat"}
+                return {
+                    "error": "ask_for_todays_weight_with_body_fat"
+                    if a.waist_cm is None
+                    else "ask_for_todays_weight_with_waist"
+                }
             kg = prev
         off = abs(kg - prev) / prev if prev else 0
         d = RecordDraft(
@@ -2245,6 +2251,7 @@ def capture_tools(run: Run) -> list[BaseTool]:
                     "kind": "weighIn",
                     "kg": kg,
                     "body_fat_pct": a.body_fat_pct,
+                    "waist_cm": a.waist_cm,
                     "prev_kg": prev,
                 }.items()
                 if v is not None
@@ -2945,8 +2952,9 @@ def capture_tools(run: Run) -> list[BaseTool]:
         (
             log_weigh_in,
             WeighArgs,
-            "Log a weigh-in: body weight in kilograms, body fat percent, or "
-            "both in one call. Body fat alone is added to today's weight.",
+            "Log a weigh-in: body weight in kilograms, body fat percent and "
+            "waist in centimetres, any of them in one call. Body fat or waist "
+            "alone is added to today's weight.",
         ),
         (
             log_meal,

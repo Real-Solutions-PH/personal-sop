@@ -480,13 +480,33 @@ export function PayloadForm({
       )
     case "weighIn":
       return (
-        <NumberControl
-          label="Weight"
-          value={p.kg}
-          onChange={(kg) => set({ ...p, kg })}
-          step={0.1}
-          suffix="kg"
-        />
+        <>
+          <NumberControl
+            label="Weight"
+            value={p.kg}
+            onChange={(kg) => set({ ...p, kg })}
+            step={0.1}
+            suffix="kg"
+          />
+          {p.bodyFatPct !== undefined && (
+            <NumberControl
+              label="Body fat"
+              value={p.bodyFatPct}
+              onChange={(bodyFatPct) => set({ ...p, bodyFatPct })}
+              step={0.1}
+              suffix="%"
+            />
+          )}
+          {p.waistCm !== undefined && (
+            <NumberControl
+              label="Waist"
+              value={p.waistCm}
+              onChange={(waistCm) => set({ ...p, waistCm })}
+              step={0.5}
+              suffix="cm"
+            />
+          )}
+        </>
       )
     case "meal":
       return (
@@ -588,7 +608,13 @@ export function validPayload(p: Payload) {
   if (p.kind === "transfer") return !!p.from && !!p.to && p.from !== p.to
   if (p.kind === "task")
     return p.tasks.length > 0 && p.tasks.every((t) => t.title.trim())
-  if (p.kind === "weighIn") return p.kg > 0
+  if (p.kind === "weighIn")
+    return (
+      p.kg > 0 &&
+      (p.bodyFatPct === undefined ||
+        (p.bodyFatPct > 0 && p.bodyFatPct < 100)) &&
+      (p.waistCm === undefined || (p.waistCm > 0 && p.waistCm < 300))
+    )
   if (p.kind === "journal") return !!p.body.trim()
   return true
 }

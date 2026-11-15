@@ -327,6 +327,7 @@
       "measured_at": "2026-10-19T04:00:00.000Z",
       "weight_kg": 80.2,
       "body_fat_pct": 18.5,
+      "waist_cm": 82,
       "note": null
     }
   },
@@ -337,6 +338,15 @@
     "create": false,
     "data": {
       "note": "after the run"
+    }
+  },
+  {
+    "entity": "weigh_in",
+    "kind": "upsert",
+    "name": "weigh_in",
+    "create": false,
+    "data": {
+      "waist_cm": null
     }
   },
   {
