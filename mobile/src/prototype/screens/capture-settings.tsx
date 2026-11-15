@@ -716,7 +716,8 @@ function WakeWordSetting() {
         >
           <Copy size={12} muted>
             Only while the app is open on screen. iPhone doesn't let apps listen
-            in the background or when the phone is locked.
+            in the background or when the phone is locked. To save battery it
+            rests after 5 minutes without a touch; tap the screen to wake it.
           </Copy>
           <Copy size={12} muted>
             While it's on, the microphone stays open and your phone's own speech
