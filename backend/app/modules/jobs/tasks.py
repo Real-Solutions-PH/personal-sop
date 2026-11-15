@@ -43,6 +43,17 @@ def finance_auto_log(timestamp: int) -> int:
     return run_finance_auto_log()
 
 
+@jobs_app.periodic(cron="*/15 * * * *")
+@jobs_app.task(
+    name="mobile.finance.shared_budgets", queueing_lock="mobile.finance.shared_budgets"
+)
+def shared_budgets(timestamp: int) -> int:
+    from app.modules.jobs.mobile import run_shared_budgets
+
+    del timestamp
+    return run_shared_budgets()
+
+
 @jobs_app.periodic(cron="17 * * * *")
 @jobs_app.task(
     name="mobile.capture.maintenance", queueing_lock="mobile.capture.maintenance"

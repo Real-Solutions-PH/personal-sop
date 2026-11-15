@@ -117,10 +117,15 @@ from app.modules.screen.models import (  # noqa: F401
     ScreenGroup,
 )
 from app.modules.shared_finance.models import (  # noqa: F401
+    GoalEntry,
     Loan,
     LoanEvent,
     LoanPayment,
+    SharedBudget,
+    SharedEvent,
+    SharedGoal,
     SharedMember,
+    SharedMembership,
 )
 from app.modules.social.models import (  # noqa: F401
     Activity,

@@ -347,9 +347,15 @@ def delete_planned(ctx: Ctx, *, planned_id: uuid.UUID) -> None:
     owned_repo.soft_delete(ctx, services._planned(ctx, planned_id))
 
 
-def spend_between(ctx: Ctx, first: date, last: date) -> int:
+def spend_between(
+    ctx: Ctx,
+    first: date,
+    last: date,
+    category_ids: list[uuid.UUID] | None = None,
+) -> int:
     """Total spend (expenses minus refunds, no transfers/adjustments) over
-    the business days ``[first, last]``."""
+    the business days ``[first, last]``; with ``category_ids``, only in those
+    categories and their sub-categories."""
     lo, hi = ctx.clock.window(first, last)
     signed = case(
         (col(FinRecord.type) == "expense", col(FinRecord.amount_minor)),
@@ -367,6 +373,17 @@ def spend_between(ctx: Ctx, first: date, last: date) -> int:
         col(FinRecord.at) >= lo,
         col(FinRecord.at) < hi,
     )
+    if category_ids is not None:
+        subs = select(Category.id).where(
+            col(Category.owner_id) == ctx.user_id,
+            col(Category.parent_id).in_(category_ids),
+        )
+        q = q.where(
+            or_(
+                col(FinRecord.category_id).in_(category_ids),
+                col(FinRecord.category_id).in_(subs),
+            )
+        )
     return int(ctx.session.exec(q).one())
 
 

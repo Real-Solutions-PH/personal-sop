@@ -70,6 +70,35 @@ def run_finance_auto_log(now: datetime | None = None) -> int:
     return logged
 
 
+def run_shared_budgets(now: datetime | None = None) -> int:
+    """Every live shared budget: refresh its members' views (their spending
+    moves as they log) and send the 80% / 100% alerts, once a month each.
+    Returns how many alerts went out."""
+    from app.modules.shared_finance.groups import refresh_budget
+    from app.modules.shared_finance.models import SharedBudget
+
+    at = now or datetime.now(timezone.utc)
+    sent = 0
+    with Session(engine) as session:
+        budgets = session.exec(
+            select(SharedBudget).where(
+                SharedBudget.status == "active",
+                col(SharedBudget.deleted_at).is_(None),
+            )
+        ).all()
+        for budget in budgets:
+            owner = session.get(User, budget.owner_id)
+            if owner is None:
+                continue
+            try:
+                sent += len(refresh_budget(make_ctx(session, owner, now=at), budget))
+                session.commit()
+            except Exception:  # one budget's bad data must not stop the rest
+                session.rollback()
+                app_logger.exception("shared budget refresh failed")
+    return sent
+
+
 def _each_user_with(model: type, session: Session) -> list[User]:
     owners = session.exec(select(model.owner_id).distinct()).all()  # type: ignore[attr-defined]
     return list(session.exec(select(User).where(col(User.id).in_(list(owners)))).all())
