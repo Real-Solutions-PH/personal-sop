@@ -237,11 +237,18 @@ class WeighIn(OwnedRow, table=True):
             "body_fat_pct IS NULL OR (body_fat_pct > 0 AND body_fat_pct < 100)",
             name="ck_weigh_in_bf",
         ),
+        CheckConstraint(
+            "waist_cm IS NULL OR (waist_cm > 0 AND waist_cm < 300)",
+            name="ck_weigh_in_waist",
+        ),
     )
 
     measured_at: datetime = Field(sa_type=tstz(), index=True)  # type: ignore
     weight_kg: float = Field(sa_type=Float)
     body_fat_pct: float | None = Field(default=None, sa_type=Float)
+    # Waist circumference in centimetres. Lean and fat mass are not stored:
+    # they follow from weight and body fat.
+    waist_cm: float | None = Field(default=None, sa_type=Float)
     note: str | None = Field(default=None, max_length=280)
 
 

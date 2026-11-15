@@ -298,11 +298,13 @@ def execute(
     if kind == "weighIn":
         kg = float(p["kg"])
         fat = p.get("body_fat_pct")
+        waist = p.get("waist_cm")
         w = ports.fitness.log_weigh_in(
             ctx,
             kg=kg,
             at=at,
             body_fat_pct=float(fat) if fat is not None else None,
+            waist_cm=float(waist) if waist is not None else None,
             weigh_in_id=rid(0),
         )
         prev = p.get("prev_kg")

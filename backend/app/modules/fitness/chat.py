@@ -66,7 +66,7 @@ EXERCISE_FIELDS = (
     "track",
     "archived",
 )
-WEIGH_IN_FIELDS = ("weight_kg", "body_fat_pct", "note", "measured_at")
+WEIGH_IN_FIELDS = ("weight_kg", "body_fat_pct", "waist_cm", "note", "measured_at")
 TARGET_FIELDS = (
     "kcal",
     "protein",
