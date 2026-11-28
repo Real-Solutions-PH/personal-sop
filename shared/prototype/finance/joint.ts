@@ -83,7 +83,10 @@ export interface SharedAccount {
   sharedAt: string
 }
 
-const accountsOf = () => sharedStore.get().accounts ?? []
+/** One empty list for "none yet", so a store selector stays stable. */
+export const NO_ACCOUNTS: SharedAccount[] = []
+
+const accountsOf = () => sharedStore.get().accounts ?? NO_ACCOUNTS
 
 function update(accountId: string, fn: (a: SharedAccount) => SharedAccount) {
   sharedStore.set((s) => ({

@@ -4,7 +4,7 @@
 // every change queues one sync action (live/mappers/shared.ts).
 import { shortDate } from "@domain/finance/calc"
 import type * as G from "@domain/finance/groups"
-import type { SharedAccount } from "@domain/finance/joint"
+import { NO_ACCOUNTS, type SharedAccount } from "@domain/finance/joint"
 import * as L from "@domain/finance/loans"
 import { dayKey } from "@domain/lib/day"
 import { currencyInfo, money } from "@domain/lib/money"
@@ -218,7 +218,7 @@ export function SharedSection() {
         (b) => b.myStatus === "active" || b.myStatus === "invited",
       ).length,
     joints = L.sharedStore
-      .use((s) => s.accounts ?? [])
+      .use((s) => s.accounts ?? NO_ACCOUNTS)
       .filter(
         (a) =>
           (a.myStatus === "active" || a.myStatus === "invited") &&
@@ -407,7 +407,7 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
     goals = L.sharedStore.use((s) => s.goals ?? []),
     budgets = L.sharedStore.use((s) => s.budgets ?? []),
     hasJoint = L.sharedStore
-      .use((s) => s.accounts ?? [])
+      .use((s) => s.accounts ?? NO_ACCOUNTS)
       .some(
         (a) =>
           (a.myStatus === "active" || a.myStatus === "invited") &&

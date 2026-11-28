@@ -29,7 +29,7 @@ import {
   Users,
   X,
 } from "lucide-react-native"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Share, View } from "react-native"
 import { liveMode } from "@/live/config"
 import { BigMoment, useMomentTimer } from "../big-moment"
@@ -156,7 +156,8 @@ export function JointMark({ joint }: { joint: J.SharedAccount }) {
   )
 }
 
-export const useJointAccounts = () => sharedStore.use((s) => s.accounts ?? [])
+export const useJointAccounts = () =>
+  sharedStore.use((s) => s.accounts ?? J.NO_ACCOUNTS)
 
 /** My view of a joint account, if it is one (owner or member). */
 export function useJoint(accountId: string | undefined) {
@@ -1012,8 +1013,12 @@ export function InviteScreen({ token }: { token: string }) {
       })
   }, [token])
   useEffect(() => load(), [load])
+  // Leave for the account once the celebration has shown and closed (not
+  // in the render before it first appears).
+  const shown = useRef(false)
+  if (moment) shown.current = true
   useEffect(() => {
-    if (done && !moment) go(done)
+    if (done && shown.current && !moment) go(done)
   }, [done, moment])
   const accept = () => {
     setBusy(true)
