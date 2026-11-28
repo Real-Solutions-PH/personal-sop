@@ -8,7 +8,7 @@ outbox while offline.
 
 from typing import Any
 
-from app.modules.shared_finance import groups, services
+from app.modules.shared_finance import accounts, groups, services
 from app.modules.shared_finance import schema as S
 from app.modules.shared_finance.models import SharedMember
 from app.modules.sync.registry import Action, Entity, Registry
@@ -69,6 +69,10 @@ def _budget(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
 
 def _join(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
     a = S.GroupRespond.model_validate(args)
+    if a.kind == "account":
+        return {
+            "status": accounts.respond(ctx, account_id=a.object_id, accept=a.accept)
+        }
     status = groups.respond(
         ctx,
         kind=a.kind,
@@ -104,6 +108,16 @@ def _entry_decide(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
     return {"goal_id": str(a.goal_id)}
 
 
+def _account_record(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
+    a = S.JointRecordArgs.model_validate(args)
+    return {"account_id": str(accounts.add_record(ctx, data=a).id)}
+
+
+def _account_leave(ctx: Ctx, args: dict[str, Any]) -> dict[str, Any]:
+    a = S.AccountRef.model_validate(args)
+    return {"status": accounts.leave(ctx, account_id=a.account_id)}
+
+
 ACTIONS = (
     ("finance.loan.create", _create, S.LoanCreate),
     ("finance.loan.respond", _respond, S.LoanRespondArgs),
@@ -119,6 +133,8 @@ ACTIONS = (
     ("finance.goal.entry", _entry, S.EntryCreate),
     ("finance.goal.withdraw", _entry_withdraw, S.EntryRef),
     ("finance.goal.decide", _entry_decide, S.EntryDecide),
+    ("finance.account.record", _account_record, S.JointRecordArgs),
+    ("finance.account.leave", _account_leave, S.AccountRef),
 )
 
 

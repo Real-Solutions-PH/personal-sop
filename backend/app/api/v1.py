@@ -13,6 +13,7 @@ from app.modules.focus.main import router as focus_router
 from app.modules.funnel.main import router as funnel_router
 from app.modules.habits.main import router as habits_router
 from app.modules.iam.main import router as iam_router
+from app.modules.invites.main import router as invites_router
 from app.modules.items.main import router as items_router
 from app.modules.media.main import router as media_router
 from app.modules.nutrition.main import router as nutrition_router
@@ -45,6 +46,7 @@ v1_router.include_router(nutrition_router)
 v1_router.include_router(focus_router)
 v1_router.include_router(finance_router)
 v1_router.include_router(shared_finance_router)
+v1_router.include_router(invites_router)
 v1_router.include_router(capture_router)
 v1_router.include_router(ai_providers_router)
 v1_router.include_router(stats_router)

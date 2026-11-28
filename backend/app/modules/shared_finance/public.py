@@ -3,7 +3,7 @@ Nothing here writes."""
 
 from typing import Any
 
-from app.modules.shared_finance import services
+from app.modules.shared_finance import accounts, services
 from app.shared.context import Ctx
 from app.shared.currency import currency, money
 
@@ -48,3 +48,8 @@ def loans_status(ctx: Ctx) -> list[dict[str, Any]]:
             }
         )
     return out
+
+
+def joint_balances(ctx: Ctx) -> list[dict[str, Any]]:
+    """Joint accounts someone else owns that I'm an active member of."""
+    return accounts.joint_balances(ctx)

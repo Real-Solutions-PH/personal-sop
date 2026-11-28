@@ -6,12 +6,13 @@ synced snapshot cannot hold."""
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from app.modules.iam.deps import require_permission
-from app.modules.shared_finance import groups, services
+from app.modules.shared_finance import accounts, groups, services
 from app.modules.shared_finance.schema import (
+    AccountShare,
     BudgetCreate,
     BudgetOut,
     CashCreate,
@@ -23,12 +24,17 @@ from app.modules.shared_finance.schema import (
     GoalOut,
     GroupRespond,
     GroupsOut,
+    JointRecordArgs,
+    JointRecordBody,
+    JointRecordsOut,
     LoanCreate,
     LoanOut,
     LoanRespond,
     LoansOut,
     PaymentCreate,
     PaymentDecide,
+    SharedAccountOut,
+    SharedAccountsOut,
 )
 from app.shared.context import CtxDep
 from app.shared.rate_limit import rate_limited
@@ -120,7 +126,11 @@ def list_groups(ctx: CtxDep) -> Any:
 
 @router.post("/groups/respond", response_model=Answered, dependencies=WRITE)
 def respond_group(ctx: CtxDep, data: GroupRespond) -> Any:
-    """Join (or decline) a goal or budget I was invited to."""
+    """Join (or decline) a goal, budget or joint account I was invited to."""
+    if data.kind == "account":
+        return Answered(
+            status=accounts.respond(ctx, account_id=data.object_id, accept=data.accept)
+        )
     return Answered(
         status=groups.respond(
             ctx,
@@ -189,3 +199,74 @@ def set_categories(ctx: CtxDep, budget_id: uuid.UUID, data: CategoriesBody) -> A
     return groups.set_categories(
         ctx, budget_id=budget_id, category_ids=data.category_ids
     )
+
+
+# ================================================================ joint accounts
+
+
+@router.get("/accounts", response_model=SharedAccountsOut, dependencies=READ)
+def list_accounts(ctx: CtxDep) -> Any:
+    """Joint accounts I share, am in, or am invited to."""
+    return accounts.list_accounts(ctx)
+
+
+@router.get(
+    "/accounts/{account_id}", response_model=SharedAccountOut, dependencies=READ
+)
+def get_account(ctx: CtxDep, account_id: uuid.UUID) -> Any:
+    """One joint account (its owner sees it even before sharing it)."""
+    return accounts.account_view(ctx, account_id=account_id)
+
+
+@router.post(
+    "/accounts/{account_id}/share", response_model=SharedAccountOut, dependencies=WRITE
+)
+def share_account(ctx: CtxDep, account_id: uuid.UUID, data: AccountShare) -> Any:
+    """The owner invites people they're connected with."""
+    return accounts.share(ctx, account_id=account_id, member_ids=data.member_ids)
+
+
+@router.get(
+    "/accounts/{account_id}/records", response_model=JointRecordsOut, dependencies=READ
+)
+def list_account_records(
+    ctx: CtxDep,
+    account_id: uuid.UUID,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> Any:
+    """Every transaction, newest first, paged."""
+    return accounts.list_records(ctx, account_id=account_id, skip=skip, limit=limit)
+
+
+@router.post(
+    "/accounts/{account_id}/records",
+    response_model=SharedAccountOut,
+    dependencies=WRITE,
+)
+def add_account_record(
+    ctx: CtxDep, account_id: uuid.UUID, data: JointRecordBody
+) -> Any:
+    """An active member logs an expense or income on the joint account."""
+    return accounts.add_record(
+        ctx, data=JointRecordArgs(account_id=account_id, **data.model_dump())
+    )
+
+
+@router.post(
+    "/accounts/{account_id}/leave", response_model=Answered, dependencies=WRITE
+)
+def leave_account(ctx: CtxDep, account_id: uuid.UUID) -> Any:
+    return Answered(status=accounts.leave(ctx, account_id=account_id))
+
+
+@router.post(
+    "/accounts/{account_id}/members/{user_id}/remove",
+    response_model=SharedAccountOut,
+    dependencies=WRITE,
+)
+def remove_account_member(
+    ctx: CtxDep, account_id: uuid.UUID, user_id: uuid.UUID
+) -> Any:
+    """Only the owner removes people."""
+    return accounts.remove_member(ctx, account_id=account_id, user_id=user_id)
