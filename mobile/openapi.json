@@ -1,6 +1,6 @@
 {
   "openapi": "3.1.0",
-  "info": { "title": "x", "version": "0.1.0" },
+  "info": { "title": "Full Stack FastAPI Project", "version": "0.1.0" },
   "paths": {
     "/api/v1/users/": {
       "get": {
@@ -12738,7 +12738,7 @@
       "post": {
         "tags": ["shared-finance"],
         "summary": "Respond Group",
-        "description": "Join (or decline) a goal or budget I was invited to.",
+        "description": "Join (or decline) a goal, budget or joint account I was invited to.",
         "operationId": "shared-finance-respond_group",
         "requestBody": {
           "content": {
@@ -13085,6 +13085,499 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/BudgetOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/accounts": {
+      "get": {
+        "tags": ["shared-finance"],
+        "summary": "List Accounts",
+        "description": "Joint accounts I share, am in, or am invited to.",
+        "operationId": "shared-finance-list_accounts",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SharedAccountsOut" }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Client Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
+      }
+    },
+    "/api/v1/finance/shared/accounts/{account_id}": {
+      "get": {
+        "tags": ["shared-finance"],
+        "summary": "Get Account",
+        "description": "One joint account (its owner sees it even before sharing it).",
+        "operationId": "shared-finance-get_account",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SharedAccountOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/accounts/{account_id}/share": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Share Account",
+        "description": "The owner invites people they're connected with.",
+        "operationId": "shared-finance-share_account",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AccountShare" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SharedAccountOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/accounts/{account_id}/records": {
+      "get": {
+        "tags": ["shared-finance"],
+        "summary": "List Account Records",
+        "description": "Every transaction, newest first, paged.",
+        "operationId": "shared-finance-list_account_records",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JointRecordsOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Add Account Record",
+        "description": "An active member logs an expense or income on the joint account.",
+        "operationId": "shared-finance-add_account_record",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JointRecordBody" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SharedAccountOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/accounts/{account_id}/leave": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Leave Account",
+        "operationId": "shared-finance-leave_account",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Answered" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/finance/shared/accounts/{account_id}/members/{user_id}/remove": {
+      "post": {
+        "tags": ["shared-finance"],
+        "summary": "Remove Account Member",
+        "description": "Only the owner removes people.",
+        "operationId": "shared-finance-remove_account_member",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SharedAccountOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/invites": {
+      "post": {
+        "tags": ["invites"],
+        "summary": "Create Invite",
+        "description": "A new single-use link (7 days). The token is only readable here.",
+        "operationId": "invites-create_invite",
+        "security": [{ "HTTPBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/InviteCreate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InviteCreated" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      },
+      "get": {
+        "tags": ["invites"],
+        "summary": "List Invites",
+        "description": "Links to one thing still waiting to be used.",
+        "operationId": "invites-list_invites",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 24,
+              "title": "Kind"
+            }
+          },
+          {
+            "name": "object_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Object Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InvitesOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/invites/{invite_id}/revoke": {
+      "post": {
+        "tags": ["invites"],
+        "summary": "Revoke Invite",
+        "operationId": "invites-revoke_invite",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "invite_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Invite Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InviteOut" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/invites/token/{token}": {
+      "get": {
+        "tags": ["invites"],
+        "summary": "Preview",
+        "description": "What opening a link shows, including why a dead one doesn't work.",
+        "operationId": "invites-preview",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Token" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InvitePreview" }
+              }
+            }
+          },
+          "4XX": {
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            },
+            "description": "Client Error"
+          }
+        }
+      }
+    },
+    "/api/v1/invites/token/{token}/accept": {
+      "post": {
+        "tags": ["invites"],
+        "summary": "Accept",
+        "operationId": "invites-accept",
+        "security": [{ "HTTPBearer": [] }],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "title": "Token" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InviteAccepted" }
               }
             }
           },
@@ -20889,6 +21382,21 @@
         ],
         "title": "AccountPublic"
       },
+      "AccountShare": {
+        "properties": {
+          "member_ids": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Member Ids"
+          }
+        },
+        "type": "object",
+        "required": ["member_ids"],
+        "title": "AccountShare",
+        "description": "Invite people the owner is connected with to a joint account."
+      },
       "AccountView": {
         "properties": {
           "id": { "type": "string", "format": "uuid", "title": "Id" },
@@ -25254,7 +25762,7 @@
         "properties": {
           "kind": {
             "type": "string",
-            "enum": ["goal", "budget"],
+            "enum": ["goal", "budget", "account"],
             "title": "Kind"
           },
           "object_id": {
@@ -26379,6 +26887,200 @@
         "required": ["n", "due", "amount_minor", "paid_minor", "state"],
         "title": "InstallmentOut"
       },
+      "InviteAccepted": {
+        "properties": {
+          "kind": { "type": "string", "title": "Kind" },
+          "object_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Object Id"
+          },
+          "href": { "type": "string", "title": "Href" },
+          "joined": { "type": "boolean", "title": "Joined" }
+        },
+        "type": "object",
+        "required": ["kind", "object_id", "href", "joined"],
+        "title": "InviteAccepted"
+      },
+      "InviteCreate": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "maxLength": 24,
+            "minLength": 1,
+            "title": "Kind"
+          },
+          "object_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Object Id"
+          }
+        },
+        "type": "object",
+        "required": ["kind", "object_id"],
+        "title": "InviteCreate"
+      },
+      "InviteCreated": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "kind": { "type": "string", "title": "Kind" },
+          "object_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Object Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "used_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Used At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Revoked At"
+          },
+          "token": { "type": "string", "title": "Token" },
+          "url": { "type": "string", "title": "Url" }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "object_id",
+          "created_at",
+          "expires_at",
+          "token",
+          "url"
+        ],
+        "title": "InviteCreated",
+        "description": "Returned once, on create: the only time the token is readable."
+      },
+      "InviteOut": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "kind": { "type": "string", "title": "Kind" },
+          "object_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Object Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "used_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Used At"
+          },
+          "revoked_at": {
+            "anyOf": [
+              { "type": "string", "format": "date-time" },
+              { "type": "null" }
+            ],
+            "title": "Revoked At"
+          }
+        },
+        "type": "object",
+        "required": ["id", "kind", "object_id", "created_at", "expires_at"],
+        "title": "InviteOut",
+        "description": "A link as its maker sees it (the token is never shown again)."
+      },
+      "InvitePerson": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "handle": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Handle"
+          },
+          "photo_media_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Photo Media Id"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "InvitePerson"
+      },
+      "InvitePreview": {
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": ["open", "used", "expired", "revoked", "member", "own"],
+            "title": "State"
+          },
+          "kind": { "type": "string", "title": "Kind" },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expires At"
+          },
+          "inviter": { "$ref": "#/components/schemas/InvitePerson" },
+          "subject": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/InviteSubject" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "required": ["state", "kind", "expires_at", "inviter"],
+        "title": "InvitePreview"
+      },
+      "InviteSubject": {
+        "properties": {
+          "title": { "type": "string", "title": "Title" },
+          "label": { "type": "string", "title": "Label" },
+          "points": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Points"
+          },
+          "href": { "type": "string", "title": "Href" }
+        },
+        "type": "object",
+        "required": ["title", "label", "href"],
+        "title": "InviteSubject",
+        "description": "What the accept screen shows: written by the kind's module."
+      },
+      "InvitesOut": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/InviteOut" },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "InvitesOut"
+      },
       "ItemCreate": {
         "properties": {
           "title": {
@@ -26663,6 +27365,162 @@
         "type": "object",
         "required": ["data", "count"],
         "title": "ItemsPublic"
+      },
+      "JointCategoryOut": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "name": { "type": "string", "title": "Name" },
+          "icon": { "type": "string", "title": "Icon" },
+          "kind": {
+            "type": "string",
+            "enum": ["expense", "income"],
+            "title": "Kind"
+          },
+          "parent_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Parent Id"
+          }
+        },
+        "type": "object",
+        "required": ["id", "name", "icon", "kind"],
+        "title": "JointCategoryOut"
+      },
+      "JointMemberOut": {
+        "properties": {
+          "person": { "$ref": "#/components/schemas/PersonOut" },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "member"],
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["invited", "active", "declined", "left"],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": ["person", "role", "status"],
+        "title": "JointMemberOut"
+      },
+      "JointRecordBody": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["expense", "income"],
+            "title": "Type"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "maximum": 100000000000000.0,
+            "minimum": 1.0,
+            "title": "Amount Minor"
+          },
+          "on_date": { "type": "string", "format": "date", "title": "On Date" },
+          "category_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Category Id"
+          },
+          "payee": {
+            "anyOf": [
+              { "type": "string", "maxLength": 120 },
+              { "type": "null" }
+            ],
+            "title": "Payee"
+          },
+          "note": {
+            "anyOf": [
+              { "type": "string", "maxLength": 500 },
+              { "type": "null" }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": ["type", "amount_minor", "on_date"],
+        "title": "JointRecordBody",
+        "description": "A transaction a member logs on a joint account."
+      },
+      "JointRecordOut": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "kind": {
+            "type": "string",
+            "enum": ["expense", "income", "transfer_in", "transfer_out"],
+            "title": "Kind"
+          },
+          "amount_minor": { "type": "integer", "title": "Amount Minor" },
+          "signed_minor": { "type": "integer", "title": "Signed Minor" },
+          "at": { "type": "string", "format": "date-time", "title": "At" },
+          "day": { "type": "string", "format": "date", "title": "Day" },
+          "payee": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Payee"
+          },
+          "note": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Note"
+          },
+          "category_id": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Category Id"
+          },
+          "category_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category Name"
+          },
+          "category_icon": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Category Icon"
+          },
+          "by_id": { "type": "string", "format": "uuid", "title": "By Id" },
+          "is_adjustment": {
+            "type": "boolean",
+            "title": "Is Adjustment",
+            "default": false
+          },
+          "pending": { "type": "boolean", "title": "Pending", "default": false }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "amount_minor",
+          "signed_minor",
+          "at",
+          "day",
+          "by_id"
+        ],
+        "title": "JointRecordOut"
+      },
+      "JointRecordsOut": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/JointRecordOut" },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "JointRecordsOut"
       },
       "JournalIn": {
         "properties": {
@@ -31928,6 +32786,13 @@
               { "type": "null" }
             ],
             "title": "Fx Rate"
+          },
+          "logged_by": {
+            "anyOf": [
+              { "type": "string", "format": "uuid" },
+              { "type": "null" }
+            ],
+            "title": "Logged By"
           }
         },
         "type": "object",
@@ -33902,6 +34767,89 @@
         "type": "object",
         "required": ["key", "label", "formats", "fields"],
         "title": "ShareTemplateOut"
+      },
+      "SharedAccountOut": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "role": {
+            "type": "string",
+            "enum": ["owner", "member"],
+            "title": "Role"
+          },
+          "my_status": {
+            "type": "string",
+            "enum": ["invited", "active", "declined", "left"],
+            "title": "My Status"
+          },
+          "name": { "type": "string", "title": "Name" },
+          "type": { "type": "string", "title": "Type" },
+          "color": { "type": "string", "title": "Color" },
+          "currency": { "type": "string", "title": "Currency" },
+          "archived": { "type": "boolean", "title": "Archived" },
+          "in_net_worth": { "type": "boolean", "title": "In Net Worth" },
+          "balance_minor": { "type": "integer", "title": "Balance Minor" },
+          "owner": { "$ref": "#/components/schemas/PersonOut" },
+          "members": {
+            "items": { "$ref": "#/components/schemas/JointMemberOut" },
+            "type": "array",
+            "title": "Members"
+          },
+          "records": {
+            "items": { "$ref": "#/components/schemas/JointRecordOut" },
+            "type": "array",
+            "title": "Records"
+          },
+          "records_total": { "type": "integer", "title": "Records Total" },
+          "categories": {
+            "items": { "$ref": "#/components/schemas/JointCategoryOut" },
+            "type": "array",
+            "title": "Categories"
+          },
+          "events": {
+            "items": { "$ref": "#/components/schemas/GroupEventOut" },
+            "type": "array",
+            "title": "Events"
+          },
+          "shared_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Shared At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "my_status",
+          "name",
+          "type",
+          "color",
+          "currency",
+          "archived",
+          "in_net_worth",
+          "balance_minor",
+          "owner",
+          "members",
+          "records",
+          "records_total",
+          "categories",
+          "events",
+          "shared_at"
+        ],
+        "title": "SharedAccountOut",
+        "description": "A joint account as one member sees it."
+      },
+      "SharedAccountsOut": {
+        "properties": {
+          "data": {
+            "items": { "$ref": "#/components/schemas/SharedAccountOut" },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "SharedAccountsOut"
       },
       "SkipIn": {
         "properties": {

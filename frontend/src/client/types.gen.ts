@@ -67,6 +67,13 @@ export type AccountPublic = {
     version: number;
 };
 
+/**
+ * Invite people the owner is connected with to a joint account.
+ */
+export type AccountShare = {
+    member_ids: Array<(string)>;
+};
+
 export type AccountsPublic = {
     data: Array<AccountView>;
     count: number;
@@ -1929,13 +1936,13 @@ export type GroupEventOut = {
 };
 
 export type GroupRespond = {
-    kind: 'goal' | 'budget';
+    kind: 'goal' | 'budget' | 'account';
     object_id: string;
     accept: boolean;
     category_ids?: Array<(string)>;
 };
 
-export type kind10 = 'goal' | 'budget';
+export type kind10 = 'goal' | 'budget' | 'account';
 
 export type GroupsOut = {
     goals: Array<GoalOut>;
@@ -2251,6 +2258,77 @@ export type InstallmentOut = {
 
 export type state = 'paid' | 'partial' | 'overdue' | 'due' | 'upcoming';
 
+export type InviteAccepted = {
+    kind: string;
+    object_id: string;
+    href: string;
+    joined: boolean;
+};
+
+export type InviteCreate = {
+    kind: string;
+    object_id: string;
+};
+
+/**
+ * Returned once, on create: the only time the token is readable.
+ */
+export type InviteCreated = {
+    id: string;
+    kind: string;
+    object_id: string;
+    created_at: string;
+    expires_at: string;
+    used_at?: (string | null);
+    revoked_at?: (string | null);
+    token: string;
+    url: string;
+};
+
+/**
+ * A link as its maker sees it (the token is never shown again).
+ */
+export type InviteOut = {
+    id: string;
+    kind: string;
+    object_id: string;
+    created_at: string;
+    expires_at: string;
+    used_at?: (string | null);
+    revoked_at?: (string | null);
+};
+
+export type InvitePerson = {
+    id: string;
+    name: string;
+    handle?: (string | null);
+    photo_media_id?: (string | null);
+};
+
+export type InvitePreview = {
+    state: 'open' | 'used' | 'expired' | 'revoked' | 'member' | 'own';
+    kind: string;
+    expires_at: string;
+    inviter: InvitePerson;
+    subject?: (InviteSubject | null);
+};
+
+export type state2 = 'open' | 'used' | 'expired' | 'revoked' | 'member' | 'own';
+
+export type InvitesOut = {
+    data: Array<InviteOut>;
+};
+
+/**
+ * What the accept screen shows: written by the kind's module.
+ */
+export type InviteSubject = {
+    title: string;
+    label: string;
+    points?: Array<(string)>;
+    href: string;
+};
+
 export type ItemCreate = {
     title: string;
     description?: (string | null);
@@ -2325,6 +2403,61 @@ export type ItemTimeOut = {
 export type ItemUpdate = {
     title?: (string | null);
     description?: (string | null);
+};
+
+export type JointCategoryOut = {
+    id: string;
+    name: string;
+    icon: string;
+    kind: 'expense' | 'income';
+    parent_id?: (string | null);
+};
+
+export type JointMemberOut = {
+    person: PersonOut;
+    role: 'owner' | 'member';
+    status: 'invited' | 'active' | 'declined' | 'left';
+};
+
+export type status7 = 'invited' | 'active' | 'declined' | 'left';
+
+/**
+ * A transaction a member logs on a joint account.
+ */
+export type JointRecordBody = {
+    id?: (string | null);
+    type: 'expense' | 'income';
+    amount_minor: number;
+    on_date: string;
+    category_id?: (string | null);
+    payee?: (string | null);
+    note?: (string | null);
+};
+
+export type type3 = 'expense' | 'income';
+
+export type JointRecordOut = {
+    id: string;
+    kind: 'expense' | 'income' | 'transfer_in' | 'transfer_out';
+    amount_minor: number;
+    signed_minor: number;
+    at: string;
+    day: string;
+    payee?: (string | null);
+    note?: (string | null);
+    category_id?: (string | null);
+    category_name?: (string | null);
+    category_icon?: (string | null);
+    by_id: string;
+    is_adjustment?: boolean;
+    pending?: boolean;
+};
+
+export type kind12 = 'expense' | 'income' | 'transfer_in' | 'transfer_out';
+
+export type JointRecordsOut = {
+    data: Array<JointRecordOut>;
+    count: number;
 };
 
 export type JournalIn = {
@@ -2422,7 +2555,7 @@ export type ListCreate = {
     icon?: 'briefcase' | 'laptop' | 'home' | 'cart' | 'heart' | 'book' | 'plane' | 'gift' | 'list';
 };
 
-export type kind12 = 'standard' | 'shopping';
+export type kind13 = 'standard' | 'shopping';
 
 export type color = 'tsk' | 'fin' | 'hab' | 'fit' | 'life' | 'warn';
 
@@ -2475,7 +2608,7 @@ export type LivePublic = {
     paused_sec: number;
 };
 
-export type kind13 = 'timer' | 'routine' | 'workout';
+export type kind14 = 'timer' | 'routine' | 'workout';
 
 export type LiveState = {
     live: (LivePublic | null);
@@ -2526,7 +2659,7 @@ export type LoanOut = {
 
 export type role3 = 'lender' | 'borrower';
 
-export type status7 = 'invited' | 'active' | 'declined' | 'cancelled' | 'paid';
+export type status8 = 'invited' | 'active' | 'declined' | 'cancelled' | 'paid';
 
 export type LoanRespond = {
     accept: boolean;
@@ -2769,7 +2902,7 @@ export type MediaIn = {
     ratio?: (number | null);
 };
 
-export type kind14 = 'image' | 'video';
+export type kind15 = 'image' | 'video';
 
 export type MediaPublic = {
     media_id: string;
@@ -2799,9 +2932,9 @@ export type MediaWithUrl = {
     preview_url?: (string | null);
 };
 
-export type kind15 = 'image' | 'video' | 'audio' | 'file';
+export type kind16 = 'image' | 'video' | 'audio' | 'file';
 
-export type state2 = 'pending' | 'ready' | 'rejected';
+export type state3 = 'pending' | 'ready' | 'rejected';
 
 export type MemberOut = {
     person: PersonOut;
@@ -2809,8 +2942,6 @@ export type MemberOut = {
     status: 'invited' | 'active' | 'declined' | 'left';
     amount_minor: number;
 };
-
-export type status8 = 'invited' | 'active' | 'declined' | 'left';
 
 export type MemberSettings = {
     muted?: (boolean | null);
@@ -2883,7 +3014,7 @@ export type MissAnalysisOut = {
     on_target: boolean;
 };
 
-export type state3 = 'celebrate' | 'analysis';
+export type state4 = 'celebrate' | 'analysis';
 
 export type source7 = 'fern' | 'rules' | 'none';
 
@@ -3001,7 +3132,7 @@ export type NotificationPublic = {
     version: number;
 };
 
-export type kind16 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
+export type kind17 = 'reminder' | 'achievement' | 'review' | 'system' | 'social';
 
 export type NotificationsOut = {
     data: Array<NotificationPublic>;
@@ -3229,7 +3360,7 @@ export type PaymentOut = {
     created_at: string;
 };
 
-export type kind17 = 'transfer' | 'cash';
+export type kind18 = 'transfer' | 'cash';
 
 export type PeoplePublic = {
     data: Array<PersonPublic>;
@@ -3317,7 +3448,7 @@ export type PhaseOut = {
 
 export type status11 = 'running' | 'paused' | 'waiting' | 'ended';
 
-export type kind18 = 'focus' | 'break';
+export type kind19 = 'focus' | 'break';
 
 export type PhotoPayload = {
     kind: "photo";
@@ -3350,7 +3481,7 @@ export type PlannedCreate = {
     id?: (string | null);
 };
 
-export type type3 = 'expense' | 'income' | 'transfer';
+export type type4 = 'expense' | 'income' | 'transfer';
 
 export type PlannedFields = {
     name?: (string | null);
@@ -3775,6 +3906,7 @@ export type RecordPublic = {
     orig_currency?: (string | null);
     orig_amount_minor?: (number | null);
     fx_rate?: (string | null);
+    logged_by?: (string | null);
 };
 
 export type RecordsPublic = {
@@ -4285,6 +4417,33 @@ export type Settle = {
     paid_on?: (string | null);
 };
 
+/**
+ * A joint account as one member sees it.
+ */
+export type SharedAccountOut = {
+    id: string;
+    role: 'owner' | 'member';
+    my_status: 'invited' | 'active' | 'declined' | 'left';
+    name: string;
+    type: string;
+    color: string;
+    currency: string;
+    archived: boolean;
+    in_net_worth: boolean;
+    balance_minor: number;
+    owner: PersonOut;
+    members: Array<JointMemberOut>;
+    records: Array<JointRecordOut>;
+    records_total: number;
+    categories: Array<JointCategoryOut>;
+    events: Array<GroupEventOut>;
+    shared_at: string;
+};
+
+export type SharedAccountsOut = {
+    data: Array<SharedAccountOut>;
+};
+
 export type ShareDefaultPublic = {
     id: string;
     template: 'life' | 'weekly' | 'monthly' | 'streak' | 'finance' | 'profile' | 'goal';
@@ -4470,7 +4629,7 @@ export type StoryCreate = {
     audience?: 'everyone' | 'close';
 };
 
-export type kind19 = 'image' | 'video' | 'text' | 'progress';
+export type kind20 = 'image' | 'video' | 'text' | 'progress';
 
 export type audience = 'everyone' | 'close';
 
@@ -4559,7 +4718,7 @@ export type SyncOp = {
     at?: (string | null);
 };
 
-export type kind20 = 'upsert' | 'delete' | 'action';
+export type kind21 = 'upsert' | 'delete' | 'action';
 
 export type SyncOpResult = {
     op_id: string;
@@ -4874,7 +5033,7 @@ export type TodayRoutine = {
     run: (RunPublic | null);
 };
 
-export type state4 = 'start' | 'resume' | 'done';
+export type state5 = 'start' | 'resume' | 'done';
 
 export type ToggleSetOut = {
     completed: boolean;
@@ -4945,7 +5104,7 @@ export type TrophyPublic = {
     value: string;
 };
 
-export type type4 = 'pr' | 'streak' | 'best' | 'goal' | 'first';
+export type type5 = 'pr' | 'streak' | 'best' | 'goal' | 'first';
 
 export type UpcomingPublic = {
     day: string;
@@ -4991,7 +5150,7 @@ export type UsageEventIn = {
     detail?: (string | null);
 };
 
-export type kind21 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
+export type kind22 = 'app_open' | 'app_close' | 'share_card' | 'paywall_shown' | 'purchase_started' | 'restored' | 'push_open';
 
 export type UsageOut = {
     month: string;
@@ -5314,7 +5473,7 @@ export type WrapActionIn = {
     note?: (string | null);
 };
 
-export type kind22 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
+export type kind23 = 'complete_task' | 'move_task_tomorrow' | 'check_habit' | 'skip_habit';
 
 export type WrapActionOut = {
     kind: string;
@@ -7125,6 +7284,37 @@ export type HabitsStartTimerData = {
 
 export type HabitsStartTimerResponse = (TimerPublic);
 
+export type InvitesCreateInviteData = {
+    requestBody: InviteCreate;
+};
+
+export type InvitesCreateInviteResponse = (InviteCreated);
+
+export type InvitesListInvitesData = {
+    kind: string;
+    objectId: string;
+};
+
+export type InvitesListInvitesResponse = (InvitesOut);
+
+export type InvitesRevokeInviteData = {
+    inviteId: string;
+};
+
+export type InvitesRevokeInviteResponse = (InviteOut);
+
+export type InvitesPreviewData = {
+    token: string;
+};
+
+export type InvitesPreviewResponse = (InvitePreview);
+
+export type InvitesAcceptData = {
+    token: string;
+};
+
+export type InvitesAcceptResponse = (InviteAccepted);
+
 export type ItemsReadItemsData = {
     limit?: number;
     skip?: number;
@@ -7518,6 +7708,49 @@ export type SharedFinanceSetCategoriesData = {
 };
 
 export type SharedFinanceSetCategoriesResponse = (BudgetOut);
+
+export type SharedFinanceListAccountsResponse = (SharedAccountsOut);
+
+export type SharedFinanceGetAccountData = {
+    accountId: string;
+};
+
+export type SharedFinanceGetAccountResponse = (SharedAccountOut);
+
+export type SharedFinanceShareAccountData = {
+    accountId: string;
+    requestBody: AccountShare;
+};
+
+export type SharedFinanceShareAccountResponse = (SharedAccountOut);
+
+export type SharedFinanceListAccountRecordsData = {
+    accountId: string;
+    limit?: number;
+    skip?: number;
+};
+
+export type SharedFinanceListAccountRecordsResponse = (JointRecordsOut);
+
+export type SharedFinanceAddAccountRecordData = {
+    accountId: string;
+    requestBody: JointRecordBody;
+};
+
+export type SharedFinanceAddAccountRecordResponse = (SharedAccountOut);
+
+export type SharedFinanceLeaveAccountData = {
+    accountId: string;
+};
+
+export type SharedFinanceLeaveAccountResponse = (Answered);
+
+export type SharedFinanceRemoveAccountMemberData = {
+    accountId: string;
+    userId: string;
+};
+
+export type SharedFinanceRemoveAccountMemberResponse = (SharedAccountOut);
 
 export type SocialReadMeResponse = (PersonPublic);
 

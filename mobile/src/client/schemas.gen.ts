@@ -768,6 +768,25 @@ export const AccountPublicSchema = {
     title: 'AccountPublic'
 } as const;
 
+export const AccountShareSchema = {
+    properties: {
+        member_ids: {
+            items: {
+                type: 'string',
+                format: 'uuid'
+            },
+            type: 'array',
+            maxItems: 20,
+            minItems: 1,
+            title: 'Member Ids'
+        }
+    },
+    type: 'object',
+    required: ['member_ids'],
+    title: 'AccountShare',
+    description: 'Invite people the owner is connected with to a joint account.'
+} as const;
+
 export const AccountViewSchema = {
     properties: {
         id: {
@@ -7259,7 +7278,7 @@ export const GroupRespondSchema = {
     properties: {
         kind: {
             type: 'string',
-            enum: ['goal', 'budget'],
+            enum: ['goal', 'budget', 'account'],
             title: 'Kind'
         },
         object_id: {
@@ -8957,6 +8976,290 @@ export const InstallmentOutSchema = {
     title: 'InstallmentOut'
 } as const;
 
+export const InviteAcceptedSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        object_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Object Id'
+        },
+        href: {
+            type: 'string',
+            title: 'Href'
+        },
+        joined: {
+            type: 'boolean',
+            title: 'Joined'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'object_id', 'href', 'joined'],
+    title: 'InviteAccepted'
+} as const;
+
+export const InviteCreateSchema = {
+    properties: {
+        kind: {
+            type: 'string',
+            maxLength: 24,
+            minLength: 1,
+            title: 'Kind'
+        },
+        object_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Object Id'
+        }
+    },
+    type: 'object',
+    required: ['kind', 'object_id'],
+    title: 'InviteCreate'
+} as const;
+
+export const InviteCreatedSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        object_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Object Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        used_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Used At'
+        },
+        revoked_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Revoked At'
+        },
+        token: {
+            type: 'string',
+            title: 'Token'
+        },
+        url: {
+            type: 'string',
+            title: 'Url'
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'object_id', 'created_at', 'expires_at', 'token', 'url'],
+    title: 'InviteCreated',
+    description: 'Returned once, on create: the only time the token is readable.'
+} as const;
+
+export const InviteOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        object_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Object Id'
+        },
+        created_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Created At'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        used_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Used At'
+        },
+        revoked_at: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'date-time'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Revoked At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'object_id', 'created_at', 'expires_at'],
+    title: 'InviteOut',
+    description: 'A link as its maker sees it (the token is never shown again).'
+} as const;
+
+export const InvitePersonSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        handle: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Handle'
+        },
+        photo_media_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Photo Media Id'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name'],
+    title: 'InvitePerson'
+} as const;
+
+export const InvitePreviewSchema = {
+    properties: {
+        state: {
+            type: 'string',
+            enum: ['open', 'used', 'expired', 'revoked', 'member', 'own'],
+            title: 'State'
+        },
+        kind: {
+            type: 'string',
+            title: 'Kind'
+        },
+        expires_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Expires At'
+        },
+        inviter: {
+            '$ref': '#/components/schemas/InvitePerson'
+        },
+        subject: {
+            anyOf: [
+                {
+                    '$ref': '#/components/schemas/InviteSubject'
+                },
+                {
+                    type: 'null'
+                }
+            ]
+        }
+    },
+    type: 'object',
+    required: ['state', 'kind', 'expires_at', 'inviter'],
+    title: 'InvitePreview'
+} as const;
+
+export const InviteSubjectSchema = {
+    properties: {
+        title: {
+            type: 'string',
+            title: 'Title'
+        },
+        label: {
+            type: 'string',
+            title: 'Label'
+        },
+        points: {
+            items: {
+                type: 'string'
+            },
+            type: 'array',
+            title: 'Points'
+        },
+        href: {
+            type: 'string',
+            title: 'Href'
+        }
+    },
+    type: 'object',
+    required: ['title', 'label', 'href'],
+    title: 'InviteSubject',
+    description: "What the accept screen shows: written by the kind's module."
+} as const;
+
+export const InvitesOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/InviteOut'
+            },
+            type: 'array',
+            title: 'Data'
+        }
+    },
+    type: 'object',
+    required: ['data'],
+    title: 'InvitesOut'
+} as const;
+
 export const ItemCreateSchema = {
     properties: {
         title: {
@@ -9366,6 +9669,264 @@ export const ItemsPublicSchema = {
     type: 'object',
     required: ['data', 'count'],
     title: 'ItemsPublic'
+} as const;
+
+export const JointCategoryOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        icon: {
+            type: 'string',
+            title: 'Icon'
+        },
+        kind: {
+            type: 'string',
+            enum: ['expense', 'income'],
+            title: 'Kind'
+        },
+        parent_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Parent Id'
+        }
+    },
+    type: 'object',
+    required: ['id', 'name', 'icon', 'kind'],
+    title: 'JointCategoryOut'
+} as const;
+
+export const JointMemberOutSchema = {
+    properties: {
+        person: {
+            '$ref': '#/components/schemas/PersonOut'
+        },
+        role: {
+            type: 'string',
+            enum: ['owner', 'member'],
+            title: 'Role'
+        },
+        status: {
+            type: 'string',
+            enum: ['invited', 'active', 'declined', 'left'],
+            title: 'Status'
+        }
+    },
+    type: 'object',
+    required: ['person', 'role', 'status'],
+    title: 'JointMemberOut'
+} as const;
+
+export const JointRecordBodySchema = {
+    properties: {
+        id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Id'
+        },
+        type: {
+            type: 'string',
+            enum: ['expense', 'income'],
+            title: 'Type'
+        },
+        amount_minor: {
+            type: 'integer',
+            maximum: 100000000000000,
+            minimum: 1,
+            title: 'Amount Minor'
+        },
+        on_date: {
+            type: 'string',
+            format: 'date',
+            title: 'On Date'
+        },
+        category_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Id'
+        },
+        payee: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 120
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Payee'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string',
+                    maxLength: 500
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        }
+    },
+    type: 'object',
+    required: ['type', 'amount_minor', 'on_date'],
+    title: 'JointRecordBody',
+    description: 'A transaction a member logs on a joint account.'
+} as const;
+
+export const JointRecordOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        kind: {
+            type: 'string',
+            enum: ['expense', 'income', 'transfer_in', 'transfer_out'],
+            title: 'Kind'
+        },
+        amount_minor: {
+            type: 'integer',
+            title: 'Amount Minor'
+        },
+        signed_minor: {
+            type: 'integer',
+            title: 'Signed Minor'
+        },
+        at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'At'
+        },
+        day: {
+            type: 'string',
+            format: 'date',
+            title: 'Day'
+        },
+        payee: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Payee'
+        },
+        note: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Note'
+        },
+        category_id: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Id'
+        },
+        category_name: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Name'
+        },
+        category_icon: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Category Icon'
+        },
+        by_id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'By Id'
+        },
+        is_adjustment: {
+            type: 'boolean',
+            title: 'Is Adjustment',
+            default: false
+        },
+        pending: {
+            type: 'boolean',
+            title: 'Pending',
+            default: false
+        }
+    },
+    type: 'object',
+    required: ['id', 'kind', 'amount_minor', 'signed_minor', 'at', 'day', 'by_id'],
+    title: 'JointRecordOut'
+} as const;
+
+export const JointRecordsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/JointRecordOut'
+            },
+            type: 'array',
+            title: 'Data'
+        },
+        count: {
+            type: 'integer',
+            title: 'Count'
+        }
+    },
+    type: 'object',
+    required: ['data', 'count'],
+    title: 'JointRecordsOut'
 } as const;
 
 export const JournalInSchema = {
@@ -17275,6 +17836,18 @@ export const RecordPublicSchema = {
                 }
             ],
             title: 'Fx Rate'
+        },
+        logged_by: {
+            anyOf: [
+                {
+                    type: 'string',
+                    format: 'uuid'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Logged By'
         }
     },
     type: 'object',
@@ -20209,6 +20782,113 @@ export const ShareTemplateOutSchema = {
     type: 'object',
     required: ['key', 'label', 'formats', 'fields'],
     title: 'ShareTemplateOut'
+} as const;
+
+export const SharedAccountOutSchema = {
+    properties: {
+        id: {
+            type: 'string',
+            format: 'uuid',
+            title: 'Id'
+        },
+        role: {
+            type: 'string',
+            enum: ['owner', 'member'],
+            title: 'Role'
+        },
+        my_status: {
+            type: 'string',
+            enum: ['invited', 'active', 'declined', 'left'],
+            title: 'My Status'
+        },
+        name: {
+            type: 'string',
+            title: 'Name'
+        },
+        type: {
+            type: 'string',
+            title: 'Type'
+        },
+        color: {
+            type: 'string',
+            title: 'Color'
+        },
+        currency: {
+            type: 'string',
+            title: 'Currency'
+        },
+        archived: {
+            type: 'boolean',
+            title: 'Archived'
+        },
+        in_net_worth: {
+            type: 'boolean',
+            title: 'In Net Worth'
+        },
+        balance_minor: {
+            type: 'integer',
+            title: 'Balance Minor'
+        },
+        owner: {
+            '$ref': '#/components/schemas/PersonOut'
+        },
+        members: {
+            items: {
+                '$ref': '#/components/schemas/JointMemberOut'
+            },
+            type: 'array',
+            title: 'Members'
+        },
+        records: {
+            items: {
+                '$ref': '#/components/schemas/JointRecordOut'
+            },
+            type: 'array',
+            title: 'Records'
+        },
+        records_total: {
+            type: 'integer',
+            title: 'Records Total'
+        },
+        categories: {
+            items: {
+                '$ref': '#/components/schemas/JointCategoryOut'
+            },
+            type: 'array',
+            title: 'Categories'
+        },
+        events: {
+            items: {
+                '$ref': '#/components/schemas/GroupEventOut'
+            },
+            type: 'array',
+            title: 'Events'
+        },
+        shared_at: {
+            type: 'string',
+            format: 'date-time',
+            title: 'Shared At'
+        }
+    },
+    type: 'object',
+    required: ['id', 'role', 'my_status', 'name', 'type', 'color', 'currency', 'archived', 'in_net_worth', 'balance_minor', 'owner', 'members', 'records', 'records_total', 'categories', 'events', 'shared_at'],
+    title: 'SharedAccountOut',
+    description: 'A joint account as one member sees it.'
+} as const;
+
+export const SharedAccountsOutSchema = {
+    properties: {
+        data: {
+            items: {
+                '$ref': '#/components/schemas/SharedAccountOut'
+            },
+            type: 'array',
+            title: 'Data'
+        }
+    },
+    type: 'object',
+    required: ['data'],
+    title: 'SharedAccountsOut'
 } as const;
 
 export const SkipInSchema = {
