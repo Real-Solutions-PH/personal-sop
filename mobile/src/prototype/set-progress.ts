@@ -64,3 +64,38 @@ export function meetsGoal(
 ) {
   return set.weight >= goal.weight - SAME_KG && set.reps >= goal.reps
 }
+
+type GoalSet = Pick<WorkoutSet, "weight" | "reps" | "completedAt">
+
+/** The ticked set that landed today's goal, or undefined while it is not
+ * met. The goal follows double progression: a "+1 rep" goal is the weakest
+ * working set last time plus one, at the same weight, aimed at every set
+ * ("aim 9+ reps on every set"); a "+weight" goal is the new weight for the
+ * rep-range floor on every set. So one set reaching the number is not the
+ * progression: it is hit only when every working set that had a last time
+ * (paired by position, as the rows pair them) is ticked and meets the goal.
+ * For a "+1 rep" goal no set may also be below its own last time, or the
+ * header would say "hit" beside a row saying "−1 rep" (10/8 → 9/8 reached 9
+ * once but went backwards). A "+weight" goal trades reps for load by plan,
+ * so fewer reps than last time does not block it. Extra sets beyond last
+ * time's count are new and never block it. The landing set is the last of
+ * the required sets to be ticked. */
+export function goalHitBy<S extends GoalSet>(
+  today: S[],
+  last: GoalSet[],
+  goal: { kind: "reps" | "weight"; weight: number; reps: number },
+): S | undefined {
+  if (!last.length || today.length < last.length) return undefined
+  const need = today.slice(0, last.length)
+  const ok = need.every(
+    (x, i) =>
+      !!x.completedAt &&
+      meetsGoal(x, goal) &&
+      (goal.kind !== "reps" ||
+        setProgress(x, last[i], "kg").kind !== "down"),
+  )
+  if (!ok) return undefined
+  return need.reduce((a, x) =>
+    (x.completedAt ?? "") > (a.completedAt ?? "") ? x : a,
+  )
+}

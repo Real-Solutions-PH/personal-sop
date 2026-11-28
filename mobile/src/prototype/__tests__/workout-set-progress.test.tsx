@@ -182,3 +182,48 @@ it("a set below last time is muted, not green", () => {
   expect(screen.getByTestId("set-progress-down")).toBeTruthy()
   expect(screen.queryByTestId("set-progress-up")).toBeNull()
 })
+
+/** Log one bench session with exactly these working reps at 120 kg, all
+ * ticked; ``finish`` ends it so it becomes last time. */
+function logBench(reps: number[], finish: boolean) {
+  const res = A.startWorkout({ from: "empty" })
+  if (!res.ok) throw new Error(res.reason)
+  const w = res.workout,
+    [we] = A.addExercises(w.id, ["bench"])
+  for (const x of setsOf(w.id, we.id)) A.removeSet(w.id, we.id, x.id)
+  for (const r of reps) {
+    const x = A.addSet(w.id, we.id)
+    A.updateSet(w.id, we.id, x.id, { weight: 120, reps: r, kind: "working" })
+  }
+  if (finish) {
+    for (const x of setsOf(w.id, we.id)) tickSet(w.id, we.id, x.id)
+    A.finishWorkout(w.id)
+  }
+  return { w, we }
+}
+
+it("Leg Press: last 10/8, now 9/8 keeps +1 rep a target, not hit", () => {
+  logBench([10, 8], true)
+  const goal = C.suggestion(fitStore.get(), "bench")
+  expect(goal).toMatchObject({ kind: "reps", weight: 120, reps: 9 })
+  const { w, we } = logBench([9, 8], false)
+  render(<WorkoutLogger />, { wrapper })
+  act(() => {
+    for (const x of setsOf(w.id, we.id)) tickSet(w.id, we.id, x.id)
+  })
+  // Set 1 reached 9 but is −1 rep on its own last time.
+  expect(screen.getByTestId("set-progress-down")).toBeTruthy()
+  expect(screen.queryByTestId("goal-hit")).toBeNull()
+  expect(screen.getByLabelText("Goal +1 rep")).toBeTruthy()
+})
+
+it("last 10/8, now 10/9 hits the +1 rep goal", () => {
+  logBench([10, 8], true)
+  const { w, we } = logBench([10, 9], false)
+  render(<WorkoutLogger />, { wrapper })
+  act(() => {
+    for (const x of setsOf(w.id, we.id)) tickSet(w.id, we.id, x.id)
+  })
+  expect(screen.queryByTestId("set-progress-down")).toBeNull()
+  expect(screen.getByLabelText("Goal +1 rep: hit")).toBeTruthy()
+})
