@@ -84,3 +84,27 @@ def test_group_op_matches_the_server_schema(op: dict[str, Any]) -> None:
     data = op["data"]
     assert set(data) <= set(action.args.model_fields), "field the server drops"
     action.args.model_validate(data)
+
+
+JOINT = FIXTURE.with_name("shared-joint-wire.json")
+
+
+def _joint_ops() -> list[dict[str, Any]]:
+    ops: list[dict[str, Any]] = json.loads(JOINT.read_text())
+    return ops
+
+
+def test_joint_fixture_covers_every_account_action() -> None:
+    assert {o["name"] for o in _joint_ops()} == {
+        "finance.shared.respond",
+        "finance.account.record",
+        "finance.account.leave",
+    }
+
+
+@pytest.mark.parametrize("op", _joint_ops(), ids=lambda o: str(o["name"]))
+def test_joint_op_matches_the_server_schema(op: dict[str, Any]) -> None:
+    action = registry().actions[op["name"]]
+    data = op["data"]
+    assert set(data) <= set(action.args.model_fields), "field the server drops"
+    action.args.model_validate(data)

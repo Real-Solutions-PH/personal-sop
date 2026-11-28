@@ -1,6 +1,7 @@
 import * as A from "@domain/finance/actions"
 import * as C from "@domain/finance/calc"
 import type { Account, AccountType } from "@domain/finance/data"
+import { jointWorth, memberAccounts } from "@domain/finance/joint"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
 import { currentCurrency } from "@domain/lib/money"
@@ -42,6 +43,13 @@ import { RecordEditor, useMoney } from "./finance"
 import { AccountCard, useAccountColor } from "./finance-account-card"
 import { AccountEditor } from "./finance-account-editor"
 import { FinanceRecord, SampleRecords } from "./finance-home"
+import {
+  isJoint,
+  JointAccountCard,
+  JointMark,
+  ShareSection,
+  useJointAccounts,
+} from "./finance-joint"
 import { FinPill } from "./finance-planned"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 
@@ -190,6 +198,13 @@ export function Accounts({ id }: { id?: string }) {
     [transfer, setTransfer] = useState(false),
     [actual, setActual] = useState(""),
     bal = C.balances(s),
+    joints = useJointAccounts(),
+    jointOf = (id: string) => {
+      const j = joints.find((x) => x.accountId === id && x.role === "owner")
+      return isJoint(j) ? j : undefined
+    },
+    theirs = memberAccounts(joints),
+    joint = a ? jointOf(a.id) : undefined,
     live = s.accounts
       .filter((a) => !a.archived)
       .sort((a, b) => a.order - b.order)
@@ -275,6 +290,7 @@ export function Accounts({ id }: { id?: string }) {
             account={a}
             balance={bal[a.id]}
             onPress={() => setEdit(true)}
+            shared={joint ? <JointMark joint={joint} /> : undefined}
           />
           <Frame
             style={{ paddingHorizontal: 8, paddingTop: 16, paddingBottom: 4 }}
@@ -372,6 +388,7 @@ export function Accounts({ id }: { id?: string }) {
               </Tap>
             ))}
           </Line>
+          <ShareSection accountId={a.id} name={a.name} />
           <View style={{ marginTop: -12 }}>
             <SectionHeading
               action={
@@ -386,7 +403,16 @@ export function Accounts({ id }: { id?: string }) {
             </SectionHeading>
             <Frame style={{ paddingHorizontal: 8, paddingVertical: 2 }}>
               {recs.slice(0, 12).map((r) => (
-                <FinanceRecord key={r.id} record={r} />
+                <FinanceRecord
+                  key={r.id}
+                  record={r}
+                  by={
+                    r.loggedBy
+                      ? (joint?.members.find((m) => m.person.id === r.loggedBy)
+                          ?.person.name ?? "A member")
+                      : undefined
+                  }
+                />
               ))}
               {!recs.length && (
                 <View testID="account-records-empty" style={{ padding: 8 }}>
@@ -473,7 +499,7 @@ export function Accounts({ id }: { id?: string }) {
             prefill={{ type: "transfer", accountId: a.id }}
           />
         </>
-      ) : !live.length ? (
+      ) : !live.length && !theirs.length ? (
         <Empty title="No accounts yet" />
       ) : (
         <>
@@ -486,14 +512,18 @@ export function Accounts({ id }: { id?: string }) {
                   fit
                   style={{ color: t.text }}
                 >
-                  {money(C.netWorth(s, bal))}
+                  {money(
+                    C.netWorth(s, bal) +
+                      jointWorth(joints, currentCurrency().code),
+                  )}
                 </Copy>
                 <Copy size={12} muted>
                   Net worth
                 </Copy>
               </View>
               <Copy size={12} muted style={{ textAlign: "right" }}>
-                {live.length} accounts{"\n"}credit cards count as debt
+                {live.length + theirs.length} accounts{"\n"}credit cards count
+                as debt
               </Copy>
             </Line>
           </Frame>
@@ -535,13 +565,39 @@ export function Accounts({ id }: { id?: string }) {
                     {groups[type]}
                   </SectionHeading>
                   <View style={{ gap: 10 }}>
-                    {group.map((a) => (
-                      <AccountCard key={a.id} account={a} balance={bal[a.id]} />
-                    ))}
+                    {group.map((a) => {
+                      const j = jointOf(a.id)
+                      return (
+                        <AccountCard
+                          key={a.id}
+                          account={a}
+                          balance={bal[a.id]}
+                          shared={j ? <JointMark joint={j} /> : undefined}
+                        />
+                      )
+                    })}
                   </View>
                 </View>
               )
             })
+          )}
+          {!reorder && theirs.length > 0 && (
+            <View style={{ marginTop: -12 }} testID="joint-theirs">
+              <SectionHeading
+                action={
+                  <Copy size={12} muted>
+                    {money(jointWorth(theirs, currentCurrency().code))}
+                  </Copy>
+                }
+              >
+                Shared with you
+              </SectionHeading>
+              <View style={{ gap: 10 }}>
+                {theirs.map((j) => (
+                  <JointAccountCard key={j.id} joint={j} />
+                ))}
+              </View>
+            </View>
           )}
           <Button tone="quiet" href="/finance/rates">
             Compare savings rates

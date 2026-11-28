@@ -134,7 +134,7 @@ export function BudgetCard({ budget }: { budget: G.SharedBudget }) {
 
 // ---------------------------------------------------------------- new goal / budget
 
-function PeoplePicker({
+export function PeoplePicker({
   open,
   picked,
   onChange,

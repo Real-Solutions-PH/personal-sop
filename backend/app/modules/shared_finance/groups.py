@@ -298,6 +298,7 @@ def list_groups(ctx: Ctx) -> GroupsOut:
     mine = ctx.session.exec(
         select(SharedMembership).where(
             SharedMembership.owner_id == ctx.user_id,
+            col(SharedMembership.kind).in_(("goal", "budget")),
             col(SharedMembership.status).in_(("invited", "active")),
             col(SharedMembership.deleted_at).is_(None),
         )

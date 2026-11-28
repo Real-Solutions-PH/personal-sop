@@ -10,6 +10,7 @@ import {
   Smartphone,
   TrendingUp,
 } from "lucide-react-native"
+import type { ReactNode } from "react"
 import { View } from "react-native"
 import { Copy, Tap } from "../native-kit"
 import { go } from "../navigation"
@@ -151,12 +152,15 @@ export function AccountCard({
   balance,
   compact = false,
   onPress,
+  shared,
 }: {
   account: Account
   balance: number
   /** The small card in the Finance home row; full width otherwise. */
   compact?: boolean
   onPress?: () => void
+  /** A joint account's mark (the people in it), top right. */
+  shared?: ReactNode
 }) {
   const money = useMoney()
   const base = useAccountColor(a)
@@ -226,6 +230,7 @@ export function AccountCard({
               {KIND[a.type]}
             </Copy>
           </View>
+          {shared}
         </View>
         <View style={{ gap: 2 }}>
           <Copy

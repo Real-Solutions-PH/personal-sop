@@ -2,8 +2,12 @@
 // each month, what it is made of today, and where what is scheduled takes
 // it next. Each reads the same accounts the line does (in net worth, not
 // archived).
+
 import * as C from "@domain/finance/calc"
 import type { FinState } from "@domain/finance/data"
+import { jointWorth } from "@domain/finance/joint"
+import { sharedStore } from "@domain/finance/loans"
+import { currentCurrency } from "@domain/lib/money"
 import { useMemo } from "react"
 import { View } from "react-native"
 import { FinanceLineChart } from "../chart"
@@ -238,7 +242,12 @@ export function NetWorthAhead({ s }: { s: FinState }) {
         }),
       [s],
     ),
-    now = C.netWorth(s),
+    now =
+      C.netWorth(s) +
+      jointWorth(
+        sharedStore.use((x) => x.accounts),
+        currentCurrency().code,
+      ),
     values = [now, ...proj.months.map((m) => now + (m.endBase - proj.start))],
     last = values.at(-1) ?? now,
     diff = last - now

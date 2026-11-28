@@ -995,7 +995,7 @@
       "category_id": "00000000-0000-4000-8000-00000000000f",
       "schedule": {
         "kind": "monthly",
-        "day": 12
+        "day": 25
       },
       "start": "2026-10-19",
       "end_rule": {

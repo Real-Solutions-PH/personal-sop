@@ -181,6 +181,11 @@ class FinRecord(OwnedRow, table=True):
     )
     status: str = Field(default="cleared", sa_type=String(8))  # type: ignore
     edited_at: datetime | None = Field(default=None, sa_type=tstz())  # type: ignore
+    # A joint account: the member who logged it (into the owner's ledger).
+    # None for the owner's own records.
+    logged_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", ondelete="SET NULL"
+    )
 
 
 class Budget(OwnedRow, table=True):

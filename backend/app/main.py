@@ -16,6 +16,7 @@ from app.core.observability import scrub_event
 from app.core.rls import check_rls_posture
 from app.core.storage import ensure_bucket
 from app.logger import app_logger
+from app.modules.invites.page import router as invite_page_router
 from app.modules.social.share import router as share_router
 from app.shared.errors import ErrorResponse, register_exception_handlers
 
@@ -271,6 +272,8 @@ app.include_router(
 )
 # Public pages outside the API: what a shared post link unfurls into.
 app.include_router(share_router)
+# The page an invite link opens: hands the token to the app.
+app.include_router(invite_page_router)
 
 
 def custom_openapi() -> dict[str, Any]:

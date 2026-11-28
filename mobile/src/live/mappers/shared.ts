@@ -19,6 +19,13 @@ import type {
   SharedBudget,
   SharedGoal,
 } from "@domain/finance/groups"
+import type {
+  JointCategory,
+  JointMember,
+  JointRecord,
+  JointStatus,
+  SharedAccount,
+} from "@domain/finance/joint"
 import {
   type Loan,
   type LoanEvent,
@@ -244,7 +251,12 @@ export const GROUP_ACTIONS = [
   "finance.goal.decide",
 ] as const
 
-const SHARED_ACTIONS = [...LOAN_ACTIONS, ...GROUP_ACTIONS]
+export const ACCOUNT_ACTIONS = [
+  "finance.account.record",
+  "finance.account.leave",
+] as const
+
+const SHARED_ACTIONS = [...LOAN_ACTIONS, ...GROUP_ACTIONS, ...ACCOUNT_ACTIONS]
 
 /** Category ids between the phone (slugs for the seeded ones) and the
  * server (UUIDs). */
@@ -442,12 +454,116 @@ export function budgetActions(
   return []
 }
 
+// ---------------------------------------------------------------- joint accounts
+
+function jointMembers(v: unknown): JointMember[] {
+  return ((v ?? []) as Row[]).map((m) => ({
+    person: person(m.person),
+    role: m.role === "owner" ? "owner" : "member",
+    status: String(m.status) as JointStatus,
+  }))
+}
+
+export function jointRecord(v: Row): JointRecord {
+  return {
+    id: String(v.id),
+    kind: String(v.kind) as JointRecord["kind"],
+    amount: num(v.amount_minor),
+    signed: num(v.signed_minor),
+    at: instant(v.at),
+    day: String(v.day),
+    payee: str(v.payee),
+    note: str(v.note),
+    categoryId: str(v.category_id),
+    categoryName: str(v.category_name),
+    categoryIcon: str(v.category_icon),
+    byId: String(v.by_id),
+    isAdjustment: v.is_adjustment ? true : undefined,
+    pending: v.pending ? true : undefined,
+  }
+}
+
+function jointCategory(v: Row): JointCategory {
+  return {
+    id: String(v.id),
+    name: String(v.name ?? ""),
+    icon: String(v.icon ?? "tag"),
+    kind: v.kind === "income" ? "income" : "expense",
+    parentId: str(v.parent_id),
+  }
+}
+
+export function accountFromRow(row: Payload): SharedAccount | null {
+  if (row.kind !== "account") return null
+  const d = (row.data ?? {}) as Row
+  return {
+    id: String(row.id),
+    accountId: String(row.object_id),
+    role: row.role === "owner" ? "owner" : "member",
+    myStatus: String(d.my_status ?? row.status) as JointStatus,
+    name: String(d.name ?? ""),
+    type: String(d.type ?? "bank"),
+    color: String(d.color ?? "fin"),
+    currency: String(d.currency ?? "PHP"),
+    archived: Boolean(d.archived),
+    inNetWorth: d.in_net_worth !== false,
+    balance: num(d.balance_minor),
+    owner: person(d.owner),
+    members: jointMembers(d.members),
+    records: ((d.records ?? []) as Row[]).map(jointRecord),
+    recordsTotal: num(d.records_total),
+    categories: ((d.categories ?? []) as Row[]).map(jointCategory),
+    sharedAt: instant(d.shared_at ?? new Date(0).toISOString()),
+  }
+}
+
+export function accountActions(
+  prev: SharedAccount | undefined,
+  next: SharedAccount | undefined,
+): ActionOp[] {
+  if (!prev || !next) return []
+  const account_id = next.accountId
+  const out: ActionOp[] = []
+  if (prev.myStatus === "invited" && next.myStatus !== "invited")
+    out.push({
+      name: "finance.shared.respond",
+      data: {
+        kind: "account",
+        object_id: account_id,
+        accept: next.myStatus === "active",
+        category_ids: [],
+      },
+    })
+  if (prev.myStatus === "active" && next.myStatus === "left")
+    out.push({ name: "finance.account.leave", data: { account_id } })
+  const before = new Set(prev.records.map((r) => r.id))
+  for (const r of next.records) {
+    if (before.has(r.id) || !r.local) continue
+    if (r.kind !== "expense" && r.kind !== "income") continue
+    out.push({
+      name: "finance.account.record",
+      data: {
+        id: r.id,
+        account_id,
+        type: r.kind,
+        amount_minor: r.amount,
+        on_date: r.day,
+        category_id: r.categoryId ?? null,
+        payee: r.payee ?? null,
+        note: r.note ?? null,
+      },
+    })
+  }
+  return out
+}
+
 // ---------------------------------------------------------------- the mapper
 
-export type SharedRow = Loan | SharedGoal | SharedBudget
+export type SharedRow = Loan | SharedGoal | SharedBudget | SharedAccount
 const isLoan = (r: SharedRow): r is Loan => "loanId" in r
 const isGoal = (r: SharedRow): r is SharedGoal => "goalId" in r
 const isBudget = (r: SharedRow): r is SharedBudget => "budgetId" in r
+const isAccount = (r: SharedRow): r is SharedAccount => "accountId" in r
 
 function byNewest<T extends { createdAt: string }>(a: T, b: T) {
   return b.createdAt.localeCompare(a.createdAt)
@@ -478,7 +594,12 @@ export function sharedMemberMapper(
   return {
     entity: "shared_member",
     store: sharedStore,
-    list: (s) => [...s.loans, ...(s.goals ?? []), ...(s.budgets ?? [])],
+    list: (s) => [
+      ...s.loans,
+      ...(s.goals ?? []),
+      ...(s.budgets ?? []),
+      ...(s.accounts ?? []),
+    ],
     id: (r) => r.id,
     // Never sent as fields (actionsOnly); what the snapshot compares.
     toServer: (r) =>
@@ -486,13 +607,17 @@ export function sharedMemberMapper(
         ? { status: r.status, payments: r.payments.length }
         : isGoal(r)
           ? { status: r.myStatus, entries: r.entries.length }
-          : { status: r.myStatus, categories: r.myCategoryIds.join() },
+          : isAccount(r)
+            ? { status: r.myStatus, records: r.records.length }
+            : { status: r.myStatus, categories: r.myCategoryIds.join() },
     fromServer: (row) =>
       row.kind === "loan"
         ? loanFromRow(row)
         : row.kind === "goal"
           ? goalFromRow(row)
-          : budgetFromRow(row, cats),
+          : row.kind === "account"
+            ? accountFromRow(row)
+            : budgetFromRow(row, cats),
     merge: (s, ups, dels) => {
       const gone = new Set(dels)
       return {
@@ -511,6 +636,9 @@ export function sharedMemberMapper(
         budgets: upsert(s.budgets ?? [], ups.filter(isBudget), gone).sort(
           byNewest,
         ),
+        accounts: upsert(s.accounts ?? [], ups.filter(isAccount), gone).sort(
+          (a, b) => b.sharedAt.localeCompare(a.sharedAt),
+        ),
       }
     },
     actionsOnly: true,
@@ -523,6 +651,11 @@ export function sharedMemberMapper(
       if (!row) return []
       if (isLoan(row))
         return loanActions(prev as Loan | undefined, next as Loan | undefined)
+      if (isAccount(row))
+        return accountActions(
+          prev as SharedAccount | undefined,
+          next as SharedAccount | undefined,
+        )
       if (isGoal(row))
         return goalActions(
           prev as SharedGoal | undefined,

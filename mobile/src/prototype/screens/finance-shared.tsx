@@ -4,6 +4,7 @@
 // every change queues one sync action (live/mappers/shared.ts).
 import { shortDate } from "@domain/finance/calc"
 import type * as G from "@domain/finance/groups"
+import { NO_ACCOUNTS, type SharedAccount } from "@domain/finance/joint"
 import * as L from "@domain/finance/loans"
 import { dayKey } from "@domain/lib/day"
 import { currencyInfo, money } from "@domain/lib/money"
@@ -37,6 +38,7 @@ import {
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet } from "../ui"
+import { isJoint, JointAccountCard, JointList } from "./finance-joint"
 import { DecideSheet, NewLoanSheet, PaySheet } from "./finance-loan-sheets"
 import { FinPill } from "./finance-planned"
 import { BudgetCard, GoalCard, NewGroupSheet } from "./finance-shared-groups"
@@ -215,9 +217,17 @@ export function SharedSection() {
       .filter(
         (b) => b.myStatus === "active" || b.myStatus === "invited",
       ).length,
+    joints = L.sharedStore
+      .use((s) => s.accounts ?? NO_ACCOUNTS)
+      .filter(
+        (a) =>
+          (a.myStatus === "active" || a.myStatus === "invited") &&
+          (a.role === "member" || isJoint(a)),
+      ).length,
     groups = [
       goals ? `${goals} shared goal${goals === 1 ? "" : "s"}` : "",
       budgets ? `${budgets} shared budget${budgets === 1 ? "" : "s"}` : "",
+      joints ? `${joints} joint account${joints === 1 ? "" : "s"}` : "",
     ]
       .filter(Boolean)
       .join(" · ")
@@ -361,6 +371,33 @@ const SAMPLE_BUDGET: G.SharedBudget = {
   createdAt: "2026-01-01T00:00:00.000Z",
 }
 
+const SAMPLE_JOINT: SharedAccount = {
+  id: "sample-joint",
+  accountId: "sample-joint",
+  role: "member",
+  myStatus: "active",
+  name: "House money",
+  type: "bank",
+  color: "fin",
+  currency: "PHP",
+  archived: false,
+  inNetWorth: true,
+  balance: 4_250_000,
+  owner: { id: "them", name: "Your partner" },
+  members: [
+    {
+      person: { id: "them", name: "Your partner" },
+      role: "owner",
+      status: "active",
+    },
+    { person: { id: "me", name: "You" }, role: "member", status: "active" },
+  ],
+  records: [],
+  recordsTotal: 0,
+  categories: [],
+  sharedAt: "2026-01-01T00:00:00.000Z",
+}
+
 type Making = "choose" | "loan" | "goal" | "budget" | null
 
 export function SharedHome({ startNew = false }: { startNew?: boolean }) {
@@ -369,6 +406,13 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
     loans = L.sharedStore.use((s) => s.loans),
     goals = L.sharedStore.use((s) => s.goals ?? []),
     budgets = L.sharedStore.use((s) => s.budgets ?? []),
+    hasJoint = L.sharedStore
+      .use((s) => s.accounts ?? NO_ACCOUNTS)
+      .some(
+        (a) =>
+          (a.myStatus === "active" || a.myStatus === "invited") &&
+          (a.role === "member" || isJoint(a)),
+      ),
     today = dayKey(),
     [making, setMaking] = useState<Making>(startNew ? "loan" : null)
   const invites = loans.filter(
@@ -470,6 +514,20 @@ export function SharedHome({ startNew = false }: { startNew?: boolean }) {
           <EmptyFoot
             hint="One monthly limit you both spend against. Everyone is told at 80% and 100%."
             action={{ label: "New budget", onPress: () => setMaking("budget") }}
+          />
+        </>
+      )}
+      <SectionHeading>Joint accounts</SectionHeading>
+      {hasJoint ? (
+        <JointList />
+      ) : (
+        <>
+          <Dimmed>
+            <JointAccountCard joint={SAMPLE_JOINT} />
+          </Dimmed>
+          <EmptyFoot
+            hint="Run an account together: everyone sees the balance and every transaction and adds their own. Open one of your accounts to share it."
+            action={{ label: "Open accounts", href: "/finance/accounts" }}
           />
         </>
       )}

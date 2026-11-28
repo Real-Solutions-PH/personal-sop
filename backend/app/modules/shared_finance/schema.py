@@ -259,7 +259,7 @@ class BudgetCreate(BaseModel):
 
 
 class GroupRef(BaseModel):
-    kind: Literal["goal", "budget"]
+    kind: Literal["goal", "budget", "account"]
     object_id: uuid.UUID
 
 
@@ -391,3 +391,101 @@ class DecideBody(BaseModel):
 
 class CategoriesBody(BaseModel):
     category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=50)
+
+
+# ================================================================ joint accounts
+
+JointRecordKind = Literal["expense", "income", "transfer_in", "transfer_out"]
+
+
+class AccountShare(BaseModel):
+    """Invite people the owner is connected with to a joint account."""
+
+    member_ids: list[uuid.UUID] = Field(min_length=1, max_length=20)
+
+
+class JointRecordBody(BaseModel):
+    """A transaction a member logs on a joint account."""
+
+    id: uuid.UUID | None = None
+    type: Literal["expense", "income"]
+    amount_minor: Minor
+    on_date: date
+    # One of the account owner's categories of the same kind.
+    category_id: uuid.UUID | None = None
+    payee: str | None = Field(default=None, max_length=120)
+    note: str | None = Field(default=None, max_length=500)
+
+
+class JointRecordArgs(JointRecordBody):
+    account_id: uuid.UUID
+
+
+class AccountRef(BaseModel):
+    account_id: uuid.UUID
+
+
+class JointMemberOut(BaseModel):
+    person: PersonOut
+    role: Literal["owner", "member"]
+    status: MemberStatus
+
+
+class JointCategoryOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    icon: str
+    kind: Literal["expense", "income"]
+    parent_id: uuid.UUID | None = None
+
+
+class JointRecordOut(BaseModel):
+    id: uuid.UUID
+    kind: JointRecordKind
+    # Always positive; ``signed_minor`` is its effect on this account.
+    amount_minor: int
+    signed_minor: int
+    at: datetime
+    day: date
+    payee: str | None = None
+    note: str | None = None
+    category_id: uuid.UUID | None = None
+    category_name: str | None = None
+    category_icon: str | None = None
+    # Who logged it (the owner for their own records).
+    by_id: uuid.UUID
+    is_adjustment: bool = False
+    pending: bool = False
+
+
+class SharedAccountOut(BaseModel):
+    """A joint account as one member sees it."""
+
+    id: uuid.UUID
+    role: Literal["owner", "member"]
+    my_status: MemberStatus
+    name: str
+    type: str
+    color: str
+    currency: str
+    archived: bool
+    in_net_worth: bool
+    balance_minor: int
+    owner: PersonOut
+    members: list[JointMemberOut]
+    # Newest first; ``records_total`` counts every record (older ones page
+    # in from ``GET /finance/shared/accounts/{id}/records``).
+    records: list[JointRecordOut]
+    records_total: int
+    categories: list[JointCategoryOut]
+    events: list[GroupEventOut]
+    shared_at: datetime
+
+
+class SharedAccountsOut(BaseModel):
+    data: list[SharedAccountOut]
+
+
+class JointRecordsOut(BaseModel):
+    data: list[JointRecordOut]
+    count: int

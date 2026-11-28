@@ -27,7 +27,9 @@ from sqlmodel import Field
 
 from app.shared.owned import JSONB, OwnedRow, enum_check, minor_check, tstz
 
-SHARED_KINDS = ("loan", "goal", "budget")
+SHARED_KINDS = ("loan", "goal", "budget", "account")
+# What a membership (and the shared trail) can be about.
+GROUP_KINDS = ("goal", "budget", "account")
 MEMBER_ROLES = ("lender", "borrower", "owner", "member")
 MEMBERSHIP_STATUSES = ("invited", "active", "declined", "left")
 GROUP_STATUSES = ("active", "closed")
@@ -43,6 +45,10 @@ GROUP_EVENT_KINDS = (
     "withdrawal_withdrawn",
     "categories_set",
     "threshold",
+    "invited",
+    "left",
+    "removed",
+    "recorded",
 )
 LOAN_STATUSES = ("invited", "active", "declined", "cancelled", "paid")
 PAYMENT_KINDS = ("transfer", "cash")
@@ -223,13 +229,15 @@ class SharedBudget(OwnedRow, table=True):
 
 
 class SharedMembership(OwnedRow, table=True):
-    """One person's place in a shared goal or budget. ``owner_id`` is the
-    member; written only by the server's use cases."""
+    """One person's place in a shared goal, budget or joint account.
+    ``owner_id`` is the member; written only by the server's use cases. For
+    an account, ``object_id`` is the ``account`` row (owned by the account's
+    owner, whose own membership has role ``owner``)."""
 
     __tablename__ = "shared_membership"
     __table_args__ = (
         UniqueConstraint("owner_id", "kind", "object_id", name="uq_shared_membership"),
-        enum_check("kind", ("goal", "budget"), name="ck_shared_membership_kind"),
+        enum_check("kind", GROUP_KINDS, name="ck_shared_membership_kind"),
         enum_check("role", ("owner", "member"), name="ck_shared_membership_role"),
         enum_check("status", MEMBERSHIP_STATUSES, name="ck_shared_membership_status"),
         Index("ix_shared_membership_object", "kind", "object_id"),
@@ -294,9 +302,7 @@ class SharedEvent(OwnedRow, table=True):
     __tablename__ = "shared_event"
     __table_args__ = (
         enum_check("kind", GROUP_EVENT_KINDS, name="ck_shared_event_kind"),
-        enum_check(
-            "object_kind", ("goal", "budget"), name="ck_shared_event_object_kind"
-        ),
+        enum_check("object_kind", GROUP_KINDS, name="ck_shared_event_object_kind"),
         Index("ix_shared_event_object", "object_kind", "object_id"),
     )
 

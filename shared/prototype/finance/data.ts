@@ -57,6 +57,8 @@ export interface FinRecord {
   origCurrency?: string
   origAmount?: number
   fxRate?: number
+  /** A joint account: the member who logged it into this ledger. */
+  loggedBy?: string
 }
 export interface Category {
   id: string

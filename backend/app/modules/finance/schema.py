@@ -320,6 +320,8 @@ class RecordPublic(BaseModel):
     orig_currency: str | None = None
     orig_amount_minor: int | None = None
     fx_rate: Decimal | None = None
+    # Joint account: who logged it, when it wasn't the owner.
+    logged_by: uuid.UUID | None = None
 
 
 class FxRatePublic(BaseModel):

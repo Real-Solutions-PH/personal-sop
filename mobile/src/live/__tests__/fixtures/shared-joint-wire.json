@@ -1,0 +1,33 @@
+[
+  {
+    "kind": "action",
+    "name": "finance.shared.respond",
+    "data": {
+      "kind": "account",
+      "object_id": "44444444-4444-4444-8444-444444444444",
+      "accept": true,
+      "category_ids": []
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.account.record",
+    "data": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "account_id": "44444444-4444-4444-8444-444444444444",
+      "type": "expense",
+      "amount_minor": 50000,
+      "on_date": "2026-11-28",
+      "category_id": "44444444-4444-4444-8444-444444444444",
+      "payee": "Rice",
+      "note": null
+    }
+  },
+  {
+    "kind": "action",
+    "name": "finance.account.leave",
+    "data": {
+      "account_id": "44444444-4444-4444-8444-444444444444"
+    }
+  }
+]

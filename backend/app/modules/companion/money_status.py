@@ -15,7 +15,7 @@ from app.modules.finance import calc
 from app.modules.finance import public as finance
 from app.modules.shared_finance import public as shared
 from app.shared.context import Ctx
-from app.shared.currency import money
+from app.shared.currency import currency, money
 
 BILLS_AHEAD_DAYS = 7
 BILLS_BACK_DAYS = 14
@@ -29,6 +29,24 @@ def status(ctx: Ctx) -> dict[str, Any]:
         {"name": a.name, "type": a.type, "balance": money(bal.get(a.id, 0), cur)}
         for a in s.accounts
         if not a.archived
+    ]
+    # Joint accounts someone else owns and I'm in: their balance counts in
+    # my net worth (in my currency only; another currency is listed, not
+    # added). My own joint accounts are already in ``s.accounts``.
+    joint = shared.joint_balances(ctx)
+    joint_worth = sum(
+        j["balance_minor"]
+        for j in joint
+        if j["in_net_worth"] and j["currency"] == cur.code
+    )
+    accounts += [
+        {
+            "name": j["name"],
+            "type": "joint",
+            "owner": j["owner"],
+            "balance": money(j["balance_minor"], currency(j["currency"])),
+        }
+        for j in joint
     ]
     sd = s.settings.month_start_day
     month = calc.month_of(s.today, sd)
@@ -71,7 +89,7 @@ def status(ctx: Ctx) -> dict[str, Any]:
     return {
         "today": s.today.isoformat(),
         "accounts": accounts,
-        "net_worth": money(calc.net_worth(s, bal), cur),
+        "net_worth": money(calc.net_worth(s, bal) + joint_worth, cur),
         "month": {"first_day": first.isoformat(), "last_day": last.isoformat()},
         "spent_this_month_so_far": money(
             calc.spend_in(s, first, min(last, s.today), None), cur

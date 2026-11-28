@@ -40,6 +40,7 @@ import { prototypeMode } from "@/prototype/mode"
 import { replace, switchTab } from "@/prototype/navigation"
 import { OfflineNote } from "@/prototype/offline-note"
 import { noteActivity, useIdle } from "@/prototype/on-screen"
+import { takePendingInvite } from "@/prototype/pending-invite"
 import { startRestAlarm } from "@/prototype/rest-alarm"
 import { FinishWatcher } from "@/prototype/routine-done"
 import { startRunTracker } from "@/prototype/run-tracker"
@@ -266,6 +267,13 @@ export default function PrototypeLayout() {
   useEffect(() => {
     if (firstRun && !inFirstRun) replace("/onboarding")
   }, [firstRun, inFirstRun])
+  // An invite link opened while signed out: its accept screen, once the
+  // person is in (and past onboarding, for a new account).
+  useEffect(() => {
+    if (!ready || firstRun || inFirstRun) return
+    const token = takePendingInvite()
+    if (token) replace(`/finance/invite/${token}`)
+  }, [ready, firstRun, inFirstRun])
   const focus =
     firstRun ||
     /^\/habits\/routines\/[^/]+\/play$/.test(path) ||
