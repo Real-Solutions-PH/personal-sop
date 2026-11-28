@@ -112,7 +112,9 @@ test("the header back goes to the Weekly routine", () => {
 test("Android's hardware back goes to the Weekly routine too", () => {
   const add = jest.spyOn(BackHandler, "addEventListener")
   const view = render(<Templates />, { wrapper })
-  const handler = add.mock.calls.find((c) => c[0] === "hardwareBackPress")?.[1]
+  const handler = add.mock.calls.find(
+    (c) => c[0] === "hardwareBackPress",
+  )?.[1] as (() => boolean | null | undefined) | undefined
   expect(handler).toBeDefined()
   let handled: boolean | null | undefined
   act(() => {

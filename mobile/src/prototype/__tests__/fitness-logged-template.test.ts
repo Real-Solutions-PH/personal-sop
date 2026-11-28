@@ -114,9 +114,9 @@ test("a workout started from a template adds none and leaves it as it is", () =>
   const w = A.finishWorkout(res.workout.id)
   expect(fitStore.get().templates).toHaveLength(count)
   expect(w?.templateId).toBe(tpl.id)
-  expect(fitStore.get().templates.find((t) => t.id === tpl.id)?.items).toEqual(
-    [{ exerciseId: a, sets: 3 }],
-  )
+  expect(fitStore.get().templates.find((t) => t.id === tpl.id)?.items).toEqual([
+    { exerciseId: a, sets: 3 },
+  ])
 })
 
 test("repeating a kept workout adds no copy", () => {

@@ -91,8 +91,7 @@ export function goalHitBy<S extends GoalSet>(
     (x, i) =>
       !!x.completedAt &&
       meetsGoal(x, goal) &&
-      (goal.kind !== "reps" ||
-        setProgress(x, last[i], "kg").kind !== "down"),
+      (goal.kind !== "reps" || setProgress(x, last[i], "kg").kind !== "down"),
   )
   if (!ok) return undefined
   return need.reduce((a, x) =>

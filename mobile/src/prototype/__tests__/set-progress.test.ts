@@ -123,12 +123,16 @@ describe("goalHitBy", () => {
 
   test("Leg Press: last 10/8, now 9/8 is not a hit", () => {
     // Set 1 reached 9 but dropped from 10; set 2 stayed at 8.
-    expect(goalHitBy([set(9), set(8)], [set(10), set(8)], reps9)).toBeUndefined()
+    expect(
+      goalHitBy([set(9), set(8)], [set(10), set(8)], reps9),
+    ).toBeUndefined()
   })
 
   test("every set at the goal but one below its own last time is not a hit", () => {
     // 9/9 reaches 9 on every set, yet set 1 went down from 10.
-    expect(goalHitBy([set(9), set(9)], [set(10), set(8)], reps9)).toBeUndefined()
+    expect(
+      goalHitBy([set(9), set(9)], [set(10), set(8)], reps9),
+    ).toBeUndefined()
   })
 
   test("last 10/8, now 10/9 is a hit, landed by the last set to tick", () => {
@@ -156,7 +160,11 @@ describe("goalHitBy", () => {
     // The plan trades reps for weight, so fewer reps than last time is fine.
     const goal = { kind: "weight" as const, weight: 122.5, reps: 8 }
     const last = [set(12), set(12)]
-    expect(goalHitBy([set(8, true, 122.5), set(8, true, 122.5)], last, goal)).toBeDefined()
-    expect(goalHitBy([set(8, true, 122.5), set(12)], last, goal)).toBeUndefined()
+    expect(
+      goalHitBy([set(8, true, 122.5), set(8, true, 122.5)], last, goal),
+    ).toBeDefined()
+    expect(
+      goalHitBy([set(8, true, 122.5), set(12)], last, goal),
+    ).toBeUndefined()
   })
 })
