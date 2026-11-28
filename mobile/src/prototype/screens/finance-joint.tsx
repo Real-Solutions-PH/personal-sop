@@ -191,7 +191,7 @@ export function JointAccountCard({ joint }: { joint: J.SharedAccount }) {
         inNetWorth: joint.inNetWorth,
         inProjection: false,
         archived: joint.archived,
-        manual: true,
+        manual: false,
         order: 0,
       }}
       balance={joint.balance / 100}
