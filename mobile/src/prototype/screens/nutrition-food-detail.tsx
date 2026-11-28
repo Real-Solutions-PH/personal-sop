@@ -268,15 +268,10 @@ export function FoodLoadError({
 export function DetailSkeleton() {
   const t = useTheme()
   const bar = (width: `${number}%` | number, height = 12) => (
-    <View
-      style={{ height, width, borderRadius: 4, backgroundColor: t.soft }}
-    />
+    <View style={{ height, width, borderRadius: 4, backgroundColor: t.soft }} />
   )
   return (
-    <View
-      style={{ gap: 12, opacity: 0.6 }}
-      accessibilityLabel="Loading food"
-    >
+    <View style={{ gap: 12, opacity: 0.6 }} accessibilityLabel="Loading food">
       <Line style={{ gap: 12, alignItems: "flex-start" }}>
         <View
           style={{
@@ -305,7 +300,8 @@ export function DetailSkeleton() {
 
 function kindOf(food: LibraryFood): string {
   if (food.is_global) return "Built-in"
-  if (food.can_edit) return food.origin === "fern" ? "Yours · saved by Fern" : "Yours"
+  if (food.can_edit)
+    return food.origin === "fern" ? "Yours · saved by Fern" : "Yours"
   return "A household member's"
 }
 
@@ -631,13 +627,12 @@ function Energy({ scaled }: { scaled: Scaled }) {
   )
 }
 
-const TARGET_ROWS: { key: "kcal" | MacroKey; label: string; unit: string }[] =
-  [
-    { key: "kcal", label: "Calories", unit: "kcal" },
-    { key: "protein", label: "Protein", unit: "g" },
-    { key: "carbs", label: "Carbs", unit: "g" },
-    { key: "fat", label: "Fat", unit: "g" },
-  ]
+const TARGET_ROWS: { key: "kcal" | MacroKey; label: string; unit: string }[] = [
+  { key: "kcal", label: "Calories", unit: "kcal" },
+  { key: "protein", label: "Protein", unit: "g" },
+  { key: "carbs", label: "Carbs", unit: "g" },
+  { key: "fat", label: "Fat", unit: "g" },
+]
 
 /** This amount against today's targets: what is already eaten, what this
  * adds, on one bar with the target marked. With no targets set, the same
@@ -818,7 +813,13 @@ function Facts({
       kind: "goal",
       daily: limits?.fiberInsolubleGoal ?? null,
     },
-    { key: "sugar", label: "Added sugar", unit: "g", kind: "limit", daily: lim.sugar },
+    {
+      key: "sugar",
+      label: "Added sugar",
+      unit: "g",
+      kind: "limit",
+      daily: lim.sugar,
+    },
     {
       key: "sat_fat",
       label: "Saturated fat",
@@ -826,7 +827,13 @@ function Facts({
       kind: "limit",
       daily: lim.satFat,
     },
-    { key: "sodium", label: "Sodium", unit: "mg", kind: "limit", daily: lim.sodium },
+    {
+      key: "sodium",
+      label: "Sodium",
+      unit: "mg",
+      kind: "limit",
+      daily: lim.sodium,
+    },
   ]
   const known = rows.filter((r) => {
     const v = scaled[r.key]
@@ -998,7 +1005,9 @@ function YourHistory({
               <Tap
                 key={`${meal.id}-${item.id}`}
                 label={`${C.relDay(meal.eatenAt)} ${meal.label}, ${amountLabel(item.qty, item.unit)}, ${whole(item.kcal)} kcal. Open meal`}
-                onPress={() => go(`/nutrition/meals/${encodeURIComponent(meal.id)}`)}
+                onPress={() =>
+                  go(`/nutrition/meals/${encodeURIComponent(meal.id)}`)
+                }
                 style={{
                   paddingHorizontal: 16,
                   paddingVertical: 12,

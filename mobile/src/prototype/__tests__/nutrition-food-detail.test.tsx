@@ -157,7 +157,9 @@ test("the stepper and unit chips recalculate every figure", async () => {
   expect(screen.getByText("Log 1.5 servings")).toBeTruthy()
   expect(screen.getByText("1,800")).toBeTruthy()
   expect(screen.getByText("2,250 mg")).toBeTruthy()
-  expect(screen.getByText("1.5 servings = 225 g · values per serving")).toBeTruthy()
+  expect(
+    screen.getByText("1.5 servings = 225 g · values per serving"),
+  ).toBeTruthy()
   fireEvent.press(screen.getByLabelText("In grams"))
   // 100 g of a 150 g serving: 800 kcal
   expect(screen.getByText("Log 100 g")).toBeTruthy()
@@ -186,7 +188,9 @@ test("a food with only kcal and three macros shows no 0 for the unknowns", async
   mockRequest.mockResolvedValue({ ...food, sugar: null, sodium: null })
   show()
   expect(
-    await screen.findByText("Only calories and macros are known for this food."),
+    await screen.findByText(
+      "Only calories and macros are known for this food.",
+    ),
   ).toBeTruthy()
   expect(screen.queryByText("Sodium")).toBeNull()
   expect(screen.queryByText("0 mg")).toBeNull()
@@ -213,7 +217,9 @@ test("Log this logs the chosen amount, counts the use, and can be undone", async
     unit: "serving",
     kcal: 1200,
   })
-  expect(screen.getByText(`Logged to ${meals[0].label} · 1,200 kcal`)).toBeTruthy()
+  expect(
+    screen.getByText(`Logged to ${meals[0].label} · 1,200 kcal`),
+  ).toBeTruthy()
   expect(mockRequest).toHaveBeenCalledWith("POST", "/nutrition/foods/f1/use")
   // The history counts it at once.
   expect(screen.getByText("time logged")).toBeTruthy()
@@ -235,7 +241,16 @@ test("history counts the meals it was in and opens each", async () => {
         rawInput: "",
         status: "confirmed",
         items: [
-          { id: "i1", name: "Skyr (150 g)", qty: 2, unit: "serving", kcal: 2400, protein: 30, carbs: 20, fat: 0 },
+          {
+            id: "i1",
+            name: "Skyr (150 g)",
+            qty: 2,
+            unit: "serving",
+            kcal: 2400,
+            protein: 30,
+            carbs: 20,
+            fat: 0,
+          },
         ],
       },
     ],
@@ -244,7 +259,9 @@ test("history counts the meals it was in and opens each", async () => {
   show()
   expect(await screen.findByText("time logged")).toBeTruthy()
   expect(screen.queryByText("Not logged yet")).toBeNull()
-  fireEvent.press(screen.getByLabelText(/breakfast, 2 servings, 2,400 kcal. Open meal/))
+  fireEvent.press(
+    screen.getByLabelText(/breakfast, 2 servings, 2,400 kcal. Open meal/),
+  )
   expect(router.push).toHaveBeenCalledWith("/nutrition/meals/m1")
 })
 

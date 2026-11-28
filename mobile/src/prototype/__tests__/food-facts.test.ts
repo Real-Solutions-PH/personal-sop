@@ -4,8 +4,8 @@
 import type { Meal, MealItem } from "@domain/fitness/data"
 import { scaleFood } from "@/live/food-scale"
 import {
-  foodHistory,
   type FactsFood,
+  foodHistory,
   gramsPerBasis,
   highlights,
   isThisFood,
@@ -112,7 +112,9 @@ describe("highlights", () => {
 
   test("protein at 20% of calories is high, 12% a source, under none", () => {
     // 5 g × 4 = 20 kcal of 100
-    expect(keys(food({ protein: 5 }))).toEqual(["High protein: 20% of calories"])
+    expect(keys(food({ protein: 5 }))).toEqual([
+      "High protein: 20% of calories",
+    ])
     // 3 g × 4 = 12 of 100
     expect(keys(food({ protein: 3 }))).toEqual([
       "Source of protein: 12% of calories",

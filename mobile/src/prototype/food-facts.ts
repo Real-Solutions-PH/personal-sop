@@ -169,10 +169,10 @@ export function highlights(food: FactsFood): Highlight[] {
     const meets = (byG: number, byK: number) =>
       (g100 !== null && g100 >= byG) || (k100 !== null && k100 >= byK)
     const detail =
-      g100 !== null ? `${n1(g100)} g per 100 g` : `${n1(food.fiber)} g${perServing}`
-    if (
-      meets(THRESHOLDS.fiberHighPer100g, THRESHOLDS.fiberHighPer100kcal)
-    )
+      g100 !== null
+        ? `${n1(g100)} g per 100 g`
+        : `${n1(food.fiber)} g${perServing}`
+    if (meets(THRESHOLDS.fiberHighPer100g, THRESHOLDS.fiberHighPer100kcal))
       out.push({ key: "fiber", tone: "good", label: "High fiber", detail })
     else if (
       meets(THRESHOLDS.fiberSourcePer100g, THRESHOLDS.fiberSourcePer100kcal)
@@ -295,4 +295,3 @@ export function foodHistory(
     recent: hits.slice(0, keep),
   }
 }
-
