@@ -17,3 +17,8 @@ export function back(fallback = "/today") {
   if (router.canGoBack()) router.back()
   else replace(fallback)
 }
+/** Back to a fixed parent page, wherever the stack came from: pops to it
+ * when it is in the stack, else replaces this screen with it. */
+export function backTo(path: string) {
+  router.dismissTo(path as Href)
+}

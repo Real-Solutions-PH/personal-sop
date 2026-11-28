@@ -12,8 +12,11 @@ jest.mock("expo-router", () => ({
     push: jest.fn(),
     replace: jest.fn(),
     back: jest.fn(),
+    dismissTo: jest.fn(),
     canGoBack: () => false,
   },
+  useFocusEffect: (cb: () => undefined | (() => void)) =>
+    require("react").useEffect(cb, [cb]),
   useLocalSearchParams: () => ({}),
   usePathname: () => "/fitness/templates/x",
 }))
