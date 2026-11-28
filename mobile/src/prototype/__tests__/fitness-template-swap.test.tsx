@@ -7,13 +7,21 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native"
 import type { ReactNode } from "react"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
+/** The route names under the screen (the Weekly routine, then Templates). */
+const mockStack = ["fitness/routine/index", "fitness/templates/index"]
 jest.mock("expo-router", () => ({
   router: {
     push: jest.fn(),
     replace: jest.fn(),
     back: jest.fn(),
+    dismissTo: jest.fn(),
     canGoBack: () => false,
   },
+  useFocusEffect: (cb: () => undefined | (() => void)) =>
+    require("react").useEffect(cb, [cb]),
+  useNavigation: () => ({
+    getState: () => ({ routes: mockStack.map((name) => ({ name })) }),
+  }),
   useLocalSearchParams: () => ({}),
   usePathname: () => "/fitness/templates/x",
 }))

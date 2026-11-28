@@ -7,6 +7,7 @@ import {
   type TemplateItem,
 } from "@domain/fitness/data"
 import { fitStore } from "@domain/fitness/store"
+import { useFocusEffect } from "expo-router"
 import {
   ArrowDown,
   ArrowLeftRight,
@@ -21,8 +22,8 @@ import {
   Trash2,
   X,
 } from "lucide-react-native"
-import { useState } from "react"
-import { TextInput, View } from "react-native"
+import { useCallback, useState } from "react"
+import { BackHandler, TextInput, View } from "react-native"
 import { toast } from "sonner-native"
 import { SavedMark, useAutosave } from "../autosave"
 import {
@@ -34,7 +35,7 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { go, replace } from "../navigation"
+import { go, replace, useBackTo } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
@@ -94,7 +95,23 @@ export function Templates({ id }: { id?: string }) {
     // "Create" in the picker: opened once the picker is gone (iOS will not
     // present the editor while the picker is still leaving).
     [handoff, setHandoff] = useState<string | null>(null),
-    [query, setQuery] = useState("")
+    [query, setQuery] = useState(""),
+    backTo = useBackTo(),
+    // The Templates list belongs to the Weekly routine ("Workouts ·
+    // Manage"): its back always lands there, not wherever the stack was.
+    toRoutine = useCallback(() => backTo("/fitness/routine"), [backTo])
+  // Android's hardware back follows the header's: the list returns to the
+  // Weekly routine. A template (``id``) keeps the stack's back.
+  useFocusEffect(
+    useCallback(() => {
+      if (id) return
+      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+        toRoutine()
+        return true
+      })
+      return () => sub.remove()
+    }, [id, toRoutine]),
+  )
   const move = (i: number, d: number) => {
     const j = i + d
     if (j < 0 || j >= items.length) return
@@ -145,6 +162,7 @@ export function Templates({ id }: { id?: string }) {
     return (
       <Screen
         title="Templates"
+        onBack={toRoutine}
         actions={
           <IconTap
             size={40}
@@ -193,7 +211,7 @@ export function Templates({ id }: { id?: string }) {
         {!s.templates.length && (
           <Empty
             title="No templates yet"
-            detail="Save a workout as a template from its detail screen, or build one here."
+            detail="Workouts you log land here, or build one now."
             action={
               <Button onPress={() => go("/fitness/templates/new")}>
                 New template
@@ -284,7 +302,7 @@ export function Templates({ id }: { id?: string }) {
             disabled={!items.length}
             onPress={() => {
               save()
-              go("/fitness/templates")
+              backTo("/fitness/templates")
             }}
           >
             Save
@@ -460,7 +478,7 @@ export function Templates({ id }: { id?: string }) {
           <Tap
             onPress={() => {
               A.deleteTemplate(existing.id)
-              go("/fitness/templates")
+              backTo("/fitness/templates")
             }}
             style={{
               height: 44,
