@@ -12,6 +12,8 @@ import type { ReactNode } from "react"
 import { BackHandler } from "react-native"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 
+/** The route names under the screen (the Weekly routine, then Templates). */
+let mockStack = ["fitness/routine/index", "fitness/templates/index"]
 jest.mock("expo-router", () => ({
   router: {
     push: jest.fn(),
@@ -22,6 +24,9 @@ jest.mock("expo-router", () => ({
   },
   useFocusEffect: (cb: () => undefined | (() => void)) =>
     require("react").useEffect(cb, [cb]),
+  useNavigation: () => ({
+    getState: () => ({ routes: mockStack.map((name) => ({ name })) }),
+  }),
   useLocalSearchParams: () => ({}),
   usePathname: () => "/fitness/templates/x",
 }))
@@ -100,6 +105,7 @@ beforeEach(() => {
   })
   resetAll()
   jest.clearAllMocks()
+  mockStack = ["fitness/routine/index", "fitness/templates/index"]
 })
 
 test("the header back goes to the Weekly routine", () => {
@@ -107,6 +113,14 @@ test("the header back goes to the Weekly routine", () => {
   fireEvent.press(screen.getByLabelText("Back"))
   expect(router.dismissTo).toHaveBeenCalledWith("/fitness/routine")
   expect(router.back).not.toHaveBeenCalled()
+})
+
+test("opened cold (no routine under it), back replaces it with the routine", () => {
+  mockStack = ["fitness/templates/index"]
+  render(<Templates />, { wrapper })
+  fireEvent.press(screen.getByLabelText("Back"))
+  expect(router.replace).toHaveBeenCalledWith("/fitness/routine")
+  expect(router.dismissTo).not.toHaveBeenCalled()
 })
 
 test("Android's hardware back goes to the Weekly routine too", () => {

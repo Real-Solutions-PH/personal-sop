@@ -35,7 +35,7 @@ import {
   SectionHeading,
   Tap,
 } from "../native-kit"
-import { backTo, go, replace } from "../navigation"
+import { go, replace, useBackTo } from "../navigation"
 import { fonts, useTheme } from "../theme"
 import { Button, Empty, Screen, Sheet } from "../ui"
 import { CreateExerciseRow, ExerciseEditor } from "./fitness"
@@ -79,10 +79,6 @@ function GoalStepper({
   )
 }
 
-/** The Templates list belongs to the Weekly routine ("Workouts · Manage"):
- * its back always lands there, not wherever the stack last was. */
-const toRoutine = () => backTo("/fitness/routine")
-
 export function Templates({ id }: { id?: string }) {
   const s = fitStore.use((s) => s),
     t = useTheme(),
@@ -99,7 +95,11 @@ export function Templates({ id }: { id?: string }) {
     // "Create" in the picker: opened once the picker is gone (iOS will not
     // present the editor while the picker is still leaving).
     [handoff, setHandoff] = useState<string | null>(null),
-    [query, setQuery] = useState("")
+    [query, setQuery] = useState(""),
+    backTo = useBackTo(),
+    // The Templates list belongs to the Weekly routine ("Workouts ·
+    // Manage"): its back always lands there, not wherever the stack was.
+    toRoutine = useCallback(() => backTo("/fitness/routine"), [backTo])
   // Android's hardware back follows the header's: the list returns to the
   // Weekly routine. A template (``id``) keeps the stack's back.
   useFocusEffect(
@@ -110,7 +110,7 @@ export function Templates({ id }: { id?: string }) {
         return true
       })
       return () => sub.remove()
-    }, [id]),
+    }, [id, toRoutine]),
   )
   const move = (i: number, d: number) => {
     const j = i + d
