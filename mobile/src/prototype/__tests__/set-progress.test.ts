@@ -1,7 +1,7 @@
 // The logger's per-set comparison with the same set last time: more reps
 // or more weight is a step up (in the set's own unit, kg or lb), a set with
 // no last time is new, equal is the same, and fewer is honestly lower.
-import { meetsGoal, setProgress } from "../set-progress"
+import { goalHitBy, meetsGoal, setProgress } from "../set-progress"
 
 const LB = 0.45359237
 const lb = (v: number) => Math.round(v * LB * 1000) / 1000
@@ -106,5 +106,65 @@ describe("meetsGoal", () => {
     expect(meetsGoal({ weight: lb(125), reps: 9 }, goal)).toBe(true)
     expect(meetsGoal({ weight: lb(120), reps: 7 }, goal)).toBe(false)
     expect(meetsGoal({ weight: lb(115), reps: 10 }, goal)).toBe(false)
+  })
+})
+
+describe("goalHitBy", () => {
+  // Working sets today and last time, paired by position as the logger's
+  // rows pair them. A "+1 rep" goal is the weakest set last time plus one,
+  // aimed at every set (double progression).
+  const at = "2026-11-24T10:00:00.000Z"
+  const set = (reps: number, done = true, weight = 120) => ({
+    weight,
+    reps,
+    ...(done ? { completedAt: at } : {}),
+  })
+  const reps9 = { kind: "reps" as const, weight: 120, reps: 9 }
+
+  test("Leg Press: last 10/8, now 9/8 is not a hit", () => {
+    // Set 1 reached 9 but dropped from 10; set 2 stayed at 8.
+    expect(
+      goalHitBy([set(9), set(8)], [set(10), set(8)], reps9),
+    ).toBeUndefined()
+  })
+
+  test("every set at the goal but one below its own last time is not a hit", () => {
+    // 9/9 reaches 9 on every set, yet set 1 went down from 10.
+    expect(
+      goalHitBy([set(9), set(9)], [set(10), set(8)], reps9),
+    ).toBeUndefined()
+  })
+
+  test("last 10/8, now 10/9 is a hit, landed by the last set to tick", () => {
+    const today = [
+      { ...set(10), completedAt: "2026-11-24T10:00:00.000Z" },
+      { ...set(9), completedAt: "2026-11-24T10:04:00.000Z" },
+    ]
+    expect(goalHitBy(today, [set(10), set(8)], reps9)).toBe(today[1])
+  })
+
+  test("a set not ticked yet keeps the goal a target", () => {
+    expect(
+      goalHitBy([set(10), set(9, false)], [set(10), set(8)], reps9),
+    ).toBeUndefined()
+  })
+
+  test("fewer sets than last time is not a hit; an extra set does not block it", () => {
+    expect(goalHitBy([set(11)], [set(10), set(8)], reps9)).toBeUndefined()
+    expect(
+      goalHitBy([set(10), set(9), set(6)], [set(10), set(8)], reps9),
+    ).toBeDefined()
+  })
+
+  test("a +weight goal is hit when every set lifts the new weight for the rep floor", () => {
+    // The plan trades reps for weight, so fewer reps than last time is fine.
+    const goal = { kind: "weight" as const, weight: 122.5, reps: 8 }
+    const last = [set(12), set(12)]
+    expect(
+      goalHitBy([set(8, true, 122.5), set(8, true, 122.5)], last, goal),
+    ).toBeDefined()
+    expect(
+      goalHitBy([set(8, true, 122.5), set(12)], last, goal),
+    ).toBeUndefined()
   })
 })

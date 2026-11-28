@@ -398,7 +398,10 @@ export function updateWorkoutMeta(
     notes?: string
   },
 ) {
+  const before = fitStore.get().workouts.find((x) => x.id === id)
   patchWorkout(id, (w) => ({ ...w, ...patch }))
+  if (patch.name !== undefined && before && !sameName(before.name, patch.name))
+    rekeepAfterRename(id)
 }
 export function startRest(sec?: number) {
   fitStore.set((s) => {
@@ -468,6 +471,7 @@ export function finishWorkout(
       .filter((e) => e.sets.length),
   }))
   patchWorkout(id, (w) => ({ ...w, kcal: workoutKcal(fitStore.get(), w) }))
+  keepAsTemplate(id)
   fitStore.set((s) => ({
     ...s,
     activeId: s.activeId === id ? null : s.activeId,
@@ -607,6 +611,76 @@ export function upsertTemplate(
       : [...s.templates, full],
   }))
   return full
+}
+/** The id of the template a free workout was kept as: derived from the
+ * workout that first created it, so it is unique to the person, the same
+ * on every replay of the sync, and marks the template as one kept from a
+ * log (a template the person built by hand never has such an id). */
+const keptTemplateId = (workoutId: string) =>
+  derivedId("logged-template", workoutId, "template")
+const sameName = (a: string, b: string) =>
+  a.trim().toLowerCase() === b.trim().toLowerCase()
+/** A finished workout that came from no template becomes one of the
+ * person's own templates: its exercises in order with their working-set
+ * counts (warm-ups are not planned; weights are not stored, a start from
+ * the template fills each exercise's last weights). The workout links to
+ * it, so the Templates list says "last <day>". Logging a free workout of
+ * the same name again updates that kept template rather than adding a
+ * copy; a template the person made or copied by hand is never rewritten.
+ * A workout started from a template (or repeated from one already kept)
+ * has a templateId and adds nothing. Deleting it is the ordinary delete,
+ * and a later log of that name keeps a fresh one. Only the live logger's
+ * finish keeps one: a workout Fern logs from chat does not. */
+function keepAsTemplate(workoutId: string) {
+  const s = fitStore.get()
+  const w = s.workouts.find((x) => x.id === workoutId)
+  if (!w || w.templateId || w.status !== "finished") return
+  const items = w.exercises
+    .map((e) => ({
+      exerciseId: e.exerciseId,
+      sets: e.sets.filter(isWorking).length,
+    }))
+    .filter((it) => it.sets > 0)
+  if (!items.length) return
+  const kept = new Set(s.workouts.map((x) => keptTemplateId(x.id)))
+  const prior = s.templates.find(
+    (t) => !t.builtIn && kept.has(t.id) && sameName(t.name, w.name),
+  )
+  // A goal time the person gave a timed slot of it stays with its exercise.
+  const goal = new Map(
+    prior?.items.flatMap((it) =>
+      it.targetSec ? [[it.exerciseId, it.targetSec] as const] : [],
+    ),
+  )
+  const tpl = upsertTemplate({
+    id: prior?.id ?? keptTemplateId(w.id),
+    name: prior?.name ?? (w.name.trim().slice(0, 80) || "Workout"),
+    items: items.map((it) => {
+      const targetSec = goal.get(it.exerciseId)
+      return targetSec ? { ...it, targetSec } : it
+    }),
+  })
+  patchWorkout(workoutId, (x) => ({ ...x, templateId: tpl.id }))
+}
+/** A finished workout renamed on its summary ("Morning workout" to
+ * "Upper") follows its kept template: the one it made is renamed, or it
+ * joins a kept template that already has the new name (and the one it made
+ * goes, when no other workout uses it). A workout linked to a template the
+ * person chose keeps that link and leaves the template alone. */
+function rekeepAfterRename(workoutId: string) {
+  const s = fitStore.get()
+  const w = s.workouts.find((x) => x.id === workoutId)
+  if (!w?.templateId || w.status !== "finished") return
+  const kept = new Set(s.workouts.map((x) => keptTemplateId(x.id)))
+  if (!kept.has(w.templateId)) return
+  const old = w.templateId
+  patchWorkout(workoutId, ({ templateId: _, ...x }) => x)
+  keepAsTemplate(workoutId)
+  if (
+    old === keptTemplateId(workoutId) &&
+    !fitStore.get().workouts.some((x) => x.templateId === old)
+  )
+    deleteTemplate(old)
 }
 export function saveAsTemplate(
   workoutId: string,

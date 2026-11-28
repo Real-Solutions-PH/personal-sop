@@ -59,7 +59,7 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { finishingHere } from "../routine-done"
-import { meetsGoal, type SetProgress, setProgress } from "../set-progress"
+import { goalHitBy, type SetProgress, setProgress } from "../set-progress"
 import { fonts, useTheme } from "../theme"
 import {
   Button,
@@ -204,8 +204,8 @@ function ProgressChip({ p, at }: { p: SetProgress; at?: string }) {
   )
 }
 
-/** The exercise's goal for today ("+1 rep", "+2.5 kg"): a target until a
- * set meets it, then a green check that pops once when it lands. */
+/** The exercise's goal for today ("+1 rep", "+2.5 kg"): a target until
+ * every working set meets it, then a green check that pops once when it lands. */
 function GoalChip({
   badge,
   isNew,
@@ -213,7 +213,7 @@ function GoalChip({
 }: {
   badge: string
   isNew: boolean
-  /** When the first set that met it was ticked; absent: not met yet. */
+  /** When the set that landed it was ticked; absent: not met yet. */
   hitAt?: string | null
 }) {
   const t = useTheme(),
@@ -571,14 +571,16 @@ export function WorkoutLogger() {
           allDone =
             we.sets.some((x) => C.isWorking(x) && C.isDone(x)) &&
             we.sets.every(C.isDone),
-          // The goal counts as hit by the first ticked working set that
-          // meets it (weight and reps); only a "+weight" or "+rep" goal can.
+          // The goal is hit only once every working set meets it with no
+          // set below its own last time (see goalHitBy); only a "+weight"
+          // or "+rep" goal can be.
           goalSet =
             suggestion.kind === "weight" || suggestion.kind === "reps"
-              ? we.sets.find(
-                  (x) =>
-                    C.isWorking(x) && C.isDone(x) && meetsGoal(x, suggestion),
-                )
+              ? goalHitBy(we.sets.filter(C.isWorking), prevWorking, {
+                  kind: suggestion.kind,
+                  weight: suggestion.weight,
+                  reps: suggestion.reps,
+                })
               : undefined
         let working = 0,
           warm = 0

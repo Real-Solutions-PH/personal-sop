@@ -613,9 +613,12 @@ export function Screen({
   scrollToEnd = false,
   onRefresh,
   onEndReached,
+  onBack,
 }: {
   titleContent?: ReactNode
   title: string
+  /** The header's back: a fixed parent page instead of the stack's last. */
+  onBack?: () => void
   onTitlePress?: () => void
   children: ReactNode
   actions?: ReactNode
@@ -711,7 +714,7 @@ export function Screen({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Back"
-            onPress={() => back()}
+            onPress={onBack ?? (() => back())}
             hitSlop={4}
             style={{
               minWidth: prototypeLayout ? 40 : 44,
