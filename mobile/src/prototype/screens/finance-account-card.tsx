@@ -2,7 +2,6 @@
 // card in a wallet, filled with the account's own colour. Stat cards stay
 // outlined, so a glance tells "where money lives" from "what it adds up to".
 import * as C from "@domain/finance/calc"
-import type { ReactNode } from "react"
 import type { Account, AccountType } from "@domain/finance/data"
 import {
   Banknote,
@@ -11,6 +10,7 @@ import {
   Smartphone,
   TrendingUp,
 } from "lucide-react-native"
+import type { ReactNode } from "react"
 import { View } from "react-native"
 import { Copy, Tap } from "../native-kit"
 import { go } from "../navigation"

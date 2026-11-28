@@ -1,4 +1,4 @@
-import { Redirect, useLocalSearchParams } from "expo-router"
+import { type Href, Redirect, useLocalSearchParams } from "expo-router"
 import { setPendingInvite } from "@/prototype/pending-invite"
 import { sessionStore } from "@/prototype/session"
 
@@ -9,7 +9,7 @@ import { sessionStore } from "@/prototype/session"
 export default function Page() {
   const { token } = useLocalSearchParams<{ token: string }>()
   const signedIn = sessionStore.use((s) => s.signedIn)
-  if (signedIn) return <Redirect href={`/finance/invite/${token}`} />
+  if (signedIn) return <Redirect href={`/finance/invite/${token}` as Href} />
   setPendingInvite(token)
   return <Redirect href="/welcome" />
 }

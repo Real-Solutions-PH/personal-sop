@@ -13,19 +13,19 @@
 // YYYY-MM-DD, instants ISO.
 
 import type {
-  JointCategory,
-  JointMember,
-  JointRecord,
-  JointStatus,
-  SharedAccount,
-} from "@domain/finance/joint"
-import type {
   GoalEntry,
   GroupMember,
   MemberStatus,
   SharedBudget,
   SharedGoal,
 } from "@domain/finance/groups"
+import type {
+  JointCategory,
+  JointMember,
+  JointRecord,
+  JointStatus,
+  SharedAccount,
+} from "@domain/finance/joint"
 import {
   type Loan,
   type LoanEvent,

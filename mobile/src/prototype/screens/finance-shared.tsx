@@ -38,9 +38,9 @@ import {
 import { go } from "../navigation"
 import { useTheme } from "../theme"
 import { Button, confirm, Empty, Screen, Sheet } from "../ui"
+import { isJoint, JointAccountCard, JointList } from "./finance-joint"
 import { DecideSheet, NewLoanSheet, PaySheet } from "./finance-loan-sheets"
 import { FinPill } from "./finance-planned"
-import { isJoint, JointAccountCard, JointList } from "./finance-joint"
 import { BudgetCard, GoalCard, NewGroupSheet } from "./finance-shared-groups"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 

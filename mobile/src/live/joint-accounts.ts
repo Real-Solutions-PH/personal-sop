@@ -8,8 +8,8 @@
 // Invite links are the generic ``/invites`` API (backend
 // app/modules/invites): ``kind`` + ``object_id`` name what a link is for.
 
-import { http as authHttp } from "./auth"
 import type { JointRecord, SharedAccount } from "@domain/finance/joint"
+import { http as authHttp } from "./auth"
 import { ApiError, type Http } from "./http"
 import { accountFromRow, jointRecord } from "./mappers/shared"
 import { syncNow } from "./runtime"
@@ -96,7 +96,10 @@ export async function olderRecords(
   deps: Partial<{ http: Http }> = {},
 ): Promise<{ records: JointRecord[]; total: number }> {
   const { http } = { ...defaults(), ...deps }
-  const w = await http.request<{ data: Record<string, unknown>[]; count: number }>(
+  const w = await http.request<{
+    data: Record<string, unknown>[]
+    count: number
+  }>(
     "GET",
     `/finance/shared/accounts/${accountId}/records?skip=${skip}&limit=100`,
   )

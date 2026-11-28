@@ -8,8 +8,7 @@ export const pendingInvite = createStore<{ token: string | null }>(
 )
 
 export function setPendingInvite(token: string | undefined) {
-  if (token && pendingInvite.get().token !== token)
-    pendingInvite.set({ token })
+  if (token && pendingInvite.get().token !== token) pendingInvite.set({ token })
 }
 
 /** The kept token, cleared as it is taken. */

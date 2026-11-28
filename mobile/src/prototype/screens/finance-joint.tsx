@@ -46,7 +46,16 @@ import {
 } from "../native-kit"
 import { go, replace } from "../navigation"
 import { useTheme } from "../theme"
-import { Button, Choices, confirm, DateField, Empty, Field, Screen, Sheet } from "../ui"
+import {
+  Button,
+  Choices,
+  confirm,
+  DateField,
+  Empty,
+  Field,
+  Screen,
+  Sheet,
+} from "../ui"
 import { AccountCard } from "./finance-account-card"
 import { toCentavos } from "./finance-loan-sheets"
 import { FinPill } from "./finance-planned"
@@ -61,8 +70,9 @@ const live = () =>
 export function myId(): string {
   if (!liveMode) return "me"
   return (
-    (require("@/live/runtime") as typeof import("@/live/runtime")).liveOwner() ??
-    "me"
+    (
+      require("@/live/runtime") as typeof import("@/live/runtime")
+    ).liveOwner() ?? "me"
   )
 }
 
@@ -267,7 +277,10 @@ export function ShareSection({
       return
     }
     setFailed(false)
-    Promise.all([live().fetchAccount(accountId), live().pendingLinks(accountId)])
+    Promise.all([
+      live().fetchAccount(accountId),
+      live().pendingLinks(accountId),
+    ])
       .then(([v, l]) => {
         setView(v)
         setLinks(l)
@@ -420,7 +433,10 @@ export function ShareSection({
             ) : (
               <X size={14} color={t.bad} />
             )}
-            <Copy size={13} style={{ color: note.ok ? t.good : t.bad, flex: 1 }}>
+            <Copy
+              size={13}
+              style={{ color: note.ok ? t.good : t.bad, flex: 1 }}
+            >
               {note.text}
             </Copy>
           </Line>
@@ -622,7 +638,12 @@ function AddRecordSheet({
           })}
         </View>
       )}
-      <DateField label="Date" value={day} onChangeText={setDay} maximumDate={dayKey()} />
+      <DateField
+        label="Date"
+        value={day}
+        onChangeText={setDay}
+        maximumDate={dayKey()}
+      />
       <Button icon={Check} onPress={save}>
         {type === "expense" ? "Add expense" : "Add money in"}
       </Button>
@@ -716,7 +737,12 @@ export function JointAccountDetail({ accountId }: { accountId: string }) {
     }
   }, [synced, accountId])
   const joint = synced ?? fetched ?? undefined
-  if (mine) return <Screen prototypeLayout title="Account"><FrameSkeleton height={120} /></Screen>
+  if (mine)
+    return (
+      <Screen prototypeLayout title="Account">
+        <FrameSkeleton height={120} />
+      </Screen>
+    )
   if (!joint)
     return (
       <Screen prototypeLayout title="Joint account">
@@ -929,8 +955,7 @@ const DEAD: Record<
   used: {
     icon: UserCheck,
     title: "This invite was already used",
-    detail: (who) =>
-      `Each link works once. Ask ${who} to send you a new one.`,
+    detail: (who) => `Each link works once. Ask ${who} to send you a new one.`,
   },
   expired: {
     icon: TimerOff,
@@ -973,7 +998,11 @@ export function InviteScreen({ token }: { token: string }) {
       .previewInvite(token)
       .then((p) => {
         setPreview(p)
-        if (p.state === "used" || p.state === "expired" || p.state === "revoked")
+        if (
+          p.state === "used" ||
+          p.state === "expired" ||
+          p.state === "revoked"
+        )
           setDead(p.state)
       })
       .catch((e) => {
@@ -1097,8 +1126,8 @@ export function InviteScreen({ token }: { token: string }) {
           {preview.state === "own" && preview.subject && (
             <>
               <Copy size={14} muted>
-                This is your own invite link. Send it to the person you want
-                to share with.
+                This is your own invite link. Send it to the person you want to
+                share with.
               </Copy>
               <Button tone="quiet" href={preview.subject.href}>
                 Open the account

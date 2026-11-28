@@ -43,7 +43,6 @@ import { RecordEditor, useMoney } from "./finance"
 import { AccountCard, useAccountColor } from "./finance-account-card"
 import { AccountEditor } from "./finance-account-editor"
 import { FinanceRecord, SampleRecords } from "./finance-home"
-import { FinPill } from "./finance-planned"
 import {
   isJoint,
   JointAccountCard,
@@ -51,6 +50,7 @@ import {
   ShareSection,
   useJointAccounts,
 } from "./finance-joint"
+import { FinPill } from "./finance-planned"
 import { Dimmed, EmptyFoot } from "./locked-preview"
 
 const groups: Record<AccountType, string> = {
@@ -408,9 +408,8 @@ export function Accounts({ id }: { id?: string }) {
                   record={r}
                   by={
                     r.loggedBy
-                      ? (joint?.members.find(
-                          (m) => m.person.id === r.loggedBy,
-                        )?.person.name ?? "A member")
+                      ? (joint?.members.find((m) => m.person.id === r.loggedBy)
+                          ?.person.name ?? "A member")
                       : undefined
                   }
                 />
