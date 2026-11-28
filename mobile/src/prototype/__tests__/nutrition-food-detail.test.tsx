@@ -1,7 +1,9 @@
-// One food's page in live mode: it loads with GET /nutrition/foods/{id},
-// a built-in food reads only (marked, with "Copy to my foods"), and a
-// member's own food's Save sends a PATCH with just the fields that changed,
-// reporting the outcome either way.
+// One food's page in live mode, read first: it loads with GET
+// /nutrition/foods/{id}; the amount stepper and unit chips recalculate
+// every figure; the macros sit against today's targets; facts the food does
+// not carry are left out; highlights come from its numbers; Log this logs
+// it at the chosen amount; the person's history with it links each meal; a
+// built-in food offers Copy to mine, an own food Edit.
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import {
@@ -55,6 +57,7 @@ const mockRequest = jest.fn()
 jest.mock("@/live/auth", () => ({ http: { request: mockRequest } }))
 
 const { FoodDetail } = require("../screens/nutrition-food-detail")
+const { fitStore } = require("@domain/fitness/store")
 const { ApiError } = require("@/live/http")
 
 const food = {
@@ -99,19 +102,32 @@ function show() {
   )
 }
 
+const target = {
+  id: "t1",
+  effectiveFrom: "2000-01-01",
+  kcal: 2000,
+  protein: 150,
+  carbs: 200,
+  fat: 65,
+}
+
 beforeEach(() => {
   mockRequest.mockReset()
   jest.mocked(toast.success).mockReset()
   jest.mocked(toast.error).mockReset()
+  fitStore.set((s: object) => ({
+    ...s,
+    targets: [target],
+    adjustments: [],
+    meals: [],
+  }))
 })
 
-test("loads the food and shows its numbers with separators", async () => {
+test("loads, then reads first: header, amount, calories and facts", async () => {
   mockRequest.mockResolvedValue(food)
   show()
   expect(screen.getByLabelText("Loading food")).toBeTruthy()
-  expect(await screen.findByDisplayValue("Skyr, vanilla")).toBeTruthy()
-  expect(screen.getByDisplayValue("1,200")).toBeTruthy()
-  expect(screen.getByDisplayValue("1,500")).toBeTruthy()
+  expect(await screen.findByText("Skyr, vanilla")).toBeTruthy()
   expect(screen.queryByLabelText("Loading food")).toBeNull()
   expect(mockRequest).toHaveBeenCalledWith(
     "GET",
@@ -119,25 +135,162 @@ test("loads the food and shows its numbers with separators", async () => {
     undefined,
     { timeoutMs: 8000 },
   )
+  expect(screen.getByText("Also called skyr")).toBeTruthy()
+  expect(screen.getByText("1,200")).toBeTruthy()
+  // 15 g protein × 4 = 60 and 10 g carbs × 4 = 40 of 100 macro kcal
+  expect(screen.getByText("60%")).toBeTruthy()
+  expect(screen.getByText("40%")).toBeTruthy()
+  expect(screen.getByText("1,500 mg")).toBeTruthy()
+  // 1,500 of the default 2,000 mg sodium limit
+  expect(screen.getByText("75% of limit")).toBeTruthy()
+  // No edit form on the read page.
+  expect(screen.queryByDisplayValue("Skyr, vanilla")).toBeNull()
+  expect(screen.queryByText("Save changes")).toBeNull()
 })
 
-const builtInNote =
-  "Built in for everyone, so it can't be changed. Copy it to make your own."
+test("the stepper and unit chips recalculate every figure", async () => {
+  mockRequest.mockResolvedValue(food)
+  show()
+  expect(await screen.findByText("Log 1 serving")).toBeTruthy()
+  fireEvent.press(screen.getByLabelText("Increase Amount"))
+  // 1.5 servings × 1,200 = 1,800 kcal; × 1,500 mg = 2,250 mg
+  expect(screen.getByText("Log 1.5 servings")).toBeTruthy()
+  expect(screen.getByText("1,800")).toBeTruthy()
+  expect(screen.getByText("2,250 mg")).toBeTruthy()
+  expect(
+    screen.getByText("1.5 servings = 225 g · values per serving"),
+  ).toBeTruthy()
+  fireEvent.press(screen.getByLabelText("In grams"))
+  // 100 g of a 150 g serving: 800 kcal
+  expect(screen.getByText("Log 100 g")).toBeTruthy()
+  expect(screen.getByText("800")).toBeTruthy()
+})
 
-test("a built-in food reads only, marked, with no edit controls", async () => {
+test("the macros sit against today's targets, with what is left", async () => {
+  mockRequest.mockResolvedValue(food)
+  show()
+  await screen.findByText("Skyr, vanilla")
+  // 1,200 of 2,000 kcal = 60%; 800 left. 15 of 150 g protein = 10%.
+  expect(screen.getByText("60% of 2,000")).toBeTruthy()
+  expect(screen.getByText("800 kcal left after this")).toBeTruthy()
+  expect(screen.getByText("10% of 150")).toBeTruthy()
+  expect(screen.queryByText("Set your daily targets")).toBeNull()
+})
+
+test("no targets: the bars dim behind a way to set them", async () => {
+  fitStore.set((s: object) => ({ ...s, targets: [] }))
+  mockRequest.mockResolvedValue(food)
+  show()
+  expect(await screen.findByText("Set your daily targets")).toBeTruthy()
+})
+
+test("a food with only kcal and three macros shows no 0 for the unknowns", async () => {
+  mockRequest.mockResolvedValue({ ...food, sugar: null, sodium: null })
+  show()
+  expect(
+    await screen.findByText(
+      "Only calories and macros are known for this food.",
+    ),
+  ).toBeTruthy()
+  expect(screen.queryByText("Sodium")).toBeNull()
+  expect(screen.queryByText("0 mg")).toBeNull()
+  expect(screen.queryByText("High sodium")).toBeNull()
+})
+
+test("its numbers earn a highlight, with the figure behind it", async () => {
+  mockRequest.mockResolvedValue(food)
+  show()
+  // 1,500 mg in a 150 g serving = 1,000 mg per 100 g, over 600
+  expect(await screen.findByText("High sodium")).toBeTruthy()
+  expect(screen.getByText("  1,000 mg per 100 g")).toBeTruthy()
+})
+
+test("Log this logs the chosen amount, counts the use, and can be undone", async () => {
+  mockRequest.mockResolvedValue(food)
+  show()
+  fireEvent.press(await screen.findByText("Log 1 serving"))
+  const meals = fitStore.get().meals
+  expect(meals).toHaveLength(1)
+  expect(meals[0].items[0]).toMatchObject({
+    name: "Skyr, vanilla",
+    qty: 1,
+    unit: "serving",
+    kcal: 1200,
+  })
+  expect(
+    screen.getByText(`Logged to ${meals[0].label} · 1,200 kcal`),
+  ).toBeTruthy()
+  expect(mockRequest).toHaveBeenCalledWith("POST", "/nutrition/foods/f1/use")
+  // The history counts it at once.
+  expect(screen.getByText("time logged")).toBeTruthy()
+  fireEvent.press(screen.getByText("Undo"))
+  expect(fitStore.get().meals).toHaveLength(0)
+})
+
+test("history counts the meals it was in and opens each", async () => {
+  const { router } = require("expo-router")
+  const eatenAt = new Date(Date.now() - 3 * 86400000).toISOString()
+  fitStore.set((s: object) => ({
+    ...s,
+    meals: [
+      {
+        id: "m1",
+        eatenAt,
+        label: "breakfast",
+        source: "manual",
+        rawInput: "",
+        status: "confirmed",
+        items: [
+          {
+            id: "i1",
+            name: "Skyr (150 g)",
+            qty: 2,
+            unit: "serving",
+            kcal: 2400,
+            protein: 30,
+            carbs: 20,
+            fat: 0,
+          },
+        ],
+      },
+    ],
+  }))
+  mockRequest.mockResolvedValue(food)
+  show()
+  expect(await screen.findByText("time logged")).toBeTruthy()
+  expect(screen.queryByText("Not logged yet")).toBeNull()
+  fireEvent.press(
+    screen.getByLabelText(/breakfast, 2 servings, 2,400 kcal. Open meal/),
+  )
+  expect(router.push).toHaveBeenCalledWith("/nutrition/meals/m1")
+})
+
+test("never eaten: history dims behind Log this", async () => {
+  mockRequest.mockResolvedValue(food)
+  show()
+  expect(await screen.findByText("Not logged yet")).toBeTruthy()
+})
+
+test("a built-in food reads only: marked, Copy to mine, no Edit", async () => {
   mockRequest.mockResolvedValue({ ...food, can_edit: false, is_global: true })
   show()
-  expect(await screen.findByText(builtInNote)).toBeTruthy()
-  expect(screen.getByText("Built-in")).toBeTruthy()
-  expect(screen.getByText("1,200 kcal")).toBeTruthy()
-  expect(screen.getByText("1,500 mg")).toBeTruthy()
-  expect(screen.queryByText("Save changes")).toBeNull()
-  expect(screen.queryByDisplayValue("Skyr, vanilla")).toBeNull()
-  expect(screen.queryByLabelText("Add food photo")).toBeNull()
-  expect(screen.getByText("Copy to my foods")).toBeTruthy()
+  expect(await screen.findByText("Built-in")).toBeTruthy()
+  expect(screen.getByText("Copy to mine")).toBeTruthy()
+  expect(screen.queryByText("Edit")).toBeNull()
 })
 
-test("Copy to my foods copies it and opens the own copy", async () => {
+test("an own food offers Edit, which opens the edit page", async () => {
+  const { router } = require("expo-router")
+  mockRequest.mockResolvedValue(food)
+  show()
+  expect(await screen.findByText("Yours")).toBeTruthy()
+  expect(screen.queryByText("Built-in")).toBeNull()
+  expect(screen.queryByText("Copy to mine")).toBeNull()
+  fireEvent.press(screen.getByText("Edit"))
+  expect(router.push).toHaveBeenCalledWith("/nutrition/foods/edit/f1")
+})
+
+test("Copy to mine copies it and opens the own copy", async () => {
   const { router } = require("expo-router")
   mockRequest.mockImplementation(async (method: string) =>
     method === "POST"
@@ -145,7 +298,7 @@ test("Copy to my foods copies it and opens the own copy", async () => {
       : { ...food, can_edit: false, is_global: true },
   )
   show()
-  fireEvent.press(await screen.findByText("Copy to my foods"))
+  fireEvent.press(await screen.findByText("Copy to mine"))
   await waitFor(() =>
     expect(router.replace).toHaveBeenCalledWith("/nutrition/foods/f2"),
   )
@@ -159,18 +312,10 @@ test("a failed copy says so", async () => {
     return { ...food, can_edit: false, is_global: true }
   })
   show()
-  fireEvent.press(await screen.findByText("Copy to my foods"))
+  fireEvent.press(await screen.findByText("Copy to mine"))
   const why = "Couldn't copy this food. Please try again."
   expect(await screen.findByText(why)).toBeTruthy()
   expect(toast.error).toHaveBeenCalledWith(why)
-})
-
-test("an own food has no built-in mark and no copy button", async () => {
-  mockRequest.mockResolvedValue(food)
-  show()
-  await screen.findByDisplayValue("Skyr, vanilla")
-  expect(screen.queryByText("Built-in")).toBeNull()
-  expect(screen.queryByText("Copy to my foods")).toBeNull()
 })
 
 test("an Open Food Facts product credits it and links its page", async () => {
@@ -188,7 +333,6 @@ test("an Open Food Facts product credits it and links its page", async () => {
   show()
   const credit = "From Open Food Facts, under the Open Database License (ODbL)"
   expect(await screen.findByText(credit)).toBeTruthy()
-  expect(screen.getByText(builtInNote)).toBeTruthy()
   fireEvent.press(screen.getByLabelText(`${credit}. Opens openfoodfacts.org`))
   expect(open).toHaveBeenCalledWith(url)
 })
@@ -200,48 +344,6 @@ test("a USDA food says its values are lab-analysed, not from a label", async () 
   expect(
     screen.getByText("From USDA FoodData Central (public domain)"),
   ).toBeTruthy()
-  expect(screen.queryByText("Read from a label")).toBeNull()
-})
-
-test("Save sends only the changed fields and reports it", async () => {
-  mockRequest.mockResolvedValue(food)
-  show()
-  await screen.findByDisplayValue("Skyr, vanilla")
-  mockRequest.mockResolvedValue({ ...food, protein: 18, fiber: 2 })
-  fireEvent.changeText(screen.getByLabelText("Protein (g)"), "18")
-  fireEvent.changeText(screen.getByLabelText("Fiber (g) — optional"), "2")
-  fireEvent.press(screen.getByText("Save changes"))
-  expect(await screen.findByText("Saved")).toBeTruthy()
-  expect(mockRequest).toHaveBeenCalledWith("PATCH", "/nutrition/foods/f1", {
-    protein: 18,
-    fiber: 2,
-  })
-  expect(toast.success).not.toHaveBeenCalled()
-})
-
-test("nothing changed: Save stays off", async () => {
-  mockRequest.mockResolvedValue(food)
-  show()
-  await screen.findByDisplayValue("Skyr, vanilla")
-  fireEvent.press(screen.getByText("Save changes"))
-  expect(mockRequest).toHaveBeenCalledTimes(1)
-})
-
-test("a refused save says why", async () => {
-  mockRequest.mockResolvedValue(food)
-  show()
-  await screen.findByDisplayValue("Skyr, vanilla")
-  mockRequest.mockRejectedValue(
-    new ApiError(409, "food_name_taken", "Name taken"),
-  )
-  fireEvent.changeText(screen.getByLabelText("Name"), "Greek yogurt")
-  fireEvent.press(screen.getByText("Save changes"))
-  const why = "Another food already has that name. Pick a different one."
-  expect(await screen.findByText(why)).toBeTruthy()
-  expect(mockRequest).toHaveBeenLastCalledWith("PATCH", "/nutrition/foods/f1", {
-    name: "Greek yogurt",
-  })
-  expect(toast.error).toHaveBeenCalledWith(why)
 })
 
 test("a missing food is not found, not a retry card", async () => {
@@ -251,40 +353,11 @@ test("a missing food is not found, not a retry card", async () => {
   expect(mockRequest).toHaveBeenCalledTimes(1)
 })
 
-test("a picked photo uploads, then PATCHes the food with its media id", async () => {
-  const { pickPhoto } = require("../media")
-  jest.mocked(pickPhoto).mockResolvedValue("data:image/jpeg;base64,AAAA")
-  const put = jest.fn(async () => ({ ok: true, status: 200 }))
-  const realFetch = global.fetch
-  let saved: object = food
-  global.fetch = put as unknown as typeof fetch
-  mockRequest.mockImplementation(async (method: string, path: string) => {
-    if (path === "/media/uploads")
-      return { id: "m1", upload_url: "https://store/put", headers: {} }
-    if (path === "/media/m1/complete")
-      return { id: "m1", kind: "image", mime: "image/jpeg", state: "ready" }
-    // The server keeps what was saved: a refetch after the PATCH sees it.
-    if (method === "PATCH")
-      saved = { ...food, photo_media_id: "m1", photo_url: "https://cdn/m1" }
-    return saved
-  })
-  try {
-    show()
-    fireEvent.press(await screen.findByLabelText("Add food photo"))
-    // Upload, complete and PATCH run in turn: give them more than the
-    // default second on a slow runner.
-    expect(
-      await screen.findByLabelText("Change food photo", {}, { timeout: 8000 }),
-    ).toBeTruthy()
-    expect(put).toHaveBeenCalledWith(
-      "https://store/put",
-      expect.objectContaining({ method: "PUT" }),
-    )
-    expect(mockRequest).toHaveBeenCalledWith("PATCH", "/nutrition/foods/f1", {
-      photo_media_id: "m1",
-    })
-    expect(toast.success).not.toHaveBeenCalled()
-  } finally {
-    global.fetch = realFetch
-  }
-}, 20_000)
+test("a failed load offers a retry, apart from loading and not found", async () => {
+  mockRequest.mockRejectedValue(new ApiError(500, "boom", "Boom"))
+  show()
+  expect(
+    await screen.findByText("Couldn’t load this food", {}, { timeout: 8000 }),
+  ).toBeTruthy()
+  expect(screen.getByText("Try again")).toBeTruthy()
+}, 15_000)
