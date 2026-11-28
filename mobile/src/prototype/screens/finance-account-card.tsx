@@ -2,6 +2,7 @@
 // card in a wallet, filled with the account's own colour. Stat cards stay
 // outlined, so a glance tells "where money lives" from "what it adds up to".
 import * as C from "@domain/finance/calc"
+import type { ReactNode } from "react"
 import type { Account, AccountType } from "@domain/finance/data"
 import {
   Banknote,
@@ -151,12 +152,15 @@ export function AccountCard({
   balance,
   compact = false,
   onPress,
+  shared,
 }: {
   account: Account
   balance: number
   /** The small card in the Finance home row; full width otherwise. */
   compact?: boolean
   onPress?: () => void
+  /** A joint account's mark (the people in it), top right. */
+  shared?: ReactNode
 }) {
   const money = useMoney()
   const base = useAccountColor(a)
@@ -226,6 +230,7 @@ export function AccountCard({
               {KIND[a.type]}
             </Copy>
           </View>
+          {shared}
         </View>
         <View style={{ gap: 2 }}>
           <Copy

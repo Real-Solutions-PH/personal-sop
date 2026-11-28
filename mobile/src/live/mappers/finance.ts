@@ -320,6 +320,8 @@ export function recordMapper(cats: Cats): Mapper<FinState, FinRecord> {
           ? fromMinor(row.orig_amount_minor)
           : undefined,
       fxRate: row.fx_rate != null ? Number(row.fx_rate) : undefined,
+      // Server-written (a joint account member's record); never sent back.
+      loggedBy: str(row.logged_by),
     }),
     merge: (s, ups, dels) => ({
       ...s,

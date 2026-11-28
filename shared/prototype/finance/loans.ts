@@ -15,6 +15,7 @@
 import { derivedId, newId } from "../lib/ids"
 import { createStore } from "../lib/store"
 import type { SharedBudget, SharedGoal } from "./groups"
+import type { SharedAccount } from "./joint"
 
 export type LoanRole = "lender" | "borrower"
 export type LoanStatus =
@@ -110,6 +111,8 @@ export interface SharedState {
   loans: Loan[]
   goals: SharedGoal[]
   budgets: SharedBudget[]
+  /** Joint accounts (optional: a phone's saved state may predate them). */
+  accounts?: SharedAccount[]
 }
 
 export const sharedStore = createStore<SharedState>("finance-shared", () => ({
@@ -125,7 +128,7 @@ export const EMPTY_SHARED: SharedState = { loans: [], goals: [], budgets: [] }
 export const memberId = (
   userId: string,
   objectId: string,
-  kind: "loan" | "goal" | "budget" = "loan",
+  kind: "loan" | "goal" | "budget" | "account" = "loan",
 ) => derivedId("shared-member", userId, `${kind}:${objectId}`)
 
 // ---------------------------------------------------------------- arithmetic

@@ -2,8 +2,11 @@ import { confirmRecord } from "@domain/finance/actions"
 import * as N from "@domain/finance/calc"
 import type { FinRecord } from "@domain/finance/data"
 import { reportData } from "@domain/finance/reports"
+import { jointWorth } from "@domain/finance/joint"
+import { sharedStore } from "@domain/finance/loans"
 import { finStore } from "@domain/finance/store"
 import { dayKey } from "@domain/lib/day"
+import { currentCurrency } from "@domain/lib/money"
 import { useLocalSearchParams } from "expo-router"
 import {
   CalendarClock,
@@ -71,10 +74,13 @@ export function FinanceRecord({
   record,
   onPress,
   selected,
+  by,
 }: {
   record: FinRecord
   onPress?: () => void
   selected?: boolean
+  /** A joint account: who logged it, when it wasn't me. */
+  by?: string
 }) {
   const t = useTheme(),
     s = finStore.use((s) => s),
@@ -99,7 +105,7 @@ export function FinanceRecord({
           : (category?.name ?? "Untitled"))
       }
       pending={record.status === "pending"}
-      meta={`${
+      meta={`${by ? `${by} logged · ` : ""}${
         record.type === "transfer"
           ? `${account?.name ?? "?"} → ${s.accounts.find((a) => a.id === record.toAccountId)?.name ?? "?"}`
           : `${category?.name ?? "Uncategorised"} · ${account?.name ?? "?"}`
@@ -265,9 +271,15 @@ export function FinanceHome({
     ),
     _today = dayKey(),
     bal = N.balances(s),
-    nw = N.netWorth(s, bal),
+    // Joint accounts someone else owns that I'm in count too (their
+    // history isn't in my ledger, so the trend holds them level).
+    joint = jointWorth(
+      sharedStore.use((x) => x.accounts),
+      currentCurrency().code,
+    ),
+    nw = N.netWorth(s, bal) + joint,
     series = N.netWorthSeries(s, 90),
-    prior = series[series.length - 31] ?? nw,
+    prior = (series[series.length - 31] ?? nw - joint) + joint,
     delta = prior ? ((nw - prior) / Math.abs(prior)) * 100 : 0,
     accounts = s.accounts
       .filter((a) => !a.archived)
