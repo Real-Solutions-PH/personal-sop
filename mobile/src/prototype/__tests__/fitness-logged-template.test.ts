@@ -161,3 +161,53 @@ test("a template the person made with the same name is never rewritten", () => {
     [{ exerciseId: b, sets: 5 }],
   )
 })
+
+test("renaming the workout on its summary renames the template it made", () => {
+  const [a] = exIds()
+  const w = logFree("Morning workout", [[a, 3]])
+  const count = own().length
+  A.updateWorkoutMeta(w?.id ?? "", { name: "Garage legs" })
+  expect(own()).toHaveLength(count)
+  const now = fitStore.get().workouts.find((x) => x.id === w?.id)
+  expect(now?.templateId).toBe(w?.templateId)
+  expect(
+    fitStore.get().templates.find((t) => t.id === now?.templateId)?.name,
+  ).toBe("Garage legs")
+})
+
+test("renaming it to a kept workout's name joins that template, no copy", () => {
+  const [a, b] = exIds()
+  const first = logFree("Garage legs", [[a, 3]])
+  const second = logFree("Evening workout", [[b, 2]])
+  const count = own().length
+  A.updateWorkoutMeta(second?.id ?? "", { name: "Garage legs" })
+  expect(own()).toHaveLength(count - 1)
+  const now = fitStore.get().workouts.find((x) => x.id === second?.id)
+  expect(now?.templateId).toBe(first?.templateId)
+  expect(
+    fitStore.get().templates.find((t) => t.id === first?.templateId)?.items,
+  ).toEqual([{ exerciseId: b, sets: 2 }])
+  expect(
+    fitStore.get().templates.some((t) => t.id === second?.templateId),
+  ).toBe(false)
+})
+
+test("renaming a workout started from a template leaves the template alone", () => {
+  const [a] = exIds()
+  const tpl = A.upsertTemplate({
+    name: "Push",
+    items: [{ exerciseId: a, sets: 3 }],
+  })
+  const res = A.startWorkout({ from: "template", templateId: tpl.id })
+  if (!res.ok) throw new Error(res.reason)
+  for (const we of res.workout.exercises)
+    for (const x of we.sets) A.toggleSet(res.workout.id, we.id, x.id)
+  A.finishWorkout(res.workout.id)
+  A.updateWorkoutMeta(res.workout.id, { name: "Push, heavy" })
+  expect(fitStore.get().templates.find((t) => t.id === tpl.id)?.name).toBe(
+    "Push",
+  )
+  expect(
+    fitStore.get().workouts.find((x) => x.id === res.workout.id)?.templateId,
+  ).toBe(tpl.id)
+})

@@ -398,7 +398,10 @@ export function updateWorkoutMeta(
     notes?: string
   },
 ) {
+  const before = fitStore.get().workouts.find((x) => x.id === id)
   patchWorkout(id, (w) => ({ ...w, ...patch }))
+  if (patch.name !== undefined && before && !sameName(before.name, patch.name))
+    rekeepAfterRename(id)
 }
 export function startRest(sec?: number) {
   fitStore.set((s) => {
@@ -658,6 +661,26 @@ function keepAsTemplate(workoutId: string) {
     }),
   })
   patchWorkout(workoutId, (x) => ({ ...x, templateId: tpl.id }))
+}
+/** A finished workout renamed on its summary ("Morning workout" to
+ * "Upper") follows its kept template: the one it made is renamed, or it
+ * joins a kept template that already has the new name (and the one it made
+ * goes, when no other workout uses it). A workout linked to a template the
+ * person chose keeps that link and leaves the template alone. */
+function rekeepAfterRename(workoutId: string) {
+  const s = fitStore.get()
+  const w = s.workouts.find((x) => x.id === workoutId)
+  if (!w?.templateId || w.status !== "finished") return
+  const kept = new Set(s.workouts.map((x) => keptTemplateId(x.id)))
+  if (!kept.has(w.templateId)) return
+  const old = w.templateId
+  patchWorkout(workoutId, ({ templateId: _, ...x }) => x)
+  keepAsTemplate(workoutId)
+  if (
+    old === keptTemplateId(workoutId) &&
+    !fitStore.get().workouts.some((x) => x.templateId === old)
+  )
+    deleteTemplate(old)
 }
 export function saveAsTemplate(
   workoutId: string,
